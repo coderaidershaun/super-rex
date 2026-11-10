@@ -3,8 +3,8 @@ name: rex-code-improve-codebase-architecture
 description: >
   Finds architecture friction in a codebase, ranks the candidates, and designs
   the best one. It makes shallow modules deep and makes the folder tree tell how
-  the code works. It uses the domain language in CONTEXT.md, the decisions in
-  docs/adr/, and the tree rules in rex-code-folder-management. It runs with no
+  the code works. It uses the domain words in the code, the priority block of
+  the repo, and the tree rules in rex-code-folder-management. It runs with no
   questions to the user: it picks the target, builds nothing, and ends with a
   design brief that tells the builder how to prove that behavior did not change.
 when_to_use: >
@@ -58,11 +58,12 @@ Three tests:
 | When | Load |
 | --- | --- |
 | Each run, before step 1 | `.claude/skills/rex-code-folder-management/SKILL.md` — tree rules, placement table, AUDIT, MOVE |
+| Each run, before step 1 | `.claude/skills/rex-code-priorities/SKILL.md` — priority block, READ, USE |
 | Step 2, to judge names + call sites | `.claude/skills/rex-code-ergonomics/SKILL.md` |
 | Step 3, dependencies of candidate | [DEEPENING.md](DEEPENING.md) |
 | Step 3, IF candidate changes interface | [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md) |
 
-Domain language names good seams. `CONTEXT.md` has domain terms. `docs/adr/` has decisions that this skill must not open again without cause.
+Domain language names good seams. Names in code hold domain terms. Priority block holds ranking + Never lines. Warning comments + fitness functions hold decisions that this skill must not open again without cause.
 
 ## RULES: no questions
 
@@ -94,7 +95,7 @@ Facts first. No advice in this step.
 
 ### 1.1 Read
 
-- [ ] `CONTEXT.md` + `docs/adr/` for scope. IF file does not exist, THEN continue.
+- [ ] Priority block: obey READ + USE in `rex-code-priorities`. IF block does not exist, THEN continue. Step 4.4 says when to stop.
 - [ ] Document that invocation names: spec, plan, goal. List what next work imports from this code.
 - [ ] `CODEBASE.md`, IF it exists. ELSE IF `rex` is on PATH, THEN run `rex codebase --rust-only --with-context`.
 - [ ] Entry files: `lib.rs`, `main.rs`, `Cargo.toml`.
@@ -165,10 +166,10 @@ Write numbered list. Sort by leverage x locality gain. Each candidate:
 
 Rules:
 
-- [ ] Use `CONTEXT.md` terms for domain. Use Words table for architecture. Say "Order intake module", not "FooBarHandler".
+- [ ] Use domain words from code for domain. Use Words table for architecture. Say "Order intake module", not "FooBarHandler".
 - [ ] Each candidate must pass ERGONOMICS CHECK. IF it fails, THEN drop it or change it.
 - [ ] Each candidate must obey each rule of `rex-code-folder-management`.
-- [ ] IF candidate conflicts with ADR, THEN list it only when friction is large. Mark it: "contradicts ADR-0007, open again because …".
+- [ ] IF candidate conflicts with warning comment or fitness function, THEN list it only when friction is large. Mark it: "contradicts warning at src/feed.rs:42, open again because …".
 - [ ] One run = one kind. Join move candidates into one run. Never mix move + redesign.
 - [ ] IF scope has move candidates + redesign candidates, THEN do move first. Clean tree makes redesign small.
 - [ ] Pick top candidate yourself. IF tie between top 2 or 3, THEN get second opinion, then decide.
@@ -184,7 +185,7 @@ Walk design tree for chosen candidate alone. Write each answer. Answers become b
 - [ ] Dependencies: category from [DEEPENING.md](DEEPENING.md) for each one.
 - [ ] Shape: interface of each module after change. What is behind each seam?
 - [ ] Tree: target tree, with one line of purpose for each file. Make sure AUDIT gives zero defects for it.
-- [ ] Names: each new name is word that code or `CONTEXT.md` uses. No invented word.
+- [ ] Names: each new name is word that code uses, or domain word from side effects below. No invented word.
 - [ ] Tests: which tests stay, which move with code, which go. Default: add zero tests for move.
 - [ ] Hidden behavior: each item + how Proof covers it.
 - [ ] Next work: each import from 1.1 is at interface after change.
@@ -203,13 +204,10 @@ Side effects. Do each one now, not later:
 
 | Condition | Action |
 | --- | --- |
-| New module name = concept not in `CONTEXT.md` | Add term to `CONTEXT.md`. IF file does not exist, THEN create it. |
-| Vague term gets sharp during design | Update `CONTEXT.md`. |
-| Candidate rejected for load-bearing reason that next explorer needs | Write ADR in `docs/adr/`. Skip reasons that are obvious or short-lived. |
+| New module name = concept that code does not name | Take domain word from task. Put it in brief as module name + module `//!` line (`rex-code-commenting`). |
+| Vague term gets sharp during design | Use sharp term in brief for each new name. |
+| Candidate rejected for load-bearing reason that next explorer needs | Put reason in brief as permanent warning comment for builder to write where it matters (`rex-code-commenting`, whitelist 2). Skip reasons that are obvious or short-lived. |
 | Stuck on trade-off | Second opinion. Not user. |
-
-Format for `CONTEXT.md` term: `**Term** — one-line meaning. _Avoid_: words not to use.`
-Format for ADR: title, context, decision, consequences. Max 20 lines.
 
 ## 4. Brief
 
@@ -264,11 +262,10 @@ IF check fails, THEN stage is not done.
 Stop before brief only IF:
 
 - [ ] Build is red at baseline, OR
-- [ ] Chosen candidate conflicts with ADR that is not worth opening again.
+- [ ] No priority block AND choice of candidate depends on ranking (READ in `rex-code-priorities`), OR
+- [ ] Chosen candidate conflicts with warning comment or fitness function that is not worth opening again.
 
 Then report + leave code as it was.
-
-CAUTION: Do not commit or push unless the user asks. The `CONTEXT.md` and ADR edits stay in the working tree.
 
 ## Report
 
@@ -282,7 +279,6 @@ Final report to user. Lead with what user gets. Full sentences, plain words.
 - [ ] What AUDIT flagged. Each `SMELL:` comment in scope.
 - [ ] Candidates not taken + reason for each.
 - [ ] Public paths that brief changes.
-- [ ] `CONTEXT.md` + ADR edits: files changed, committed or not.
 
 ## ERGONOMICS CHECK
 
@@ -292,7 +288,7 @@ Each candidate must answer all. IF one answer is bad, THEN think again before yo
 | --- | --- |
 | Is caller code shorter after? | Shorter |
 | How many files does reader open for one concept after? | Fewer |
-| Does each name match `CONTEXT.md` or word in code? | Yes |
+| Does each name match word in code or domain word from task? | Yes |
 | Is autocomplete list at interface easier to read? | Yes |
 | Does error reach caller with context? | Yes |
 | Can reader name jobs of crate from tree alone? | Yes |

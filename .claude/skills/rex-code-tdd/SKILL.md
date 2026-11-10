@@ -51,7 +51,7 @@ RIGHT (vertical):
 
 ### 1. Planning
 
-When you explore codebase, use project's domain glossary. Purpose: test names and interface vocabulary match project's language. Respect ADRs in area where you work.
+When you explore codebase, use domain words that code uses. Purpose: test names and interface vocabulary match project's language. Obey priority block (`rex-code-priorities`) + warning comments in area where you work.
 
 Before you write any code:
 
