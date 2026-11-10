@@ -11,6 +11,7 @@ GENERAL test: remove names of this job from lesson (files, repo, feature, people
 | Cause | Home |
 | --- | --- |
 | `agent-skill` | That skill: file in `.claude/skills/<name>/` that holds the rule. `SKILL.md` or a sibling file. |
+| `agent-skill`, brief did not name sibling file that holds rule | `orchestration-work-breakdown` (it lists skills + sibling files of each task) |
 | `agent-orchestration` | Orchestrator file, or its lead skill, in `.rex/orchestrators/<name>/` |
 | `agent-model-effort`, check 3 | `orchestration-selection`, only IF lesson is general |
 | `agent-model-effort`, checks 1, 2, 4 | No file |
@@ -21,8 +22,8 @@ CAUTION: You cannot undo an edit to a skill or an orchestrator. These files are 
 2. IF a rule caused miss, THEN remove or correct that rule. Add no counter-rule.
 3. IF lesson shows a rule is not needed now, THEN remove that rule.
 4. IF no rule caused miss, THEN add one rule. Shortest text. Obey `rex-skill-language`.
-5. IF new rule is for one step or one case, THEN write it in file of that step or case, next to `SKILL.md`. Changed `SKILL.md` stays within limits: body max 1,500 words, `description` + `when_to_use` together max 60 words.
-6. IF same rule is in a different file, THEN change it there. One rule, one home. Do not copy it.
+5. IF new rule is for one step or one case, THEN write it in file of that step or case, next to `SKILL.md`. IF no such file exists, THEN create it and add one row for it to the table in that skill's `SKILL.md` that says when to read each file. Changed `SKILL.md` stays within limits: body max 1,500 words, `description` + `when_to_use` together max 60 words.
+6. IF same rule is in a different file, THEN change it there. To find it, search skill folder for key words of rule. One rule, one home. Do not copy it.
 7. Change file with Edit tool or Write tool. Never use a shell command. Reason: sandbox refuses a shell write below `.claude/skills/`.
 8. Run check on folder of each changed skill or orchestrator. Give that folder, also when only a sibling file changed. Exit 0 = pass. Exit 1 = findings on standard output, one line each.
 

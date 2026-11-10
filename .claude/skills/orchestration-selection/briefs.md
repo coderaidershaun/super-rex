@@ -1,10 +1,10 @@
 # Briefs and guidance
 
 For agent that runs orchestrator skill: session at step 7 of `.claude/skills/orchestration-builder/run.md`, or builder inside open job. Uses words of `.claude/skills/orchestration-builder/SKILL.md`, and words below.
-Decision agent reads only `## Limits of Claude Code`.
 
 - `JOB_DIR`: Absolute path where job branch is checked out. `.claude/skills/rex-deliver/start.md` gives it.
 - Tag block: First lines of brief: `Rex-Job: <job ID>`, `Rex-Role: <role>`, then one blank line.
+- Lead skill: Reusable file for lead: `<role>.md` in folder of orchestrator skill.
 
 ## Briefs
 
@@ -19,9 +19,9 @@ Each brief starts with tag block, as its first characters. Hooks read it to reco
 - [ ] Writer in Git repo: IF job works in job worktree, THEN brief gives `JOB_DIR`.
 - [ ] Parallel writer: its lines come from `.claude/skills/rex-deliver/parallel-writers.md`.
 - [ ] Task detail from work breakdown goes in brief.
-- [ ] Skills in brief: only `Skills` of task of that agent, from its row in work breakdown. Path of skill = its `Path` in skill list. Path of sibling file `<skill>/<file>.md` = folder of that `Path` + `<file>.md`.
+- [ ] Skills in brief: only `Skills` of task of that agent, from its row in work breakdown. Path of skill = its `Path` in skill list. Path of sibling file `<skill>/<file>.md` = folder of that `Path` + `<file>.md`. Agent reads these first. It also reads a sibling file when a `SKILL.md` that it read sends it there.
 - [ ] Agent of lead, or of role with no task (`—` in `Tasks`): skills of its role, from role table.
-- [ ] Lead: brief gives rows of tasks that it leads, with their Skills. Lead gives each worker only Skills of that worker's task.
+- [ ] Lead: brief gives rows of tasks that it leads, with their Skills. Each worker brief of lead names only skills + sibling files of that worker's task.
 - [ ] Lead gets path of its lead skill in brief. Lead reads it IN FULL. Plain file read, not Skill tool.
 - [ ] Brief is for agent with no context: full sentences.
 
@@ -33,7 +33,7 @@ Rex-Role: <role>
 
 Outcome: <one deliverable, and why it matters>.
 Scope: <the files and state that you own, the prerequisites, the starting revision, and the edits or failures that exist already>.
-Context: <the requirements, interfaces, decisions, and locations of artifacts that apply>. Read these files in full before you start: <absolute paths of the skills and sibling files of your task, or of your role>.
+Context: <the requirements, interfaces, decisions, and locations of artifacts that apply>. Read these files in full before you start: <absolute paths of the skills and sibling files of your task, or of your role>. Also read a sibling file when one of these SKILL.md files sends you there.
 Acceptance: <the evidence that you must show to pass>.
 Limits: <the time and effort, the concurrency, and when to escalate>.
 Return: Give a short verdict and references: paths and commits. Map each acceptance criterion to its evidence. List the open issues. End the report with one state: done, partial, awaiting decision, or blocked.
@@ -41,11 +41,7 @@ Return: Give a short verdict and references: paths and commits. Map each accepta
 
 ## Limits of Claude Code
 
-- [ ] Default max = 3 layers of sub-agent below main session. `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` changes it.
-- [ ] L1 -> L2 -> L3 uses 2 layers. One layer is spare. IF orchestrator is sub-agent (builder inside open job), THEN it has fewer layers below it.
-- [ ] Agent at last layer cannot start agents. It has no Agent tool.
-- [ ] Agent teams: teammate cannot start teammates. Teammate can start sub-agents.
-- [ ] IF lead cannot start agents, THEN lead writes assignments. Orchestrator starts workers and gives their results to lead.
+Read `.claude/skills/orchestration-selection/limits.md` before you start first lead, OR IF you are sub-agent.
 
 ## Guidance
 
@@ -59,7 +55,7 @@ Guidance, not rules. Orchestrator can do different.
 - [ ] Agreement of agents is not proof. Use tests, sources, observations you can repeat, or explicit rubric.
 - [ ] Select verification by uncertainty + consequence, not by complexity only. Stop when acceptance passes.
 - [ ] Put limit on reviews, retries, and search.
-- [ ] IF failures repeat, OR coordination costs more than delivery, THEN plan again: send evidence of failures to decision agent with SendMessage. IF it is gone, THEN start one new decision agent (brief of `.claude/skills/orchestration-builder/decide.md`) with last decision block + evidence. Work on with corrected block. Role that `rex job plan` did not print: start it with agent of its `Agent` column.
+- [ ] IF failures repeat, OR coordination costs more than delivery, THEN plan again: send evidence of failures to decision agent with SendMessage. IF it is gone, THEN start one new decision agent (brief of `.claude/skills/orchestration-builder/decide.md`) with last decision block + evidence. Work on with corrected block. Role that `rex job plan` did not print: start it with agent of its `Agent` column. Max 2 replans for each job. After that, report state `blocked` to requester.
 
 Recovery:
 

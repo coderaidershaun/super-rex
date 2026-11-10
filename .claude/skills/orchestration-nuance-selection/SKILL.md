@@ -15,7 +15,7 @@ user-invocable: false
 Settle which skills this job uses. Ask for new skill only IF test of step 3 passes. Default result: no new skill.
 
 ```
-1. Take output of `rex skills list` from builder. IF you have none, THEN run `rex skills list`.
+1. Run `rex skills list`.
 2. Find needs of job. IF skill in list covers need, THEN add that skill to skill list.
 3. Test each need that no skill covers. IF test fails, THEN write no skill.
 4. IF test passes, THEN put need under NEW SKILLS. Builder has session agent write it.
@@ -50,7 +50,7 @@ From builder: request, classification, recall output, job ID. Output of `rex ski
 
 ## Step 1 — List skills
 
-IF you have no output of `rex skills list`, THEN run `rex skills list` now.
+Run `rex skills list`.
 It prints one block of six lines for each skill, in repo and in user skill folder of Claude Code:
 
 ```

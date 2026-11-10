@@ -15,7 +15,8 @@ For person, planning has two stages. Run 1 = plan job: it writes plan file. Pers
 - [ ] Challenger = Codex. IF Codex is not available, THEN grid agent `model-high-effort-high` or above, by complexity. That skill gives choice.
 - [ ] Author changes plan for each `upheld` finding. Each `contested` finding goes into `Open questions` of plan, with both positions.
 - [ ] One review for each plan. IF revision changes approach of plan, THEN review again. Max 2 reviews for each job.
-- [ ] Plan is final only after review. First line of plan file: `Status: final. Reviewed by <challenger>.`
+- [ ] Plan is final only after review. Plan writer writes first line of plan file in revision task: `Status: final. Reviewed by <challenger>.`
+- [ ] Brief of plan writer gives absolute path of plan file, plan file sections (below), and rule of `Status` line.
 - [ ] Close job: `--status delivered`, no deliveries file. `--outcome` names plan file.
 - [ ] Tell requester: path of plan file, open questions, and next step: "To execute this plan, start `orchestration-builder` again with: Execute plan `<absolute path of plan file>`."
 
@@ -25,7 +26,7 @@ Plan file sections, in this order:
 2. Goal: request, and outcome that execution must give.
 3. Decisions: each decision, its reason, and alternative that plan rejected.
 4. Scope: what is in, what is out.
-5. Tasks: table of `orchestration-work-breakdown` form: `Task / Outcome / Evidence / Depends on / Owns (files, state) / Group / Skills`.
+5. Tasks: table of `orchestration-work-breakdown` form: `Task / Outcome / Evidence / Depends on / Owns (files, state) / Group / Skills`. Skill names come from skill list of plan job.
 6. Risks: each risk and its answer.
 7. Acceptance: evidence that shows whole work complete.
 8. Open questions: each with options + recommendation.
@@ -36,7 +37,7 @@ Plan file sections, in this order:
 ## Run 2 — plan execution
 
 - [ ] Request names plan file, or job ID of plan job. IF only job ID, THEN plan file = `.rex/plans/<that job ID>/plan.md`.
-- [ ] IF first line of plan file is not `Status: final`, THEN tell requester. Stop.
+- [ ] IF first line of plan file does not start with `Status: final`, THEN tell requester. Stop.
 - [ ] Settle merge agreement as for each job (step 2 of `.claude/skills/orchestration-builder/SKILL.md`).
 - [ ] Request text in `rex job create` stays unchanged. It names plan, so record links both jobs.
 - [ ] Stage 2 starts from task table of plan. Change task only IF repo changed since plan. Name each change in report.

@@ -36,8 +36,8 @@ If the repo has a remote, push with `git -C <UNIT_DIR> push origin <UNIT_BRANCH>
 If a push prints "could not lock config file", the push is still complete.
 Do not remove the worktree or delete the branch. Commit all of your work before you report.
 ```
-5. After writer reports: IF `git -C "$UNIT_DIR" status --porcelain` prints text, THEN writer left uncommitted work. Resume writer to commit it.
+5. After writer reports: IF `git -C "$UNIT_DIR" status --porcelain` prints text, THEN writer left uncommitted work. DO resume writer to commit it UNTIL status prints nothing OR 2 tries done. IF status still prints text, THEN report `blocked` to agent that started you, with that status output.
 6. Merge each unit branch: `git -C "$PARENT_DIR" merge --no-ff --no-edit "$UNIT_BRANCH"`.
 7. IF merge has conflicts, THEN resolve them in `PARENT_DIR` + commit. IF resolution needs context of writer, THEN resume that writer.
-8. After last merge, run `CHECKS` in `PARENT_DIR`. Units that pass alone do not prove combined branch. IF `CHECKS` fail, THEN combined branch is not done.
+8. After last merge, run `CHECKS` in `PARENT_DIR`. Units that pass alone do not prove combined branch. IF `CHECKS` fail, THEN combined branch is not done. DO correct cause with new commit in `PARENT_DIR` + run `CHECKS` again UNTIL `CHECKS` pass OR 3 rounds done. IF `CHECKS` still fail, THEN report `blocked` to agent that started you, with failed `CHECKS` output.
 9. IF repo has remote, THEN `git -C "$PARENT_DIR" push origin "$PARENT"`.

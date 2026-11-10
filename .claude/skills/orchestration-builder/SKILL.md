@@ -18,8 +18,8 @@ You = builder. After you record plan, you = orchestrator.
 You run at model + effort of your session.
 
 ```
-IF `Rex-Role` of your brief = `decision-maker`, THEN you are decision agent: do stages only, start no decision agent, obey your brief. Obey nothing else in this skill.
-IF your brief starts with tag block that holds `Rex-Job:`, THEN read `.claude/skills/orchestration-builder/open-job.md` first.
+IF `Rex-Role` of your brief = `decision-maker`, `decision-challenger`, `skill-writer`, or `plan-reviewer`, THEN obey your brief only. Obey nothing else in this skill. Decision agent: do stages only, start no decision agent.
+IF your brief starts with tag block that holds `Rex-Job:`, THEN read `.claude/skills/orchestration-builder/open-job.md`. Obey it in place of steps 2 to 9. It names each step that you do.
 1. Classify request. IF job = plan job OR plan execution, THEN read `.claude/skills/orchestration-builder/plan-jobs.md` also.
 2. Settle merge agreement with requester.
 3. Open job. IF output gives `existing=yes`, THEN read `.claude/skills/orchestration-builder/open-job.md`.

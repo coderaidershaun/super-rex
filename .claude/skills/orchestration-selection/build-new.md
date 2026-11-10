@@ -55,7 +55,7 @@ Methods combine. Parallel leads can each run sequential workers. Sequential stag
 - [ ] Lead can do small task itself. Keep hierarchy shallow: add layer only IF it has concrete job.
 - [ ] New lead for each separate feature. Keep lead across tasks only IF its domain context is worth its cost.
 
-**Limits of Claude Code.** Read `## Limits of Claude Code` in `.claude/skills/orchestration-selection/briefs.md` before you add a lead, or IF orchestrator skill runs below level 1.
+**Limits of Claude Code.** Read `.claude/skills/orchestration-selection/limits.md` before you add a lead, or IF orchestrator skill runs below level 1.
 
 **Load of each agent.**
 
@@ -86,7 +86,7 @@ Contents:
 - [ ] Checks: how agents examine work.
 - [ ] One rule (below).
 - [ ] Tag block: each brief starts with it (`.claude/skills/orchestration-selection/briefs.md`).
-- [ ] Each role that starts agents: what it does when it has no Agent tool. Facts: `## Limits of Claude Code` in `.claude/skills/orchestration-selection/briefs.md`.
+- [ ] Each role that starts agents: what it does when it has no Agent tool. Facts: `.claude/skills/orchestration-selection/limits.md`.
 
 Form: like any skill. Header, then `## Words`, flow block, sections. Header:
 

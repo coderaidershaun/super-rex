@@ -10,11 +10,12 @@ Words + rules: `.claude/skills/rex-feedback/SKILL.md`. Evidence comes from Stage
 | --- | --- |
 | `human-error` | Request asked for wrong thing. Agents did what it said. |
 | `missing-context` | Request did not give a fact. No agent can find that fact in repo. No agent asked for it. |
-| `agent-skill` | Wrong skill, no skill, skill not opened at right time, or a skill rule gave wrong action. |
+| `agent-skill` | Wrong skill, no skill, skill not opened at right time, brief did not name sibling file that holds rule, or a skill rule gave wrong action. |
 | `agent-model-effort` | Model or effort too weak for role. Do sub-section below. |
 | `agent-orchestration` | Shape of orchestrator wrong: roles, order, parallel split, checks, brief contents. |
 
 - IF an agent can find that fact in repo, THEN cause = agent cause, not `missing-context`.
+- Sibling file not named: evidence = `brief` of run. `skills_opened` shows that a skill was opened, not which of its files.
 
 ## Model or effort
 

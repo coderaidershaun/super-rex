@@ -12,7 +12,7 @@ Session agent writes new skill.
 1. Name = `Name` of row.
 2. Run `git -C "$HOME_DIR" check-ignore -q .claude/skills/<name>/SKILL.md`.
 3. IF it succeeds, THEN Git ignores new skill. `<root>` = `HOME_DIR`. No branch is necessary.
-4. ELSE new skill = change of repo. Builder makes values of table of step 7 first (`.claude/skills/orchestration-builder/run.md`). Then builder reads `.claude/skills/rex-deliver/SKILL.md`, then `.claude/skills/rex-deliver/start.md`, for that repo. `<root>` = `JOB_DIR`.
+4. ELSE new skill = change of repo. Inside open job: `<root>` = `JOB_DIR` of your brief. Do no START. ELSE builder makes values of table of step 7 first (`.claude/skills/orchestration-builder/run.md`). Then builder reads `.claude/skills/rex-deliver/SKILL.md`, then `.claude/skills/rex-deliver/start.md`, for that repo. `<root>` = `JOB_DIR`.
 5. Start session agent: `subagent_type` = `general-purpose`, no model. Do not call `rex oms` for it.
 6. Give it no worktree isolation. Skill goes into `<root>`.
 7. Give it brief below. It starts with tag block. Replace each `<…>`. Each path is absolute.

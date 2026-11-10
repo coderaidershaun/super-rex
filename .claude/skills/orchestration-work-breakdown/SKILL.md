@@ -52,7 +52,7 @@ Work can be code, research, documents, or other work. Task can change no file.
 - [ ] Divide around useful outcomes, not around steps.
 - [ ] Keep decisions that are tightly coupled in one task.
 - [ ] Evidence: tests, sources, reproducible observations, or explicit rubric.
-- [ ] Skills: for each task, names from skill list that task needs: core rules for its kind of work and its language, gap skill of each language that it writes, and skills for its task. Add `<skill>/<file>.md` for each sibling file that task needs. Agent of task reads only these.
+- [ ] Skills: for each task, names from skill list that task needs: core rules for its kind of work and its language, gap skill of each language that it writes, and skills for its task. Add `<skill>/<file>.md` for each sibling file that task needs. To name sibling file of a skill in skill list: read table in `SKILL.md` of that skill that says when to read each file. Agent of task reads these first. It also reads a sibling file when a `SKILL.md` that it read sends it there.
 - [ ] IF job has one outcome, THEN write one task. Go to `## Output`.
 - [ ] Plan job: tasks = research + plan writing. Last 2 tasks: adversarial review of plan, then revision. Evidence of review task: verdict table.
 - [ ] Plan execution: start from task table of plan file. Change task only IF repo changed since plan.

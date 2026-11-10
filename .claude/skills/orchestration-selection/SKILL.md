@@ -28,13 +28,12 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 | `.claude/skills/orchestration-selection/build-new.md` | Step 1 finds none to reuse. Steps 2 + 5. |
 | `.claude/skills/orchestration-selection/plan-jobs.md` | Job = plan job. |
 | `.claude/skills/orchestration-selection/model-function.md` | You must know why `rex oms` gave its output. |
-| `.claude/skills/orchestration-selection/briefs.md` | Section `## Limits of Claude Code`: IF orchestration has a lead, OR orchestrator skill runs below level 1. Session reads whole file at run. |
-
+| `.claude/skills/orchestration-selection/limits.md` | Orchestration has a lead, OR orchestrator skill runs below level 1. |
 ## Words
 
 - Session: Claude Code conversation that loaded builder. It has one session ID.
 - Builder: Agent that obeys `orchestration-builder`.
-- Decision agent: Sub-agent of builder that does stages 1 to 3. Its brief gives input of each stage.
+- Decision agent: Sub-agent of builder that does stages 1 to 3. Its brief gives input.
 - Job: One request that SuperRex handles. It has one job ID.
 - Classification: Four fields of job: work type, size, consequence, languages.
 - Preference: Duration, budget, or autonomy that user stated in request.
@@ -81,10 +80,10 @@ For each role, define:
 - [ ] Tasks: tasks of work breakdown that role does. Each task gets one role that does it. Lead: tasks that it leads. Role that only checks work of other roles (example: `reviewer`, `verifier`): `—`.
 - [ ] Skills of role that does tasks: union of Skills of its tasks.
 - [ ] Skills of lead, and of role with `—`: skills it reads for its own job, from skill list: core rules + skills for its job. Gap skill of each language that role writes.
-- [ ] Skills that orchestrator skill gives a role: add them to Skills of each task of that role.
+- [ ] Skills that orchestrator skill gives a role: add them to Skills of each task of that role, and to skill list with their `Path` (`path=` line of `rex skills list`).
 - [ ] Reuse: roles come from reused file. Give tasks + skills the same way.
 
-Skills are files. Agent reads `SKILL.md` of each skill of its task IN FULL, and each sibling file that its task row names. Agent of lead, or of role with `—`, reads skills of its role. Its brief gives absolute paths.
+Skills are files. Agent first reads, IN FULL, `SKILL.md` of each skill of its task and each sibling file that its task row names (lead, or role with `—`: skills of its role). It also reads a sibling file when a `SKILL.md` sends it there. Its brief gives absolute paths.
 
 ## Step 4 — Model for each role
 
@@ -147,4 +146,4 @@ ROLE TABLE:
 
 Role with `session agent` has `—` in each input.
 
-- [ ] Step 3 changes Skills of tasks. Give work breakdown again, with those changes.
+- [ ] Give work breakdown again, with Skills as step 3 changed them.
