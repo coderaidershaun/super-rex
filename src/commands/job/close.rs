@@ -10,6 +10,7 @@ use serde_json::json;
 
 use super::JobError;
 use super::input::read_text;
+use super::value::value_name;
 use crate::capture;
 use crate::commands::stdout::print_to_stdout;
 use crate::store::status::{self, Closed, Event};
@@ -104,9 +105,14 @@ pub(super) fn run(cwd: &Path, options: CloseOptions) -> Result<(), JobError> {
     };
 
     let recorded = store.write(|tx| record(tx, &options, &deliveries))?;
+    print_to_stdout(&output_text(&options, &recorded))?;
+    Ok(())
+}
 
-    let status = options.status.name();
-    let text = if options.json {
+/// The answer of the close, from every delivery of the job as (outcome, repo).
+fn output_text(options: &CloseOptions, recorded: &[(String, String)]) -> String {
+    let status = value_name(options.status);
+    if options.json {
         let deliveries: Vec<_> = recorded
             .iter()
             .map(|(outcome, repo)| json!({"outcome": outcome, "repo": repo}))
@@ -117,20 +123,17 @@ pub(super) fn run(cwd: &Path, options: CloseOptions) -> Result<(), JobError> {
             "status": status,
             "deliveries": deliveries,
         });
-        format!("{line}\n")
-    } else {
-        let mut text = format!(
-            "job={}\nstatus={status}\ndeliveries={}\n",
-            options.job,
-            recorded.len()
-        );
-        for (number, (outcome, repo)) in recorded.iter().enumerate() {
-            text.push_str(&format!("delivery.{}={outcome} {repo}\n", number + 1));
-        }
-        text
-    };
-    print_to_stdout(&text)?;
-    Ok(())
+        return format!("{line}\n");
+    }
+    let mut text = format!(
+        "job={}\nstatus={status}\ndeliveries={}\n",
+        options.job,
+        recorded.len()
+    );
+    for (number, (outcome, repo)) in recorded.iter().enumerate() {
+        text.push_str(&format!("delivery.{}={outcome} {repo}\n", number + 1));
+    }
+    text
 }
 
 /// The writes of `rex job close`, all in the caller's one transaction. Gives
@@ -233,30 +236,8 @@ fn read_deliveries(cwd: &Path, path: &Path, job_agreed: bool) -> Result<Vec<Deli
 
     let mut deliveries: Vec<Delivery> = Vec::with_capacity(entries.len());
     for entry in entries {
-        let none_key = [
-            ("pr", &entry.pr),
-            ("merge_commit", &entry.merge_commit),
-            ("note", &entry.note),
-        ]
-        .into_iter()
-        .find_map(|(key, value)| (value.as_deref() == Some("none")).then_some(key));
-        if let Some(key) = none_key {
-            return Err(JobError::NoneText {
-                key,
-                repo: entry.repo,
-                path: path.to_path_buf(),
-            });
-        }
-        let root = match StorePaths::locate(&cwd.join(&entry.repo)) {
-            Ok(paths) => paths.root,
-            Err(StoreError::NotInGitRepo { .. }) => {
-                return Err(JobError::RepoNotInGit {
-                    given: entry.repo,
-                    path: path.to_path_buf(),
-                });
-            }
-            Err(error) => return Err(error.into()),
-        };
+        refuse_none_text(&entry, path)?;
+        let root = repo_root(cwd, &entry, path)?;
         if deliveries.iter().any(|delivery| delivery.root == root) {
             return Err(JobError::RepoTwice {
                 path: path.to_path_buf(),
@@ -272,6 +253,37 @@ fn read_deliveries(cwd: &Path, path: &Path, job_agreed: bool) -> Result<Vec<Deli
         });
     }
     Ok(deliveries)
+}
+
+/// A missing value is `null` or left out, never the word `none`.
+fn refuse_none_text(entry: &Entry, path: &Path) -> Result<(), JobError> {
+    let none_key = [
+        ("pr", &entry.pr),
+        ("merge_commit", &entry.merge_commit),
+        ("note", &entry.note),
+    ]
+    .into_iter()
+    .find_map(|(key, value)| (value.as_deref() == Some("none")).then_some(key));
+    match none_key {
+        Some(key) => Err(JobError::NoneText {
+            key,
+            repo: entry.repo.clone(),
+            path: path.to_path_buf(),
+        }),
+        None => Ok(()),
+    }
+}
+
+/// The main checkout of the entry's repository, which is what the delivery stores.
+fn repo_root(cwd: &Path, entry: &Entry, path: &Path) -> Result<PathBuf, JobError> {
+    match StorePaths::locate(&cwd.join(&entry.repo)) {
+        Ok(paths) => Ok(paths.root),
+        Err(StoreError::NotInGitRepo { .. }) => Err(JobError::RepoNotInGit {
+            given: entry.repo.clone(),
+            path: path.to_path_buf(),
+        }),
+        Err(error) => Err(error.into()),
+    }
 }
 
 /// The rules that tie a delivery's outcome to its other fields.
@@ -334,15 +346,6 @@ impl CloseStatus {
             CloseStatus::Blocked => Closed::Blocked,
             CloseStatus::Failed => Closed::Failed,
             CloseStatus::Cancelled => Closed::Cancelled,
-        }
-    }
-
-    fn name(self) -> &'static str {
-        match self {
-            CloseStatus::Delivered => "delivered",
-            CloseStatus::Blocked => "blocked",
-            CloseStatus::Failed => "failed",
-            CloseStatus::Cancelled => "cancelled",
         }
     }
 }

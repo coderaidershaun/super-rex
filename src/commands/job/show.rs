@@ -8,8 +8,8 @@ use serde_json::{Value, json};
 
 use super::JobError;
 use super::input::non_empty_var;
-use super::plan::level_name;
 use super::record::{self, DeliveryRow, FeedbackRow, JobRecord, RoleRow};
+use super::value::value_name;
 use crate::capture::{self, JobRuns, Run, RunState, TokenTotal};
 use crate::commands::stdout::print_to_stdout;
 use crate::oms::Level;
@@ -245,7 +245,7 @@ fn json_job(record: &JobRecord, shown: Shown) -> Value {
         "work_type": record.work_type,
         "size": record.size,
         "consequence": record.consequence,
-        "languages": list(Some(&record.languages)),
+        "languages": list(Some(record.languages.as_str())),
         "pref_duration": record.pref_duration,
         "pref_budget": record.pref_budget,
         "pref_autonomy": record.pref_autonomy,
@@ -256,7 +256,7 @@ fn json_job(record: &JobRecord, shown: Shown) -> Value {
         "experience_recalled": record.experience_recalled,
         "breakdown": record.breakdown,
         "orchestrator": orchestrator,
-        "skills": list(record.skills.as_ref()),
+        "skills": list(record.skills.as_deref()),
         "outcome": record.outcome,
         "created_at": record.created_at,
         "updated_at": record.updated_at,
@@ -264,7 +264,7 @@ fn json_job(record: &JobRecord, shown: Shown) -> Value {
 }
 
 fn json_role(role: &RoleRow) -> Value {
-    let level = |level: Option<Level>| level.map(level_name);
+    let level = |level: Option<Level>| level.map(value_name);
     let inputs = role.inputs;
     json!({
         "role": role.role,
@@ -280,8 +280,8 @@ fn json_role(role: &RoleRow) -> Value {
         },
         "agent": role.agent,
         "demand": role.demand,
-        "rules": role.rules.as_ref().map(|rules| list(Some(rules))),
-        "conflict": role.conflict.as_ref().map(|conflict| match conflict.as_str() {
+        "rules": role.rules.as_deref().map(|rules| list(Some(rules))),
+        "conflict": role.conflict.as_deref().map(|conflict| match conflict {
             "none" => json!([]),
             _ => list(Some(conflict)),
         }),
@@ -308,11 +308,11 @@ fn json_feedback(row: &FeedbackRow) -> Value {
         "given_by": row.given_by,
         "said": row.said,
         "verdict": row.verdict,
-        "causes": list(row.causes.as_ref()),
+        "causes": list(row.causes.as_deref()),
         "evidence": row.evidence,
         "lesson": row.lesson,
-        "changed_skills": list(row.changed_skills.as_ref()),
-        "changed_orchestrators": list(row.changed_orchestrators.as_ref()),
+        "changed_skills": list(row.changed_skills.as_deref()),
+        "changed_orchestrators": list(row.changed_orchestrators.as_deref()),
         "created_at": row.created_at,
     })
 }
@@ -343,7 +343,7 @@ fn json_run(run: &Run) -> Value {
 }
 
 /// A stored comma list as a JSON array; NULL, the empty list, is `[]`.
-fn list(text: Option<&String>) -> Value {
+fn list(text: Option<&str>) -> Value {
     let items: Vec<&str> = text.map_or_else(Vec::new, |text| text.split(',').collect());
     json!(items)
 }
@@ -378,7 +378,6 @@ fn is_provisional(total: TokenTotal) -> bool {
     !matches!(total, TokenTotal::Final(_))
 }
 
-/// A value that is not set prints as `none`.
 fn or_none(value: Option<&str>) -> &str {
     value.unwrap_or("none")
 }

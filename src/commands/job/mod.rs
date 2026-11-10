@@ -7,6 +7,7 @@ mod input;
 mod plan;
 mod record;
 mod show;
+mod value;
 
 pub use close::CloseOptions;
 pub use create::CreateOptions;

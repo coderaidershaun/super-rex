@@ -7,7 +7,7 @@ use std::path::Path;
 use serde::Deserialize;
 
 use crate::commands::job::JobError;
-use crate::oms::Level;
+use crate::oms::{Inputs, Level};
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -85,32 +85,38 @@ pub(super) fn check(plan: &PlanFile, path: &Path) -> Result<(), JobError> {
 }
 
 impl RoleEntry {
-    /// The four role inputs in the order intelligence, reliability,
-    /// consequence, verification, or `None` for a role run as the session.
-    pub(super) fn ratings(&self) -> Result<Option<[Option<Level>; 4]>, JobError> {
-        let given = [
-            ("intelligence", self.intelligence),
-            ("reliability", self.reliability),
-            ("consequence", self.consequence),
-            ("verification", self.verification),
-        ];
+    /// The role's four inputs, with the job's three left unset, or `None` for a
+    /// role run as the session.
+    pub(super) fn ratings(&self) -> Result<Option<Inputs>, JobError> {
         if self.session {
-            if given.iter().any(|(_, rating)| rating.is_some()) {
+            let given = [
+                self.intelligence,
+                self.reliability,
+                self.consequence,
+                self.verification,
+            ];
+            if given.iter().any(Option::is_some) {
                 return Err(JobError::SessionAndInputs {
                     role: self.role.clone(),
                 });
             }
             return Ok(None);
         }
-        let mut levels = [None; 4];
-        for (level, (key, rating)) in levels.iter_mut().zip(given) {
-            let rating = rating.ok_or_else(|| JobError::MissingInput {
-                role: self.role.clone(),
-                key,
-            })?;
-            *level = rating.level();
-        }
-        Ok(Some(levels))
+        let level = |key: &'static str, rating: Option<Rating>| {
+            rating
+                .map(Rating::level)
+                .ok_or_else(|| JobError::MissingInput {
+                    role: self.role.clone(),
+                    key,
+                })
+        };
+        Ok(Some(Inputs {
+            intelligence: level("intelligence", self.intelligence)?,
+            reliability: level("reliability", self.reliability)?,
+            consequence: level("consequence", self.consequence)?,
+            verification: level("verification", self.verification)?,
+            ..Inputs::default()
+        }))
     }
 }
 

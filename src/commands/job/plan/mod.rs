@@ -2,24 +2,25 @@
 //! role's agent, so the record and the function cannot disagree.
 
 mod file;
+mod output;
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-use rusqlite::types::Type;
-use rusqlite::{OptionalExtension, Row, Transaction, params};
-use serde_json::{Value, json};
+use rusqlite::{OptionalExtension, Transaction, params};
 
 use super::JobError;
 use super::input::read_text;
+use super::value::{stored_level, value_name};
 use crate::capture;
 use crate::commands::skills;
 use crate::commands::stdout::print_to_stdout;
-use crate::oms::{self, Inputs, Level, Overridden, Rule, Selection};
+use crate::oms::{self, Inputs};
 use crate::store::orchestrator;
 use crate::store::status::{self, Event};
 use crate::store::{JobId, Store, StoreError, StorePaths};
 use file::{PlanFile, RoleEntry, check};
+use output::{PlannedRole, conflict_text, json_text, plain_text, rule_ids};
 
 /// Arguments of `rex job plan`.
 #[derive(clap::Args)]
@@ -34,12 +35,6 @@ pub struct PlanOptions {
     /// Print the result as one JSON line.
     #[arg(long)]
     json: bool,
-}
-
-/// A role as planned: its OMS answer, or `None` when it runs as the session.
-struct PlannedRole {
-    name: String,
-    selection: Option<Selection>,
 }
 
 /// # Errors
@@ -83,40 +78,29 @@ fn record(
     job: &JobId,
     plan: &PlanFile,
 ) -> Result<(i64, Vec<PlannedRole>), JobError> {
-    let preferences: Option<[Option<Level>; 3]> = tx
+    let preferences: Option<Inputs> = tx
         .query_row(
             "SELECT pref_duration, pref_budget, pref_autonomy FROM job WHERE id = ?1",
             [job.as_str()],
             |row| {
-                Ok([
-                    stored_level(row, 0)?,
-                    stored_level(row, 1)?,
-                    stored_level(row, 2)?,
-                ])
+                Ok(Inputs {
+                    duration: stored_level(row, 0)?,
+                    budget: stored_level(row, 1)?,
+                    autonomy: stored_level(row, 2)?,
+                    ..Inputs::default()
+                })
             },
         )
         .optional()?;
-    let [duration, budget, autonomy] = preferences.ok_or_else(|| StoreError::JobNotFound {
+    let preferences = preferences.ok_or_else(|| StoreError::JobNotFound {
         job: job.to_string(),
         store: paths.dir.clone(),
     })?;
     status::apply(tx, job, Event::Plan)?;
 
     let name = &plan.orchestrator;
-    let not_found = || JobError::OrchestratorNotFound {
-        name: name.clone(),
-        store: paths.dir.clone(),
-    };
-    if !paths.orchestrators.join(name).is_dir() {
-        return Err(not_found());
-    }
-    let versions = orchestrator::index_all(tx, &paths.orchestrators, &skills::describe)?;
-    let version = versions
-        .iter()
-        .find(|indexed| &indexed.name == name)
-        .ok_or_else(not_found)?
-        .version;
-    let roles = record_roles(tx, job, &plan.roles, [duration, budget, autonomy])?;
+    let version = orchestrator_version(tx, paths, name)?;
+    let roles = record_roles(tx, job, &plan.roles, preferences)?;
 
     let skills: BTreeSet<&str> = plan.skills.iter().map(String::as_str).collect();
     let skills = (!skills.is_empty()).then(|| skills.into_iter().collect::<Vec<_>>().join(","));
@@ -130,49 +114,66 @@ fn record(
     Ok((version, roles))
 }
 
+/// Indexes the whole library, so that orchestrators never run also reach the
+/// index, and gives the current version of `name`.
+fn orchestrator_version(
+    tx: &Transaction<'_>,
+    paths: &StorePaths,
+    name: &str,
+) -> Result<i64, JobError> {
+    let not_found = || JobError::OrchestratorNotFound {
+        name: name.to_owned(),
+        store: paths.dir.clone(),
+    };
+    if !paths.orchestrators.join(name).is_dir() {
+        return Err(not_found());
+    }
+    let versions = orchestrator::index_all(tx, &paths.orchestrators, &skills::describe)?;
+    let version = versions
+        .iter()
+        .find(|indexed| indexed.name == name)
+        .ok_or_else(not_found)?
+        .version;
+    Ok(version)
+}
+
 /// Asks the selection function for each role not run as the session, with the
 /// job's three preferences, and writes each role row in the order of the file.
 fn record_roles(
     tx: &Transaction<'_>,
     job: &JobId,
     entries: &[RoleEntry],
-    preferences: [Option<Level>; 3],
+    preferences: Inputs,
 ) -> Result<Vec<PlannedRole>, JobError> {
-    let [duration, budget, autonomy] = preferences;
     let mut roles = Vec::with_capacity(entries.len());
     for entry in entries {
-        let selection =
-            entry
-                .ratings()?
-                .map(|[intelligence, reliability, consequence, verification]| {
-                    oms::select(Inputs {
-                        duration,
-                        budget,
-                        intelligence,
-                        autonomy,
-                        reliability,
-                        consequence,
-                        verification,
-                    })
-                });
-        insert_role(tx, job, &entry.role, preferences, selection.as_ref())?;
-        roles.push(PlannedRole {
+        let selection = entry.ratings()?.map(|ratings| {
+            oms::select(Inputs {
+                duration: preferences.duration,
+                budget: preferences.budget,
+                autonomy: preferences.autonomy,
+                ..ratings
+            })
+        });
+        let role = PlannedRole {
             name: entry.role.clone(),
             selection,
-        });
+        };
+        insert_role(tx, job, &role, preferences)?;
+        roles.push(role);
     }
     Ok(roles)
 }
 
 /// Writes one role row. The job's three preferences are stored on every role,
-/// and the OMS record only on a role that is not run as the session.
+/// and the selection function's answer only on a role not run as the session.
 fn insert_role(
     tx: &Transaction<'_>,
     job: &JobId,
-    role: &str,
-    [duration, budget, autonomy]: [Option<Level>; 3],
-    selection: Option<&Selection>,
+    role: &PlannedRole,
+    preferences: Inputs,
 ) -> rusqlite::Result<()> {
+    let selection = role.selection.as_ref();
     let inputs = selection.map(|chosen| chosen.inputs);
     tx.execute(
         "INSERT INTO role (job_id, role, runs_as_session, in_duration, in_budget, in_autonomy,
@@ -181,15 +182,15 @@ fn insert_role(
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
         params![
             job.as_str(),
-            role,
+            role.name,
             selection.is_none(),
-            duration.map(level_name),
-            budget.map(level_name),
-            autonomy.map(level_name),
-            inputs.and_then(|i| i.intelligence).map(level_name),
-            inputs.and_then(|i| i.reliability).map(level_name),
-            inputs.and_then(|i| i.consequence).map(level_name),
-            inputs.and_then(|i| i.verification).map(level_name),
+            preferences.duration.map(value_name),
+            preferences.budget.map(value_name),
+            preferences.autonomy.map(value_name),
+            inputs.and_then(|i| i.intelligence).map(value_name),
+            inputs.and_then(|i| i.reliability).map(value_name),
+            inputs.and_then(|i| i.consequence).map(value_name),
+            inputs.and_then(|i| i.verification).map(value_name),
             selection.map(|chosen| chosen.agent.to_string()),
             selection.map(|chosen| chosen.demand.to_string()),
             selection.map(|chosen| rule_ids(&chosen.rules).join(",")),
@@ -198,100 +199,4 @@ fn insert_role(
         ],
     )?;
     Ok(())
-}
-
-fn plain_text(job: &JobId, orchestrator: &str, version: i64, roles: &[PlannedRole]) -> String {
-    let mut text = format!(
-        "job={job}\nstatus=planned\norchestrator={orchestrator}\norchestrator_version={version}\n"
-    );
-    for role in roles {
-        let Some(chosen) = &role.selection else {
-            text.push_str(&format!("role.{}=session\n", role.name));
-            continue;
-        };
-        text.push_str(&format!("role.{}={}\n", role.name, chosen.agent));
-        if !chosen.conflict.is_empty() {
-            text.push_str(&format!(
-                "conflict.{}={}\n",
-                role.name,
-                conflict_text(&chosen.conflict)
-            ));
-        }
-    }
-    text
-}
-
-fn json_text(job: &JobId, orchestrator: &str, version: i64, roles: &[PlannedRole]) -> String {
-    let roles: Vec<Value> = roles
-        .iter()
-        .map(|role| match &role.selection {
-            Some(chosen) => json!({
-                "role": role.name,
-                "session": false,
-                "agent": chosen.agent.to_string(),
-                "demand": chosen.demand.to_string(),
-                "rules": rule_ids(&chosen.rules),
-                "conflict": chosen.conflict.iter().map(|c| c.name()).collect::<Vec<_>>(),
-                "oms_version": oms::VERSION,
-            }),
-            None => json!({
-                "role": role.name,
-                "session": true,
-                "agent": null,
-                "demand": null,
-                "rules": null,
-                "conflict": null,
-                "oms_version": null,
-            }),
-        })
-        .collect();
-    let line = json!({
-        "schema": 1,
-        "job": job.as_str(),
-        "status": "planned",
-        "orchestrator": {"name": orchestrator, "version": version},
-        "roles": roles,
-    });
-    format!("{line}\n")
-}
-
-fn rule_ids(rules: &[Rule]) -> Vec<&'static str> {
-    rules.iter().map(|rule| rule.id()).collect()
-}
-
-/// The stored conflict: the overridden caps joined by commas, or `none`.
-fn conflict_text(conflict: &[Overridden]) -> String {
-    if conflict.is_empty() {
-        return "none".to_owned();
-    }
-    let names: Vec<&str> = conflict
-        .iter()
-        .map(|overridden| overridden.name())
-        .collect();
-    names.join(",")
-}
-
-/// The stored text of a rating.
-pub(super) fn level_name(level: Level) -> &'static str {
-    match level {
-        Level::Low => "low",
-        Level::Medium => "medium",
-        Level::High => "high",
-    }
-}
-
-/// A stored rating column: `low`, `medium`, `high`, or NULL for none.
-pub(super) fn stored_level(row: &Row<'_>, index: usize) -> rusqlite::Result<Option<Level>> {
-    let text: Option<String> = row.get(index)?;
-    text.map(|text| match text.as_str() {
-        "low" => Ok(Level::Low),
-        "medium" => Ok(Level::Medium),
-        "high" => Ok(Level::High),
-        _ => Err(rusqlite::Error::FromSqlConversionFailure(
-            index,
-            Type::Text,
-            format!("{text} is not a rating; one of low, medium, high").into(),
-        )),
-    })
-    .transpose()
 }

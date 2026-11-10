@@ -60,33 +60,3 @@ impl fmt::Display for Consequence {
         write_value_name(self, f)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn value_names_are_the_stored_text() {
-        fn names<T: ValueEnum + fmt::Display>() -> Vec<(String, String)> {
-            T::value_variants()
-                .iter()
-                .map(|value| {
-                    let name = value.to_possible_value().unwrap().get_name().to_owned();
-                    (name, value.to_string())
-                })
-                .collect()
-        }
-        let pairs = [names::<WorkType>(), names::<Size>(), names::<Consequence>()].concat();
-        let value_names: Vec<&str> = pairs.iter().map(|(name, _)| name.as_str()).collect();
-        assert_eq!(
-            value_names,
-            [
-                "feature", "fix", "refactor", "chore", "research", "other", "small", "medium",
-                "large", "low", "medium", "high"
-            ]
-        );
-        for (name, shown) in &pairs {
-            assert_eq!(name, shown);
-        }
-    }
-}

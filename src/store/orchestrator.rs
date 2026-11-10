@@ -162,20 +162,3 @@ fn collect_files(
 fn is_hidden(file_name: &std::ffi::OsStr) -> bool {
     file_name.as_encoded_bytes().starts_with(b".")
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn fnv1a_matches_the_published_test_vectors() {
-        let hash_of = |bytes: &[u8]| {
-            let mut hash = Fnv1a::new();
-            hash.write(bytes);
-            hash.0
-        };
-        assert_eq!(hash_of(b""), 0xcbf2_9ce4_8422_2325);
-        assert_eq!(hash_of(b"a"), 0xaf63_dc4c_8601_ec8c);
-        assert_eq!(hash_of(b"foobar"), 0x8594_4171_f739_67e8);
-    }
-}

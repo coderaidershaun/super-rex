@@ -5,7 +5,7 @@ use rusqlite::types::Type;
 use rusqlite::{Connection, OptionalExtension, Row};
 
 use super::JobError;
-use super::plan::stored_level;
+use super::value::stored_level;
 use crate::oms::Inputs;
 use crate::store::status::Status;
 use crate::store::{JobId, StoreError, StorePaths};
@@ -49,8 +49,8 @@ pub(super) struct Transition {
     pub(super) at: String,
 }
 
-/// A role and its OMS record. `agent` and the fields after it are `None` for a
-/// role run as the session.
+/// A role and what the selection function chose for it. `agent` and the fields
+/// after it are `None` for a role run as the session.
 pub(super) struct RoleRow {
     pub(super) role: String,
     pub(super) runs_as_session: bool,

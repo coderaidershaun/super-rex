@@ -10,7 +10,7 @@ use serde_json::json;
 
 use super::JobError;
 use super::input::{non_empty_var, read_text};
-use super::plan::level_name;
+use super::value::value_name;
 use crate::commands::stdout::print_to_stdout;
 use crate::oms::Level;
 use crate::store::class::{Consequence, Size, WorkType};
@@ -161,23 +161,25 @@ pub(super) fn run(cwd: &Path, options: CreateOptions) -> Result<(), JobError> {
             given.job
         );
     }
-    let text = if options.json {
+    print_to_stdout(&output_text(&given, options.json))?;
+    Ok(())
+}
+
+fn output_text(given: &Given, is_json: bool) -> String {
+    if is_json {
         let line = json!({
             "schema": 1,
             "job": given.job,
             "status": given.status,
             "existing": given.is_existing,
         });
-        format!("{line}\n")
-    } else {
-        let existing = if given.is_existing { "yes" } else { "no" };
-        format!(
-            "job={}\nstatus={}\nexisting={existing}\n",
-            given.job, given.status
-        )
-    };
-    print_to_stdout(&text)?;
-    Ok(())
+        return format!("{line}\n");
+    }
+    let existing = if given.is_existing { "yes" } else { "no" };
+    format!(
+        "job={}\nstatus={}\nexisting={existing}\n",
+        given.job, given.status
+    )
 }
 
 /// The session's open job if it has one, else a new job. Both in one write, so
@@ -187,6 +189,9 @@ fn open_or_give_existing(
     options: &CreateOptions,
     new_job: &NewJob,
 ) -> Result<Given, JobError> {
+    // SMELL: the rule that an open job is created or planned is also written in
+    // `Store::open_job_for_session` and in the schema's unique index. The store
+    // has no call that works inside a write, so this copy stays until it has one.
     let open: Option<(String, String)> = tx
         .query_row(
             "SELECT id, status FROM job WHERE session_id = ?1 AND status IN ('created', 'planned')",
@@ -237,15 +242,15 @@ fn insert_job(
             params![
                 job.as_str(),
                 new_job.request,
-                options.asked_by.name(),
+                value_name(options.asked_by),
                 CLASS_VERSION,
                 options.work_type.to_string(),
                 options.size.to_string(),
                 options.consequence.to_string(),
                 new_job.languages,
-                options.duration.map(DurationLevel::name),
-                options.budget.map(level_name),
-                options.autonomy.map(level_name),
+                options.duration.map(value_name),
+                options.budget.map(value_name),
+                options.autonomy.map(value_name),
                 matches!(options.merge, Answer::Yes),
                 new_job.session,
                 options.builder_model,
@@ -303,23 +308,4 @@ fn language_list(languages: &[String]) -> Result<String, JobError> {
         return Err(JobError::LangNoneMixed);
     }
     Ok(names.join(","))
-}
-
-impl AskedBy {
-    fn name(self) -> &'static str {
-        match self {
-            AskedBy::Human => "human",
-            AskedBy::Agent => "agent",
-        }
-    }
-}
-
-impl DurationLevel {
-    fn name(self) -> &'static str {
-        match self {
-            DurationLevel::Low => "low",
-            DurationLevel::Medium => "medium",
-            DurationLevel::High => "high",
-        }
-    }
 }
