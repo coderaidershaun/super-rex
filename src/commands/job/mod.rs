@@ -1,8 +1,22 @@
 //! `rex job`: the only commands that change a job's stored status.
 
-use std::path::Path;
+mod close;
+mod create;
+mod describe;
+mod error;
+mod input;
+mod plan;
+mod record;
+mod runs;
+mod show;
 
-use crate::error::RexError;
+pub use close::CloseOptions;
+pub use create::CreateOptions;
+pub use error::JobError;
+pub use plan::PlanOptions;
+pub use show::ShowOptions;
+
+use std::path::Path;
 
 /// Arguments of `rex job`.
 #[derive(clap::Args)]
@@ -15,20 +29,26 @@ pub struct JobOptions {
 #[derive(clap::Subcommand)]
 pub enum JobCommand {
     /// Open a job with its request, classification and session ID, and print the job ID.
-    Create,
+    Create(CreateOptions),
 
     /// Record the work breakdown, the orchestrator and the role table, and move the job to planned.
-    Plan,
+    Plan(PlanOptions),
 
     /// Record the outcome, with one delivery for each repository the job changed.
-    Close,
+    Close(CloseOptions),
 
     /// Print one job's record.
-    Show,
+    Show(ShowOptions),
 }
 
 /// # Errors
-/// [`RexError::NotBuilt`] until the command is built.
-pub fn run(_cwd: &Path, _options: JobOptions) -> Result<(), RexError> {
-    Err(RexError::NotBuilt { command: "job" })
+/// [`JobError`]: a usage error for a wrong command line; otherwise a failure
+/// of the store, an input file or the job's state.
+pub fn run(cwd: &Path, options: JobOptions) -> Result<(), JobError> {
+    match options.command {
+        JobCommand::Create(options) => create::run(cwd, options),
+        JobCommand::Plan(options) => plan::run(cwd, options),
+        JobCommand::Close(options) => close::run(cwd, options),
+        JobCommand::Show(options) => show::run(cwd, options),
+    }
 }
