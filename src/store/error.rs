@@ -59,13 +59,81 @@ pub enum StoreError {
         source: std::io::Error,
     },
 
-    #[error("{what}")]
-    InvalidInput { what: String },
-
     #[error(
         "the system clock reads {unix_seconds} seconds since 1970, outside the years 2026 to 2094 that a job ID can hold; set the system clock to the right time"
     )]
     ClockOutOfRange { unix_seconds: i64 },
+
+    /// `store` is the `.rex` folder that was searched.
+    #[error(
+        "no job with ID {job} in {}/rex.db; run rex from the session's project folder or a worktree of it, or set REX_STORE",
+        store.display()
+    )]
+    JobNotFound { job: String, store: PathBuf },
+
+    #[error(
+        "session {session} has no open job in {}/rex.db; give the job ID, or run rex from the session's project folder",
+        store.display()
+    )]
+    NoOpenJob { session: String, store: PathBuf },
+
+    /// `event` is the command as the caller typed it, such as `rex job plan`.
+    #[error("job {job} is {status}, and {event} accepts only {accepts}; {}", .accepts.fix())]
+    Refused {
+        job: String,
+        status: String,
+        event: &'static str,
+        accepts: Accepts,
+    },
+
+    #[error(
+        "job {job} is {status} and has no final outcome yet; close it with rex job close first"
+    )]
+    NoOutcomeYet { job: String, status: String },
+
+    #[error(
+        "job {job} is rejected and its analysis is due; give --cause and --lesson with --verdict rejected"
+    )]
+    AnalysisDue { job: String },
+}
+
+/// The stored statuses that a refused event would have accepted. Each one has
+/// its own fix, so the error can say what to do next.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Accepts {
+    /// `rex job plan`: a job is planned once.
+    CreatedJob,
+    /// `rex job close --status delivered` on a job that was never planned.
+    PlannedOrBlockedJob,
+    /// `rex job close` on a job that is already closed.
+    OpenOrBlockedJob,
+}
+
+impl Accepts {
+    fn fix(self) -> &'static str {
+        match self {
+            Accepts::CreatedJob => {
+                "a job is planned once, and a builder that got existing=yes records no plan of its own"
+            }
+            Accepts::PlannedOrBlockedJob => {
+                "record the plan with rex job plan first, or close it as blocked, failed or cancelled"
+            }
+            Accepts::OpenOrBlockedJob => {
+                "a closed job is not closed again; open a new job for new work"
+            }
+        }
+    }
+}
+
+impl fmt::Display for Accepts {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let text = match self {
+            Accepts::CreatedJob => "a created job",
+            Accepts::PlannedOrBlockedJob => "a planned or blocked job",
+            Accepts::OpenOrBlockedJob => "a created, planned or blocked job",
+        };
+        f.write_str(text)
+    }
 }
 
 impl CommandError for StoreError {}

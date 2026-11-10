@@ -140,10 +140,7 @@ impl Listed {
         let path = folder.join(SKILL_FILE);
         // One skill that cannot be read is listed with empty fields, so that
         // it never stops the list; `rex skills check` names the problem.
-        let text = fs::read(&path)
-            .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
-            .unwrap_or_default();
-        let header = Header::of_skill_file(&text);
+        let header = Header::of_skill_path(&path);
         let field = |key: &str| header.as_ref().and_then(|header| header.text(key));
         let folder_name = folder.file_name().unwrap_or_default().to_string_lossy();
         Listed {
