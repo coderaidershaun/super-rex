@@ -46,6 +46,8 @@ Where a `rex` command is named here, its form is fixed by C2, not by this file.
 
 The clean-tree test at END matters: uncommitted work is otherwise left out of the pull request, and it blocks worktree removal.
 
+**A repo with no build or test command.** IF `CHECKS` is empty, THEN END runs no local check, says so in `BODY` under how it was checked (`no build or test command in this repo`), and goes on. The pull request's own checks, if the repo has any, are still waited for as section 7 says.
+
 A lead that fans out gets these values in its brief from the agent that started it: `JOB`, `REPO_DIR`, its own branch, the absolute path where that branch is checked out, and `CHECKS`.
 
 `rex-deliver` is not read when the job changes no file in a Git repo (for example a research answer). That job has no delivery, and `rex job close` gets zero deliveries. A skill that stage 1 writes before the plan lands in `.claude/skills/`. IF `git check-ignore -q <path of the new SKILL.md>` succeeds, THEN that write is not a repo change and needs no START. ELSE START for that repo comes before the write, even before the plan.
@@ -177,6 +179,8 @@ The loop has at most 3 rounds. One round is:
 3. IF all checks pass, THEN `git fetch origin` again. IF `origin/$MAIN` is not an ancestor of `PR_HEAD` (main moved during the wait), THEN go to the next round. ELSE, before the merge command, read `gh pr view "$PR" --repo "$REPO" --json reviewDecision --jq .reviewDecision`. IF it prints `REVIEW_REQUIRED` or `CHANGES_REQUESTED`, THEN do not merge: the outcome is `blocked`, and the note says what the person must do. ELSE squash-merge with `--match-head-commit "$PR_HEAD"`. That flag guards only the branch head, not main, which is why the fetch comes first. IF `gh pr merge` refuses because a review is required, THEN the outcome is also `blocked`. IF GitHub refuses for another reason (the head moved, or a ruleset needs an up-to-date branch), THEN go to the next round.
    The squash commit has the subject `"<TITLE> (#<pr number>)"` (mode `github`) or `"<TITLE>"` (local squash merge), then two or three sentences on what changed and why, and as its last line `Rex-Job: <JOB>`.
 4. IF a check fails, THEN read the failed log, correct the cause with a new commit on the job branch, push, and go to the next round. Never turn a check off, weaken a test, or skip a hook to pass.
+
+IF `CHECKS` is empty, THEN each place in this section that runs `CHECKS` (steps 1 and 2, and the modes with no pull request below) runs no local check (section 3, a repo with no build or test command).
 
 ```sh
 git merge --no-edit "origin/$MAIN"
