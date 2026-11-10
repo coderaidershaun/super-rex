@@ -39,6 +39,15 @@ fn skills_force_skips_an_unreadable_installed_file_and_finishes_the_install() {
         return;
     };
 
+    // Without `--force` the file is left alone too, and rex must not
+    // suggest `--force` for a file whose contents it cannot know.
+    let without_force = rex_init_ok(&repo, &[]);
+    assert!(
+        !without_force.stdout.contains("--force"),
+        "rex must not suggest --force for a file it cannot read, got: {}",
+        without_force.stdout
+    );
+
     let printed = rex_init_ok(&repo, &["--force"]);
 
     assert!(
@@ -61,24 +70,5 @@ fn skills_force_skips_an_unreadable_installed_file_and_finishes_the_install() {
         !printed.stdout.contains("differs from this version"),
         "a file rex cannot read is not known to differ, got: {}",
         printed.stdout
-    );
-}
-
-// A file rex cannot read is left alone without `--force` too, and is not
-// counted among the files that differ, because its contents are unknown.
-#[test]
-fn skills_does_not_count_an_unreadable_installed_file_as_differing() {
-    let repo = repo();
-    let marker = installed(&repo, SKILL_MARKER);
-    fs::create_dir_all(marker.parent().expect("marker has a folder")).expect("create skill folder");
-    let Some(_locked) = Locked::file(marker, "stale\n") else {
-        return;
-    };
-
-    let stdout = rex_init_ok(&repo, &[]).stdout;
-
-    assert!(
-        !stdout.contains("--force"),
-        "rex must not suggest --force for a file it cannot read, got: {stdout}"
     );
 }

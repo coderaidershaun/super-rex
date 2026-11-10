@@ -37,136 +37,62 @@ impl Drop for Locked {
     }
 }
 
+// One tree with a locked directory, a locked `.rs` file and a locked `.go`
+// file beside readable ones. Both commands must go on, list what they can
+// read, and name each path they skipped on stderr.
 #[test]
 fn codebase_skips_an_unreadable_directory_and_warns() {
     let dir = tempdir().expect("create tempdir");
     fs::create_dir_all(dir.path().join("ok")).expect("create ok dir");
-    fs::write(dir.path().join("ok/a.rs"), "fn a() {}\n").expect("write ok/a.rs");
-    let Some(_locked) = Locked::dir(dir.path().join("locked")) else {
-        return;
-    };
-
-    let assert = Command::cargo_bin("rex")
-        .expect("find rex binary")
-        .arg("codebase")
-        .current_dir(dir.path())
-        .assert()
-        .success();
-
-    let output = assert.get_output();
-    let stdout = String::from_utf8(output.stdout.clone()).expect("utf8 stdout");
-    let stderr = String::from_utf8(output.stderr.clone()).expect("utf8 stderr");
-    assert_eq!(stdout, "locked/\nok/\n  a.rs\n");
-    assert!(
-        stderr.contains("rex: skipped ./locked: permission denied"),
-        "warning must name the skipped path, got: {stderr}"
-    );
-}
-
-#[test]
-fn smells_still_counts_flags_in_readable_files_and_warns() {
-    let dir = tempdir().expect("create tempdir");
-    fs::write(dir.path().join("a.rs"), "// SMELL: bad name\nfn a() {}\n").expect("write a.rs");
-    let Some(_locked) = Locked::dir(dir.path().join("locked")) else {
-        return;
-    };
-
-    let assert = Command::cargo_bin("rex")
-        .expect("find rex binary")
-        .arg("smells")
-        .current_dir(dir.path())
-        .assert()
-        .success();
-
-    let output = assert.get_output();
-    let stdout = String::from_utf8(output.stdout.clone()).expect("utf8 stdout");
-    let stderr = String::from_utf8(output.stderr.clone()).expect("utf8 stderr");
-    assert_eq!(stdout, "a.rs:1\nCode smells: 1\n");
-    assert!(
-        stderr.contains("rex: skipped ./locked: permission denied"),
-        "warning must name the skipped path, got: {stderr}"
-    );
-}
-
-#[test]
-fn smells_skips_an_unreadable_rust_file_and_warns() {
-    let dir = tempdir().expect("create tempdir");
-    fs::write(dir.path().join("ok.rs"), "// SMELL: bad name\nfn a() {}\n").expect("write ok.rs");
-    let Some(_locked) = Locked::file(dir.path().join("locked.rs"), "// SMELL: hidden\n") else {
-        return;
-    };
-
-    let assert = Command::cargo_bin("rex")
-        .expect("find rex binary")
-        .arg("smells")
-        .current_dir(dir.path())
-        .assert()
-        .success();
-
-    let output = assert.get_output();
-    let stdout = String::from_utf8(output.stdout.clone()).expect("utf8 stdout");
-    let stderr = String::from_utf8(output.stderr.clone()).expect("utf8 stderr");
-    assert_eq!(stdout, "ok.rs:1\nCode smells: 1\n");
-    assert!(
-        stderr.contains("rex: skipped ./locked.rs: permission denied"),
-        "warning must name the skipped file, got: {stderr}"
-    );
-}
-
-#[test]
-fn codebase_with_context_lists_an_unreadable_rust_file_without_its_sentence() {
-    let dir = tempdir().expect("create tempdir");
     fs::write(
-        dir.path().join("ok.rs"),
-        "//! Fine module. More.\nfn a() {}\n",
+        dir.path().join("ok/a.rs"),
+        "//! Fine module. More.\n// SMELL: bad name\nfn a() {}\n",
     )
-    .expect("write ok.rs");
-    let Some(_locked) = Locked::file(dir.path().join("locked.rs"), "//! Hidden module. More.\n")
-    else {
+    .expect("write ok/a.rs");
+    fs::write(dir.path().join("ok.go"), "// Fine feed.\n\npackage feed\n").expect("write ok.go");
+    let Some(_dir) = Locked::dir(dir.path().join("locked")) else {
         return;
     };
-
-    let assert = Command::cargo_bin("rex")
-        .expect("find rex binary")
-        .args(["codebase", "--with-context"])
-        .current_dir(dir.path())
-        .assert()
-        .success();
-
-    let output = assert.get_output();
-    let stdout = String::from_utf8(output.stdout.clone()).expect("utf8 stdout");
-    let stderr = String::from_utf8(output.stderr.clone()).expect("utf8 stderr");
-    assert_eq!(stdout, "locked.rs\nok.rs - Fine module.\n");
-    assert!(
-        stderr.contains("rex: skipped ./locked.rs: permission denied"),
-        "warning must name the skipped file, got: {stderr}"
-    );
-}
-
-#[test]
-fn codebase_with_context_lists_an_unreadable_go_file_without_its_sentence() {
-    let dir = tempdir().expect("create tempdir");
-    fs::write(dir.path().join("ok.go"), "// Fine feed.\n\npackage feed\n").expect("write ok.go");
-    let Some(_locked) = Locked::file(
+    let Some(_rs) = Locked::file(
+        dir.path().join("locked.rs"),
+        "//! Hidden module. More.\n// SMELL: hidden\n",
+    ) else {
+        return;
+    };
+    let Some(_go) = Locked::file(
         dir.path().join("locked.go"),
         "// Hidden feed.\n\npackage feed\n",
     ) else {
         return;
     };
 
-    let assert = Command::cargo_bin("rex")
-        .expect("find rex binary")
-        .args(["codebase", "--with-context"])
-        .current_dir(dir.path())
-        .assert()
-        .success();
+    let run = |args: &[&str], skipped: &[&str], expected: &str| {
+        let assert = Command::cargo_bin("rex")
+            .expect("find rex binary")
+            .args(args)
+            .current_dir(dir.path())
+            .assert()
+            .success();
+        let output = assert.get_output();
+        let stdout = String::from_utf8(output.stdout.clone()).expect("utf8 stdout");
+        let stderr = String::from_utf8(output.stderr.clone()).expect("utf8 stderr");
+        assert_eq!(stdout, expected, "rex {args:?}");
+        for path in skipped {
+            assert!(
+                stderr.contains(&format!("rex: skipped ./{path}: permission denied")),
+                "rex {args:?} must name the skipped {path}, got: {stderr}"
+            );
+        }
+    };
 
-    let output = assert.get_output();
-    let stdout = String::from_utf8(output.stdout.clone()).expect("utf8 stdout");
-    let stderr = String::from_utf8(output.stderr.clone()).expect("utf8 stderr");
-    assert_eq!(stdout, "locked.go\nok.go - Fine feed.\n");
-    assert!(
-        stderr.contains("rex: skipped ./locked.go: permission denied"),
-        "warning must name the skipped file, got: {stderr}"
+    run(
+        &["codebase", "--with-context"],
+        &["locked", "locked.rs", "locked.go"],
+        "locked/\nlocked.go\nlocked.rs\nok/\n  a.rs - Fine module.\nok.go - Fine feed.\n",
+    );
+    run(
+        &["smells"],
+        &["locked", "locked.rs"],
+        "ok/a.rs:2\nCode smells: 1\n",
     );
 }

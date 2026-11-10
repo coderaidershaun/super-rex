@@ -1,26 +1,9 @@
-//! The store and its library folder that `rex init` sets up in `.rex/`.
+//! A store that `rex init` cannot set up in `.rex/` is reported, and the rest
+//! of the install still happens.
 
 use std::fs;
 
-use super::support::{
-    ONE_STEP_FAILED, SKILL_MARKER, installed, repo, rex_init_failed, rex_init_ok,
-};
-
-#[test]
-fn fresh_install_creates_the_store_and_the_library_folder() {
-    let repo = repo();
-
-    let printed = rex_init_ok(&repo, &[]);
-
-    assert!(
-        printed.stdout.contains("rex init: .rex/ created\n"),
-        "got: {}",
-        printed.stdout
-    );
-    let store = repo.path().join(".rex");
-    assert!(store.join("orchestrators").is_dir());
-    assert!(store.join("rex.db").is_file());
-}
+use super::support::{ONE_STEP_FAILED, SKILL_MARKER, installed, repo, rex_init_failed};
 
 // A store that cannot be set up must not stop the rest of the install, and
 // the person must see why it failed.

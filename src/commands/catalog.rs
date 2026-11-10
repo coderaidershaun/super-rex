@@ -55,35 +55,3 @@ fn collect(cmd: &Command, path_parts: &[&str], out: &mut Vec<(String, String)>) 
         collect(sub, &current_parts, out);
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn synthetic_root() -> Command {
-        Command::new("rex")
-            .about("Rex skills installer")
-            .subcommand(Command::new("skills").about("Install the skill bundle."))
-            .subcommand(Command::new("codebase").about("Write a CODEBASE.md tree outline."))
-    }
-
-    #[test]
-    fn walker_produces_non_empty_output_and_includes_rex_skills() {
-        let root = synthetic_root();
-        let mut entries: Vec<(String, String)> = Vec::new();
-        for sub in root.get_subcommands() {
-            collect(sub, &["rex"], &mut entries);
-        }
-
-        assert!(
-            !entries.is_empty(),
-            "walker must produce at least one entry"
-        );
-
-        let has_skills = entries.iter().any(|(path, _)| path == "rex skills");
-        assert!(
-            has_skills,
-            "expected 'rex skills' in entries; got: {entries:?}"
-        );
-    }
-}

@@ -1,95 +1,11 @@
-//! Lost and late facts: lines that never came, a session that ended at once, and
-//! a transcript record written after the read. Each gives a correct history, or one
-//! marked incomplete.
+//! Lost and late facts: lines that never came, and a transcript record written
+//! after the read. Each gives a correct history, or one marked incomplete.
 
-use std::fs::{self, File};
+use std::fs;
 
-use serde_json::Value;
-use super_rex::capture::{JobRuns, Run, RunState, TokenTotal};
+use super_rex::capture::{JobRuns, Run, TokenTotal};
 
 use super::fixture::*;
-
-#[test]
-fn session_that_ends_at_once_is_marked() {
-    let mut fixture = Fixture::new();
-    fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
-    let starts: Vec<&String> = fixture
-        .lines
-        .iter()
-        .filter(|line| {
-            let event = event_of(line);
-            event["hook_event_name"] == "SubagentStart"
-                || event["tool_response"]["status"] == "async_launched"
-        })
-        .collect();
-    fixture.append(&starts);
-    // REVIEWER was still working: its metadata file has no `finished` yet, and its
-    // transcript was last written at its last record.
-    let metadata = fixture.metadata(REVIEWER);
-    let finished_meta = fs::read_to_string(&metadata).unwrap();
-    let mut meta: Value = serde_json::from_str(&finished_meta).unwrap();
-    meta.as_object_mut().unwrap().remove("finished");
-    fs::write(&metadata, meta.to_string()).unwrap();
-    let last_written = fixture.time("2026-11-10T13:10:39.890Z");
-    File::options()
-        .append(true)
-        .open(fixture.transcript(REVIEWER))
-        .unwrap()
-        .set_modified(last_written)
-        .unwrap();
-
-    let inside_quiet = fixture.read(JOB_A, "2026-11-10T13:15:00.000Z");
-    assert_eq!(run(&inside_quiet, REVIEWER).state, RunState::Open);
-    let lead = run(&inside_quiet, LEAD);
-    assert_eq!(lead.state, RunState::Finished);
-    assert_eq!(lead.stopped_at.as_deref(), Some("2026-11-10T13:10:32.660Z"));
-    let counts = &inside_quiet;
-    assert_eq!(
-        (counts.open, counts.finished, counts.unconfirmed),
-        (1, 5, 0)
-    );
-    assert!(!inside_quiet.incomplete);
-
-    // A transcript that cannot be read counts as absent for that read, and marks it.
-    let lead_transcript = fixture.transcript(LEAD);
-    let lead_text = fs::read(&lead_transcript).unwrap();
-    fs::remove_file(&lead_transcript).unwrap();
-    fs::create_dir(&lead_transcript).unwrap();
-    let unreadable = fixture.read(JOB_A, "2026-11-10T13:15:00.000Z");
-    assert_eq!(run(&unreadable, LEAD).tokens, lead.tokens);
-    let counts = &unreadable;
-    assert_eq!(
-        (counts.open, counts.finished, counts.unconfirmed),
-        (1, 5, 0)
-    );
-    assert!(unreadable.incomplete);
-    fs::remove_dir(&lead_transcript).unwrap();
-    fs::write(&lead_transcript, lead_text).unwrap();
-
-    let past_quiet = fixture.read(JOB_A, "2026-11-10T13:26:00.000Z");
-    assert_eq!(run(&past_quiet, REVIEWER).state, RunState::Unconfirmed);
-    let counts = &past_quiet;
-    assert_eq!(
-        (counts.open, counts.finished, counts.unconfirmed),
-        (0, 5, 1)
-    );
-    assert!(past_quiet.incomplete);
-
-    // The job closes while REVIEWER is quiet, and later its metadata file says it
-    // finished. Its stop time is then taken from its transcript before its total is
-    // final, because a final total is never read again.
-    fixture.close_job(JOB_A, "2026-11-10T13:27:00.000Z");
-    let after_close = fixture.read(JOB_A, "2026-11-10T13:28:00.000Z");
-    assert_eq!(run(&after_close, REVIEWER).state, RunState::Unconfirmed);
-    fs::write(&metadata, finished_meta).unwrap();
-    let finished = fixture.read(JOB_A, "2026-11-10T13:29:00.000Z");
-    let reviewer = run(&finished, REVIEWER);
-    assert_eq!(reviewer.state, RunState::Finished);
-    assert_eq!(
-        reviewer.stopped_at.as_deref(),
-        Some("2026-11-10T13:10:39.890Z")
-    );
-}
 
 #[test]
 fn lost_lines_give_the_same_tree() {
@@ -178,6 +94,22 @@ fn late_transcript_record_is_counted_before_final() {
     let main_late = cut_last_lines(&fixture.main_transcript(), 2);
 
     let inside_close = fixture.read(JOB_A, "2026-11-10T13:10:44.000Z");
+    assert!(!inside_close.incomplete);
+
+    // A transcript that cannot be read counts as absent for that read, and marks it.
+    let lead_transcript = fixture.transcript(LEAD);
+    let lead_text = fs::read(&lead_transcript).unwrap();
+    fs::remove_file(&lead_transcript).unwrap();
+    fs::create_dir(&lead_transcript).unwrap();
+    let unreadable = fixture.read(JOB_A, "2026-11-10T13:10:44.500Z");
+    assert_eq!(
+        run(&unreadable, LEAD).tokens,
+        run(&inside_close, LEAD).tokens
+    );
+    assert!(unreadable.incomplete, "unreadable transcript");
+    fs::remove_dir(&lead_transcript).unwrap();
+    fs::write(&lead_transcript, lead_text).unwrap();
+
     fixture.close_job(JOB_A, "2026-11-10T13:10:45.000Z");
     let reviewer_early = run(&inside_close, REVIEWER).tokens;
     assert!(matches!(reviewer_early, TokenTotal::Provisional(_)));

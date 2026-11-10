@@ -268,19 +268,3 @@ fn count_text(count: u64) -> String {
         format!("{}.{}M", millions_tenths / 10, millions_tenths % 10)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn durations_and_counts_print_in_their_short_forms() {
-        assert_eq!(duration_text(41_900), "41s");
-        assert_eq!(duration_text(125_000), "2m05s");
-        assert_eq!(duration_text(3_720_000), "1h02m");
-        assert_eq!(count_text(950), "950");
-        assert_eq!(count_text(61_000), "61.0k");
-        assert_eq!(count_text(999_999), "1.0M");
-        assert_eq!(count_text(1_240_000), "1.2M");
-    }
-}

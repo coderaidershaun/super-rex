@@ -1,4 +1,4 @@
-//! Integration tests of `rex recall`, `rex feedback`, `rex jobs` and `rex watch`.
+//! Integration tests of `rex recall`, `rex feedback` and `rex jobs`.
 
 mod support;
 
@@ -8,6 +8,7 @@ const JOB_A: &str = "0g4aaaaaa1";
 const JOB_B: &str = "0g4bbbbbb2";
 const JOB_C: &str = "0g4cccccc3";
 const JOB_D: &str = "0g4dddddd4";
+const JOB_E: &str = "0g4eeeeee5";
 
 fn reject_with_lesson(fixture: &Fixture, job: &str, lesson: &str) {
     let run = fixture.rex(&[
@@ -52,6 +53,11 @@ fn feedback_on_one_job_is_recalled_for_a_similar_job() {
         .class("feature", "small", "high", "go")
         .status("delivered")
         .insert();
+    fixture
+        .add_job(JOB_E)
+        .status("planned")
+        .experience_recalled("kept")
+        .insert();
     reject_with_lesson(&fixture, JOB_A, "Ask about the config format.");
     reject_with_lesson(&fixture, JOB_C, "Lesson of the job that shares one field.");
     reject_with_lesson(&fixture, JOB_D, "Lesson of the job that shares two fields.");
@@ -80,48 +86,28 @@ fn feedback_on_one_job_is_recalled_for_a_similar_job() {
     ];
     assert_eq!(run.code, 0, "{}", run.stderr);
     assert_eq!(run.stdout_lines(), expected);
-}
 
-#[test]
-fn recall_records_while_created_and_not_after_that() {
-    let mut fixture = Fixture::new();
-    fixture.add_job(JOB_A).insert();
-    fixture
-        .add_job(JOB_B)
-        .status("planned")
-        .experience_recalled("kept")
-        .insert();
-
-    let plain = fixture.rex(&["recall", JOB_A]);
-    let json = fixture.rex(&["recall", JOB_A, "--json"]);
-    assert_eq!(
-        plain.stdout_lines()[..2],
-        [format!("job={JOB_A}"), "recorded=yes".to_owned()]
-    );
-    assert_eq!(
-        json.stdout.trim_end(),
-        format!(
-            r#"{{"schema":1,"job":"{JOB_A}","recorded":true,"lessons":[],"orchestrators":[],"unused":[]}}"#
-        )
-    );
-    assert_eq!(
-        fixture.job_column(JOB_A, "experience_recalled").as_deref(),
-        Some(json.stdout.trim_end())
-    );
-
-    let planned = fixture.rex(&["recall", JOB_B]);
-    let planned_json = fixture.rex(&["recall", JOB_B, "--json"]);
-    assert_eq!(
-        planned.stdout_lines()[..2],
-        [format!("job={JOB_B}"), "recorded=no".to_owned()]
-    );
+    // A job still being created has its recall recorded, each time it is run.
+    let json = fixture.rex(&["recall", JOB_B, "--json"]);
+    assert_eq!(json.code, 0, "{}", json.stderr);
     assert!(
-        planned_json.stdout.contains(r#""recorded":false"#),
+        json.stdout.contains(r#""recorded":true"#),
         "{}",
-        planned_json.stdout
+        json.stdout
     );
     assert_eq!(
         fixture.job_column(JOB_B, "experience_recalled").as_deref(),
+        Some(json.stdout.trim_end())
+    );
+
+    // A planned job keeps the recall it has: it is shown, not overwritten.
+    let planned = fixture.rex(&["recall", JOB_E]);
+    assert_eq!(
+        planned.stdout_lines()[..2],
+        [format!("job={JOB_E}"), "recorded=no".to_owned()]
+    );
+    assert_eq!(
+        fixture.job_column(JOB_E, "experience_recalled").as_deref(),
         Some("kept")
     );
 }

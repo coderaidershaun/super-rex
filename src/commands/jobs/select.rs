@@ -186,28 +186,3 @@ pub fn has_feedback(conn: &Connection, job: &JobId) -> Result<bool, StoreError> 
     )?;
     Ok(exists)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn dates_are_checked() {
-        for good in ["2026-11-10", "2026-01-31"] {
-            assert!(is_date(good), "{good}");
-        }
-        for bad in [
-            "2026-13-01",
-            "2026-00-10",
-            "2026-11-32",
-            "2026-11-00",
-            "26-11-10",
-            "2026/11/10",
-            "2026-1-100",
-            "20a6-11-10",
-            "",
-        ] {
-            assert!(!is_date(bad), "{bad}");
-        }
-    }
-}

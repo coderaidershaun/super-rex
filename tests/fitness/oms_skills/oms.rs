@@ -93,8 +93,9 @@ fn joined<T>(items: &[T], name: fn(&T) -> &'static str) -> String {
     names.join(",")
 }
 
+/// One pass over every input. Each failure names the invariant and the input.
 #[test]
-fn every_combination_returns_a_supported_agent() {
+fn selection_invariants_hold_for_every_combination() {
     let tiers = [Tier::Low, Tier::Medium, Tier::High, Tier::Xhigh];
     let efforts = [
         Effort::Low,
@@ -103,94 +104,6 @@ fn every_combination_returns_a_supported_agent() {
         Effort::Xhigh,
         Effort::Max,
     ];
-
-    for inputs in all_inputs() {
-        let agent = select(inputs).agent;
-        let read_back = agent.to_string().parse::<GridAgent>();
-
-        // Version 1 supports all twenty pairs, so every pair of a known tier
-        // and a known effort whose name reads back is in the supported table.
-        assert!(
-            tiers.contains(&agent.tier) && efforts.contains(&agent.effort),
-            "total: {} gave {agent:?}",
-            inputs.code()
-        );
-        assert_eq!(read_back, Ok(agent), "total: {}", inputs.code());
-    }
-}
-
-#[test]
-fn raising_an_input_never_weakens_the_agent() {
-    for inputs in all_inputs() {
-        let agent = select(inputs).agent;
-        for (name, field) in RAISING_FIELDS {
-            let Some(raised) = one_step_up(inputs, field) else {
-                continue;
-            };
-            let raised_agent = select(raised).agent;
-            assert!(
-                !is_weaker(raised_agent, agent),
-                "raising never weakens: {name} up from {} to {} gave {raised_agent} after {agent}",
-                inputs.code(),
-                raised.code()
-            );
-        }
-    }
-}
-
-#[test]
-fn easier_checking_never_strengthens_the_agent() {
-    for inputs in all_inputs() {
-        let agent = select(inputs).agent;
-        let Some(easier) = one_step_up(inputs, |inputs| &mut inputs.verification) else {
-            continue;
-        };
-        let easier_agent = select(easier).agent;
-        assert!(
-            !is_weaker(agent, easier_agent),
-            "easier checking never strengthens: {} to {} gave {easier_agent} after {agent}",
-            inputs.code(),
-            easier.code()
-        );
-    }
-}
-
-#[test]
-fn caps_only_lower() {
-    let no_cap = [None, Some(Level::High)];
-    for inputs in all_inputs() {
-        let selection = select(inputs);
-        let (agent, demand) = (selection.agent, selection.demand);
-        let has_no_limits = no_cap.contains(&inputs.budget) && no_cap.contains(&inputs.duration);
-
-        assert!(
-            agent.tier <= demand.tier && agent.effort <= demand.effort,
-            "caps only lower: {} gave {agent} above its demand {demand}",
-            inputs.code()
-        );
-        if !has_cap_rule(&selection) || has_no_limits {
-            assert_eq!(agent, demand, "caps only lower: {}", inputs.code());
-        }
-    }
-}
-
-#[test]
-fn the_floor_holds() {
-    for inputs in all_inputs()
-        .into_iter()
-        .filter(|inputs| has_high_stakes(*inputs))
-    {
-        let agent = select(inputs).agent;
-        assert!(
-            agent.tier >= Tier::Medium && agent.effort >= Effort::High,
-            "the floor holds: {} gave {agent}",
-            inputs.code()
-        );
-    }
-}
-
-#[test]
-fn the_budget_holds() {
     let medium_medium = GridAgent {
         tier: Tier::Medium,
         effort: Effort::Medium,
@@ -199,75 +112,7 @@ fn the_budget_holds() {
         tier: Tier::Medium,
         effort: Effort::High,
     };
-    for inputs in all_inputs() {
-        let agent = select(inputs).agent;
-        let code = inputs.code();
-        match (inputs.budget, has_high_stakes(inputs)) {
-            (Some(Level::Low), false) => assert!(
-                agent.tier <= Tier::Medium && agent.effort <= Effort::Medium,
-                "the budget holds: {code} gave {agent}, above {medium_medium}"
-            ),
-            (Some(Level::Low), true) => {
-                assert_eq!(agent, medium_high, "the budget holds: {code}");
-            }
-            (Some(Level::Medium), _) => assert!(
-                agent.tier <= Tier::High,
-                "the budget holds: {code} gave {agent}, above the high tier"
-            ),
-            _ => {}
-        }
-    }
-}
-
-#[test]
-fn conflict_is_reported_only_when_the_floor_overrode_a_cap() {
-    for inputs in all_inputs() {
-        let selection = select(inputs);
-        if selection.conflict.is_empty() {
-            continue;
-        }
-        assert!(
-            has_high_stakes(inputs) && selection.rules.contains(&Rule::FloorStakes),
-            "conflict is honest: {} reported {:?} with rules {:?}",
-            inputs.code(),
-            selection.conflict,
-            selection.rules
-        );
-    }
-}
-
-#[test]
-fn reliability_and_consequence_are_symmetric() {
-    for inputs in all_inputs() {
-        let swapped = Inputs {
-            reliability: inputs.consequence,
-            consequence: inputs.reliability,
-            ..inputs
-        };
-        let selection = select(inputs);
-        let swapped_selection = select(swapped);
-        assert_eq!(
-            (
-                selection.agent,
-                selection.demand,
-                selection.rules,
-                selection.conflict
-            ),
-            (
-                swapped_selection.agent,
-                swapped_selection.demand,
-                swapped_selection.rules,
-                swapped_selection.conflict
-            ),
-            "symmetry: {} against {}",
-            inputs.code(),
-            swapped.code()
-        );
-    }
-}
-
-#[test]
-fn none_matches_its_neutral_level() {
+    let no_cap = [None, Some(Level::High)];
     let neutral_levels: [(&str, Field, Level); 5] = [
         (
             "intelligence",
@@ -283,7 +128,109 @@ fn none_matches_its_neutral_level() {
         ("budget", |inputs| &mut inputs.budget, Level::High),
         ("duration", |inputs| &mut inputs.duration, Level::High),
     ];
+
     for inputs in all_inputs() {
+        let selection = select(inputs);
+        let (agent, demand) = (selection.agent, selection.demand);
+        let code = inputs.code();
+        let high_stakes = has_high_stakes(inputs);
+
+        // Version 1 supports all twenty pairs, so every pair of a known tier
+        // and a known effort whose name reads back is in the supported table.
+        assert!(
+            tiers.contains(&agent.tier) && efforts.contains(&agent.effort),
+            "total: {code} gave {agent:?}"
+        );
+        assert_eq!(
+            agent.to_string().parse::<GridAgent>(),
+            Ok(agent),
+            "total: {code}"
+        );
+
+        for (name, field) in RAISING_FIELDS {
+            let Some(raised) = one_step_up(inputs, field) else {
+                continue;
+            };
+            let raised_agent = select(raised).agent;
+            assert!(
+                !is_weaker(raised_agent, agent),
+                "raising never weakens: {name} up from {code} to {} gave {raised_agent} after {agent}",
+                raised.code()
+            );
+        }
+
+        if let Some(easier) = one_step_up(inputs, |inputs| &mut inputs.verification) {
+            let easier_agent = select(easier).agent;
+            assert!(
+                !is_weaker(agent, easier_agent),
+                "easier checking never strengthens: {code} to {} gave {easier_agent} after {agent}",
+                easier.code()
+            );
+        }
+
+        let has_no_limits = no_cap.contains(&inputs.budget) && no_cap.contains(&inputs.duration);
+        assert!(
+            agent.tier <= demand.tier && agent.effort <= demand.effort,
+            "caps only lower: {code} gave {agent} above its demand {demand}"
+        );
+        if !has_cap_rule(&selection) || has_no_limits {
+            assert_eq!(agent, demand, "caps only lower: {code}");
+        }
+
+        if high_stakes {
+            assert!(
+                agent.tier >= Tier::Medium && agent.effort >= Effort::High,
+                "the floor holds: {code} gave {agent}"
+            );
+        }
+
+        match (inputs.budget, high_stakes) {
+            (Some(Level::Low), false) => assert!(
+                agent.tier <= Tier::Medium && agent.effort <= Effort::Medium,
+                "the budget holds: {code} gave {agent}, above {medium_medium}"
+            ),
+            (Some(Level::Low), true) => {
+                assert_eq!(agent, medium_high, "the budget holds: {code}");
+            }
+            (Some(Level::Medium), _) => assert!(
+                agent.tier <= Tier::High,
+                "the budget holds: {code} gave {agent}, above the high tier"
+            ),
+            _ => {}
+        }
+
+        if !selection.conflict.is_empty() {
+            assert!(
+                high_stakes && selection.rules.contains(&Rule::FloorStakes),
+                "conflict is honest: {code} reported {:?} with rules {:?}",
+                selection.conflict,
+                selection.rules
+            );
+        }
+
+        let swapped = Inputs {
+            reliability: inputs.consequence,
+            consequence: inputs.reliability,
+            ..inputs
+        };
+        let swapped_selection = select(swapped);
+        assert_eq!(
+            (
+                &selection.agent,
+                &selection.demand,
+                &selection.rules,
+                &selection.conflict
+            ),
+            (
+                &swapped_selection.agent,
+                &swapped_selection.demand,
+                &swapped_selection.rules,
+                &swapped_selection.conflict
+            ),
+            "symmetry: {code} against {}",
+            swapped.code()
+        );
+
         for (name, field, neutral) in neutral_levels {
             let mut filled = inputs;
             let rating = field(&mut filled);
@@ -292,30 +239,20 @@ fn none_matches_its_neutral_level() {
             }
             *rating = Some(neutral);
             assert_eq!(
-                select(inputs).agent,
+                agent,
                 select(filled).agent,
-                "none matches {neutral:?} for {name}: {} against {}",
-                inputs.code(),
+                "none matches {neutral:?} for {name}: {code} against {}",
                 filled.code()
             );
         }
-    }
-}
 
-#[test]
-fn the_extremes_are_guarded() {
-    for inputs in all_inputs() {
-        let selection = select(inputs);
-        let agent = selection.agent;
-        let code = inputs.code();
         let has_binding_effort_cap = selection
             .rules
             .iter()
             .any(|rule| matches!(rule, Rule::CapBudgetEffort | Rule::CapDurationEffort));
-
         if agent.effort == Effort::Max {
             assert!(
-                has_high_stakes(inputs)
+                high_stakes
                     && inputs.verification == Some(Level::Low)
                     && inputs.autonomy == Some(Level::High)
                     && !has_binding_effort_cap,
@@ -324,13 +261,13 @@ fn the_extremes_are_guarded() {
         }
         if agent.tier == Tier::Xhigh {
             assert!(
-                inputs.intelligence == Some(Level::High) && has_high_stakes(inputs),
+                inputs.intelligence == Some(Level::High) && high_stakes,
                 "the top tier is guarded: {code} gave {agent}"
             );
         }
         if agent.tier == Tier::Low {
             assert!(
-                inputs.intelligence == Some(Level::Low) && !has_high_stakes(inputs),
+                inputs.intelligence == Some(Level::Low) && !high_stakes,
                 "the lowest tier is guarded: {code} gave {agent}"
             );
         }

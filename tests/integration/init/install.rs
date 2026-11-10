@@ -7,7 +7,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::support::{
-    COMMIT_ALL, SKILL_MARKER, bundle_file, bundle_file_count, installed, repo, rex_init_ok,
+    AGENT_MARKER, COMMIT_ALL, SKILL_MARKER, bundle_file, bundle_file_count, installed, repo,
+    rex_init_ok,
 };
 
 /// The block `rex init` adds to `.gitignore`, byte for byte.
@@ -29,47 +30,52 @@ fn fresh_install_writes_every_bundle_file() {
             "{SETTINGS_CREATED}rex init: {n} written, 0 skipped\nrex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .rex/ created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}"
         )
     );
-
-    let marker = fs::read(installed(&repo, SKILL_MARKER)).expect("read marker skill");
-    assert_eq!(marker, bundle_file(SKILL_MARKER));
-}
-
-// This test must never be deleted. It is the only check that running the
-// install command a second time does not rewrite files it already wrote.
-#[test]
-fn second_run_writes_nothing() {
-    let repo = repo();
-    let n = bundle_file_count();
-
-    rex_init_ok(&repo, &[]);
-
-    let before = fs::read(installed(&repo, SKILL_MARKER)).expect("read marker skill");
-
-    let printed = rex_init_ok(&repo, &[]);
-
     assert_eq!(
-        printed.stdout,
-        format!("rex init: 0 written, {n} skipped\nrex init: pre-commit hooks installed\n")
+        printed.stderr, "",
+        "no warning when every tool is installed"
     );
 
-    let after = fs::read(installed(&repo, SKILL_MARKER)).expect("read marker skill");
-    assert_eq!(
-        before, after,
-        "second run must not rewrite an already-installed file"
-    );
+    for (path, contents) in super_rex::bundle::walk() {
+        let installed = fs::read(repo.path().join(".claude").join(&path)).expect("read installed");
+        assert_eq!(installed, contents, "{} was changed", path.display());
+    }
+
+    let agents_md = fs::read_to_string(repo.path().join("AGENTS.md")).expect("read AGENTS.md");
+    assert!(agents_md.starts_with("<!-- rex:codebase -->\n## Codebase map\n"));
+    assert!(agents_md.contains("`rex codebase --only code --with-context`"));
+    assert!(agents_md.contains("`rex codebase --for-human --only code --with-context`"));
+    assert!(agents_md.contains("\n## Code smells\n"));
+    assert!(agents_md.contains("- `rex smells`: "));
+
+    let gitignore = fs::read(repo.path().join(".gitignore")).expect("read .gitignore");
+    assert_eq!(gitignore, SUPERREX_IGNORE_BLOCK);
+
+    let store = repo.path().join(".rex");
+    assert!(store.join("orchestrators").is_dir());
+    assert!(store.join("rex.db").is_file());
 }
 
 // This test must never be deleted. It is the only check that a file the
-// user has already edited is never overwritten by the install command.
+// user has already edited is never overwritten by the install command, and
+// that a deleted file is put back.
 #[test]
 fn existing_modified_file_is_never_touched() {
     let repo = repo();
     let n = bundle_file_count();
 
     let marker = installed(&repo, SKILL_MARKER);
+    let older_files: [(&str, &[u8]); 2] = [
+        (".claude/skills/INDEX.md", b"an older skill index\n"),
+        (".claude/skills/rex-code-lead/SKILL.md", b"an older skill\n"),
+    ];
     fs::create_dir_all(marker.parent().expect("marker has a folder"))
         .expect("create marker skill folder");
     fs::write(&marker, b"sentinel content").expect("write sentinel marker skill");
+    for (path, contents) in older_files {
+        let path = repo.path().join(path);
+        fs::create_dir_all(path.parent().expect("file has a folder")).expect("create folder");
+        fs::write(&path, contents).expect("write older file");
+    }
 
     let printed = rex_init_ok(&repo, &[]);
 
@@ -80,162 +86,82 @@ fn existing_modified_file_is_never_touched() {
             n - 1
         )
     );
+    assert_eq!(
+        fs::read(&marker).expect("read marker skill"),
+        b"sentinel content"
+    );
+    for (path, contents) in older_files {
+        let after = fs::read(repo.path().join(path)).expect("read older file");
+        assert_eq!(after, contents, "{path} must not change");
+    }
 
-    let contents = fs::read(&marker).expect("read marker skill");
-    assert_eq!(contents, b"sentinel content");
-}
-
-#[test]
-fn missing_file_is_backfilled() {
-    let repo = repo();
-    let n = bundle_file_count();
-
-    rex_init_ok(&repo, &[]);
-
-    let marker = installed(&repo, SKILL_MARKER);
-    fs::remove_file(&marker).expect("remove marker skill");
+    let agent = installed(&repo, AGENT_MARKER);
+    fs::remove_file(&agent).expect("remove agent file");
 
     let printed = rex_init_ok(&repo, &[]);
 
     assert_eq!(
         printed.stdout,
         format!(
-            "rex init: 1 written, {} skipped\nrex init: pre-commit hooks installed\n",
+            "rex init: 1 written, {} skipped (1 differs from this version; use --force to overwrite)\nrex init: pre-commit hooks installed\n",
             n - 1
         )
     );
-
-    let restored = fs::read(&marker).expect("read marker skill");
-    assert_eq!(restored, bundle_file(SKILL_MARKER));
-}
-
-#[test]
-fn the_claude_install_is_byte_for_byte_the_bundle() {
-    let repo = repo();
-    rex_init_ok(&repo, &[]);
-
-    for (path, contents) in super_rex::bundle::walk() {
-        let installed = fs::read(repo.path().join(".claude").join(&path)).expect("read installed");
-        assert_eq!(installed, contents, "{} was changed", path.display());
-    }
-}
-
-#[test]
-fn fresh_install_creates_agents_md_with_codebase_section() {
-    let repo = repo();
-
-    let printed = rex_init_ok(&repo, &[]);
-
-    assert!(printed.stdout.contains("rex init: AGENTS.md created\n"));
-
-    let agents_md = fs::read_to_string(repo.path().join("AGENTS.md")).expect("read AGENTS.md");
-    assert!(agents_md.starts_with("<!-- rex:codebase -->\n## Codebase map\n"));
-    assert!(agents_md.contains("`rex codebase --only code --with-context`"));
-    assert!(agents_md.contains("`rex codebase --for-human --only code --with-context`"));
-    assert!(agents_md.contains("\n## Code smells\n"));
-    assert!(agents_md.contains("- `rex smells`: "));
+    assert_eq!(
+        fs::read(&agent).expect("read agent file"),
+        bundle_file(AGENT_MARKER)
+    );
+    assert_eq!(
+        fs::read(&marker).expect("read marker skill"),
+        b"sentinel content"
+    );
 }
 
 #[test]
 fn existing_agents_md_gets_section_on_top_once() {
-    let repo = repo();
+    let own = repo();
     let old: &[u8] = b"# My project\n\nKeep me exactly as I am.\n";
-    fs::write(repo.path().join("AGENTS.md"), old).expect("write AGENTS.md");
+    fs::write(own.path().join("AGENTS.md"), old).expect("write AGENTS.md");
+    fs::write(own.path().join(".gitignore"), b"/target").expect("write .gitignore");
 
-    let first = rex_init_ok(&repo, &[]);
+    let first = rex_init_ok(&own, &[]);
 
     assert!(first.stdout.contains("rex init: AGENTS.md updated\n"));
-
-    let after_first = fs::read(repo.path().join("AGENTS.md")).expect("read AGENTS.md");
-    assert!(after_first.starts_with(b"<!-- rex:codebase -->\n## Codebase map\n"));
-    assert!(
-        after_first.ends_with(&[b"\n\n", old].concat()),
-        "old bytes must follow the section after one blank line"
-    );
-
-    let second = rex_init_ok(&repo, &[]);
-
-    assert!(!second.stdout.contains("AGENTS.md"));
-
-    let after_second = fs::read(repo.path().join("AGENTS.md")).expect("read AGENTS.md");
-    assert_eq!(after_first, after_second);
-}
-
-#[test]
-fn fresh_install_creates_gitignore_with_the_superrex_block() {
-    let repo = repo();
-
-    rex_init_ok(&repo, &[]);
-
-    let gitignore = fs::read(repo.path().join(".gitignore")).expect("read .gitignore");
-    assert_eq!(gitignore, SUPERREX_IGNORE_BLOCK);
-}
-
-#[test]
-fn existing_gitignore_gets_block_appended_once() {
-    let repo = repo();
-    fs::write(repo.path().join(".gitignore"), b"/target").expect("write .gitignore");
-
-    let first = rex_init_ok(&repo, &[]);
-
     assert!(first.stdout.contains("rex init: .gitignore updated\n"));
 
-    let after_first = fs::read(repo.path().join(".gitignore")).expect("read .gitignore");
+    let agents_first = fs::read(own.path().join("AGENTS.md")).expect("read AGENTS.md");
+    assert!(agents_first.starts_with(b"<!-- rex:codebase -->\n## Codebase map\n"));
+    assert!(
+        agents_first.ends_with(&[b"\n\n", old].concat()),
+        "old bytes must follow the section after one blank line"
+    );
+    let ignore_first = fs::read(own.path().join(".gitignore")).expect("read .gitignore");
     assert_eq!(
-        after_first,
+        ignore_first,
         [b"/target\n\n", SUPERREX_IGNORE_BLOCK].concat()
     );
 
-    let second = rex_init_ok(&repo, &[]);
+    let second = rex_init_ok(&own, &[]);
 
+    assert!(!second.stdout.contains("AGENTS.md"));
     assert!(!second.stdout.contains(".gitignore"));
-
-    let after_second = fs::read(repo.path().join(".gitignore")).expect("read .gitignore");
-    assert_eq!(after_first, after_second);
-}
-
-#[test]
-fn the_commit_line_names_only_the_files_this_run_changed() {
-    let repo = repo();
-    let n = bundle_file_count();
-    rex_init_ok(&repo, &[]);
-
-    fs::write(repo.path().join(".gitignore"), b"/target\n").expect("write .gitignore");
-    let printed = rex_init_ok(&repo, &[]);
-
     assert_eq!(
-        printed.stdout,
-        format!(
-            "rex init: 0 written, {n} skipped\nrex init: .gitignore updated\nrex init: pre-commit hooks installed\nrex init: commit .gitignore (git add + git commit); a job works in the main checkout only when it is clean\n"
-        )
+        agents_first,
+        fs::read(own.path().join("AGENTS.md")).expect("read AGENTS.md")
+    );
+    assert_eq!(
+        ignore_first,
+        fs::read(own.path().join(".gitignore")).expect("read .gitignore")
     );
 
-    fs::remove_file(repo.path().join("AGENTS.md")).expect("remove AGENTS.md");
-    fs::remove_file(repo.path().join(".gitignore")).expect("remove .gitignore");
-    let printed = rex_init_ok(&repo, &[]);
-
-    assert!(
-        printed.stdout.ends_with(
-            "rex init: commit AGENTS.md and .gitignore (git add + git commit); a job works in the main checkout only when it is clean\n"
-        ),
-        "got: {}",
-        printed.stdout
-    );
-}
-
-// An older rex-skills install has files that this version does not ship and
-// older texts in the files it does. None of them may change, and the new
-// ignore entries and the agents must still arrive.
-#[test]
-fn an_older_rex_skills_install_keeps_its_files_and_gets_the_new_entries() {
-    let repo = repo();
+    // An older rex-skills install has older texts in the files this version
+    // writes. None of them may change, and the new ignore entries and the
+    // agents must still arrive.
+    let older = repo();
     let n = bundle_file_count();
     let old_ignore_block: &[u8] =
         b"# rex:ignore claude\n.claude/skills/\n.claude/settings.local.json\n";
-    let kept: [(&str, &[u8]); 5] = [
-        (".claude/skills/INDEX.md", b"an older skill index\n"),
-        (".claude/skills/rex-code-lead/SKILL.md", b"an older skill\n"),
-        (".claude/skills/rex-skill-language/SKILL.md", b"an older text of this skill\n"),
+    let kept: [(&str, &[u8]); 3] = [
         (
             "AGENTS.md",
             b"<!-- rex:codebase -->\n## Codebase map\n\n- `rex codebase --rust-only --with-context`: an older section.\n",
@@ -244,28 +170,32 @@ fn an_older_rex_skills_install_keeps_its_files_and_gets_the_new_entries() {
             ".pre-commit-config.yaml",
             b"# rex:pre-commit\n# Installed by `rex skills`.\nrepos: []\n",
         ),
+        (
+            ".claude/skills/rex-skill-language/SKILL.md",
+            b"an older text of this skill\n",
+        ),
     ];
     for (path, contents) in kept {
-        let path = repo.path().join(path);
+        let path = older.path().join(path);
         fs::create_dir_all(path.parent().expect("file has a folder")).expect("create folder");
         fs::write(&path, contents).expect("write older file");
     }
-    fs::write(repo.path().join(".gitignore"), old_ignore_block).expect("write .gitignore");
+    fs::write(older.path().join(".gitignore"), old_ignore_block).expect("write .gitignore");
 
-    let printed = rex_init_ok(&repo, &[]);
+    let printed = rex_init_ok(&older, &[]);
 
     for (path, contents) in kept {
-        let after = fs::read(repo.path().join(path)).expect("read older file");
+        let after = fs::read(older.path().join(path)).expect("read older file");
         assert_eq!(after, contents, "{path} must not change");
     }
-    let gitignore = fs::read(repo.path().join(".gitignore")).expect("read .gitignore");
+    let gitignore = fs::read(older.path().join(".gitignore")).expect("read .gitignore");
     assert_eq!(
         gitignore,
         [old_ignore_block, b"\n", SUPERREX_IGNORE_BLOCK].concat()
     );
     for (path, contents) in super_rex::bundle::walk() {
         if path.starts_with("agents") {
-            let installed = fs::read(repo.path().join(".claude").join(&path)).expect("read agent");
+            let installed = fs::read(older.path().join(".claude").join(&path)).expect("read agent");
             assert_eq!(installed, contents, "{} must be installed", path.display());
         }
     }
@@ -284,11 +214,16 @@ fn an_older_rex_skills_install_keeps_its_files_and_gets_the_new_entries() {
 #[test]
 fn a_second_run_changes_no_file() {
     let repo = repo();
+    let n = bundle_file_count();
     rex_init_ok(&repo, &[]);
     let before = files_under(repo.path());
 
-    rex_init_ok(&repo, &[]);
+    let printed = rex_init_ok(&repo, &[]);
 
+    assert_eq!(
+        printed.stdout,
+        format!("rex init: 0 written, {n} skipped\nrex init: pre-commit hooks installed\n")
+    );
     let after = files_under(repo.path());
     assert_eq!(
         before.keys().collect::<Vec<_>>(),
