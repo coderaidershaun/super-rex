@@ -21,7 +21,7 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 1. Reuse. IF orchestrator skill in recall output suits work breakdown, THEN reuse it, do step 4, give output.
 2. ELSE select method.
 3. Define roles + skills of each role.
-4. For each role: rate inputs + read `rex oms`, OR give role session agent.
+4. For each role: rate inputs, run `rex oms`, read `demand` + `conflict`. OR give role session agent.
 5. Write orchestrator skill + lead skills. Run `rex skills check` on its folder.
 6. Give output. Builder records it with `rex job plan`.
 ```
@@ -178,7 +178,7 @@ Seven inputs. Each value = `low`, `medium`, `high`, or `none`.
 Who selects agent:
 
 - [ ] Job with plan: `rex job plan` selects agent of each role from same inputs. Builder starts each role with agent that `rex job plan` printed.
-- [ ] `rex oms` is for design: read `demand` + `conflict` before you fix roles.
+- [ ] Run `rex oms` for each role in this step. Read `demand` + `conflict` before you fix roles: job gets one plan only.
 - [ ] Builder inside open job has no plan. It starts each role with agent of `agent` line of `rex oms`.
 
 How function acts (function version 1). Stakes = higher of reliability and consequence.

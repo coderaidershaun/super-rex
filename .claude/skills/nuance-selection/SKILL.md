@@ -16,7 +16,7 @@ user-invocable: true
 Settle which skills this job uses. Write new skill only IF test of step 3 passes. Default result: no new skill.
 
 ```
-1. List skills.
+1. Run `rex skills list`.
 2. Find needs of job. IF skill in list covers need, THEN add that skill to skill list.
 3. Test each need that no skill covers. IF test fails, THEN write no skill.
 4. IF test passes, THEN session agent writes new skill.
@@ -158,5 +158,6 @@ After session agent reports, run `rex skills check <root>/.claude/skills/<name>`
 SKILL LIST: one table. Columns, in this sequence: `Skill / Path / Why this job needs it`.
 
 - [ ] Mark each new skill in `Skill` column: `<name>` (`new`).
+- [ ] `Path` column: `path=` line of that skill in output of `rex skills list`. New skill: path of its `SKILL.md`.
 - [ ] Default: no row is `new`.
 - [ ] Builder records skill list with plan.
