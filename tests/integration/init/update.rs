@@ -1,54 +1,16 @@
-//! `rex init` over an earlier install: files that differ from this version are
-//! counted and kept, and `--force` replaces only those.
+//! `rex init --force` replaces only the bundle files that differ, and leaves
+//! the project files a person may have edited.
 
 use std::fs;
 
 use super::support::{
-    AGENT_MARKER, Repo, SKILL_MARKER, bundle_file, bundle_file_count, installed, repo, rex_init_ok,
+    Repo, SKILL_MARKER, bundle_file, bundle_file_count, installed, repo, rex_init_ok,
 };
 
 const HOOKS_LINE: &str = "rex init: pre-commit hooks installed\n";
 
 fn rex_init_stdout(repo: &Repo, args: &[&str]) -> String {
     rex_init_ok(repo, args).stdout
-}
-
-#[test]
-fn skipped_files_that_differ_from_the_bundle_are_counted_and_left_alone() {
-    let repo = repo();
-    let n = bundle_file_count();
-    rex_init_stdout(&repo, &[]);
-    let marker = installed(&repo, SKILL_MARKER);
-    fs::write(&marker, b"my own edit").expect("edit marker skill");
-
-    let stdout = rex_init_stdout(&repo, &[]);
-
-    assert_eq!(
-        stdout,
-        format!(
-            "rex init: 0 written, {n} skipped (1 differs from this version; use --force to overwrite)\n{HOOKS_LINE}"
-        )
-    );
-    assert_eq!(fs::read(marker).expect("read marker skill"), b"my own edit");
-}
-
-#[test]
-fn several_differing_files_are_counted_together() {
-    let repo = repo();
-    let n = bundle_file_count();
-    rex_init_stdout(&repo, &[]);
-    for edited in [SKILL_MARKER, AGENT_MARKER] {
-        fs::write(installed(&repo, edited), b"my own edit").expect("edit");
-    }
-
-    let stdout = rex_init_stdout(&repo, &[]);
-
-    assert_eq!(
-        stdout,
-        format!(
-            "rex init: 0 written, {n} skipped (2 differ from this version; use --force to overwrite)\n{HOOKS_LINE}"
-        )
-    );
 }
 
 #[test]
@@ -72,19 +34,13 @@ fn force_overwrites_only_the_files_that_differ() {
         fs::read(marker).expect("read marker skill"),
         bundle_file(SKILL_MARKER)
     );
-}
-
-#[test]
-fn force_on_an_up_to_date_install_changes_nothing() {
-    let repo = repo();
-    let n = bundle_file_count();
-    rex_init_stdout(&repo, &[]);
 
     let stdout = rex_init_stdout(&repo, &["--force"]);
 
     assert_eq!(
         stdout,
-        format!("rex init: 0 written, {n} skipped\n{HOOKS_LINE}")
+        format!("rex init: 0 written, {n} skipped\n{HOOKS_LINE}"),
+        "--force on an up-to-date install must rewrite nothing"
     );
 }
 

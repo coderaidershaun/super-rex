@@ -357,35 +357,12 @@ fn a_settings_file_that_is_not_json_is_left_alone_and_the_run_fails() {
     );
 }
 
-// Leaving the hooks out turns telemetry off for a new repo, but it never
-// deletes entries an earlier run wrote: the person is told to remove them.
-#[test]
-fn no_hooks_writes_the_safety_settings_without_hooks() {
-    let fresh = repo();
-
-    let printed = rex_init_ok(&fresh, &["--no-hooks"]);
-
-    assert_eq!(printed.stderr, "");
-    assert_eq!(read_settings(&fresh), as_written(&safety_settings(&fresh)));
-
-    let hooked = repo();
-    rex_init_ok(&hooked, &[]);
-    let before = read_settings(&hooked);
-
-    let printed = rex_init_ok(&hooked, &["--no-hooks"]);
-
-    assert_eq!(read_settings(&hooked), before, "the hook entries stay");
-    assert_eq!(
-        printed.stderr,
-        "rex init: warning: hooks left out, but hook entries from an earlier run are still in .claude/settings.local.json. Remove the entries that run rex hook to turn telemetry off.\n"
-    );
-}
-
 // A program that opens its own network connection cannot run in the sandbox,
 // so an agent may run a command again outside it. `--strict` takes that away,
 // and a file that is stricter than the run asks for is never made weaker.
+// `--no-hooks` leaves out the hook entries.
 #[test]
-fn strict_keeps_every_command_inside_the_sandbox() {
+fn strict_and_no_hooks_change_only_the_settings_they_name() {
     let allow_key = |repo: &Repo| {
         let written: Value = serde_json::from_str(&read_settings(repo)).expect("settings JSON");
         written["sandbox"]["allowUnsandboxedCommands"].clone()
@@ -427,6 +404,27 @@ fn strict_keeps_every_command_inside_the_sandbox() {
         format!(
             "rex init: failed: kept sandbox.allowUnsandboxedCommands = true in .claude/settings.local.json, so the protection it gives is off; set it to false to turn it on\n{ONE_STEP_FAILED}"
         )
+    );
+
+    // Leaving the hooks out turns telemetry off for a new repo, but it never
+    // deletes entries an earlier run wrote: the person is told to remove them.
+    let fresh = repo();
+
+    let printed = rex_init_ok(&fresh, &["--no-hooks"]);
+
+    assert_eq!(printed.stderr, "");
+    assert_eq!(read_settings(&fresh), as_written(&safety_settings(&fresh)));
+
+    let hooked = repo();
+    rex_init_ok(&hooked, &[]);
+    let before = read_settings(&hooked);
+
+    let printed = rex_init_ok(&hooked, &["--no-hooks"]);
+
+    assert_eq!(read_settings(&hooked), before, "the hook entries stay");
+    assert_eq!(
+        printed.stderr,
+        "rex init: warning: hooks left out, but hook entries from an earlier run are still in .claude/settings.local.json. Remove the entries that run rex hook to turn telemetry off.\n"
     );
 }
 
