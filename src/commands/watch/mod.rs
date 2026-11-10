@@ -23,6 +23,7 @@ const REFRESH_SECONDS: u64 = 2;
 #[derive(clap::Args)]
 pub struct WatchOptions {}
 
+/// Failure of `rex watch`.
 #[derive(thiserror::Error, Debug)]
 pub enum WatchError {
     #[error("rex watch needs a terminal; run it without redirecting its output")]

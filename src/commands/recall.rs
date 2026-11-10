@@ -2,16 +2,16 @@
 //! jobs used. It also records what it found on the job, so the builder does
 //! not have to pass it on.
 
-use std::fs;
 use std::path::Path;
 
 use rusqlite::{OptionalExtension, Transaction, named_params, params};
 use serde::Serialize;
-use yaml_rust2::{Yaml, YamlLoader};
 
+use super::skills;
 use super::stdout::print_line_to_stdout;
 use crate::error::{CommandError, RexError};
 use crate::store::orchestrator;
+use crate::store::status::Status;
 use crate::store::{JobId, Store, StoreError, StorePaths};
 
 /// A job is similar when at least this many of the four fields are equal.
@@ -31,6 +31,7 @@ pub struct RecallOptions {
     pub json: bool,
 }
 
+/// Failure of `rex recall`.
 #[derive(thiserror::Error, Debug)]
 pub enum RecallError {
     #[error("cannot write the recall as JSON")]
@@ -93,9 +94,9 @@ impl Group {
     fn count(&mut self, score: i64, status: &str) {
         self.best_match = self.best_match.max(score);
         self.runs += 1;
-        match status {
-            "accepted" => self.accepted += 1,
-            "rejected" | "analyzed" | "failed" => self.missed += 1,
+        match status.parse() {
+            Ok(Status::Accepted) => self.accepted += 1,
+            Ok(Status::Rejected | Status::Analyzed | Status::Failed) => self.missed += 1,
             _ => {}
         }
     }
@@ -137,10 +138,10 @@ pub fn run(cwd: &Path, options: RecallOptions) -> Result<(), RecallError> {
     Ok(())
 }
 
-/// Indexes the library, reads, and records the result while the job is
-/// `created`. The index is read after it is written, so a folder that a person
-/// added a minute ago shows at once. A job in any other status only skips the
-/// UPDATE; it still indexes, so the `unused` list is always current.
+/// Indexes the orchestrator folders, builds the report, and stores it on the
+/// job while the job is `created`. The index is written before it is read, so
+/// a folder added a minute ago shows at once. A job in any other status still
+/// gets a fresh index; only storing the report is skipped.
 fn recall(
     tx: &Transaction<'_>,
     paths: &StorePaths,
@@ -148,7 +149,7 @@ fn recall(
 ) -> Result<(Report, String), RecallError> {
     let asked = asked_job(tx, paths, job)?;
     if paths.orchestrators.is_dir() {
-        orchestrator::index_all(tx, &paths.orchestrators, &describe)?;
+        orchestrator::index_all(tx, &paths.orchestrators, &skills::describe)?;
     }
 
     let mut report = Report {
@@ -380,30 +381,4 @@ fn plain_lines(report: &Report) -> Vec<String> {
         ));
     }
     lines
-}
-
-// SMELL: duplicates the header reader of `rex skills`, so the two can read a
-// description differently and the index keeps whichever ran first. Pass
-// `commands::skills::describe` to `index_all` instead once this crate has it.
-/// The `description` of the header of `<name>/SKILL.md`: the lines between the
-/// `---` on line 1 and the next `---` line. `None` if the file or the field
-/// is missing or the header is not YAML.
-fn describe(skill_file: &Path) -> Option<String> {
-    let text = fs::read_to_string(skill_file).ok()?.replace("\r\n", "\n");
-    let mut lines = text.lines();
-    if lines.next()? != "---" {
-        return None;
-    }
-    let header: Vec<&str> = lines.take_while(|line| *line != "---").collect();
-    if header.len() + 1 >= text.lines().count() {
-        return None;
-    }
-    let documents = YamlLoader::load_from_str(&header.join("\n")).ok()?;
-    let Yaml::Hash(fields) = documents.into_iter().next()? else {
-        return None;
-    };
-    match fields.get(&Yaml::String("description".to_owned()))? {
-        Yaml::String(description) => Some(description.trim_end().to_owned()),
-        _ => None,
-    }
 }

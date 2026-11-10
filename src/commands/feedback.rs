@@ -90,6 +90,7 @@ pub enum Cause {
     AgentOrchestration,
 }
 
+/// Failure of `rex feedback`.
 #[derive(thiserror::Error, Debug)]
 pub enum FeedbackError {
     #[error(

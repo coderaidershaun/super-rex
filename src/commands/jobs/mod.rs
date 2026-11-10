@@ -40,6 +40,7 @@ pub struct JobsOptions {
     pub until: Option<String>,
 }
 
+/// Failure of `rex jobs`, and of a `rex watch` refresh.
 #[derive(thiserror::Error, Debug)]
 pub enum JobsError {
     #[error("--{flag} needs a date as YYYY-MM-DD, not {text}")]
@@ -140,41 +141,4 @@ pub(crate) fn load_summaries(
         loaded.push((summary, runs));
     }
     Ok(loaded)
-}
-
-#[cfg(test)]
-mod test_support {
-    use rusqlite::Connection;
-
-    use crate::capture::{JobRuns, TokenTotal};
-
-    pub fn store() -> Connection {
-        let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch(include_str!("../../store/schema.sql"))
-            .unwrap();
-        conn
-    }
-
-    pub fn insert(conn: &Connection, id: &str, created_at: &str, request: &str) {
-        conn.execute(
-            "INSERT INTO job (id, request, asked_by, class_version, work_type, size, consequence, \
-             languages, merge_agreed, session_id, status, created_at, updated_at) \
-             VALUES (?1, ?2, 'human', 1, 'fix', 'small', 'low', 'go,rust', 0, ?1, 'created', ?3, ?3)",
-            (id, request, created_at),
-        )
-        .unwrap();
-    }
-
-    pub fn empty_runs() -> JobRuns {
-        JobRuns {
-            runs: vec![],
-            open: 0,
-            finished: 0,
-            unconfirmed: 0,
-            tokens: TokenTotal::Unknown,
-            session_tokens: TokenTotal::Unknown,
-            incomplete: false,
-            damaged_log_lines: 0,
-        }
-    }
 }

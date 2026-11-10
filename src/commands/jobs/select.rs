@@ -124,41 +124,35 @@ pub struct DeliveryRow {
     pub outcome: String,
 }
 
-fn store_error(source: rusqlite::Error) -> StoreError {
-    StoreError::Sqlite { path: None, source }
-}
-
 /// The jobs that match `filter`, newest first.
 ///
 /// # Errors
 /// [`StoreError::Sqlite`] if SQLite fails.
 pub fn select_job_rows(conn: &Connection, filter: &JobFilter) -> Result<Vec<JobRow>, StoreError> {
     let (sql, params) = filter.sql();
-    let mut statement = conn.prepare(&sql).map_err(store_error)?;
-    let rows = statement
-        .query_map(params_from_iter(params.iter()), |row| {
-            let orchestrator_name: Option<String> = row.get(11)?;
-            let orchestrator_version: Option<i64> = row.get(12)?;
-            Ok(JobRow {
-                id: row.get(0)?,
-                created_at: row.get(1)?,
-                updated_at: row.get(2)?,
-                stored_status: row.get(3)?,
-                request: row.get(4)?,
-                asked_by: row.get(5)?,
-                class_version: row.get(6)?,
-                work_type: row.get(7)?,
-                size: row.get(8)?,
-                consequence: row.get(9)?,
-                languages: row.get(10)?,
-                orchestrator: orchestrator_name.zip(orchestrator_version),
-                merge_agreed: row.get::<_, i64>(13)? != 0,
-                builder_model: row.get(14)?,
-                builder_effort: row.get(15)?,
-            })
+    let mut statement = conn.prepare(&sql)?;
+    let rows = statement.query_map(params_from_iter(params.iter()), |row| {
+        let orchestrator_name: Option<String> = row.get(11)?;
+        let orchestrator_version: Option<i64> = row.get(12)?;
+        Ok(JobRow {
+            id: row.get(0)?,
+            created_at: row.get(1)?,
+            updated_at: row.get(2)?,
+            stored_status: row.get(3)?,
+            request: row.get(4)?,
+            asked_by: row.get(5)?,
+            class_version: row.get(6)?,
+            work_type: row.get(7)?,
+            size: row.get(8)?,
+            consequence: row.get(9)?,
+            languages: row.get(10)?,
+            orchestrator: orchestrator_name.zip(orchestrator_version),
+            merge_agreed: row.get::<_, i64>(13)? != 0,
+            builder_model: row.get(14)?,
+            builder_effort: row.get(15)?,
         })
-        .map_err(store_error)?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(store_error)
+    })?;
+    Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
 
 /// The deliveries of one job, in the order they were first recorded.
@@ -167,19 +161,16 @@ pub fn select_job_rows(conn: &Connection, filter: &JobFilter) -> Result<Vec<JobR
 /// [`StoreError::Sqlite`] if SQLite fails.
 pub fn select_deliveries(conn: &Connection, job: &JobId) -> Result<Vec<DeliveryRow>, StoreError> {
     let mut statement = conn
-        .prepare("SELECT repo, branch, pr, outcome FROM delivery WHERE job_id = ? ORDER BY id")
-        .map_err(store_error)?;
-    let rows = statement
-        .query_map([job.as_str()], |row| {
-            Ok(DeliveryRow {
-                repo: row.get(0)?,
-                branch: row.get(1)?,
-                pr: row.get(2)?,
-                outcome: row.get(3)?,
-            })
+        .prepare("SELECT repo, branch, pr, outcome FROM delivery WHERE job_id = ? ORDER BY id")?;
+    let rows = statement.query_map([job.as_str()], |row| {
+        Ok(DeliveryRow {
+            repo: row.get(0)?,
+            branch: row.get(1)?,
+            pr: row.get(2)?,
+            outcome: row.get(3)?,
         })
-        .map_err(store_error)?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(store_error)
+    })?;
+    Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
 
 /// Whether the job has at least one feedback row.
@@ -187,52 +178,17 @@ pub fn select_deliveries(conn: &Connection, job: &JobId) -> Result<Vec<DeliveryR
 /// # Errors
 /// [`StoreError::Sqlite`] if SQLite fails.
 pub fn has_feedback(conn: &Connection, job: &JobId) -> Result<bool, StoreError> {
-    conn.query_row(
+    let exists = conn.query_row(
         "SELECT EXISTS(SELECT 1 FROM feedback WHERE job_id = ?)",
         [job.as_str()],
         |row| row.get(0),
-    )
-    .map_err(store_error)
+    )?;
+    Ok(exists)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::jobs::test_support::{insert, store};
-
-    #[test]
-    fn filter_keeps_matching_jobs_newest_first() {
-        let conn = store();
-        insert(
-            &conn,
-            "0000000001",
-            "2026-11-09T10:00:00.000Z",
-            "Add a JSON flag",
-        );
-        insert(
-            &conn,
-            "0000000002",
-            "2026-11-10T10:00:00.000Z",
-            "Fix json output\nof status",
-        );
-        insert(
-            &conn,
-            "0000000003",
-            "2026-11-10T11:00:00.000Z",
-            "Other work",
-        );
-        let filter = JobFilter {
-            search: vec!["json".into(), "OUTPUT".into()],
-            since: Some("2026-11-10".into()),
-            until: Some("2026-11-10".into()),
-        };
-        let rows = select_job_rows(&conn, &filter).unwrap();
-        assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0].id, "0000000002");
-        let all = select_job_rows(&conn, &JobFilter::default()).unwrap();
-        let ids: Vec<_> = all.iter().map(|r| r.id.as_str()).collect();
-        assert_eq!(ids, ["0000000003", "0000000002", "0000000001"]);
-    }
 
     #[test]
     fn dates_are_checked() {

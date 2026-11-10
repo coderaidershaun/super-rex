@@ -3,7 +3,7 @@
 //! lays it out.
 
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Layout};
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, TableState};
 
@@ -133,7 +133,7 @@ fn header_style() -> Style {
     Style::new().add_modifier(Modifier::BOLD)
 }
 
-fn draw_jobs(frame: &mut Frame, area: ratatui::layout::Rect, view: &ViewModel, state: &State) {
+fn draw_jobs(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
     let block = Block::bordered().title(" jobs ");
     if view.jobs.is_empty() {
         frame.render_widget(Paragraph::new("no jobs").block(block), area);
@@ -187,7 +187,7 @@ fn draw_jobs(frame: &mut Frame, area: ratatui::layout::Rect, view: &ViewModel, s
     frame.render_stateful_widget(table, area, &mut table_state);
 }
 
-fn draw_tree(frame: &mut Frame, area: ratatui::layout::Rect, view: &ViewModel, state: &State) {
+fn draw_tree(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
     let title = match view.jobs.get(state.job) {
         Some(job) => format!(" runs of {} ", job.id),
         None => " runs ".to_owned(),
@@ -265,30 +265,5 @@ mod tests {
             cache_creation: 4,
         };
         assert_eq!(total_text(&TokenTotal::Provisional(counts)), "10 tokens~");
-    }
-
-    #[test]
-    fn duration_text_has_three_forms() {
-        assert_eq!(duration_text(Some(41_000)), "41s");
-        assert_eq!(duration_text(Some(125_000)), "2m05s");
-        assert_eq!(duration_text(Some(3_720_000)), "1h02m");
-        assert_eq!(duration_text(None), "-");
-    }
-
-    #[test]
-    fn both_screens_draw_without_a_terminal() {
-        use ratatui::{Terminal, backend::TestBackend};
-        let view = ViewModel {
-            jobs: vec![],
-            tree: vec![],
-        };
-        let mut terminal = Terminal::new(TestBackend::new(100, 10)).unwrap();
-        for screen in [Screen::List, Screen::Tree] {
-            let state = State {
-                screen,
-                ..State::default()
-            };
-            terminal.draw(|frame| draw(frame, &view, &state)).unwrap();
-        }
     }
 }

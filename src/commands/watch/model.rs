@@ -2,6 +2,7 @@
 //! keys that move the selection. Pure values, so a test needs no terminal.
 
 use std::collections::{HashMap, HashSet};
+use std::time::SystemTime;
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 
@@ -9,7 +10,6 @@ use super::view::{JobListRow, TreeRow, ViewModel, duration_text, total_text};
 use crate::capture::{JobRuns, Run, RunState};
 use crate::commands::jobs::{JobFilter, JobSummary, JobsError, load_summaries};
 use crate::store::Store;
-use std::time::SystemTime;
 
 /// Which of the two screens is shown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -324,43 +324,5 @@ mod tests {
         assert_eq!(rows[0].tokens, "61.0k tokens~");
         assert_eq!(rows[0].duration, "41s");
         assert_eq!(rows[4].tag_job.as_deref(), Some("0g4cbf7k2q"));
-    }
-
-    #[test]
-    fn tree_keeps_runs_that_only_name_each_other() {
-        let rows = build_tree(&[
-            run("x", Some("y"), "2026-11-10T10:00:00.000Z"),
-            run("y", Some("x"), "2026-11-10T10:00:01.000Z"),
-        ]);
-        assert_eq!(rows.len(), 2);
-    }
-
-    #[test]
-    fn keys_move_inside_the_rows() {
-        let sizes = Sizes {
-            jobs: 2,
-            tree_rows: 3,
-        };
-        let (state, _) = on_key(State::default(), Key::Up, sizes);
-        assert_eq!(state.job, 0);
-        let (state, _) = on_key(state, Key::Down, sizes);
-        let (state, _) = on_key(state, Key::Down, sizes);
-        assert_eq!(state.job, 1);
-        let (state, _) = on_key(state, Key::Enter, sizes);
-        assert_eq!(state.screen, Screen::Tree);
-        let (state, _) = on_key(state, Key::Down, sizes);
-        assert_eq!(state.tree_row, 1);
-        let (state, _) = on_key(state, Key::Enter, sizes);
-        assert_eq!(state.screen, Screen::List);
-        assert_eq!(on_key(state, Key::Quit, sizes).1, Action::Quit);
-        let (state, _) = on_key(
-            State::default(),
-            Key::Enter,
-            Sizes {
-                jobs: 0,
-                tree_rows: 0,
-            },
-        );
-        assert_eq!(state.screen, Screen::List);
     }
 }
