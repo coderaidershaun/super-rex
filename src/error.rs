@@ -6,8 +6,10 @@
 use std::path::PathBuf;
 
 /// Failure of a helper that several commands share, such as printing to
-/// stdout. A command's own failures go in its own error type, not here; it
-/// passes this one on with `#[error(transparent)]`.
+/// stdout. `rex codebase`, `rex smells`, `rex commands` and `rex hook` fail
+/// only in these ways and return it as it is. Every other command has its own
+/// error type, which passes this one on with `#[error(transparent)]`; a new
+/// failure goes there, not here.
 #[derive(thiserror::Error, Debug)]
 pub enum RexError {
     #[error("io error at {}", path.display())]
@@ -22,12 +24,6 @@ pub enum RexError {
         path: PathBuf,
         #[source]
         source: ignore::Error,
-    },
-
-    #[error("`pre-commit install` exited with {status}: {stderr}")]
-    PreCommitInstall {
-        status: std::process::ExitStatus,
-        stderr: String,
     },
 
     #[error("{} is a symbolic link; rex does not write through one", path.display())]

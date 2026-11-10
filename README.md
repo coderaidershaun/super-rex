@@ -17,7 +17,7 @@ cd super-rex
 cargo install --path .
 ```
 
-The binary is `rex`. If rex-skills is installed, its binary has the same name: run `cargo uninstall rex-skills` first, and make sure that the `rex` first on your `PATH` is this one (`rex --version` prints `rex 0.1.0`).
+The binary is `rex`. rex-skills installs a binary named `rex` too: if it is installed, run `cargo uninstall rex-skills` first, and make sure that the `rex` first on your `PATH` is this one (`rex --version` prints `rex 0.1.0`).
 
 | Need | Why |
 | --- | --- |
@@ -127,7 +127,7 @@ The session is the orchestrator and runs at your model and effort. A small job c
 
 **`rex init [--force] [--no-hooks]`**: set SuperRex up in a repo. See above.
 
-**`rex job`**: the group of the four job commands below. On its own it prints its help and exits 2.
+**`rex job`**: the group of the four job commands below. On its own it prints its help on stderr and exits 2.
 
 **`rex job create`**: open a job and print its ID. Required: `--request-file <path|->`, `--asked-by human|agent`, `--merge yes|no`, `--type feature|fix|refactor|chore|research|other`, `--size small|medium|large`, `--consequence low|medium|high`, and `--lang <name>` once for each language, or `--lang none`. Optional: `--session` (default `$CLAUDE_CODE_SESSION_ID`), `--duration`, `--budget` and `--autonomy` (`low|medium|high`, only when the user stated one; `--duration` also takes `fast` and `long`), `--builder-model`, `--builder-effort` (default `$CLAUDE_EFFORT`), `--json`.
 
@@ -213,7 +213,7 @@ inputs=-LHHHHL
 version=1
 ```
 
-**`rex skills`**: the group of `list` and `check`. On its own it prints its help and exits 2.
+**`rex skills`**: the group of `list` and `check`. On its own it prints its help on stderr and exits 2.
 
 **`rex skills list [--json]`**: print each skill of the repo's `.claude/skills/` and of `~/.claude/skills/` as a block of six lines. `shadowed=yes` marks a repo skill that a user skill of the same name hides.
 
@@ -330,7 +330,7 @@ The status changes only through `rex` commands, so it works the same with teleme
 | `rex feedback` without cause and lesson | `rejected` | refused: the analysis is due |
 | `rex feedback`, any verdict | `blocked`, `failed`, `cancelled` or `analyzed` | unchanged; the feedback is still recorded |
 
-Each delivery has one outcome: `merged` (one squash commit on main), `pr-open` (no merge agreed; the pull request waits for a person), `kept-local` (no merge agreed and no pull request possible; the branch is kept), or `blocked` (a merge was agreed but could not be completed). Every outcome but `merged` carries a note that says what remains. If any delivery is `blocked`, the job closes `blocked`, and `--status delivered` is refused. When the rest is done, for example after a person merged the pull request, a later `rex job close` on the same job records it; repos it does not name keep their deliveries.
+Each delivery has one outcome: `merged` (one squash commit on main), `pr-open` (no merge agreed; the pull request waits for a person), `kept-local` (no merge agreed and no pull request possible; the branch is kept), or `blocked` (a merge was agreed but could not be completed). Every outcome but `merged` carries a note that says what remains; `merged` needs `merge_commit`, and `pr-open` needs `pr`. A delivery without `merge_agreed` takes the job's `--merge` answer. If any delivery is `blocked`, the job closes `blocked`, and `--status delivered` is refused. When the rest is done, for example after a person merged the pull request, a later `rex job close` on the same job records it; repos it does not name keep their deliveries.
 
 Feedback is always started by you: run `/rex-feedback` and say what was wrong or right. The skill finds the job, reads the record, finds the cause, may change a skill or an orchestrator, and records it all with one `rex feedback` call.
 
@@ -362,9 +362,9 @@ Three skills can also be called by hand: `/rex-deliver` (for example the clean-u
 
 ## Reference
 
-**Output.** stdout holds the result and nothing else; warnings and errors go to stderr. Plain text, `key=value` lines in a fixed order, the most needed value first. `--json`, where a command has it, prints the same facts as one JSON line.
+**Output.** stdout holds the result and nothing else; warnings and errors go to stderr. Plain text, `key=value` lines in a fixed order, the most needed value first. `--json`, where a command has it, prints one JSON line with at least the facts of the text form.
 
-**Exit codes.** `0` done, also when there was nothing to do. `1` the command failed: the store, a job's state, a file, or a check that found something. `2` the command line is wrong. Every exit that is not 0 writes one line that starts with `error: ` on stderr. `rex hook` always exits 0.
+**Exit codes.** `0` done, also when there was nothing to do. `1` the command failed: the store, a job's state, a file, or a check that found something. `2` the command line is wrong. Every exit that is not 0 writes one line that starts with `error: ` on stderr, except `rex job` and `rex skills` with no sub-command, which print their help. `rex hook` always exits 0.
 
 **Times** print as stored: UTC with milliseconds, `2026-11-10T18:16:54.174Z`. **Job IDs** are 10 lower-case letters and digits, such as `0g51g6fykv`; they sort by time.
 
@@ -377,7 +377,7 @@ Three skills can also be called by hand: `/rex-deliver` (for example the clean-u
 | `.rex/orchestrators/<name>/` | The orchestrator library: one folder with a `SKILL.md` per orchestrator. A changed folder gets a new version at the next plan or recall. |
 | `.rex/worktrees/<job-id>/` | Worktrees of a job, removed after its merge. |
 
-**How `rex` finds the store.** Every command except `rex init` uses the first of: `REX_STORE` (the path of a `.rex` folder, used as is and never skipped), `CLAUDE_PROJECT_DIR`, then the working folder. From a sub-folder or a Git worktree, `rex` walks up to the main checkout. Claude Code sets `CLAUDE_PROJECT_DIR` for hooks only, not in the shell an agent uses, so from a sibling repo set the variable for the command: `REX_STORE=/home/ana/code/shop/.rex rex job show 0g51g6fykv`.
+**How `rex` finds the store.** Every command except `rex init` uses the first of these that holds a `rex.db`: `REX_STORE` (the path of a `.rex` folder, used as is and never skipped), `CLAUDE_PROJECT_DIR`, then the working folder. From a sub-folder or a Git worktree, `rex` walks up to the main checkout. Claude Code sets `CLAUDE_PROJECT_DIR` for hooks only, not in the shell an agent uses, so from a sibling repo set the variable for the command: `REX_STORE=/home/ana/code/shop/.rex rex job show 0g51g6fykv`.
 
 **The tag block.** Every brief that starts a sub-agent begins with two lines and a blank line. `rex` reads the role from it; `Rex-Job` is a cross-check and never moves a run to another job. Nothing fails without it, but the run then has no role.
 
@@ -421,12 +421,12 @@ when_to_use: Use when you write release notes, or when the user says "release no
 
 - **The builder:** `orchestration-builder` (the entry skill) and its three stages `nuance-selection`, `work-breakdown` and `orchestration-selection`.
 - **Delivery:** `rex-deliver`, `rex-pr-review` and `rex-feedback`.
-- **Rulebooks:** 18 `rex-code-*` skills for writing code, mostly Rust: philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four test lanes, design sketch, spike, validation plan and priorities. Two utilities go with them: `rex-grill-me` and `rex-mermaid-diagrams`. Run `rex skills list` to see each one's description and when to use it.
+- **Rulebooks:** 18 `rex-code-*` skills for writing code, mostly Rust: philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four kinds of test, design sketch, spike, validation plan and priorities. Two utilities go with them: `rex-grill-me` and `rex-mermaid-diagrams`. Run `rex skills list` to see each one's description and when to use it.
 - **`rex-skill-language`:** the language every skill and agent instruction is written in.
 
 **The grid** is 20 agents in `.claude/agents/`, named `model-<low|medium|high|xhigh>-effort-<low|medium|high|xhigh|max>`. The tiers are `haiku`, `sonnet`, `opus` and `fable`. An agent runs with exactly the model and effort in its file.
 
-**How `rex oms` picks one.** It is a fixed function of seven inputs, each low, medium, high or none (not relevant). Duration, budget and autonomy belong to the job and are given only when you state them; intelligence, reliability, consequence and verification are rated for each role. The tier starts from intelligence and goes up one step when the stakes (the higher of reliability and consequence) are high. The effort starts from the stakes, goes up one level when the result is hard to check and down one when it is easy, and shifts one level with autonomy. A low budget caps the pair at `model-medium-effort-medium` and a medium one at `model-high-effort-high`; a low duration caps the effort at medium and a medium one at high. With high stakes the result is never below `model-medium-effort-high`, and the cap that lost is printed as `conflict`. All inputs none gives `model-medium-effort-medium`. In the example above, the engineer needed `model-xhigh-effort-max`; the low budget capped it, and the high-stakes floor kept its effort at high.
+**How `rex oms` picks one.** It is a fixed function of seven inputs, each low, medium, high or none (not relevant). Duration, budget and autonomy belong to the job and are given only when you state them; intelligence, reliability, consequence and verification are rated for each role. The tier starts from intelligence and goes up one step when the stakes (the higher of reliability and consequence) are high. The effort starts from the stakes, goes up one level when the result is hard to check and down one when it is easy, and shifts one level with autonomy. A low budget caps the pair at `model-medium-effort-medium` and a medium one at `model-high-effort-high`; a low duration caps the effort at medium and a medium one at high. With high stakes the result is never below `model-medium-effort-high`, and the cap that lost is printed as `conflict`. All inputs none gives `model-medium-effort-medium`. In the `rex oms` example above, the demand was `model-xhigh-effort-max`; the low budget capped it at `model-medium-effort-medium`, and the high-stakes floor raised its effort to high.
 
 ## Known limits
 
@@ -437,7 +437,7 @@ when_to_use: Use when you write release notes, or when the user says "release no
   git -C <repo> merge-base --is-ancestor <branch> <pr head> && git -C <repo> branch -D <branch>
   ```
 
-- Linux without `bwrap` or `socat` was not tested live; only the detection is tested.
+- Linux without `bwrap` or `socat` was not tested live; only the detection is tested. `sandbox.failIfUnavailable` (Claude Code refuses to start without its sandbox) comes from the Claude Code documentation and was not tested on any system, and neither was the trivy cache path on Linux.
 - A main branch that needs a person's approval was not tested live.
 - From a sibling repo, `rex` needs `REX_STORE` (see "How `rex` finds the store").
 - A request that Claude Code bills but writes to no transcript is not counted in the tokens, so a total can be lower than Claude Code's own figure.
@@ -448,7 +448,7 @@ when_to_use: Use when you write release notes, or when the user says "release no
 
 Build with `cargo build` and test with `cargo test`. The tests live in three folders: `tests/integration/` (the binary end to end), `tests/contract/` (the seams between modules), and `tests/fitness/` (rules of the whole crate, such as what the binary embeds). `tests/fixtures/` holds recorded Claude Code sessions, so no test needs a live Claude Code.
 
-CI runs on every pull request and on pushes to `main` and `feature/**`: `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` on Ubuntu and macOS; a build with the oldest Rust that `Cargo.toml` claims; and `cargo package`, with the tests run again from inside the package.
+CI runs on every pull request and on pushes to `main` and `feature/**`: `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` on Ubuntu and macOS; `cargo check` with the oldest Rust that `Cargo.toml` claims; and `cargo package`, with the tests run again from inside the package.
 
 Two rules hold for every source file: at most 500 lines, and a module comment of one or two lines at the top that says what the file is for (`rex codebase --only code --with-context` shows them). The skills and agents in `.claude/` are source in this repo and are committed; the build embeds them in the binary, and `rex init` installs them from there.
 

@@ -17,9 +17,9 @@ pub enum Status {
     Created,
     Planned,
     /// Closed, and waiting on something outside the session, such as a
-    /// person's approval. It is not an open job, and no status leads back to
-    /// one, so a question to the user in the same conversation leaves the job
-    /// open instead: a close ends the time in which new sub-agents join it.
+    /// person's approval. No status leads back to an open job, and new
+    /// sub-agents no longer join a closed one, so a question to the user in the
+    /// same conversation leaves the job open instead.
     Blocked,
     Failed,
     Delivered,

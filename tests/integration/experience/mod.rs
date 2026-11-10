@@ -218,7 +218,7 @@ fn feedback_moves_status_by_the_table() {
 }
 
 #[test]
-fn jobs_json_keeps_the_c9_shape() {
+fn jobs_json_keeps_its_fixed_shape() {
     let mut fixture = Fixture::new();
     let long = format!("Make the validator reject zero. {}", "x".repeat(200));
     fixture

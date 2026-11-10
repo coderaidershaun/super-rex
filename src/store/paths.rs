@@ -77,8 +77,9 @@ impl StorePaths {
     /// `project_dir` comes before `cwd` because Claude Code sets
     /// `CLAUDE_PROJECT_DIR` for hooks but not in an agent's shell: a hook that
     /// fires while an agent works in a sibling repository still reaches the
-    /// session's store. The hook uses this same order, so a shell that sets
-    /// `REX_STORE` keeps a session's jobs and its events in one store.
+    /// session's store. The hook uses this same order, so a session started
+    /// from a shell that exports `REX_STORE` keeps its jobs and its events in
+    /// one store.
     ///
     /// # Errors
     /// - [`StoreError::NotFound`], listing each place tried and why it gave no store.

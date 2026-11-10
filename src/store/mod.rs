@@ -26,15 +26,17 @@ const SCHEMA_VERSION: i64 = 1;
 const BUSY_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// An open connection to one store, with the settings its rules need. Write
-/// to `rex.db` only through this type: the foreign keys and the triggers that
-/// guard the record work only on a connection that turned them on.
+/// to `rex.db` only through this type: it turns on `foreign_keys` and
+/// `recursive_triggers` for each connection, and without them a write can
+/// break the rules of the record with no error.
 ///
-/// Each table has one writer. The job commands write jobs, roles and
+/// Each kind of row has one writer. The job commands write jobs, roles and
 /// deliveries, and a job's status only through [`status::apply`]. Capture
-/// writes the sub-agent runs, the session tokens and the `intake.` keys of
-/// `meta`. `rex feedback` writes feedback, `rex recall` the recalled
-/// experience, and [`orchestrator::index`] the orchestrator index. Every
-/// update of a job row sets `updated_at` in the same statement.
+/// writes the sub-agent runs, the session tokens, the `intake.` keys of
+/// `meta`, and a job's builder model and effort while they are unset.
+/// `rex feedback` writes feedback, `rex recall` the recalled experience, and
+/// [`orchestrator::index`] the orchestrator index. Every update of a job row
+/// sets `updated_at` in the same statement.
 #[derive(Debug)]
 pub struct Store {
     conn: Connection,
@@ -131,9 +133,6 @@ impl Store {
     /// Runs `f` in one transaction that holds the write lock from its start,
     /// so a second writer waits for this one instead of failing. Commits when
     /// `f` returns `Ok` and rolls back when it returns `Err`.
-    ///
-    /// A write that stores more than one time reads the time once and gives it
-    /// to every row, so the rows of one write agree.
     ///
     /// # Errors
     /// The error of `f`, or [`StoreError::Sqlite`] if the transaction cannot

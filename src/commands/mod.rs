@@ -5,8 +5,9 @@
 //! `run(cwd, options)` that returns the command's own error type, which
 //! implements [`crate::error::CommandError`]. Let clap check what it can: a
 //! required flag, a value from a fixed list, the form of one value, and flags
-//! that need or exclude each other. A check that spans several values, or needs
-//! a file, the environment or the store, is the command's own usage error.
+//! that need or exclude each other. A check that clap cannot make, such as one
+//! that spans several values, is the command's own, and its error says through
+//! `is_usage` whether the command line is at fault.
 //! Extra help for a command goes in `#[command(after_help = "...")]` on its
 //! options struct, which clap keeps.
 //!

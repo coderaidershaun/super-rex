@@ -279,7 +279,7 @@ fn an_older_rex_skills_install_keeps_its_files_and_gets_the_new_entries() {
     );
 }
 
-// The lane's promise that `rex init` is safe to run twice: the second run
+// The promise that `rex init` is safe to run twice: the second run
 // leaves every file in the repo as it was and adds none.
 #[test]
 fn a_second_run_changes_no_file() {

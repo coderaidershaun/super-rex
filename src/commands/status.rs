@@ -19,7 +19,7 @@ use crate::store::{JobId, Store, StoreError, StorePaths};
 /// Arguments of `rex status`.
 #[derive(clap::Args)]
 #[command(
-    after_help = "Exits 0 also when no job is open, with the line `no open job`. A `~` after a token count means it can still grow."
+    after_help = "Exits 0 also when no job is open, with the line `no open job`. A `~` after `tokens` means the count can still grow."
 )]
 pub struct StatusOptions {
     /// The job to show. Without it, every job that is created or planned.
