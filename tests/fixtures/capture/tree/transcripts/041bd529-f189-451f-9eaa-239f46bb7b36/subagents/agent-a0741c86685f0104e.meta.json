@@ -1,0 +1,1 @@
+{"agentType":"model-low-effort-low","isBuiltIn":false,"description":"bg-child","toolUseId":"toolu_01HiK9kuB8hs1gRLpMhRzQ3U","parentAgentId":"a70d8a0f630d8701c","spawnDepth":2,"requestShape":"foreground","requestNonInteractive":true,"model":"claude-haiku-5-5","pickedEffortModel":"claude-sonnet-5-5","finished":true}

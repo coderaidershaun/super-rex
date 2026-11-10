@@ -1,5 +1,6 @@
-//! Errors for every command. A failure that involves a file carries its path,
-//! so the user learns where it happened, not just what went wrong.
+//! Errors for every command, and the trait that lets `main` choose the exit
+//! code. A failure that involves a file carries its path, so the user learns
+//! where it happened, not just what went wrong.
 
 use std::path::PathBuf;
 
@@ -38,3 +39,13 @@ pub enum RexError {
     #[error("`rex {command}` is not built yet")]
     NotBuilt { command: &'static str },
 }
+
+/// What `main` asks of the error a command returns, to choose the exit code.
+pub trait CommandError: std::error::Error + Send + Sync + 'static {
+    /// True when the command line is at fault and not the work.
+    fn is_usage(&self) -> bool {
+        false
+    }
+}
+
+impl CommandError for RexError {}

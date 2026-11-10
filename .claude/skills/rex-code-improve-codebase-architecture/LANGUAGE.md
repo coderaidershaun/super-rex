@@ -13,17 +13,17 @@ Everything caller must know to use module correct. Type signature + invariants, 
 _Avoid_: API, signature (too narrow — type-level only).
 
 **Implementation**
-Body of code inside module. Distinct from **Adapter**: thing can be small adapter w/ large impl (Postgres repo) or large adapter w/ small impl (in-memory fake). "Adapter" when seam = topic. "Implementation" otherwise.
+Body of code inside module. Distinct from **Adapter**: thing can be small adapter w/ large impl (Postgres repo). Or large adapter w/ small impl (in-memory fake). "Adapter" when seam = topic. "Implementation" otherwise.
 
 **Depth**
-Leverage at interface. Behaviour caller (or test) exercises per unit of interface learned. **Deep** = lots of behaviour behind small interface. **Shallow** = interface ≈ impl complexity.
+Leverage at interface. Behavior caller (or test) exercises per unit of interface learned. **Deep** = lots of behavior behind small interface. **Shallow** = interface ≈ impl complexity.
 
 **Seam** _(from Michael Feathers)_
-Place where behaviour alters without edit in that place. *Location* of module's interface. Where to put seam = own design decision, distinct from what goes behind.
+Place where behavior alters without edit in that place. *Location* of module's interface. Where to put seam = own design decision, distinct from what goes behind.
 _Avoid_: boundary (overloaded with DDD bounded context).
 
 **Adapter**
-Concrete thing satisfies interface at seam. Describes *role* (slot it fills), not substance (what's inside).
+Concrete thing that satisfies interface at seam. Describes *role* (slot it fills), not substance (what is inside).
 
 **Leverage**
 Caller payoff from depth. More capability per unit of interface learned. One impl pays back across N call sites + M tests.
@@ -33,9 +33,9 @@ Maintainer payoff from depth. Change/bugs/knowledge/verification concentrate at 
 
 ## Principles
 
-- **Depth = property of interface, not impl.** Deep module can internally compose small mockable swappable parts — they aren't part of interface. Module can have **internal seams** (private to impl, used by own tests) + **external seam** at interface.
-- **Deletion test.** Delete module. Complexity vanish? -> pass-through. Complexity reappear across N callers? -> earned its keep.
-- **Interface = test surface.** Callers + tests cross same seam. Want to test *past* interface? Module probably wrong shape.
+- **Depth = property of interface, not impl.** Deep module can internally compose small mockable swappable parts — they are not part of interface. Module can have **internal seams** (private to impl, used by own tests) + **external seam** at interface.
+- **Deletion test.** Delete module. IF complexity vanish, THEN pass-through. IF complexity reappear across N callers, THEN module earned its keep.
+- **Interface = test surface.** Callers + tests cross same seam. IF you want to test *past* interface, THEN module probably has wrong shape.
 - **One adapter = hypothetical seam. Two adapters = real seam.** No new seam unless something varies across it.
 
 ## Relationships
@@ -48,6 +48,6 @@ Maintainer payoff from depth. Change/bugs/knowledge/verification concentrate at 
 
 ## Rejected framings
 
-- **Depth = ratio of impl-lines to interface-lines** (Ousterhout): rewards padding impl. Use depth-as-leverage.
+- **Depth = ratio of impl-lines to interface-lines** (Ousterhout): rewards padded impl. Use depth-as-leverage.
 - **"Interface" = TypeScript `interface` keyword or class public methods**: too narrow — interface here = every fact caller must know.
 - **"Boundary"**: overloaded with DDD bounded context. Say **seam** or **interface**.

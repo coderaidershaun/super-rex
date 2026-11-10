@@ -1,13 +1,13 @@
 ---
 name: rex-code-error-writing
-description: Hard rules for Rust error handling. thiserror in libs (default), anyhow in bins (occasionally). Typed errors with context, no Box<dyn Error>, no .unwrap() in prod. Use when writing error types, designing Result<T,E> APIs, choosing thiserror vs anyhow, wrapping errors, writing error messages, or user asks "what error type", "how should I handle this error", "thiserror or anyhow", "error variants".
+description: This skill gives hard rules for Rust error handling. Use thiserror in libs (the default), and anyhow in bins (occasionally). Errors are typed and carry context. There is no Box<dyn Error> and no .unwrap() in prod. Use it when you write error types, design Result<T,E> APIs, choose thiserror vs anyhow, wrap errors, or write error messages. Use it also when the user asks "what error type", "how should I handle this error", "thiserror or anyhow", "error variants".
 disable-model-invocation: false
 user-invocable: true
 ---
 
 # Rust Error Writing — Hard Rules
 
-These rules HARD. No compromise. Every Rust error in this repo follow them.
+These rules HARD. No compromise. Every Rust error in this repo obey them.
 
 Sister skills: `rex-code-philosophy` (errors carry context = habitability), `rex-code-ergonomics` (Result patterns), `rex-code-commenting` (doc errors on pub fn).
 
@@ -17,12 +17,12 @@ Sister skills: `rex-code-philosophy` (errors carry context = habitability), `rex
 
 Why split:
 - **thiserror** = typed enum errors. Caller pattern-match. Public API contract. Zero runtime cost.
-- **anyhow** = boxed dynamic error w/ context. Caller doesn't care. Just bubble up + print.
-- **Lib give caller choice.** Bin make end-user choice (just exit).
+- **anyhow** = boxed dynamic error w/ context. Caller does not care. Propagate + print.
+- **Lib give caller choice.** Bin make end-user choice (only exit).
 
-Wrong default = `Box<dyn Error>` in lib API. Forbidden. Caller can't match. Can't recover. Can't compose.
+Wrong default = `Box<dyn Error>` in lib API. Forbidden. Caller cannot match. Cannot recover. Cannot compose.
 
-## thiserror — the default
+## thiserror — default
 
 ### Pattern: enum per module/concept
 
@@ -60,10 +60,10 @@ pub enum ConfigError {
 
 - **One error type per concept.** `ConfigError`, `AuthError`, `DbError`. Not one mega `AppError` shared.
 - **Variant name = what failed.** `NotFound`, `Parse`, `Timeout`. Not `Error1`, `BadInput`.
-- **`#[source]` for chain.** Underlying error wrapped. `?`-chain build w/ `From`.
+- **`#[source]` for chain.** Wrap underlying error. `?`-chain build w/ `From`.
 - **Carry values seen.** Path, field name, value, expected. No "something failed".
 - **`#[error("...")]` = user-readable.** Not log dump. Reads like sentence.
-- **No `pub` on inner fields you don't want stable.** Use accessor fns.
+- **No `pub` on inner fields that you do not want stable.** Use accessor fns.
 
 ### Free `?` via thiserror From
 
@@ -80,7 +80,7 @@ pub enum FetchError {
 
 `#[from]` = derive `From<inner>`. `?` operator works. No manual `.map_err`.
 
-**Caveat:** `#[from]` only works if variant has *exactly one* unnamed field. Multiple → use `#[source]` + manual `.map_err(...)?`.
+**Caveat:** `#[from]` works only IF variant has *exactly one* unnamed field. IF multiple, THEN use `#[source]` + manual `.map_err(...)?`.
 
 ### Transparent wrap
 
@@ -95,7 +95,7 @@ pub enum DbError {
 }
 ```
 
-`transparent` = pass through to inner. Use when wrapping w/o adding info.
+`transparent` = pass through to inner. Use when you wrap w/o new info.
 
 ## anyhow — bins + scripts only
 
@@ -129,9 +129,9 @@ fn main() -> Result<()> {
 
 - **`.context("...")` on every `?`.** Build trace. No bare `?` in bin.
 - **`bail!` for early Err.** Not `return Err(anyhow!(...))`.
-- **`anyhow!("msg")` for ad-hoc.** No need to define type.
+- **`anyhow!("msg")` for ad-hoc.** No type definition necessary.
 - **Never `anyhow::Error` in lib pub API.** Caller stuck.
-- **Downcast rare.** If you reach for `.downcast_ref::<SpecificError>()` often → switch to thiserror.
+- **Downcast rare.** IF you often use `.downcast_ref::<SpecificError>()`, THEN switch to thiserror.
 
 ## Error messages — habitability
 
@@ -140,7 +140,7 @@ Per `rex-code-philosophy`: errors carry context. Reader 2am, paged, must fix.
 ### Hard rules
 
 - **Concrete value seen.** "expected u32, got -1" > "invalid input".
-- **What was tried.** "failed to read /etc/foo.toml" > "read failed".
+- **What code tried.** "failed to read /etc/foo.toml" > "read failed".
 - **Actionable next step (when known).** "missing field `port`. Add `port = 8080` to [server] section." > "missing field".
 - **No "Error:" prefix.** Caller add it. You write the noun.
 - **No trailing period.** Display chain re-format. Period collide.
@@ -164,7 +164,7 @@ failed to start server
   caused by: address already in use (os error 98)
 ```
 
-Each layer add specific context. Don't repeat parent.
+Each layer add specific context. Do not repeat parent.
 
 ## panic vs Result — decision
 
@@ -237,7 +237,7 @@ Common path: prototype w/ anyhow → harden into thiserror as API stabilizes.
 4. Add `#[from]` for upstream errors.
 5. Caller updates: now can match.
 
-Don't migrate `main.rs` itself. anyhow stays there.
+Do not migrate `main.rs` itself. anyhow stays there.
 
 ## Doc comments on errors
 
@@ -253,7 +253,7 @@ Per `rex-code-commenting`:
 pub fn load(path: &Path) -> Result<Config, ConfigError>
 ```
 
-`# Errors` section = required on pub fns returning Result. Lints catch missing.
+`# Errors` section = required on pub fns that return Result. Lints catch missing.
 
 ## Checklist
 
@@ -268,4 +268,4 @@ pub fn load(path: &Path) -> Result<Config, ConfigError>
 - [ ] Variant names = what failed, not generic
 - [ ] No `Other(String)` catch-all
 
-Fail any → fix before push.
+IF any fail, THEN fix before push.

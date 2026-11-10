@@ -1,6 +1,6 @@
 ---
 name: rex-code-tests-fitness-functions
-description: Hard rules for Rust fitness function tests. Few, immortal architectural invariants. proptest for large input space. Lives in tests/fitness/. Runs every CI. Anchor example = orderbook reconstruction (snapshot + updates always equals streamed state). Use when testing critical invariants like orderbook reconstruction, money conservation, schema backward-compat, or user asks "make sure X never breaks", "invariant must always hold", "property test", "promote to fitness".
+description: This skill gives hard rules for Rust fitness function tests. Fitness functions are few, immortal architectural invariants. Use proptest for a large input space. The tests live in tests/fitness/ and run on every CI run. The anchor example is orderbook reconstruction (snapshot + updates always equals streamed state). Use it when you test critical invariants like orderbook reconstruction, money conservation, or schema backward-compat. Use it also when the user asks "make sure X never breaks", "invariant must always hold", "property test", "promote to fitness".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -20,9 +20,9 @@ Sister skills:
 
 **Few. Immortal. Run every CI. Architectural invariants only.**
 
-Fitness function = test of a property the system MUST satisfy regardless of impl. Survives refactor. Outlives whoever wrote it. Failure = silent corruption avoided.
+Fitness function = test of property that system MUST satisfy regardless of impl. Survives refactor. Outlives whoever wrote it. Failure = silent corruption avoided.
 
-Different from regression test (one-shot for a fixed bug). Fitness = continuous architectural validation.
+Different from regression test (one-shot for fixed bug). Fitness = continuous architectural validation.
 
 ## Where fitness tests live
 
@@ -36,7 +36,7 @@ tests/
     └── api_backward_compat.rs
 ```
 
-Cargo gotcha: top-level `tests/*.rs` is a crate. Subdir needs entry.
+Cargo gotcha: top-level `tests/*.rs` is one crate. Subdir needs entry.
 
 ## What qualifies as a fitness function
 
@@ -48,7 +48,7 @@ ALL must be true:
 4. **Critical to product trust** — "we'd lose customers if this broke" tier
 5. **Refactor-proof** — invariant survives any reasonable impl change
 
-Fail any → not fitness. Maybe contract or integration.
+IF any fail, THEN not fitness. Can be contract or integration.
 
 ## Examples for this domain
 
@@ -60,7 +60,7 @@ Fail any → not fitness. Maybe contract or integration.
 
 ## Tool: `proptest`
 
-Input space large → use property-based testing. `proptest` generates inputs. Shrinks failures to minimum reproducer.
+IF input space large, THEN use property-based testing. `proptest` generates inputs. Shrinks failures to minimum reproducer.
 
 ```toml
 # Cargo.toml
@@ -135,15 +135,15 @@ proptest! {
 
 Key features:
 - `proptest!` generates many input combos, shrinks on failure
-- Tests an invariant (two paths to same state)
+- Tests invariant (two paths to same state)
 - Doc comment explains WHY this is fitness (silent-corruption risk)
 - Uses real `OrderBook`, no mocks
 - Lives forever — never delete unless `OrderBook` itself removed
 
 ## What NOT to put in fitness
 
-- Single-input regression test → keep inline `#[cfg(test)] mod tests` near code, OR delete after fix locked in by other coverage
-- Flaky integration test → fix the flake or delete; fitness MUST pass every CI
+- Single-input regression test → keep inline `#[cfg(test)] mod tests` near code, OR delete after other coverage protects fix
+- Flaky integration test → fix flake or delete. Fitness MUST pass every CI
 - Parsing edge case → unit test or delete
 - "I think this might break someday" → speculation. Wait until invariant proven critical.
 
@@ -178,10 +178,10 @@ proptest! {
 
 Per `rex-code-tests-unit-testing`:
 
-1. TDD a function with inline `#[cfg(test)]` tests
+1. TDD function with inline `#[cfg(test)]` tests
 2. Tests survive multiple refactors
-3. Identify the invariant tests are circling
-4. Express it as a `proptest!` block
+3. Identify invariant that tests circle
+4. Express it as `proptest!` block
 5. Move to `tests/fitness/<name>.rs`
 6. Delete inline scaffold tests
 
@@ -190,8 +190,8 @@ Promote ≠ "move all unit tests up". Promote ≠ "have many fitness tests". Bar
 ## CI requirement
 
 - Every fitness test runs on every PR. No `#[ignore]`.
-- Fitness fail → block merge. No "we'll fix it later".
-- Slow fitness (proptest with many cases) → cap at 256 for CI, full 4096 nightly:
+- IF fitness fails, THEN block merge. No "we'll fix it later".
+- IF slow fitness (proptest with many cases), THEN cap at 256 for CI, full 4096 nightly:
 
 ```rust
 proptest! {
@@ -207,7 +207,7 @@ proptest! {
 
 ## Distinct from siblings
 
-| Test type | When deleted? | Mocks? | Outside world? |
+| Test type | When to delete? | Mocks? | Outside world? |
 |-----------|---------------|--------|----------------|
 | unit | after TDD green + other coverage | no | no |
 | contract | when seam removed | no | stub outside |
@@ -217,13 +217,13 @@ proptest! {
 ## Checklist
 
 - [ ] Test lives in `tests/fitness/<invariant>.rs`
-- [ ] Tests an architectural invariant, not a single input
+- [ ] Tests architectural invariant, not single input
 - [ ] Deterministic given inputs
-- [ ] Uses `proptest` if input space large
+- [ ] IF input space large, THEN uses `proptest`
 - [ ] Doc comment explains WHY this is fitness (silent-corruption risk)
 - [ ] Real impls, no mocks
 - [ ] Runs on every CI (no `#[ignore]`)
 - [ ] Failure mode = silent corruption, not loud crash
 - [ ] Survives reasonable refactor of impl
 
-Fail any → not fitness. Move to correct sibling skill's lane.
+IF any fail, THEN not fitness. Move to correct sibling skill's lane.
