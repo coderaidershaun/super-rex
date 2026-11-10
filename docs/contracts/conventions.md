@@ -29,7 +29,7 @@ The library is `super_rex` (`src/lib.rs`). The binary is `rex` (`src/main.rs`). 
 pub fn run(cwd: &Path, options: RecallOptions) -> Result<(), E>
 ```
 
-`E` is any error type that is `std::error::Error + Send + Sync + 'static`. `main.rs` passes `cwd` as `.`. Add flags and arguments to your options struct; `main.rs` does not change. `rex job` and `rex skills` hold their subcommands in the options struct: `JobOptions { #[command(subcommand)] pub command: JobCommand }`, with the `clap::Subcommand` enum in the same file. One exception: `catalog::run(cli: &clap::Command, options: CommandsOptions)` also takes the clap command tree, because it prints it. Part 6 shows a full handler.
+`E` implements `super_rex::error::CommandError`. That is one line, `impl CommandError for YourError {}`; override `is_usage` to return true for the variants that mean a wrong command line. `main.rs` passes `cwd` as `.`. Add flags and arguments to your options struct; `main.rs` does not change. `rex job` and `rex skills` hold their subcommands in the options struct: `JobOptions { #[command(subcommand)] pub command: JobCommand }`, with the `clap::Subcommand` enum in the same file. One exception: `catalog::run(cli: &clap::Command, options: CommandsOptions)` also takes the clap command tree, because it prints it. Part 6 shows a full handler.
 
 **Help text.** The one-line description of each command is the `///` line on its variant in `src/main.rs`. It replaces any `about` or `long_about` that your options struct sets, so a new description is a request to Lane 1. Help that you add in your options struct with `#[command(after_help = "...")]` is kept.
 
@@ -57,40 +57,38 @@ pub fn run(cwd: &Path, options: RecallOptions) -> Result<(), E>
 | Code | Meaning |
 | --- | --- |
 | 0 | Done, also when there was nothing to do. |
-| 1 | The command failed. stderr has the reason. `run` returned an error. |
-| 2 | The command line is wrong. clap prints the usage. |
+| 1 | The command failed: the store, a job's state, a file, or a check that found something. |
+| 2 | The command line is wrong: clap prints its own message, or the command returns an error whose `is_usage()` is true. |
 
-A command lets clap check its values (`clap::ValueEnum`, a value parser), so it never returns 2 by hand. `rex hook` always exits 0 and prints nothing. There are no other codes: a contract that needs one asks Lane 1.
+Every exit that is not 0 has exactly one `error:` line on stderr. A check that finds something prints its findings on stdout and returns an error that gives the count. Let clap check what clap can check (`clap::ValueEnum`, a value parser). `rex hook` always exits 0 and prints nothing. There are no other codes: a contract that needs one asks Lane 1.
 
 ## 5. Error text
 
+`main` writes `error: `, then the error, then each of its sources, joined by `: `, on one line on stderr.
+
 - Lower-case first letter.
 - No full stop at the end.
-- No `Error:` prefix; `main` adds it.
+- No `error:` prefix of your own; `main` adds it.
+- Say what failed, then the fix when it is known.
 - Name the value seen and the path.
-- Give the fix when it is known.
+- Put the underlying error in `#[source]`, not in the text, because `main` appends it.
 
-`main` adds one line of context that names the top command, and prints the chain. A stub prints this to stderr and exits 1:
+A stub prints this to stderr and exits 1:
 
 ```
 $ rex job create
-Error: rex job failed
-
-Caused by:
-    `rex job` is not built yet
+error: `rex job` is not built yet
 ```
-
-The first line names the top command only (`rex job`, not `rex job create`).
 
 ## 6. How to add an error
 
-Define your own `thiserror` enum in your own module. `run` returns it. `main.rs` accepts any error type, so `src/error.rs` and `src/main.rs` do not change. A new variant never goes into `src/error.rs`. Code carried over from rex-skills keeps using the `RexError` variants it already has. To pass on a failure of a shared helper (such as `print_line_to_stdout`, which returns `RexError`), wrap it with `#[error(transparent)]`, as below. The names and the file path are an illustration; contract C1 sets the real ones.
+Define your own `thiserror` enum in your own module, and implement `CommandError` for it. `run` returns it. `src/error.rs` and `src/main.rs` do not change. A new variant never goes into `src/error.rs`. Code carried over from rex-skills keeps using the `RexError` variants it already has. To pass on a failure of a shared helper (such as `print_line_to_stdout`, which returns `RexError`), wrap it with `#[error(transparent)]`, as below. The names and the file path are an illustration; contract C1 sets the real ones.
 
 ```rust
 // src/store/mod.rs
 use std::path::PathBuf;
 
-use crate::error::RexError;
+use crate::error::{CommandError, RexError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum StoreError {
@@ -100,6 +98,8 @@ pub enum StoreError {
     #[error(transparent)]
     Rex(#[from] RexError),
 }
+
+impl CommandError for StoreError {}
 ```
 
 ```rust

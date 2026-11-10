@@ -1,14 +1,16 @@
 //! The `rex` binary: reads the command line and hands each command to its
 //! handler in the library.
 
+use std::io::Write;
 use std::path::PathBuf;
+use std::process::ExitCode;
 
-use anyhow::{Context, Result};
 use clap::{CommandFactory, Parser, Subcommand};
 
 use super_rex::commands::{
     catalog, codebase, feedback, hook, init, job, jobs, oms, recall, skills, smells, status, watch,
 };
+use super_rex::error::CommandError;
 
 #[derive(Parser)]
 #[command(
@@ -66,31 +68,63 @@ enum Command {
     Commands(catalog::CommandsOptions),
 }
 
-fn main() -> Result<()> {
+fn main() -> ExitCode {
     let cli = Cli::parse();
     let cwd = PathBuf::from(".");
 
     match cli.command {
-        Command::Init(options) => init::run(&cwd, options).context("rex init failed")?,
-        Command::Job(options) => job::run(&cwd, options).context("rex job failed")?,
-        Command::Hook(options) => hook::run(&cwd, options).context("rex hook failed")?,
-        Command::Status(options) => status::run(&cwd, options).context("rex status failed")?,
-        Command::Oms(options) => oms::run(&cwd, options).context("rex oms failed")?,
-        Command::Skills(options) => skills::run(&cwd, options).context("rex skills failed")?,
-        Command::Recall(options) => recall::run(&cwd, options).context("rex recall failed")?,
-        Command::Jobs(options) => jobs::run(&cwd, options).context("rex jobs failed")?,
-        Command::Watch(options) => watch::run(&cwd, options).context("rex watch failed")?,
-        Command::Feedback(options) => {
-            feedback::run(&cwd, options).context("rex feedback failed")?;
-        }
-        Command::Codebase(options) => {
-            codebase::run(&cwd, options).context("rex codebase failed")?;
-        }
-        Command::Smells(options) => smells::run(&cwd, options).context("rex smells failed")?,
-        Command::Commands(options) => {
-            catalog::run(&Cli::command(), options).context("rex commands failed")?;
+        Command::Init(options) => finish(init::run(&cwd, options)),
+        Command::Job(options) => finish(job::run(&cwd, options)),
+        Command::Hook(options) => finish(hook::run(&cwd, options)),
+        Command::Status(options) => finish(status::run(&cwd, options)),
+        Command::Oms(options) => finish(oms::run(&cwd, options)),
+        Command::Skills(options) => finish(skills::run(&cwd, options)),
+        Command::Recall(options) => finish(recall::run(&cwd, options)),
+        Command::Jobs(options) => finish(jobs::run(&cwd, options)),
+        Command::Watch(options) => finish(watch::run(&cwd, options)),
+        Command::Feedback(options) => finish(feedback::run(&cwd, options)),
+        Command::Codebase(options) => finish(codebase::run(&cwd, options)),
+        Command::Smells(options) => finish(smells::run(&cwd, options)),
+        Command::Commands(options) => finish(catalog::run(&Cli::command(), options)),
+    }
+}
+
+fn finish(result: Result<(), impl CommandError>) -> ExitCode {
+    let Err(error) = result else {
+        return ExitCode::SUCCESS;
+    };
+    let code = exit_code_for(&error);
+    // If stderr cannot be written to, there is nowhere left to report it.
+    let _ = writeln!(std::io::stderr(), "error: {:#}", anyhow::Error::new(error));
+    ExitCode::from(code)
+}
+
+fn exit_code_for(error: &impl CommandError) -> u8 {
+    if error.is_usage() { 2 } else { 1 }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(thiserror::Error, Debug)]
+    enum TestError {
+        #[error("the command line is wrong")]
+        Usage,
+
+        #[error("the work failed")]
+        Work,
+    }
+
+    impl CommandError for TestError {
+        fn is_usage(&self) -> bool {
+            matches!(self, Self::Usage)
         }
     }
 
-    Ok(())
+    #[test]
+    fn a_usage_error_exits_with_2_and_any_other_error_with_1() {
+        assert_eq!(exit_code_for(&TestError::Usage), 2);
+        assert_eq!(exit_code_for(&TestError::Work), 1);
+    }
 }
