@@ -39,7 +39,7 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 - Nuanced skill: Skill for something particular to repo or to kind of work, that no other skill covers.
 - Gap skill: Nuanced skill for one language. It covers what Rust gives by default and that language does not.
 - Work breakdown: Tasks of job, their dependencies, and groups that run in parallel. Output of stage 2.
-- Integration owner: One agent that brings parallel work together and tests result.
+- Integration owner: One agent that combines parallel work and tests result.
 - Role: Named part in orchestrator skill. Example: `engineer`.
 - Grid agent: One of 20 agent definitions in `.claude/agents/`. Name: `model-<tier>-effort-<level>`.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
@@ -115,7 +115,7 @@ Methods combine. Parallel leads can each run sequential workers. Sequential stag
 | L2 lead | One feature or domain: local plan, stage transitions, handoffs to workers, acceptance evidence. | Bounded tasks: build, research, review, verification. |
 | L3 worker | One defined outcome inside its scope. | Nothing. Escalates blockers, or asks for more division of work. |
 
-- [ ] Lead can do small task itself. Keep branches shallow: add layer only IF it has concrete job.
+- [ ] Lead can do small task itself. Keep hierarchy shallow: add layer only IF it has concrete job.
 - [ ] New lead for each separate feature. Keep lead across tasks only IF its domain context is worth its cost.
 
 **Limits of Claude Code.**
@@ -129,7 +129,7 @@ Methods combine. Parallel leads can each run sequential workers. Sequential stag
 **Load of each agent.**
 
 - [ ] One coherent primary job for each agent. Size it to capability of agent and difficulty of task.
-- [ ] Separate concerns that later pass can examine. Example: builder gives work to fresh specialists for security, performance, edge cases.
+- [ ] Separate concerns that later pass can examine. Example: agent that built work gives it to fresh specialists for security, performance, edge cases.
 - [ ] Run parallel reviews only against stable result. Combine findings before fixes.
 - [ ] New agent for different responsibility. Same agent for clarifications + repairs while its context is useful.
 - [ ] IF repairs stall, THEN make task narrower, get diagnosis, or change agent.
@@ -324,13 +324,14 @@ Guidance, not rules. Orchestrator can do different.
 - [ ] `rex status` with no job ID: each open job.
 - [ ] Agreement of agents is not proof. Use tests, sources, observations you can repeat, or explicit rubric.
 - [ ] Select verification by uncertainty + consequence, not by complexity only. Stop when acceptance passes.
-- [ ] Put limit on reviews, retries, and search. Plan again IF failures repeat, OR coordination costs more than delivery.
+- [ ] Put limit on reviews, retries, and search.
+- [ ] IF failures repeat, OR coordination costs more than delivery, THEN plan again.
 
 Recovery:
 
 | Situation | Action |
 | --- | --- |
-| Stage completes | Inspect result + acceptance evidence before next stage. Send defect of build to builder. Send design or scope to lead. |
+| Stage completes | Inspect result + acceptance evidence before next stage. Send defect of build to agent that built it. Send design or scope to lead. |
 | Decision needed | Decide from requirements + decisions first. Send material ambiguity to parent, with options + recommendation. Wait for answer is different from failure. |
 | Work stalls | Examine progress, failures, open questions at useful intervals. Silence alone is not failure. Before you replace active writer: stop it, or isolate its writes. |
 | Run resumes | Compare checkpoint with actual files. Continue incomplete work. Do not repeat complete changes. Do not overwrite unrelated edits. |

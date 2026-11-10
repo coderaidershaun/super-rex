@@ -140,7 +140,7 @@ REX_STORE="$HOME_DIR/.rex" rex job create --request-file - --asked-by <human or 
 EOF
 ```
 
-- [ ] Request text goes on standard input, unchanged. Quoted delimiter `'EOF'`: shell runs nothing in text.
+- [ ] Give request text on standard input, unchanged. Quoted delimiter `'EOF'`: shell runs nothing in text.
 - [ ] `--asked-by human` IF person made request. `--asked-by agent` IF agent made it.
 - [ ] `--merge`: answer of job from step 2.
 - [ ] `--lang` repeats, one for each language. Write `--lang none` out.
@@ -181,7 +181,7 @@ Case "session": no `Rex-Job` in your brief, and `rex job create` prints `existin
 REX_STORE="$HOME_DIR/.rex" rex job close <job-id> --status cancelled --outcome "<why>"
 ```
 
-- [ ] Use `--status failed` in place of `cancelled` IF work of that job failed.
+- [ ] IF work of that job failed, THEN use `--status failed` in place of `cancelled`.
 - [ ] `--outcome` also names each job branch of that job that stays (step 9).
 - [ ] `blocked` job is not open job.
 
@@ -305,7 +305,7 @@ EOF
 | Status | When |
 | --- | --- |
 | `delivered` | Work complete. No delivery is `blocked`: each is `merged`, `pr-open`, or `kept-local`, or there is none. |
-| `blocked` | One delivery or more is `blocked`. Job closes and waits on something outside session. |
+| `blocked` | One delivery or more is `blocked`. Job closes and waits for something outside session. |
 | `failed` | Work stopped. It cannot continue without redo. |
 | `cancelled` | User stopped job. |
 

@@ -32,7 +32,7 @@ IF job has one outcome, THEN write one task and go to step 6.
 - Dependency: Task T2 uses output of task T1. Then T2 depends on T1.
 - Shared contract: Interface, data form, or decision that 2 or more tasks use.
 - Group: Tasks that can run at same time. Group can hold one task.
-- Integration owner: One agent that brings parallel work together and tests result.
+- Integration owner: One agent that combines parallel work and tests result.
 - Work breakdown: Tasks of job, their dependencies, and groups that run in parallel. Output of stage 2.
 - Brief: Prompt that sub-agent gets.
 - Orchestrator skill: Reusable file. It gives roles, order, skills of each role, and checks. Not about one task.
