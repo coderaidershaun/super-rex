@@ -1,5 +1,7 @@
 # This repo has no CI service: these hooks are its checks. `pre-commit install`
 # sets up both git hooks. The Rust checks run at push, so a commit stays fast.
+# They run on every push, because a push that only deletes files has no files
+# to check, and a deleted file can still break the build.
 default_install_hook_types: [pre-commit, pre-push]
 default_stages: [pre-commit]
 
@@ -29,28 +31,33 @@ repos:
         entry: cargo fmt --all -- --check
         language: system
         pass_filenames: false
+        always_run: true
         stages: [pre-push]
       - id: cargo-clippy
         name: cargo clippy
         entry: cargo clippy --locked --workspace --all-targets -- -D warnings
         language: system
         pass_filenames: false
+        always_run: true
         stages: [pre-push]
       - id: cargo-test
         name: cargo test
         entry: cargo test --locked --workspace
         language: system
         pass_filenames: false
+        always_run: true
         stages: [pre-push]
       - id: check-msrv
         name: cargo check on the oldest Rust that Cargo.toml claims
         entry: bash scripts/check-msrv.sh
         language: system
         pass_filenames: false
+        always_run: true
         stages: [pre-push]
       - id: check-package
         name: cargo package, then the tests from inside the package
         entry: bash scripts/check-package.sh
         language: system
         pass_filenames: false
+        always_run: true
         stages: [pre-push]
