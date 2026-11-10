@@ -1,13 +1,12 @@
 ---
 name: rex-code-tests-contract-seams
 description: >
-  This skill gives hard rules for Rust contract seam tests. A contract seam test
-  tests the interface between modules, with real impls on both sides. It lives
-  in tests/contract/. It catches refactor breakage at module boundaries.
+  Hard rules for Rust contract seam tests: real impls on both sides of a module
+  interface, in tests/contract/. Catches refactor breakage at module boundaries.
 when_to_use: >
-  Use when you test module-to-module interactions, after you refactor a seam, or
-  when you define a new module interface. Use it also when the user asks "test
-  the boundary", "this seam keeps breaking", "interaction between modules".
+  Use when you test module-to-module interactions, refactor a seam, or define a
+  new module interface, or user asks "test the boundary", "this seam keeps
+  breaking", "interaction between modules".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -20,8 +19,8 @@ Sister skills:
 - `rex-code-tests-unit-testing` — pure fn scaffold (deletable)
 - `rex-code-tests-integration-testing` — outside world
 - `rex-code-tests-fitness-functions` — immortal invariants
-- `rex-code-philosophy` — locality, deepening
-- `rex-code-improve-codebase-architecture` — what is a seam
+- `rex-code-philosophy` — locality
+- `rex-code-improve-codebase-architecture` — what is a seam, deepening
 - `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-commenting`
 
 ## Iron rule
@@ -69,33 +68,7 @@ pub mod strategy_to_risk;
 - Stub network, clock, FS — anything OUTSIDE codebase.
 - IF you use `mockall` on module that you own, THEN wrong tool. Use real one.
 
-```rust
-// good — real impls of both sides
-#[test]
-fn strategy_receives_snapshot_then_updates_in_order() {
-    let mut book = OrderBook::new();
-    let mut strategy = Strategy::new();
-    book.subscribe(&mut strategy);
-
-    book.apply_snapshot(snapshot());
-    book.apply_update(update_1());
-    book.apply_update(update_2());
-
-    assert_eq!(strategy.events_received(), vec![
-        Event::Snapshot { /* ... */ },
-        Event::Update { seq: 1, /* ... */ },
-        Event::Update { seq: 2, /* ... */ },
-    ]);
-}
-
-// bad — mocked OrderBook. Tests the mock, not the seam.
-#[test]
-fn strategy_handles_mocked_book() {
-    let mock = MockOrderBook::new();
-    mock.expect_subscribe().times(1);
-    Strategy::new().connect(&mock);  // proves nothing about real seam
-}
-```
+IF you write a contract test and want its shape, THEN read `.claude/skills/rex-code-tests-contract-seams/examples.md`: real impls vs mocked impl, and one full test file.
 
 ## What contract tests catch
 
@@ -120,69 +93,11 @@ Not exhaustive coverage. Coverage of *contract*, not *impl*.
 
 ## Distinct from siblings
 
-| Test type | Scope | Mocks? | Outside world? |
-|-----------|-------|--------|----------------|
-| unit | single fn, pure | no | no |
-| **contract** | module ↔ module, real impls | no | no (stub outside) |
-| integration | outside world | no | yes |
-| fitness | architectural invariant | no | depends |
+Contract = module ↔ module, real impls. Mocks: no. Outside world: no (stub outside).
+Table of all four lanes: `.claude/skills/rex-code-tests-unit-testing/SKILL.md`, section Distinct from siblings.
 
 IF you mock module that codebase owns, THEN switch to real impl. You contract-test.
 IF you mock network, THEN stub it (unit/contract) or hit it real (integration).
-
-## End-to-end example
-
-```rust
-// tests/contract/orderbook_to_strategy.rs
-
-use rex::orderbook::{OrderBook, OrderBookError, Snapshot, Update};
-use rex::strategy::{Event, Strategy};
-
-#[test]
-fn snapshot_arrives_before_any_update() {
-    let mut book = OrderBook::new();
-    let mut strategy = Strategy::new();
-    book.subscribe(&mut strategy);
-
-    // even if updates queued first, snapshot must land first
-    book.queue_update(Update { seq: 1, /* ... */ });
-    book.queue_update(Update { seq: 2, /* ... */ });
-    book.apply_snapshot(Snapshot { /* ... */ });
-    book.flush();
-
-    let events = strategy.events_received();
-    assert!(matches!(events[0], Event::Snapshot { .. }), "snapshot must be first");
-    assert!(matches!(events[1], Event::Update { seq: 1, .. }));
-    assert!(matches!(events[2], Event::Update { seq: 2, .. }));
-}
-
-#[test]
-fn out_of_order_update_returns_specific_err() {
-    let mut book = OrderBook::new();
-    let mut strategy = Strategy::new();
-    book.subscribe(&mut strategy);
-    book.apply_snapshot(Snapshot { last_seq: 10, /* ... */ });
-
-    let result = book.apply_update(Update { seq: 8, /* ... */ });
-
-    assert!(matches!(
-        result,
-        Err(OrderBookError::OutOfOrder { expected: 11, got: 8 })
-    ));
-}
-
-#[test]
-fn subscribe_then_unsubscribe_stops_delivery() {
-    let mut book = OrderBook::new();
-    let mut strategy = Strategy::new();
-    let sub_id = book.subscribe(&mut strategy);
-    book.apply_snapshot(Snapshot { /* ... */ });
-    book.unsubscribe(sub_id);
-    book.apply_update(Update { /* ... */ });
-
-    assert_eq!(strategy.events_received().len(), 1, "no events after unsubscribe");
-}
-```
 
 ## Checklist
 

@@ -1,18 +1,13 @@
 ---
 name: rex-code-improve-codebase-architecture
 description: >
-  Finds architecture friction in a codebase, ranks the candidates, and designs
-  the best one. It makes shallow modules deep and makes the folder tree tell how
-  the code works. It uses the domain words in the code, the priority block of
-  the repo, and the tree rules in rex-code-folder-management. It runs with no
-  questions to the user: it picks the target, builds nothing, and ends with a
-  design brief that tells the builder how to prove that behavior did not change.
+  Finds architecture friction, ranks candidates, designs the best: deep
+  modules, a tree that tells how code works. No questions, builds nothing,
+  ends with a design brief.
 when_to_use: >
-  Use when the user wants to improve architecture, find refactor candidates,
-  group or tidy modules, join coupled modules, or make code easier to test and
-  to navigate. Use it also when the user says "improve architecture", "refactor
-  opportunities", "deepen modules", "tidy up modules", or "get ready for the
-  next feature".
+  Use when user wants refactor candidates, module grouping, or code easier to
+  test and navigate, or says "improve architecture", "refactor opportunities",
+  "deepen modules", "tidy up modules", "get ready for the next feature".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -23,9 +18,11 @@ Find friction. Rank candidates. Design best candidate. Give brief to builder. Br
 This skill builds nothing. It edits no code.
 Aim: code that is easy to test, easy to navigate, easy to call.
 
+Steps: 1 Explore, 2 Rank, 3 Grill self, 4 Brief. Then Report.
+
 ## Words
 
-Use these exact terms in each suggestion. Full definitions: [LANGUAGE.md](LANGUAGE.md).
+Use these exact terms in each suggestion.
 
 | Term | Meaning |
 | --- | --- |
@@ -57,11 +54,18 @@ Three tests:
 
 | When | Load |
 | --- | --- |
-| Each run, before step 1 | `.claude/skills/rex-code-folder-management/SKILL.md` — tree rules, placement table, AUDIT, MOVE |
+| Each run, before step 1 | `.claude/skills/rex-code-folder-management/SKILL.md` — tree rules, placement table |
 | Each run, before step 1 | `.claude/skills/rex-code-priorities/SKILL.md` — priority block, READ, USE |
+| Step 1, each run | `.claude/skills/rex-code-improve-codebase-architecture/explore.md` |
+| Step 1.3, each run | `.claude/skills/rex-code-folder-management/audit.md` — AUDIT |
+| Step 1.4, each run | `.claude/skills/rex-code-folder-management/move.md` — MOVE, hidden behavior |
+| Step 2, each run | `.claude/skills/rex-code-improve-codebase-architecture/rank.md` |
 | Step 2, to judge names + call sites | `.claude/skills/rex-code-ergonomics/SKILL.md` |
-| Step 3, dependencies of candidate | [DEEPENING.md](DEEPENING.md) |
-| Step 3, IF candidate changes interface | [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md) |
+| Step 3, direct invocation only | `.claude/skills/rex-code-improve-codebase-architecture/grill-self.md` |
+| Step 3, dependencies of candidate | `.claude/skills/rex-code-improve-codebase-architecture/DEEPENING.md` |
+| Step 3, IF candidate changes interface | `.claude/skills/rex-code-improve-codebase-architecture/INTERFACE-DESIGN.md` |
+| Step 4, direct invocation only | `.claude/skills/rex-code-improve-codebase-architecture/brief.md` |
+| IF you need full definition of a term in Words | `.claude/skills/rex-code-improve-codebase-architecture/LANGUAGE.md` |
 
 Domain language names good seams. Names in code hold domain terms. Priority block holds ranking + Never lines. Warning comments + fitness functions hold decisions that this skill must not open again without cause.
 
@@ -89,175 +93,7 @@ IF other skill or agent loads this file as review lens, THEN:
 
 Only direct invocation runs step 3 + step 4.
 
-## 1. Explore
-
-Facts first. No advice in this step.
-
-### 1.1 Read
-
-- [ ] Priority block: obey READ + USE in `rex-code-priorities`. IF block does not exist, THEN continue. Step 4.4 says when to stop.
-- [ ] Document that invocation names: spec, plan, goal. List what next work imports from this code.
-- [ ] `CODEBASE.md`, IF it exists. ELSE IF `rex` is on PATH, THEN run `rex codebase --rust-only --with-context`.
-- [ ] Entry files: `lib.rs`, `main.rs`, `Cargo.toml`.
-
-### 1.2 Baseline
-
-- [ ] Record `git rev-parse HEAD` + `git status --short`.
-- [ ] Run build, clippy, fmt check, doc, tests. Record each result.
-- [ ] IF build is red, THEN stop. Report. Change nothing.
-- [ ] Never run ignored tests or tests that spend money.
-
-### 1.3 Map
-
-Run AUDIT block of `rex-code-folder-management`. It gives: file sizes, children of each folder, module graph, forbidden names, `pub` items that no caller reaches.
-
-Then list each item declaration for each file:
-
-```bash
-grep -rnE '^\s*(pub(\([a-z ]+\))? )?(async )?(fn|struct|enum|trait|type|const|static|impl) ' src
-```
-
-### 1.4 Explore agent
-
-Dispatch one agent (`subagent_type=Explore`). Ask for facts with file:line, in tables. Do not ask for advice. Do not give your hypothesis.
-
-Questions to ask:
-
-1. Which public items does code outside the library use, and through which paths? Which public items have no outside user?
-2. Which items does a module other than the definer use? Give definer and users. List each cycle.
-3. Which types are saved to disk or sent out, and where do they live?
-4. Which files hold two topics? Give line ranges for each topic.
-5. What is dead: template code, items with no caller, items that only their own test uses?
-6. What hidden behavior exists? See the table in `rex-code-folder-management`, section MOVE.
-7. Which inline tests exist, and which private items does each one use?
-
-CAUTION: Do not edit files while the Explore agent reads them. Wait for its report.
-
-### 1.5 Friction signals
-
-Mark each signal that is true. Give file:line for each.
-
-- [ ] To understand one concept, reader opens many small modules.
-- [ ] Tree does not tell jobs of crate. Folder rule is broken.
-- [ ] Module is shallow. Apply deletion test.
-- [ ] Cycle between modules. Type lives in module that does not own it.
-- [ ] One file holds two topics: types + calls, rule + I/O.
-- [ ] Shared data module imports job module.
-- [ ] Knowledge is in N places: same constant, same list, same rule.
-- [ ] Pure functions exist for tests, but bug hides in how caller joins them. No locality.
-- [ ] Test goes past interface, or code is hard to test through interface.
-- [ ] Interface is wider than caller needs: `pub` module that only tests use.
-- [ ] Next work (from 1.1) must import item that is private, split, or has wrong home.
-- [ ] File > 400 lines.
-
-## 2. Rank
-
-Write numbered list. Sort by leverage x locality gain. Each candidate:
-
-| Field | Content |
-| --- | --- |
-| Files | Files + modules in candidate |
-| Problem | Friction, with file:line evidence |
-| Solution | Plain words: what changes |
-| Kind | Move (no code change) OR redesign (interface or logic changes) |
-| Benefits | Locality + leverage + test gain |
-| Ergonomics | Result of ERGONOMICS CHECK |
-| Risk | Hidden behavior, public path change, size of diff |
-
-Rules:
-
-- [ ] Use domain words from code for domain. Use Words table for architecture. Say "Order intake module", not "FooBarHandler".
-- [ ] Each candidate must pass ERGONOMICS CHECK. IF it fails, THEN drop it or change it.
-- [ ] Each candidate must obey each rule of `rex-code-folder-management`.
-- [ ] IF candidate conflicts with warning comment or fitness function, THEN list it only when friction is large. Mark it: "contradicts warning at src/feed.rs:42, open again because …".
-- [ ] One run = one kind. Join move candidates into one run. Never mix move + redesign.
-- [ ] IF scope has move candidates + redesign candidates, THEN do move first. Clean tree makes redesign small.
-- [ ] Pick top candidate yourself. IF tie between top 2 or 3, THEN get second opinion, then decide.
-- [ ] Keep list of candidates not taken, each with one-line reason. It goes in report.
-
-IF lens mode, THEN stop here + report.
-
-## 3. Grill self
-
-Walk design tree for chosen candidate alone. Write each answer. Answers become brief for step 4.
-
-- [ ] Constraints: what must not change? Public paths, saved formats, messages, prompts, tests.
-- [ ] Dependencies: category from [DEEPENING.md](DEEPENING.md) for each one.
-- [ ] Shape: interface of each module after change. What is behind each seam?
-- [ ] Tree: target tree, with one line of purpose for each file. Make sure AUDIT gives zero defects for it.
-- [ ] Names: each new name is word that code uses, or domain word from side effects below. No invented word.
-- [ ] Tests: which tests stay, which move with code, which go. Default: add zero tests for move.
-- [ ] Hidden behavior: each item + how Proof covers it.
-- [ ] Next work: each import from 1.1 is at interface after change.
-- [ ] Weakest part: which part is forced by rule and not by real joint? Say so in brief.
-
-IF kind = move, THEN write these also. Format: `rex-code-folder-management`, section MOVE.
-
-- [ ] Move map.
-- [ ] Closed list of edits that are not moves.
-- [ ] Public path table, before + after.
-- [ ] Step order where build is green after each step.
-
-IF kind = redesign, THEN obey [INTERFACE-DESIGN.md](INTERFACE-DESIGN.md): 3+ different interfaces, compare, pick.
-
-Side effects. Do each one now, not later:
-
-| Condition | Action |
-| --- | --- |
-| New module name = concept that code does not name | Take domain word from task. Put it in brief as module name + module `//!` line (`rex-code-commenting`). |
-| Vague term gets sharp during design | Use sharp term in brief for each new name. |
-| Candidate rejected for load-bearing reason that next explorer needs | Put reason in brief as permanent warning comment for builder to write where it matters (`rex-code-commenting`, whitelist 2). Skip reasons that are obvious or short-lived. |
-| Stuck on trade-off | Second opinion. Not user. |
-
-## 4. Brief
-
-Direct invocation only. This step edits no code. It ends with brief for builder.
-
-### 4.1 Proof before brief
-
-Hold Proof outside repo, in scratchpad. Put its path in brief.
-
-- [ ] Snapshot each output that must not change. Example: generated schema, prompt, saved file.
-- [ ] Copy of source with comments removed, for code-only diff.
-- [ ] List of each warning comment + `SMELL:` comment, word for word. IF `rex` is on PATH, THEN `rex smells` lists each `SMELL:` comment.
-- [ ] Baseline from 1.2.
-
-### 4.2 Write brief
-
-Give brief to builder. No confirm step.
-
-Brief is for agents with no context. Write it in full sentences. It must hold:
-
-- [ ] What code does, in 3 lines. What task is. Owner's words, quoted.
-- [ ] Files in scope. Current friction.
-- [ ] Target tree + target interface. Seam placement. Dependency category.
-- [ ] Hard constraints, numbered. Include each rule from `rex-code-folder-management` that applies.
-- [ ] Parallel builders: each builder gets one file group. No file is in two groups. CAUTION: No builder runs `git stash`, `git checkout`, `git restore`, or `git reset`. These commands delete the work of other builders.
-- [ ] Hidden behavior, each item named, with rule: "move by cut and paste, never type again".
-- [ ] Proof: path + checks from 4.3, as hard constraints. Builder runs checks after each stage.
-- [ ] Tests that must stay. Tests that must never run.
-- [ ] "Done means" list that a person can confirm line by line.
-
-Brief must be literal. Builder must be able to compile it in head.
-
-- [ ] Each re-export that moved item needs is written out.
-- [ ] Each edit that is not move is on closed list.
-- [ ] No step leaves build red.
-- [ ] "Done" line is true as written. Say which public paths change.
-
-### 4.3 Checks for builder
-
-Put these checks in brief. Builder runs Proof after each stage.
-
-- [ ] Build, clippy, fmt, doc, tests = green. Zero new warnings.
-- [ ] Snapshots = byte-identical.
-- [ ] Code-only diff = closed list + `mod` lines + `use` lines. Nothing else.
-- [ ] Each flag comment is present, word for word.
-- [ ] AUDIT block gives zero defects. No file > 500 lines.
-
-IF check fails, THEN stage is not done.
-
-### 4.4 Stop conditions
+## Stop conditions
 
 Stop before brief only IF:
 
@@ -279,19 +115,6 @@ Final report to user. Lead with what user gets. Full sentences, plain words.
 - [ ] What AUDIT flagged. Each `SMELL:` comment in scope.
 - [ ] Candidates not taken + reason for each.
 - [ ] Public paths that brief changes.
-
-## ERGONOMICS CHECK
-
-Each candidate must answer all. IF one answer is bad, THEN think again before you propose it.
-
-| Question | Good answer |
-| --- | --- |
-| Is caller code shorter after? | Shorter |
-| How many files does reader open for one concept after? | Fewer |
-| Does each name match word in code or domain word from task? | Yes |
-| Is autocomplete list at interface easier to read? | Yes |
-| Does error reach caller with context? | Yes |
-| Can reader name jobs of crate from tree alone? | Yes |
 
 ## SIZE CHECK
 

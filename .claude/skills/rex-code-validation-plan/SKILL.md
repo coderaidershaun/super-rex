@@ -1,17 +1,13 @@
 ---
 name: rex-code-validation-plan
 description: >
-  Hard rules for the validation plan that comes before code. It holds an
-  expected trace for each flow where order or time matters. It also holds one
-  for each failure scenario of the failure policy. A trace is numbered steps that a test can see, with an
-  end state and the test lane that proves it. The plan goes in plan.md, next to
-  the design sketch, never in a new file in the repo.
+  Hard rules for expected traces of flows and failures, written in plan.md
+  before code.
 when_to_use: >
-  Use when a lead writes a plan that has a design sketch or a failure table, and
-  code has not started. Use it also when a flow, or a RESET, RETRY, or HALT row,
-  has no scenario. Use it also when the user says "validation plan", "expected
+  Use when plan has sketch or failure table and no code yet, or flow or RESET,
+  RETRY, HALT row lacks scenario, or user says "validation plan", "expected
   trace", "what happens step by step", "prove the order", "failure scenarios",
-  or "how do we know it works".
+  "how do we know it works".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -24,7 +20,7 @@ Sketch says which boxes exist. Failure table says what system does after error. 
 Sister skills:
 
 - `rex-code-design-sketch` — source of each flow where order or time matters.
-- `rex-code-failure-policy` — source of each failure scenario: each RESET, RETRY, or HALT row.
+- `rex-code-failure-policy` — source of each failure scenario: each RESET, RETRY, or HALT row of failure table (`.claude/skills/rex-code-failure-policy/failure-table.md`).
 - `rex-code-spike` — proves each unknown that a trace finds.
 - `rex-code-tdd` — engineer turns each scenario into one test, one at a time.
 - `rex-code-tests-contract-seams`, `rex-code-tests-integration-testing`, `rex-code-tests-fitness-functions` — how test of each lane is written.
@@ -35,7 +31,8 @@ Sister skills:
 | --- | --- |
 | Validation plan | Scenario list + one expected trace for each scenario. Part of `plan.md`. |
 | Box, arrow, sketch list | As in `rex-code-design-sketch`. Sketch list = flows that its gate puts on list for this skill. |
-| Failure class, supervisor, trusted source, guard | As in `rex-code-failure-policy`. |
+| Failure class, supervisor, trusted source | As in `rex-code-failure-policy`. |
+| Failure table, guard | Table in `plan.md` + its Guard column. Format: `.claude/skills/rex-code-failure-policy/failure-table.md`. |
 | Flow | Data that moves through boxes, from one trigger to one end state. |
 | Scenario | One flow or one failure, from one start state and one trigger. |
 | Trigger | Input or event that starts scenario: message, call, timeout. |
@@ -80,6 +77,9 @@ IF row is REJECT, THEN no scenario. Guard in failure table is sufficient.
 - [ ] End state names what must not occur: no output, no second send, no restart.
 - [ ] Max 10 steps. IF more, THEN divide scenario.
 - [ ] IF you cannot write a step because a fact is unknown, THEN add yes/no question to Unknowns of sketch. Spike before code.
+- [ ] Test asserts whole event list. Exact `assert_eq!` proves order and proves no extra event.
+
+IF you write your first trace, or are not sure of trace shape, THEN read `.claude/skills/rex-code-validation-plan/examples.md`: bad trace, good trace, and its test.
 
 ## Flows where order or time matters
 
@@ -115,39 +115,6 @@ FOR EACH flow on sketch list + each RESET, RETRY, or HALT row of failure table:
     Write scenario row, expected trace (Trace rules), lane, test name.
 Advisor reads validation plan with sketch, before code. Missing scenario = finding.
 Engineer writes one test for each scenario, one at a time (rex-code-tdd).
-```
-
-## Bad trace / good trace
-
-Bad: `V2: on gap, book recovers and works again.` No start state, no steps, no values. Test of it passes with wrong order.
-
-Good. Trace in `plan.md`:
-
-```text
-V2 — sequence gap resets book (SyncError::SequenceGap, RESET)
-Start: book at seq 10. Trigger: feed gives update seq 12.
-1. book: Gap { expected: 11, got: 12 }
-2. supervisor: reset book
-3. book: snapshot request
-4. book: snapshot applied (last_seq 15)
-5. book: ready
-End: book = snapshot at seq 15. No quote from book between 2 and 5.
-Lane: contract. Test: sequence_gap_resets_book_from_snapshot.
-```
-
-Test asserts whole event list. Exact `assert_eq!` proves order and proves no extra event.
-
-```rust
-#[test]
-fn sequence_gap_resets_book_from_snapshot() {
-    use Event::*;
-    let mut sys = System::with_book_at(10);
-    sys.feed(update(12));
-    sys.run_until_idle();
-    let want = [Gap { expected: 11, got: 12 }, Reset(Part::Book), SnapshotRequest,
-                SnapshotApplied { last_seq: 15 }, Ready(Part::Book)];
-    assert_eq!(sys.events(), want);
-}
 ```
 
 ## Report

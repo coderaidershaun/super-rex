@@ -1,17 +1,12 @@
 ---
 name: rex-codex-adversarial-review
 description: >
-  Adversarial review by a second model. The Codex CLI challenges a plan or a
-  code change: the approach, the design choices, the tradeoffs, and the
-  assumptions first, and the defects second. The agent that runs the review
-  examines each finding against the real files, then sends one rebuttal round.
-  IF Codex is not available, a grid agent of tier high or above is the
-  challenger. Only verdicts that survive reach the caller.
+  Second model (Codex, ELSE grid agent) challenges plan or code change. Runner
+  examines each finding, one rebuttal round, surviving verdicts reach caller.
 when_to_use: >
-  Use when a plan job of `orchestration-builder` has a plan that is ready for
-  review, before the plan is final. Use it also when the user says
-  "adversarial review", "codex review", "second opinion on this plan",
-  "second opinion on this code", "challenge this design", or "challenge this
+  Use when plan of plan job is ready for review, before it is final, or user
+  says "adversarial review", "codex review", "second opinion on this plan",
+  "second opinion on this code", "challenge this design", "challenge this
   implementation".
 disable-model-invocation: false
 user-invocable: true

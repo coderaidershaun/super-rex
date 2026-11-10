@@ -1,18 +1,13 @@
 ---
 name: rex-mermaid-diagrams
 description: >
-  This skill is a comprehensive guide to software diagrams in Mermaid syntax.
-  The diagram types include class diagrams (domain modeling, object-oriented
-  design), sequence diagrams (application flows, API interactions, code
-  execution), flowcharts (processes, algorithms, user journeys), entity
-  relationship diagrams (database schemas), C4 architecture diagrams (system
-  context, containers, components), state diagrams, git graphs, pie charts,
-  gantt charts, and any other diagram type.
+  Guide to software diagrams in Mermaid syntax. Types: class, sequence,
+  flowchart, ERD, C4, architecture, state, git graph, pie, gantt, and others.
 when_to_use: >
-  Use when users must create, visualize, or document software with diagrams. Use
-  it also for requests to "diagram", "visualize", "model", "map out", "show the
-  flow", or when you explain system architecture, database design, code
-  structure, or user/application flows.
+  Use when you create, visualize, or document software with diagrams, or
+  explain architecture, database design, code structure, or user or
+  application flows, or for "diagram", "visualize", "model", "map out", "show
+  the flow".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -154,15 +149,17 @@ erDiagram
 
 ## Detailed References
 
-For in-depth guidance on specific diagram types, see:
+IF diagram type has no Quick Start example above, OR diagram needs more than that example shows, THEN read reference file of its type:
 
-- **[references/class-diagrams.md](references/class-diagrams.md)** - Domain modeling, relationships (association, composition, aggregation, inheritance), multiplicity, methods/properties
-- **[references/sequence-diagrams.md](references/sequence-diagrams.md)** - Actors, participants, messages (sync/async), activations, loops, alt/opt/par blocks, notes
-- **[references/flowcharts.md](references/flowcharts.md)** - Node shapes, connections, decision logic, subgraphs, styling
-- **[references/erd-diagrams.md](references/erd-diagrams.md)** - Entities, relationships, cardinality, keys, attributes
-- **[references/c4-diagrams.md](references/c4-diagrams.md)** - System context, container, component diagrams, boundaries
-- **[references/architecture-diagrams.md](references/architecture-diagrams.md)** - Cloud services, infrastructure, CI/CD deployments
-- **[references/advanced-features.md](references/advanced-features.md)** - Themes, styling, configuration, layout options
+| Read | When diagram needs |
+| --- | --- |
+| `.claude/skills/rex-mermaid-diagrams/references/class-diagrams.md` | Domain modeling, relationships (association, composition, aggregation, inheritance), multiplicity, methods/properties |
+| `.claude/skills/rex-mermaid-diagrams/references/sequence-diagrams.md` | Actors, participants, messages (sync/async), activations, loops, alt/opt/par blocks, notes |
+| `.claude/skills/rex-mermaid-diagrams/references/flowcharts.md` | Node shapes, connections, decision logic, subgraphs, styling |
+| `.claude/skills/rex-mermaid-diagrams/references/erd-diagrams.md` | Entities, relationships, cardinality, keys, attributes |
+| `.claude/skills/rex-mermaid-diagrams/references/c4-diagrams.md` | System context, container, component diagrams, boundaries |
+| `.claude/skills/rex-mermaid-diagrams/references/architecture-diagrams.md` | Cloud services, infrastructure, CI/CD deployments |
+| `.claude/skills/rex-mermaid-diagrams/references/advanced-features.md` | Themes, styling, configuration, layout options beyond Configuration and Theming below |
 
 ## Best Practices
 

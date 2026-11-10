@@ -20,7 +20,15 @@ user-invocable: true
 
 **Bad tests** = coupled to implementation. They mock internal collaborators, test private methods, or assert through external means (example: direct database query instead of interface). Warning sign: test breaks when you refactor, but behavior did not change. IF you rename internal function and tests fail, THEN those tests test implementation, not behavior.
 
-See [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking guidelines.
+## Files of this skill
+
+| Read | When |
+| --- | --- |
+| `.claude/skills/rex-code-tdd/tests.md` | IF you are not sure that a test checks behavior and not implementation. Good + bad tests. |
+| `.claude/skills/rex-code-tdd/mocking.md` | IF a test crosses a system boundary: external API, database, time, randomness, file system. |
+| `.claude/skills/rex-code-tdd/deep-modules.md` | Step 1 Planning, IF you look for deep modules. |
+| `.claude/skills/rex-code-tdd/interface-design.md` | Step 1 Planning, IF you design an interface for testability. |
+| `.claude/skills/rex-code-tdd/refactoring.md` | Step 4 Refactor, after all tests pass. |
 
 ## Anti-Pattern: Horizontal Slices
 
@@ -57,8 +65,8 @@ Before you write any code:
 
 - [ ] Confirm with user what interface changes to make
 - [ ] Confirm with user which behaviors to test (prioritize)
-- [ ] Identify opportunities for [deep modules](deep-modules.md) (small interface, deep implementation)
-- [ ] Design interfaces for [testability](interface-design.md)
+- [ ] Identify opportunities for deep modules (small interface, deep implementation)
+- [ ] Design interfaces for testability
 - [ ] List behaviors to test (not implementation steps)
 - [ ] Get user approval on plan
 
@@ -95,7 +103,7 @@ Rules:
 
 ### 4. Refactor
 
-After all tests pass, look for [refactor candidates](refactoring.md):
+After all tests pass, look for refactor candidates:
 
 - [ ] Extract duplication
 - [ ] Deepen modules (move complexity behind simple interfaces)

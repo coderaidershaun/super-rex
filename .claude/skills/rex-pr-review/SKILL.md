@@ -1,17 +1,12 @@
 ---
 name: rex-pr-review
 description: >
-  Reviews one pull request, or one branch range, on request. The review is
-  optional. The reviewer is an agent that wrote no part of the change. It
-  reads the request, the diff, and the real code at one commit. It reports
-  findings with severity, location, and proof, and gives the verdict PASS or
-  FIX. The verdict informs the caller. The caller decides what to do. It is
-  not a gate on each merge. It changes no code, no branch, and no state of the
-  pull request. It posts its report as one comment on the pull request.
+  Optional review of one pull request or branch range by an agent that wrote
+  none of it: proven findings, PASS or FIX, one comment, no changes.
 when_to_use: >
-  Use when a person or a calling agent asks for a review of a pull request or
-  a branch. Use it also when the user says "review this pull request", "review
-  this branch", or "run the pull request review at the end".
+  Use when a person or agent asks to review a pull request or branch, or says
+  "review this pull request", "review this branch", "run the pull request
+  review at the end".
 disable-model-invocation: false
 user-invocable: true
 ---

@@ -1,15 +1,12 @@
 ---
 name: rex-code-design-sketch
 description: >
-  Hard rules for the design sketch that comes before code: boxes, arrows, one
-  named pattern, one extension point, and how existing code changes to fit.
-  Output goes in the plan as a module table plus one Mermaid diagram. Finds
-  bandages and unknowns before an engineer starts.
+  Design sketch before code: boxes, arrows, one named pattern, one extension
+  point, fit to existing code, in plan as module table + Mermaid diagram.
 when_to_use: >
-  Use when a lead writes a plan for a new system, a new feature, or a change
-  that adds or reshapes a module. Use it also when the user says "draw the
-  architecture", "design this first", "boxes and arrows", "what is the design
-  pattern", or "how should this fit in".
+  Use when a lead plans a new system, feature, or module change, or user says
+  "draw the architecture", "design this first", "boxes and arrows", "what is
+  the design pattern", "how should this fit in".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -26,6 +23,7 @@ Sister skills:
 - `rex-code-folder-management` — tree that sketch must become.
 - `rex-code-spike` — proves each unknown that sketch finds.
 - `rex-code-validation-plan` — expected trace for each flow where order matters.
+- `rex-code-improve-codebase-architecture` — deletion test (`.claude/skills/rex-code-improve-codebase-architecture/SKILL.md`, Three tests).
 
 ## Words
 

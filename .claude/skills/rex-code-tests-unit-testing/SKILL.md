@@ -1,14 +1,12 @@
 ---
 name: rex-code-tests-unit-testing
 description: >
-  This skill gives hard rules for Rust unit tests. A unit test is inline, in a
-  #[cfg(test)] mod tests next to the code. It is only a TDD scaffold. Delete it
-  when contract or integration coverage is green. Promote critical invariants to
-  fitness functions.
+  Hard rules for Rust unit tests: inline TDD scaffolds. Delete when contract or
+  integration coverage is green. Promote invariants to fitness.
 when_to_use: >
-  Use when you write unit tests, do TDD, or decide whether to keep or delete a
-  unit test. Use it also when the user asks "should I unit test this", "TDD this
-  fn", "should I delete this test", "promote to fitness".
+  Use when you write unit tests, do TDD, or decide to keep or delete a unit
+  test, or user asks "should I unit test this", "TDD this fn", "should I delete
+  this test", "promote to fitness".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -21,7 +19,7 @@ Sister skills:
 - `rex-code-tests-contract-seams` — module-to-module
 - `rex-code-tests-integration-testing` — outside world
 - `rex-code-tests-fitness-functions` — immortal invariants (promotion target)
-- `rex-code-philosophy` — integration > unit, no mocks
+- `rex-code-philosophy` — integration > unit, no mock unless forced
 - `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-commenting`
 
 ## Iron rule
@@ -69,7 +67,7 @@ No:
 
 ## No mocks
 
-Per `rex-code-philosophy`: mock = wrong layer. IF you use `mockall`, `mockito`, or hand-rolled fake, THEN you unit-test what belongs in contract or integration test.
+Mock = wrong layer. IF you use `mockall`, `mockito`, or hand-rolled fake, THEN you unit-test what belongs in contract or integration test.
 
 ```rust
 // bad — mocked DB in unit test. Wrong layer.
@@ -93,12 +91,8 @@ fn balance_after_credit() {
 
 ## TDD workflow
 
-1. **Red** — write test for behavior that does not exist yet
-2. **Green** — write minimum code to pass
-3. **Refactor** — clean code, tests still pass
-4. **Decide** — keep inline, promote to fitness, or delete
-
-Step 4 = discipline. You delete most tests.
+- Red → green → refactor loop: obey `.claude/skills/rex-code-tdd/SKILL.md`.
+- Then **Decide** — keep inline, promote to fitness, or delete. This step = discipline. You delete most tests.
 
 ## Removal criteria — delete when ALL true
 

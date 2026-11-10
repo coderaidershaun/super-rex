@@ -1,15 +1,12 @@
 ---
 name: rex-code-spike
 description: >
-  Hard rules for a spike: throwaway code in a scratch folder that answers one
-  yes/no question about whether an idea can work, before real code depends on
-  it. One question, a time limit, an answer with evidence, then the folder is
-  deleted. Spike code never enters the source tree.
+  Throwaway code in a scratch folder that answers one yes/no question before
+  real code depends on it. Never enters the source tree.
 when_to_use: >
-  Use when a plan or design sketch lists an unknown, when an engineer is not
-  sure that an approach, crate, or outside service behaves as the plan assumes,
-  or when the user says "spike this", "prove it works first", "quick
-  experiment", "scratch test", or "will this even work".
+  Use when plan or sketch lists an unknown, an engineer doubts an approach,
+  crate, or outside service, or user says "spike this", "prove it works first",
+  "quick experiment", "scratch test", "will this even work".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -22,7 +19,7 @@ Sister skills:
 
 - `rex-code-design-sketch` — source of unknowns.
 - `rex-code-external-libraries` — crate rules still apply in spike.
-- `rex-code-tests-integration-testing` — real-funds rules still apply in spike.
+- `rex-code-tests-integration-testing` — real-funds rules (`.claude/skills/rex-code-tests-integration-testing/real-funds.md`) still apply in spike.
 
 ## Words
 
