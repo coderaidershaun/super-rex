@@ -165,7 +165,7 @@ fn starts_with_any(text: &str, starts: &[&str]) -> bool {
 /// Finds the byte offset just past the first full stop that is followed by
 /// whitespace or the end of the text. A full stop inside a word, such as
 /// `CODEBASE.md`, does not count.
-pub(crate) fn sentence_end(text: &str) -> Option<usize> {
+fn sentence_end(text: &str) -> Option<usize> {
     text.char_indices()
         .filter(|&(_, c)| c == '.')
         .map(|(index, _)| index + 1)
