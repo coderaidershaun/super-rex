@@ -40,6 +40,30 @@ fn force_never_overwrites_the_file_a_symlink_points_at() {
     );
 }
 
+// An agent file is guarded like a skill file: a linked one would send the
+// write to whatever it points at.
+#[test]
+fn force_never_overwrites_the_file_a_linked_agent_points_at() {
+    let repo = repo();
+    let elsewhere = tempdir().expect("create tempdir");
+    let agent = installed(&repo, AGENT_MARKER);
+    fs::create_dir_all(agent.parent().expect("agent has a folder")).expect("create agents folder");
+    let outside = elsewhere.path().join("outside-agent.md");
+    fs::write(&outside, "precious").expect("write outside file");
+    symlink(&outside, &agent).expect("create symlink");
+
+    let stderr = rex_init_ok(&repo, &["--force"]).stderr;
+
+    assert_eq!(
+        fs::read_to_string(&outside).expect("read outside file"),
+        "precious"
+    );
+    assert!(
+        stderr.contains("rex init: skipped ./.claude/agents/model-medium-effort-medium.md: it or a folder above it is a symbolic link"),
+        "got: {stderr}"
+    );
+}
+
 #[test]
 fn a_symlink_to_a_missing_path_is_not_written_through() {
     let repo = repo();
