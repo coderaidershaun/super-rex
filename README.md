@@ -132,15 +132,17 @@ Start Claude Code in the main checkout and give it a request with `/orchestratio
 2. **Agrees on the merge.** If the request does not say whether the work may be merged to main, it asks you. This is the one rule every job keeps.
 3. **Opens the job** with `rex job create`, which prints the job ID.
 4. **Recalls** lessons from similar jobs and the orchestrators they used (`rex recall`).
-5. **Lists the skills** in the repo and in your own skills folder (`rex skills list`).
-6. **Stage 1, `orchestration-nuance-selection`:** chooses the skills for the job. It writes a new skill only when a three-part test passes.
-7. **Stage 2, `orchestration-work-breakdown`:** splits the request into tasks and finds what can run in parallel.
-8. **Stage 3, `orchestration-selection`:** reuses an orchestrator from `.rex/orchestrators/` or writes a new one, defines the roles, and rates the inputs that pick each role's model.
-9. **Challenges the decision.** A paired challenger, a fresh sub-agent that made no part of it, checks the skill list, the work breakdown, the orchestrator and the role table before any work starts (`orchestration-decision-challenge`). It looks most for important skills that were left out or not given to a role. The session checks each finding against the real files, corrects what holds, and records the check in the work breakdown.
-10. **Records the plan** with `rex job plan`. `rex` picks the grid agent for each role.
-11. **Runs** the orchestrator on a job branch, never on main. Leads and workers are Claude Code sub-agents; the hooks record each one.
-12. **Delivers** each changed repo with `rex-deliver`: pull request, and a squash merge if one was agreed.
-13. **Closes** the job with `rex job close`, then tells you the result in a few lines: what was done, and for each repo whether it was merged, left as an open pull request, kept locally, or blocked, with what you must do.
+5. **Starts a decision agent.** A sub-agent that runs at your model and effort makes the decision, so the session does not carry the rules of the three stages while it runs the job. The decision agent lists the skills in the repo and in your own skills folder (`rex skills list`), then works through three stages:
+   - **Stage 1, `orchestration-nuance-selection`:** chooses the skills for the job. It asks for a new skill only when a three-part test passes, and the session then has a sub-agent write it.
+   - **Stage 2, `orchestration-work-breakdown`:** splits the request into tasks, gives each task the skills it needs, and finds what can run in parallel.
+   - **Stage 3, `orchestration-selection`:** reuses an orchestrator from `.rex/orchestrators/` or writes a new one, gives each task a role, defines the roles, and rates the inputs that pick each role's model.
+
+   If only you can answer a question, the decision agent asks it through the session, at most twice.
+6. **Challenges the decision.** A paired challenger, a fresh sub-agent that made no part of it, checks the skill list, the work breakdown, the orchestrator and the role table before any work starts (`orchestration-decision-challenge`). It looks most for important skills that were left out or not given to a task or a role. The session passes the findings to the decision agent, which checks each one against the real files, corrects what holds, and records the check in the work breakdown.
+7. **Records the plan** with `rex job plan`. `rex` picks the grid agent for each role.
+8. **Runs** the orchestrator on a job branch, never on main. Leads and workers are Claude Code sub-agents; the hooks record each one. Each agent's brief names only the skills of its own task.
+9. **Delivers** each changed repo with `rex-deliver`: pull request, and a squash merge if one was agreed.
+10. **Closes** the job with `rex job close`, then tells you the result in a few lines: what was done, and for each repo whether it was merged, left as an open pull request, kept locally, or blocked, with what you must do.
 
 The session is the orchestrator and runs at your model and effort. A small job can be one task and one worker. If an agent inside a job loads the builder again, no second job opens: its work is recorded under the open one.
 
@@ -431,6 +433,8 @@ when_to_use: Use when you write release notes, or when the user says "release no
 ---
 ```
 
+An agent reads all of `SKILL.md`, so it holds only the rules an agent needs every time and a table that says when to read each sibling file. A sibling file sits in the skill's folder and holds the text for one step or one case, and `SKILL.md` names it by its path, such as `.claude/skills/rex-deliver/parallel-writers.md`. An agent reads it only when it reaches that step or case.
+
 `rex skills check` applies these rules. The IDs never change meaning.
 
 | Rule | Passes when |
@@ -443,10 +447,12 @@ when_to_use: Use when you write release notes, or when the user says "release no
 | H6 | A plain one-line value is not cut short by YAML (` #` starts a comment). |
 | H7 | `description` and `when_to_use` together are at most 1,536 characters. |
 | H8 | Every header key is one Claude Code knows. |
+| H9 | `description` and `when_to_use` together have at most 60 words. |
 | B1 | There is text after the header. |
 | B2 | `SKILL.md` has at most 500 lines. |
 | B3 | Each relative link to a `.md` file points to a file inside the skills folder. |
-| B4 | Each `.claude/skills/<name>/SKILL.md` named in the text is a known skill. |
+| B4 | Each `.claude/skills/<name>/<file>.md` named in the text is a Markdown file of a known skill: its `SKILL.md`, or a file in its folder or below it. A path with a placeholder such as `<name>` is a template and is not checked. |
+| B5 | The text after the header of `SKILL.md` has at most 1,500 words, counted as `wc -w` counts them. |
 
 ## Skills and the agent grid
 
@@ -484,6 +490,6 @@ Build with `cargo build` and test with `cargo test`. The tests live in three fol
 
 This repo has no CI service. Its checks are git hooks in `.pre-commit-config.yaml`; run `pre-commit install` once to set up both hooks. At commit: the file checks and trivy. At push: `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo check` with the oldest Rust that `Cargo.toml` claims (the hook installs that Rust when it is missing), and `cargo package`, with the tests run again from inside the package. The push checks run on the work tree, not on the commits being pushed, so push from the branch that is checked out.
 
-Two rules hold for every source file: at most 500 lines, and a module comment of one or two lines at the top that says what the file is for (`rex codebase --only code --with-context` shows them). The skills and agents in `.claude/` are source in this repo and are committed; the build embeds them in the binary, and `rex init` installs them from there.
+Two rules hold for every source file: at most 500 lines, and a module comment of one or two lines at the top that says what the file is for (`rex codebase --only code --with-context` shows them). The skills and agents in `.claude/` are source in this repo and are committed; the build embeds them in the binary, and `rex init` installs them from there. Each skill is a short `SKILL.md` and the sibling files it points to, and `cargo test` checks every bundled skill with the rules of `rex skills check`.
 
 **Licence:** MIT. See [LICENSE](LICENSE).
