@@ -73,10 +73,22 @@ Session holds these values under these names:
 | `HOME_DIR` | Absolute path of main checkout root of home repo. | Start |
 | `REPO_DIR` | Absolute path of main checkout root. One per repo. Never a linked worktree: parent of `git rev-parse --path-format=absolute --git-common-dir`. | Start |
 | `CHECKS` | Commands that prove job work in repo (build, test). IF repo has no build or test command, THEN empty. | FAN-OUT, END |
-| `TITLE` | `<type>: <what works now>`. `<type>` = type word below. | END |
+| `TITLE` | `<title type>: <what works now>`. Title type: table below. | END |
 | `BODY` | Request, what changed, commands run + results, what was left out. Last line: `Rex-Job: <JOB>`. | END |
 
-Type word from `WORK_TYPE`: `feature`, `fix`, `refactor`, `chore` stay. `research` + `other` give `chore`. `<type>` in `BRANCH` and in `TITLE` = this one word. Never start a title with `other:` or `research:`.
+Branch prefix + title type from `WORK_TYPE`:
+
+| `WORK_TYPE` | Branch prefix (`<type>` in `BRANCH`) | Title type (in `TITLE`) |
+| --- | --- | --- |
+| `feature` | `feature` | `feat` |
+| `fix` | `fix` | `fix` |
+| `refactor` | `refactor` | `refactor` |
+| `chore` | `chore` | `chore` |
+| `research` | `chore` | `chore` |
+| `other` | `chore` | `chore` |
+
+Title becomes squash commit on main. Example: branch `feature/csv-export-0g4cbf7k2q`, title `feat: CSV export has a header row`.
+
 - [ ] MERGE guard: never decide `MERGE`. Builder settles it with requester before work starts.
 - [ ] IF `MERGE` is not known for a repo, THEN stop. Session gets answer from requester. Never assume `yes`.
 - [ ] IF `CHECKS` is empty, THEN each step that runs `CHECKS` runs no local check, counts as pass, and goes on. Write `no build or test command in this repo` in `BODY` under how it was checked. Still wait for checks of pull request (End 2 step 2).
