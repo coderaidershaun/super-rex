@@ -6,6 +6,7 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ### Added
 
+- A paired challenger checks the builder's decision before any work starts. The new skill `orchestration-decision-challenge` has a fresh grid agent (`model-high-effort-high`, or `model-xhigh-effort-high` for a large or high-consequence job) look for important skills that were left out or not given to a role, and for gaps in the breakdown, the orchestrator and the ratings. The builder corrects what holds before `rex job plan`, and the work breakdown records the check.
 - Plan jobs. A request for a plan writes `.rex/plans/<job-id>/plan.md` and changes no file in the repo. A later run of `orchestration-builder` with "Execute plan <path>" does the work. `orchestration-selection` now says how to build an orchestrator for planning.
 - The skill `rex-codex-adversarial-review`. Every plan job runs it before its plan is final: the Codex CLI challenges the plan read-only, the runner checks each finding, and there is one rebuttal round. Without Codex, a grid agent of `model-high-effort-high` or above is the challenger.
 

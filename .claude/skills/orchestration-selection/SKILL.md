@@ -356,7 +356,7 @@ Recovery:
 
 ## Output
 
-Builder records both with `rex job plan`.
+Paired challenger checks both first (`orchestration-decision-challenge`). Then builder records both with `rex job plan`.
 
 ```
 ORCHESTRATOR: <name> | <path> | new OR reused

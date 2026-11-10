@@ -136,10 +136,11 @@ Start Claude Code in the main checkout and give it a request with `/orchestratio
 6. **Stage 1, `orchestration-nuance-selection`:** chooses the skills for the job. It writes a new skill only when a three-part test passes.
 7. **Stage 2, `orchestration-work-breakdown`:** splits the request into tasks and finds what can run in parallel.
 8. **Stage 3, `orchestration-selection`:** reuses an orchestrator from `.rex/orchestrators/` or writes a new one, defines the roles, and rates the inputs that pick each role's model.
-9. **Records the plan** with `rex job plan`. `rex` picks the grid agent for each role.
-10. **Runs** the orchestrator on a job branch, never on main. Leads and workers are Claude Code sub-agents; the hooks record each one.
-11. **Delivers** each changed repo with `rex-deliver`: pull request, and a squash merge if one was agreed.
-12. **Closes** the job with `rex job close`, then tells you the result in a few lines: what was done, and for each repo whether it was merged, left as an open pull request, kept locally, or blocked, with what you must do.
+9. **Challenges the decision.** A paired challenger, a fresh sub-agent that made no part of it, checks the skill list, the work breakdown, the orchestrator and the role table before any work starts (`orchestration-decision-challenge`). It looks most for important skills that were left out or not given to a role. The session checks each finding against the real files, corrects what holds, and records the check in the work breakdown.
+10. **Records the plan** with `rex job plan`. `rex` picks the grid agent for each role.
+11. **Runs** the orchestrator on a job branch, never on main. Leads and workers are Claude Code sub-agents; the hooks record each one.
+12. **Delivers** each changed repo with `rex-deliver`: pull request, and a squash merge if one was agreed.
+13. **Closes** the job with `rex job close`, then tells you the result in a few lines: what was done, and for each repo whether it was merged, left as an open pull request, kept locally, or blocked, with what you must do.
 
 The session is the orchestrator and runs at your model and effort. A small job can be one task and one worker. If an agent inside a job loads the builder again, no second job opens: its work is recorded under the open one.
 
@@ -449,9 +450,9 @@ when_to_use: Use when you write release notes, or when the user says "release no
 
 ## Skills and the agent grid
 
-`rex init` installs 29 skills:
+`rex init` installs 30 skills:
 
-- **The builder:** `orchestration-builder` (the entry skill) and its three stages `orchestration-nuance-selection`, `orchestration-work-breakdown` and `orchestration-selection`.
+- **The builder:** `orchestration-builder` (the entry skill) and its three stages `orchestration-nuance-selection`, `orchestration-work-breakdown` and `orchestration-selection`. `orchestration-decision-challenge` checks the decision of the stages before work starts.
 - **Delivery:** `rex-deliver`, `rex-pr-review` and `rex-feedback`.
 - **Plan review:** `rex-codex-adversarial-review`, which every plan job runs before its plan is final. You can also ask for it on a plan or a code change ("codex review", "challenge this design").
 - **Rulebooks:** 18 `rex-code-*` skills for writing code, mostly Rust: philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four kinds of test, design sketch, spike, validation plan and priorities. Two utilities go with them: `rex-grill-me` and `rex-mermaid-diagrams`. Run `rex skills list` to see each one's description and when to use it.

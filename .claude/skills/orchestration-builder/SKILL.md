@@ -4,7 +4,8 @@ description: >
   This is the entry skill of SuperRex. It classifies a request, settles with
   the requester whether to merge the work to main, and opens a job. It recalls
   experience, then runs three stages: skill selection, work breakdown, and
-  orchestration selection. It records its plan, runs the orchestrator on a new
+  orchestration selection. A paired challenger checks that decision, and the
+  builder corrects it. It records its plan, runs the orchestrator on a new
   branch, delivers the work, and closes the job. A request for a plan becomes a
   plan job: it writes a plan file, and a second model challenges that plan
   before it is final. A later run of the builder executes that plan.
@@ -27,7 +28,7 @@ IF your brief starts with tag block that holds `Rex-Job:`, THEN do "Open job exi
 2. Settle merge agreement with requester.
 3. Open job. IF output gives `existing=yes`, THEN do "Open job exists".
 4. Recall + list skills: run `rex recall` and `rex skills list`.
-5. Stages, in sequence: orchestration-nuance-selection, then orchestration-work-breakdown, then orchestration-selection.
+5. Stages, in sequence: orchestration-nuance-selection, then orchestration-work-breakdown, then orchestration-selection. Then paired challenger checks decision. Correct it.
 6. Record plan.
 7. Run: you = orchestrator. Obey orchestrator skill on job branch.
 8. Deliver: END of `rex-deliver`, for each repo with job branch.
@@ -242,6 +243,19 @@ Three stages, in sequence. For each stage: read its file IN FULL, do it, keep it
 
 - [ ] Small job: stages are short. Output can be one task + one worker.
 - [ ] Stage sub-agents that start before you record plan do not change job status.
+
+### Challenge of decision
+
+Decision = skill list + work breakdown + orchestrator skill + role table. Before you record plan, paired challenger checks it. No work starts before this.
+
+1. Read `.claude/skills/orchestration-decision-challenge/SKILL.md` IN FULL. Obey its builder sections.
+2. Start challenger: fresh grid agent, role `decision-challenger`. It made no part of decision.
+3. Challenger looks most for important skills that decision did not include, or did not give to a role.
+4. Examine each finding against real files. Correct decision for each finding that holds.
+5. Add `DECISION CHECK` table to work breakdown. Then record plan with corrected decision.
+
+- [ ] Each job, small job also. One round only.
+- [ ] Inside open job (`## Open job exists`): challenge your part the same way, before work of your part starts.
 
 ## Step 6 — Record plan
 
