@@ -1,15 +1,12 @@
 ---
 name: rex-grill-me
-description: Interview the user relentlessly about a plan or design until reaching shared understanding, resolving each branch of the decision tree. Use when user wants to stress-test a plan, get grilled on their design, or mentions "grill me".
+description: Interview the user relentlessly about a plan or design until you and the user reach a shared understanding. Resolve each branch of the decision tree. Use when the user wants to stress-test a plan, asks you to grill them on their design, or mentions "grill me".
 ---
 
-Interview me relentlessly about every aspect of this plan until
-we reach a shared understanding. Walk down each branch of the design
-tree resolving dependencies between decisions one by one.
+DO interview me relentlessly about every aspect of plan UNTIL we reach shared understanding OR I say stop.
 
-If a question can be answered by exploring the codebase, explore
-the codebase instead.
-
-For each question, provide your recommended answer.
+- [ ] Walk down each branch of design tree. Resolve dependencies between decisions, one at a time.
+- [ ] IF codebase can answer question, THEN explore codebase. Do not ask me.
+- [ ] For each question, give your recommended answer.
 
 <!-- Skill Credit to Matt Pocock [YouTube] -->
