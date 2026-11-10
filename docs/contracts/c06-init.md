@@ -222,11 +222,19 @@ When rule 5 keeps a value of the user's, stderr gets (values as compact JSON):
 
 `rex init: warning: kept <dotted.key> = <U value> in .claude/settings.local.json; SuperRex sets <R value>.`
 
-For a safety key (`sandbox` or any key below it, and `permissions.blockWritesOutsideWorkingDirectories`) the value is kept too, but the case is a reported failure (section 9), not a warning, so `rex init` exits 1. Its text names the key, the value found, the value SuperRex needs, and the fix:
+For a safety key the value is kept too, but the case is a reported failure (section 9), not a warning, so `rex init` exits 1. A conflict is at a safety key IF its dotted key is one of these:
+
+- `sandbox`, or any key below it (`sandbox.<...>`);
+- `permissions.blockWritesOutsideWorkingDirectories`;
+- `permissions`, the key above it. A conflict there means U holds `permissions` as a value that is not an object (rule 5), so rex cannot write `permissions.blockWritesOutsideWorkingDirectories` at all, which is as weak.
+
+The test is on the dotted key only (`is_safety_key` in `src/commands/init/settings.rs`). Its text names the key, the value found, the value SuperRex needs, and the fix:
 
 `kept <dotted.key> = <U value> in .claude/settings.local.json, so the protection it gives is off; set it to <R value> to turn it on`
 
 Example, on stderr: `rex init: failed: kept sandbox.enabled = false in .claude/settings.local.json, so the protection it gives is off; set it to true to turn it on`, then the one line `error: rex init did not finish 1 step(s); each is named above`.
+
+For a conflict at `permissions`, `<R value>` is the whole `permissions` object that rex adds (section 4.1, with `additionalDirectories` only when section 4.7 adds `<parent>`), as compact JSON.
 
 Reason: a safety net that is weaker with no failure is the worse case (challenge 1, §5.11). The user's value is never replaced. Keys that are not safety keys stay a warning with exit 0. Decided by the orchestrator at G1 as an assumption. The owner can reverse this to a warning with exit 0.
 

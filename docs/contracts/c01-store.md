@@ -541,7 +541,7 @@ pub fn index_all(tx: &rusqlite::Transaction<'_>, library: &Path,
 | `ClockOutOfRange { unix_seconds }` | `the system clock reads <unix_seconds> seconds since 1970, outside the years 2026 to 2094 that a job ID can hold; set the system clock to the right time` | `JobId::generate` |
 | `JobNotFound { job, store }` | `no job with ID <job> in <store>/rex.db; run rex from the session's project folder or a worktree of it, or set REX_STORE` | `apply`, C2 commands |
 | `NoOpenJob { session, store }` | `session <session> has no open job in <store>/rex.db; give the job ID, or run rex from the session's project folder` | `rex job show` (C2) |
-| `Refused { job, status, event, accepts }` | `job <job> is <status>, and <event> accepts only <accepts>; <fix>`. Each case and its fix are in C2. | `apply`, `rex job close` |
+| `Refused { job, status, event, accepts }` | `job <job> is <status>, and <event> accepts only <accepts>; <fix>`. Each case and its fix are in C2. `delivered` while a delivery is blocked is not a `Refused`: it is `JobError::DeliveredWhileBlocked` of `rex job close` (C2 A14). | `apply` |
 | `NoOutcomeYet { job, status }` | `job <job> is <status> and has no final outcome yet; close it with rex job close first` (C2 7). `<status>` is `created` or `planned`. | `apply` (feedback) |
 | `AnalysisDue { job }` | `job <job> is rejected and its analysis is due; give --cause and --lesson with --verdict rejected` (C9 4.5) | `apply` (feedback) |
 
