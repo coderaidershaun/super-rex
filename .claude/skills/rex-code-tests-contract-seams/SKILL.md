@@ -1,6 +1,13 @@
 ---
 name: rex-code-tests-contract-seams
-description: This skill gives hard rules for Rust contract seam tests. A contract seam test tests the interface between modules, with real impls on both sides. It lives in tests/contract/. It catches refactor breakage at module boundaries. Use it when you test module-to-module interactions, after you refactor a seam, or when you define a new module interface. Use it also when the user asks "test the boundary", "this seam keeps breaking", "interaction between modules".
+description: >
+  This skill gives hard rules for Rust contract seam tests. A contract seam test
+  tests the interface between modules, with real impls on both sides. It lives
+  in tests/contract/. It catches refactor breakage at module boundaries.
+when_to_use: >
+  Use when you test module-to-module interactions, after you refactor a seam, or
+  when you define a new module interface. Use it also when the user asks "test
+  the boundary", "this seam keeps breaking", "interaction between modules".
 disable-model-invocation: false
 user-invocable: true
 ---

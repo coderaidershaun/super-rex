@@ -10,4 +10,4 @@
 | **Task Failure Consequence** | **Low:** Mistakes cause minor, easily reversible problems. | Mistakes cause meaningful rework or disruption. | **High:** Mistakes cause serious damage or losses that are difficult to reverse. | Not relevant. Ignored. |
 | **Task Ease of Verification** | **Low:** Correctness is difficult to check. | Checking requires some review or testing. | **High:** Quick, reliable checks are available. | Not relevant. Ignored. |
 
-`None` means **the input is not relevant and is ignored**. OMS infers nothing from the task. A higher budget or longer duration permits additional spending or time; it does not require it.
+`None` means **the input is not relevant and is ignored**. The model selection function infers nothing from the task. A higher budget or longer duration permits additional spending or time; it does not require it.

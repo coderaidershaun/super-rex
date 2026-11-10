@@ -49,6 +49,7 @@ pub struct Inputs {
 impl Inputs {
     /// The seven ratings as seven characters, such as `-LHHHHL`: `L`, `M`,
     /// `H`, or `-` for `None`, in the order of the fields.
+    #[must_use]
     pub fn code(&self) -> String {
         [
             self.duration,
@@ -88,6 +89,7 @@ pub enum Rule {
 impl Rule {
     /// The permanent identifier of the rule, such as `T0` or `E4`. An
     /// identifier is never reused for a different rule.
+    #[must_use]
     pub fn id(self) -> &'static str {
         match self {
             Rule::TierDefault => "T0",
@@ -117,6 +119,7 @@ pub enum Overridden {
 
 impl Overridden {
     /// `budget` or `duration`, the name of the input whose cap was overridden.
+    #[must_use]
     pub fn name(self) -> &'static str {
         match self {
             Overridden::Budget => "budget",

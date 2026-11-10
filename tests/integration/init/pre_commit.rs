@@ -166,15 +166,12 @@ fn a_failed_pre_commit_install_exits_with_its_error_text_after_the_rest_is_done(
 
     let output = rex_init(&repo, &[]);
 
-    assert!(!output.status.success(), "rex init must fail");
+    assert_eq!(output.status.code(), Some(1), "rex init must fail");
     let stderr = String::from_utf8(output.stderr).expect("utf8 stderr");
-    assert!(
-        stderr.contains("`pre-commit install` exited with"),
-        "got: {stderr}"
-    );
-    assert!(
-        stderr.contains("Cowardly refusing to install hooks"),
-        "got: {stderr}"
+    assert_eq!(
+        stderr,
+        "rex init: failed: `pre-commit install` exited with exit status: 1; fix what it names, then run rex init again: Cowardly refusing to install hooks with core.hooksPath set\n\
+         error: rex init did not finish 1 step(s); each is named above\n"
     );
     assert!(installed(&repo, SKILL_MARKER).is_file());
     assert!(repo.path().join("AGENTS.md").is_file());
@@ -182,24 +179,31 @@ fn a_failed_pre_commit_install_exits_with_its_error_text_after_the_rest_is_done(
 }
 
 #[test]
-fn a_git_file_instead_of_a_git_directory_skips_the_hooks_and_never_runs_pre_commit() {
+fn a_git_file_instead_of_a_git_directory_is_refused_and_never_runs_pre_commit() {
     let repo = repo();
     let git = repo.path().join(".git");
     fs::remove_dir_all(&git).expect("remove .git directory");
     fs::write(&git, "gitdir: ../elsewhere\n").expect("write .git file");
-    let ran = repo.path().join("pre-commit-ran");
+    let ran = repo.bin().join("pre-commit-ran");
     // The marker is made with a shell redirect, not `touch`: PATH holds only the
     // stand-in tools, so an external command would not be found.
     repo.write_tool("pre-commit", &format!(": > '{}'", ran.display()));
 
-    let printed = rex_init_ok(&repo, &[]);
+    let output = rex_init(&repo, &[]);
 
+    assert_eq!(output.status.code(), Some(1), "rex init must fail");
     assert!(!ran.exists(), "pre-commit must not run when .git is a file");
-    assert!(
-        printed
-            .stdout
-            .ends_with("rex init: pre-commit hooks skipped (no .git directory)\n"),
-        "got: {}",
-        printed.stdout
+    let cwd = repo.path().canonicalize().expect("canonical repo path");
+    assert_eq!(
+        String::from_utf8(output.stderr).expect("utf8 stderr"),
+        format!(
+            "error: {} is a linked worktree, a submodule or a --separate-git-dir checkout (.git is a file); run rex init in the main checkout of the repository\n",
+            cwd.display()
+        )
     );
+    let names: Vec<_> = fs::read_dir(repo.path())
+        .expect("read repo folder")
+        .map(|entry| entry.expect("read repo entry").file_name())
+        .collect();
+    assert_eq!(names, [".git"], "nothing is written");
 }

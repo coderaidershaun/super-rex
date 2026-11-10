@@ -3,14 +3,14 @@
 //! misconfigured files, and unformatted or warning-laden Rust are caught
 //! before they are committed or pushed.
 
-use std::env;
-use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::io::{self, ErrorKind, Write};
 use std::path::Path;
 use std::process::Command;
 
+use super::error::{InitError, ToolStderr};
 use super::file_change::{ProjectWrite, contains_marker, write_unless_linked};
+use super::on_path::is_missing;
 use crate::error::RexError;
 
 pub(super) const CONFIG_FILENAME: &str = ".pre-commit-config.yaml";
@@ -94,9 +94,6 @@ pub(super) enum ConfigWrite {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum HookInstall {
     Installed,
-    /// `cwd/.git` is not a directory: not a repository, or a worktree or
-    /// submodule whose `.git` is a file.
-    SkippedNoGitDir,
     /// `pre-commit` is not on PATH.
     SkippedNoTool,
 }
@@ -131,51 +128,13 @@ pub(super) fn warn_about_missing_hook_tools() {
     }
 }
 
-/// True when no file named `tool` is in any of the directories on PATH.
-///
-/// The tool itself is not started. Starting a program to learn that it is
-/// installed runs whatever the name points at, on every install, and PATH
-/// holds the answer already.
-fn is_missing(tool: &str) -> bool {
-    let Some(path) = env::var_os("PATH") else {
-        return true;
-    };
-
-    let pathext = env::var_os("PATHEXT");
-    let names = executable_names(tool, pathext.as_deref());
-    !env::split_paths(&path).any(|dir| names.iter().any(|name| dir.join(name).is_file()))
-}
-
-/// The file names that count as `tool` being installed. Windows runs
-/// `tool.exe` for `tool` and names the endings it tries in PATHEXT. No other
-/// system sets that variable.
-fn executable_names(tool: &str, pathext: Option<&OsStr>) -> Vec<OsString> {
-    let mut names = vec![OsString::from(tool)];
-    let Some(pathext) = pathext else {
-        return names;
-    };
-
-    names.extend(
-        pathext
-            .to_string_lossy()
-            .split(';')
-            .filter(|ending| !ending.is_empty())
-            .map(|ending| OsString::from(format!("{tool}{ending}"))),
-    );
-    names
-}
-
 /// Run the pre-commit tool so the config becomes real git hooks. Its own
 /// output is not shown; a non-zero exit is an error.
 ///
 /// # Errors
-/// [`RexError::Io`] if the tool cannot be started for a reason other than
-/// being missing, and [`RexError::PreCommitInstall`] if it exits non-zero.
-pub(super) fn install_hooks(cwd: &Path) -> Result<HookInstall, RexError> {
-    if !cwd.join(".git").is_dir() {
-        return Ok(HookInstall::SkippedNoGitDir);
-    }
-
+/// [`InitError::Rex`] holding [`RexError::Io`] if the tool cannot be started
+/// for a reason other than being missing, and [`InitError::PreCommitInstall`] if it exits non-zero.
+pub(super) fn install_hooks(cwd: &Path) -> Result<HookInstall, InitError> {
     let mut parts = INSTALL_COMMAND.split(' ');
     let tool = parts.next().unwrap_or_default();
     let output = match Command::new(tool).args(parts).current_dir(cwd).output() {
@@ -187,35 +146,16 @@ pub(super) fn install_hooks(cwd: &Path) -> Result<HookInstall, RexError> {
             return Err(RexError::Io {
                 path: cwd.to_path_buf(),
                 source,
-            });
+            }
+            .into());
         }
     };
 
     if !output.status.success() {
-        return Err(RexError::PreCommitInstall {
+        return Err(InitError::PreCommitInstall {
             status: output.status,
-            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+            stderr: ToolStderr::from_output(&output.stderr),
         });
     }
     Ok(HookInstall::Installed)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn only_the_plain_name_is_looked_for_where_pathext_is_not_set() {
-        assert_eq!(executable_names("trivy", None), [OsString::from("trivy")]);
-    }
-
-    #[test]
-    fn the_endings_windows_runs_are_looked_for_as_well_as_the_plain_name() {
-        let names = executable_names("trivy", Some(OsStr::new(".COM;.EXE;")));
-
-        assert_eq!(
-            names,
-            ["trivy", "trivy.COM", "trivy.EXE"].map(OsString::from)
-        );
-    }
 }

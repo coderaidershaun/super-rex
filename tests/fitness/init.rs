@@ -37,12 +37,28 @@ fn bundle_contains_only_skill_and_agent_paths() {
     );
 
     let agents = grid_agent_paths();
+    for agent in &agents {
+        assert!(
+            entries.iter().any(|(path, _)| path == agent),
+            "embedded bundle must contain every grid agent, missing {}",
+            agent.display()
+        );
+    }
+
     for (path, _) in &entries {
         assert!(
             path.starts_with("skills") || agents.contains(path),
             "every embedded path must start with skills/ or be a grid agent, found {}",
             path.display()
         );
+
+        if path.starts_with("skills") {
+            assert!(
+                path.components().count() >= 3,
+                "every skill file must sit in a skill folder (skills/<skill>/<file>), found {}",
+                path.display()
+            );
+        }
 
         let hidden = path.components().find(|component| {
             matches!(component, Component::Normal(name) if name.to_string_lossy().starts_with('.'))

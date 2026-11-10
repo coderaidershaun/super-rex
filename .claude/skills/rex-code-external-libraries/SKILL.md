@@ -1,6 +1,14 @@
 ---
 name: rex-code-external-libraries
-description: This skill gives hard rules for adding external Rust crates. Find the latest stable version on crates.io before you add a crate. Activate only the features that the code needs (default-features = false). When a crate is unfamiliar, make sure of its syntax on docs.rs. Use it when you add or upgrade a crate, choose features, or pick a version. Use it also when the user asks "add crate X", "what version", "which features", "is this crate idiomatic".
+description: >
+  This skill gives hard rules for adding external Rust crates. Find the latest
+  stable version on crates.io before you add a crate. Activate only the features
+  that the code needs (default-features = false). When a crate is unfamiliar,
+  make sure of its syntax on docs.rs.
+when_to_use: >
+  Use when you add or upgrade a crate, choose features, or pick a version. Use
+  it also when the user asks "add crate X", "what version", "which features",
+  "is this crate idiomatic".
 disable-model-invocation: false
 user-invocable: true
 ---
