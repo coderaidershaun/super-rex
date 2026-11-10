@@ -373,9 +373,9 @@ fn plain_total(total: TokenTotal) -> String {
     }
 }
 
-/// Only a final total is known not to grow, so an unknown one counts as provisional.
+/// Only a provisional total may still grow. An unknown total is not provisional, as in `rex jobs --json`.
 fn is_provisional(total: TokenTotal) -> bool {
-    !matches!(total, TokenTotal::Final(_))
+    matches!(total, TokenTotal::Provisional(_))
 }
 
 fn or_none(value: Option<&str>) -> &str {
