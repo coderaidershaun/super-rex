@@ -69,7 +69,8 @@ impl StorePaths {
         StorePaths::discover_from(rex_store, project_dir, cwd)
     }
 
-    /// The first store whose `rex.db` exists: `rex_store` (a `.rex` folder), else the main checkout of `project_dir`, else that of `cwd`. A set
+    /// The first store whose `rex.db` exists: `rex_store` (a `.rex` folder),
+    /// else the main checkout of `project_dir`, else that of `cwd`. A set
     /// `rex_store` never falls through to the others. An empty value counts as
     /// unset, and a relative one is relative to `cwd`.
     ///
