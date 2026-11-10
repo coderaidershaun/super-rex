@@ -2,7 +2,9 @@
 
 use std::fs;
 
-use super::support::{SKILL_MARKER, installed, repo, rex_init, rex_init_ok};
+use super::support::{
+    ONE_STEP_FAILED, SKILL_MARKER, installed, repo, rex_init_failed, rex_init_ok,
+};
 
 #[test]
 fn fresh_install_creates_the_store_and_the_library_folder() {
@@ -31,10 +33,9 @@ fn a_store_that_cannot_be_set_up_is_reported_after_the_rest_is_done() {
     )
     .expect("write .rex file");
 
-    let output = rex_init(&repo, &[]);
+    let printed = rex_init_failed(&repo, &[]);
 
-    assert_eq!(output.status.code(), Some(1), "rex init must fail");
-    let stdout = String::from_utf8(output.stdout).expect("utf8 stdout");
+    let stdout = printed.stdout;
     assert!(!stdout.contains(".rex/"), "got: {stdout}");
     assert!(stdout.contains("rex init: pre-commit hooks installed\n"));
     assert!(installed(&repo, SKILL_MARKER).is_file());
@@ -45,14 +46,14 @@ fn a_store_that_cannot_be_set_up_is_reported_after_the_rest_is_done() {
         .expect("canonical repo path")
         .join(".rex")
         .join("orchestrators");
-    let stderr = String::from_utf8(output.stderr).expect("utf8 stderr");
+    let stderr = printed.stderr;
     let failed = format!(
         "rex init: failed: the store could not be set up: cannot use {}: ",
         orchestrators.display()
     );
     assert!(stderr.starts_with(&failed), "got: {stderr}");
     assert!(
-        stderr.ends_with("\nerror: rex init did not finish 1 step(s); each is named above\n"),
+        stderr.ends_with(&format!("\n{ONE_STEP_FAILED}")),
         "got: {stderr}"
     );
     assert_eq!(stderr.lines().count(), 2, "got: {stderr}");

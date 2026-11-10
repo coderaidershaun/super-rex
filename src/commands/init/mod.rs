@@ -1,9 +1,5 @@
-//! `rex init`: checks that the repo and Claude Code are fit for SuperRex,
-//! then merges the sandbox settings and the sub-agent hooks into the repo's
-//! Claude Code settings, installs the embedded skills and agents, points agents
-//! at the `rex codebase` and `rex smells` commands through `AGENTS.md`, keeps
-//! the installed files out of git through `.gitignore`, sets up the store,
-//! and sets up pre-commit hooks (gitleaks, trivy, cargo fmt, clippy, test).
+//! `rex init`: sets a repo up for SuperRex in one run that is safe to repeat
+//! and never replaces what the person has, with the sandbox settings first.
 
 mod agents_md;
 mod error;
@@ -121,6 +117,26 @@ fn install(
         Err(source) => failures.push(InitError::Store { source }),
     }
 
+    set_up_pre_commit(cwd, &mut to_commit, failures)?;
+
+    if let Some(line) = commit_line(&to_commit) {
+        print_line_to_stdout(&line)?;
+    }
+    Ok(())
+}
+
+/// Write the pre-commit config when it is absent, adding it to `to_commit`,
+/// and turn it into git hooks when `pre-commit` is on PATH. A failed
+/// `pre-commit install` is added to `failures`.
+///
+/// # Errors
+/// The failure that stops the install: the config cannot be read or
+/// written, `pre-commit` cannot be started, or a line cannot be printed.
+fn set_up_pre_commit(
+    cwd: &Path,
+    to_commit: &mut Vec<&str>,
+    failures: &mut Vec<InitError>,
+) -> Result<(), InitError> {
     let config = pre_commit::CONFIG_FILENAME;
     match pre_commit::ensure_config(cwd)? {
         ConfigWrite::Created => {
@@ -144,10 +160,6 @@ fn install(
         ))?,
         Err(failed @ InitError::PreCommitInstall { .. }) => failures.push(failed),
         Err(stop) => return Err(stop),
-    }
-
-    if let Some(line) = commit_line(&to_commit) {
-        print_line_to_stdout(&line)?;
     }
     Ok(())
 }

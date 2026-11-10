@@ -8,8 +8,8 @@ use std::path::Path;
 use serde_json::{Value, json};
 
 use super::support::{
-    Repo, SKILL_MARKER, installed, repo, rex_init_command, rex_init_failed, rex_init_ok,
-    settings_path,
+    ONE_STEP_FAILED, Repo, SKILL_MARKER, installed, repo, rex_init_command, rex_init_failed,
+    rex_init_ok, settings_path,
 };
 
 /// The `hooks` value of the hook contract, word for word.
@@ -176,12 +176,13 @@ fn a_settings_file_the_user_has_keeps_its_keys() {
         "got: {}",
         printed.stdout
     );
-    assert!(
-        printed.stderr.starts_with(
-            "rex init: failed: kept sandbox.enabled = false in .claude/settings.local.json"
-        ),
-        "got: {}",
-        printed.stderr
+    // A safety setting the person turned off is theirs to keep, but the run
+    // fails, so that the weaker setting cannot go unseen.
+    assert_eq!(
+        printed.stderr,
+        format!(
+            "rex init: failed: kept sandbox.enabled = false in .claude/settings.local.json, so the protection it gives is off; set it to true to turn it on\n{ONE_STEP_FAILED}"
+        )
     );
     let expected = EXAMPLE_AFTER
         .replace(&quoted("/Users/me/code"), &quoted(&parent_of(&example)))
@@ -225,27 +226,45 @@ fn a_settings_file_the_user_has_keeps_its_keys() {
         "sandbox": safety["sandbox"]
     });
     assert_eq!(read_settings(&with_hooks), as_written(&expected));
-}
 
-// A safety setting the person turned off is theirs to keep, but the run must
-// fail, so that the weaker setting cannot go unseen.
-#[test]
-fn a_weaker_safety_setting_is_kept_and_the_run_fails() {
-    let repo = repo();
-    write_settings(&repo, "{\"sandbox\": {\"enabled\": false}}\n");
+    // A value that is not an object where the block on outside writes goes
+    // keeps that block from being set, which is as weak as turning it off.
+    let blocked = repo();
+    write_settings(&blocked, "{\"permissions\": \"none\"}\n");
 
-    let printed = rex_init_failed(&repo, &[]);
+    let printed = rex_init_failed(&blocked, &["--no-hooks"]);
 
+    let permissions = safety_settings(&blocked)["permissions"].to_string();
     assert_eq!(
         printed.stderr,
-        "rex init: failed: kept sandbox.enabled = false in .claude/settings.local.json, so the protection it gives is off; set it to true to turn it on\n\
-         error: rex init did not finish 1 step(s); each is named above\n"
+        format!(
+            "rex init: failed: kept permissions = \"none\" in .claude/settings.local.json, so the protection it gives is off; set it to {permissions} to turn it on\n{ONE_STEP_FAILED}"
+        )
     );
-    let written: Value = serde_json::from_str(&read_settings(&repo)).expect("settings JSON");
-    assert_eq!(written["sandbox"]["enabled"], json!(false));
-    assert_eq!(written["sandbox"]["failIfUnavailable"], json!(true));
+    let written: Value = serde_json::from_str(&read_settings(&blocked)).expect("settings JSON");
+    assert_eq!(written["permissions"], json!("none"));
+
+    // A file that already holds everything is not written at all, so it
+    // keeps the person's own format.
+    let complete = repo();
+    let mut everything = safety_settings(&complete);
+    everything["hooks"] = serde_json::from_str(HOOKS).expect("hooks JSON");
+    let one_line = everything.to_string();
+    write_settings(&complete, &one_line);
+
+    let printed = rex_init_ok(&complete, &[]);
+
+    assert!(
+        !printed.stdout.contains("settings.local.json"),
+        "got: {}",
+        printed.stdout
+    );
+    assert_eq!(read_settings(&complete), one_line);
 }
 
+// SMELL: this file is over 400 lines. The test below, of files rex cannot
+// merge, is the clean place to split it into a file of its own.
+//
 // A file rex cannot read as a JSON object is still the person's: writing it
 // would lose whatever they meant it to hold.
 #[test]
@@ -266,9 +285,9 @@ fn a_settings_file_that_is_not_json_is_left_alone_and_the_run_fails() {
         "got: {}",
         printed.stdout
     );
-    let failed = "rex init: failed: .claude/settings.local.json is not valid JSON and was left as it is, so the settings SuperRex needs are not set; correct it, then run rex init again: ";
+    let failed_not_json = "rex init: failed: .claude/settings.local.json is not valid JSON and was left as it is, so the settings SuperRex needs are not set; correct it, then run rex init again: ";
     assert!(
-        printed.stderr.starts_with(failed),
+        printed.stderr.starts_with(failed_not_json),
         "got: {}",
         printed.stderr
     );
@@ -278,9 +297,7 @@ fn a_settings_file_that_is_not_json_is_left_alone_and_the_run_fails() {
         printed.stderr
     );
     assert!(
-        printed
-            .stderr
-            .ends_with("\nerror: rex init did not finish 1 step(s); each is named above\n"),
+        printed.stderr.ends_with(&format!("\n{ONE_STEP_FAILED}")),
         "got: {}",
         printed.stderr
     );
@@ -294,8 +311,49 @@ fn a_settings_file_that_is_not_json_is_left_alone_and_the_run_fails() {
     assert_eq!(read_settings(&not_an_object), "[]\n");
     assert_eq!(
         printed.stderr,
-        "rex init: failed: .claude/settings.local.json is not a JSON object and was left as it is, so the settings SuperRex needs are not set; make its top level an object, then run rex init again\n\
-         error: rex init did not finish 1 step(s); each is named above\n"
+        format!(
+            "rex init: failed: .claude/settings.local.json is not a JSON object and was left as it is, so the settings SuperRex needs are not set; make its top level an object, then run rex init again\n{ONE_STEP_FAILED}"
+        )
+    );
+
+    // A folder where the file goes cannot be read, on any system and for
+    // any user.
+    let unreadable = repo();
+    fs::create_dir_all(settings_path(&unreadable)).expect("create folder at the settings path");
+
+    let printed = rex_init_failed(&unreadable, &[]);
+
+    assert!(settings_path(&unreadable).is_dir());
+    let failed = "rex init: failed: .claude/settings.local.json could not be read and was left as it is, so the settings SuperRex needs are not set; make it readable, then run rex init again: ";
+    assert!(
+        printed.stderr.starts_with(failed) && printed.stderr.ends_with(ONE_STEP_FAILED),
+        "got: {}",
+        printed.stderr
+    );
+
+    // A file rex cannot read later on stops the install at that step, and
+    // the failure kept before it is still named, first.
+    let stopped = repo();
+    write_settings(&stopped, broken);
+    fs::create_dir(stopped.path().join("AGENTS.md")).expect("create folder at AGENTS.md");
+
+    let printed = rex_init_failed(&stopped, &[]);
+
+    assert!(
+        !stopped.path().join(".gitignore").exists(),
+        "the install stops"
+    );
+    let lines: Vec<&str> = printed.stderr.lines().collect();
+    assert_eq!(lines.len(), 3, "got: {}", printed.stderr);
+    assert!(lines[0].starts_with(failed_not_json), "got: {}", lines[0]);
+    assert!(
+        lines[1].starts_with("rex init: failed: io error at ./AGENTS.md: "),
+        "got: {}",
+        lines[1]
+    );
+    assert_eq!(
+        lines[2],
+        "error: rex init did not finish 2 step(s); each is named above"
     );
 }
 
@@ -356,67 +414,4 @@ fn a_parent_that_holds_home_is_not_added() {
             json!(true)
         );
     }
-}
-
-/// The end of every run that failed one step.
-const ONE_STEP_FAILED: &str = "error: rex init did not finish 1 step(s); each is named above\n";
-
-// A write through a link lands on whatever it points at, a file the person
-// never named in this repo, so rex reads through a link but never writes
-// through one.
-#[cfg(unix)]
-#[test]
-fn a_linked_settings_file_is_not_written_through() {
-    use std::os::unix::fs::symlink;
-
-    let elsewhere = tempfile::tempdir().expect("create tempdir");
-    let linked_file = repo();
-    let outside = elsewhere.path().join("shared-settings.json");
-    fs::write(&outside, "{}\n").expect("write outside file");
-    fs::create_dir_all(linked_file.path().join(".claude")).expect("create .claude");
-    symlink(&outside, settings_path(&linked_file)).expect("link settings");
-
-    let printed = rex_init_failed(&linked_file, &[]);
-
-    assert_eq!(
-        fs::read_to_string(&outside).expect("read outside file"),
-        "{}\n"
-    );
-    assert!(installed(&linked_file, SKILL_MARKER).is_file());
-    assert_eq!(
-        printed.stderr,
-        format!(
-            "rex init: failed: .claude/settings.local.json is a symbolic link, and rex does not write through one, so the settings SuperRex needs are not set; add them to .claude/settings.local.json where the link points, then run rex init again\n{ONE_STEP_FAILED}"
-        )
-    );
-
-    let linked_folder = repo();
-    let outside = elsewhere.path().join("shared-claude");
-    fs::create_dir_all(&outside).expect("create outside folder");
-    symlink(&outside, linked_folder.path().join(".claude")).expect("link .claude");
-
-    let printed = rex_init_failed(&linked_folder, &[]);
-
-    assert!(!outside.join("settings.local.json").exists());
-    assert_eq!(
-        printed.stderr,
-        format!(
-            "rex init: failed: .claude is a symbolic link, and rex does not write through one, so the settings SuperRex needs are not set; add them to .claude/settings.local.json where the link points, then run rex init again\n{ONE_STEP_FAILED}"
-        )
-    );
-
-    // A person who merged the settings by hand where the link points is not
-    // stopped.
-    let merged_by_hand = repo();
-    rex_init_ok(&merged_by_hand, &[]);
-    let outside = elsewhere.path().join("merged-by-hand.json");
-    fs::copy(settings_path(&merged_by_hand), &outside).expect("copy settings");
-    fs::remove_file(settings_path(&merged_by_hand)).expect("remove settings");
-    symlink(&outside, settings_path(&merged_by_hand)).expect("link settings");
-    let before = fs::read(&outside).expect("read outside file");
-
-    let printed = rex_init_ok(&merged_by_hand, &[]);
-
-    assert_eq!(printed.stderr, "");
-    assert_eq!(fs::read(&outside).expect("read outside file"), before);
 }

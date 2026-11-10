@@ -118,14 +118,10 @@ fn gh_missing_is_a_warning() {
     let repo = repo();
     repo.remove_tool("gh");
 
-    let output = rex_init(&repo, &[]);
+    let printed = rex_init_ok(&repo, &[]);
 
-    assert!(
-        output.status.success(),
-        "a missing gh must not stop rex init"
-    );
     assert_eq!(
-        String::from_utf8(output.stderr).expect("utf8 stderr"),
+        printed.stderr,
         "rex init: warning: gh not found on PATH. Delivery works without pull requests until it is installed.\n"
     );
     assert!(installed(&repo, SKILL_MARKER).is_file());

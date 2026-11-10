@@ -18,6 +18,12 @@ pub const AGENT_MARKER: &str = "agents/model-medium-effort-medium.md";
 /// of the stand-in tools.
 pub const PRE_COMMIT_ARGS: &str = "pre-commit-args";
 
+/// The last line of a first run, which changes all three project files.
+pub const COMMIT_ALL: &str = "rex init: commit AGENTS.md, .gitignore and .pre-commit-config.yaml (git add + git commit); a job works in the main checkout only when it is clean\n";
+
+/// The end of every run that failed one step.
+pub const ONE_STEP_FAILED: &str = "error: rex init did not finish 1 step(s); each is named above\n";
+
 /// A fresh Git repo plus a folder of stand-in tools that is the only folder
 /// on PATH when `rex init` runs. The tools live outside the repo, so they
 /// never show up in its tree.

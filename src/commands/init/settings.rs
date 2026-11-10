@@ -306,12 +306,19 @@ fn warn_hooks_left_in() {
     );
 }
 
-/// A sandbox setting, or the block on writes outside the repo. A weaker
-/// value for one of these turns a protection off.
+/// The one safety setting outside `sandbox`.
+const BLOCK_WRITES_KEY: &str = "permissions.blockWritesOutsideWorkingDirectories";
+
+/// A sandbox setting, the block on writes outside the repo, or a key above
+/// that block. A weaker value for one of these turns a protection off. A
+/// value of another type above the block, such as `permissions` as a text,
+/// keeps rex from setting the block at all, which is as weak.
 fn is_safety_key(key: &str) -> bool {
-    key == "sandbox"
-        || key.starts_with("sandbox.")
-        || key == "permissions.blockWritesOutsideWorkingDirectories"
+    let is_in_sandbox = key == "sandbox" || key.starts_with("sandbox.");
+    let is_at_or_above_block = BLOCK_WRITES_KEY
+        .strip_prefix(key)
+        .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'));
+    is_in_sandbox || is_at_or_above_block
 }
 
 /// Tell the person about a value of theirs that rex kept. A weaker safety
@@ -342,9 +349,9 @@ fn write_settings(path: &Path, settings: &Value) -> Result<(), RexError> {
             source,
         })?;
     }
-    let mut text =
-        serde_json::to_string_pretty(settings).expect("a JSON value with text keys always prints");
-    text.push('\n');
+    // `{:#}` prints a JSON value as pretty JSON with a 2-space indent. A
+    // value printed into a string cannot fail, so there is no error to handle.
+    let text = format!("{settings:#}\n");
     fs::write(path, text).map_err(|source| RexError::Io {
         path: path.to_path_buf(),
         source,

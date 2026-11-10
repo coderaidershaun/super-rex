@@ -1,13 +1,13 @@
-//! A first and a second `rex init`: the bundle files, `AGENTS.md`,
-//! `.gitignore` and the pre-commit config each land once and are never
-//! replaced, and the person is told which of them to commit.
+//! A first and a second `rex init`: the bundle files, `AGENTS.md` and
+//! `.gitignore` each land once and are never replaced, and the person is
+//! told which project files to commit.
 
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::support::{
-    PRE_COMMIT_ARGS, SKILL_MARKER, bundle_file, bundle_file_count, installed, repo, rex_init_ok,
+    COMMIT_ALL, SKILL_MARKER, bundle_file, bundle_file_count, installed, repo, rex_init_ok,
 };
 
 /// The block `rex init` adds to `.gitignore`, byte for byte.
@@ -15,9 +15,6 @@ const SUPERREX_IGNORE_BLOCK: &[u8] = b"# rex:ignore superrex\n.claude/skills/\n.
 
 /// The first line of a first run.
 const SETTINGS_CREATED: &str = "rex init: .claude/settings.local.json created\n";
-
-/// The last line of a first run, which changes all three project files.
-const COMMIT_ALL: &str = "rex init: commit AGENTS.md, .gitignore and .pre-commit-config.yaml (git add + git commit); a job works in the main checkout only when it is clean\n";
 
 #[test]
 fn fresh_install_writes_every_bundle_file() {
@@ -224,94 +221,6 @@ fn the_commit_line_names_only_the_files_this_run_changed() {
         "got: {}",
         printed.stdout
     );
-}
-
-#[test]
-fn pre_commit_config_is_created_and_hooks_installed() {
-    let repo = repo();
-
-    let printed = rex_init_ok(&repo, &[]);
-
-    assert!(printed.stdout.ends_with(&format!(
-        "rex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}"
-    )));
-
-    let config = fs::read_to_string(repo.path().join(".pre-commit-config.yaml"))
-        .expect("read .pre-commit-config.yaml");
-    assert!(config.starts_with("# rex:pre-commit\n"));
-    assert!(
-        config
-            .contains("# Installed by `rex init`. Needs pre-commit, gitleaks and trivy on PATH.\n")
-    );
-    assert!(config.contains("--skip-dirs target,node_modules,.claude,.rex --skip-files"));
-    assert!(config.contains("repo: https://github.com/pre-commit/pre-commit-hooks\n"));
-    assert!(config.contains("entry: gitleaks git --pre-commit --staged --redact --verbose\n"));
-    assert!(
-        config.contains("--scanners secret,vuln,misconfig --severity HIGH,CRITICAL --exit-code 1")
-    );
-    assert!(config.contains("stages: [pre-push]\n"));
-
-    let args = fs::read_to_string(repo.bin().join(PRE_COMMIT_ARGS))
-        .expect("fake pre-commit must have run");
-    assert_eq!(
-        args,
-        "install --install-hooks --hook-type pre-commit --hook-type pre-push"
-    );
-}
-
-#[test]
-fn existing_pre_commit_config_is_never_touched() {
-    let repo = repo();
-    fs::write(
-        repo.path().join(".pre-commit-config.yaml"),
-        b"sentinel content",
-    )
-    .expect("write sentinel config");
-
-    let printed = rex_init_ok(&repo, &[]);
-
-    assert!(
-        printed
-            .stdout
-            .contains("rex init: .pre-commit-config.yaml skipped (already exists)\n")
-    );
-
-    let config = fs::read(repo.path().join(".pre-commit-config.yaml")).expect("read config");
-    assert_eq!(config, b"sentinel content");
-}
-
-#[test]
-fn second_run_leaves_pre_commit_config_alone() {
-    let repo = repo();
-
-    rex_init_ok(&repo, &[]);
-
-    let before = fs::read(repo.path().join(".pre-commit-config.yaml")).expect("read config");
-
-    let second = rex_init_ok(&repo, &[]);
-
-    assert!(!second.stdout.contains(".pre-commit-config.yaml"));
-    assert!(
-        second
-            .stdout
-            .ends_with("rex init: pre-commit hooks installed\n")
-    );
-
-    let after = fs::read(repo.path().join(".pre-commit-config.yaml")).expect("read config");
-    assert_eq!(before, after);
-}
-
-#[test]
-fn missing_pre_commit_tool_prints_the_install_command() {
-    let repo = repo();
-    repo.remove_tool("pre-commit");
-
-    let printed = rex_init_ok(&repo, &[]);
-
-    assert!(printed.stdout.ends_with(&format!(
-        "rex init: pre-commit hooks skipped (pre-commit not found; install it, then run: pre-commit install --install-hooks --hook-type pre-commit --hook-type pre-push)\n{COMMIT_ALL}"
-    )));
-    assert!(repo.path().join(".pre-commit-config.yaml").is_file());
 }
 
 // An older rex-skills install has files that this version does not ship and

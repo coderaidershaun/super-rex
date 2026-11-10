@@ -6,7 +6,10 @@ use std::os::unix::fs::symlink;
 
 use tempfile::tempdir;
 
-use super::support::{AGENT_MARKER, SKILL_MARKER, installed, repo, rex_init_ok};
+use super::support::{
+    AGENT_MARKER, ONE_STEP_FAILED, SKILL_MARKER, installed, repo, rex_init_failed, rex_init_ok,
+    settings_path,
+};
 
 // This test must never be deleted. A project can hold a symlink where a skill
 // file belongs. Writing through it would replace a file outside the project,
@@ -20,6 +23,12 @@ fn force_never_overwrites_the_file_a_symlink_points_at() {
     let outside = elsewhere.path().join("outside.txt");
     fs::write(&outside, "precious").expect("write outside file");
     symlink(&outside, &marker).expect("create symlink");
+    // An agent file is guarded the same way.
+    let agent = installed(&repo, AGENT_MARKER);
+    fs::create_dir_all(agent.parent().expect("agent has a folder")).expect("create agents folder");
+    let outside_agent = elsewhere.path().join("outside-agent.md");
+    fs::write(&outside_agent, "precious").expect("write outside agent file");
+    symlink(&outside_agent, &agent).expect("create agent symlink");
 
     let stderr = rex_init_ok(&repo, &["--force"]).stderr;
 
@@ -38,24 +47,8 @@ fn force_never_overwrites_the_file_a_symlink_points_at() {
         stderr.contains("rex init: skipped ./.claude/skills/rex-skill-language/SKILL.md: it or a folder above it is a symbolic link"),
         "got: {stderr}"
     );
-}
-
-// An agent file is guarded like a skill file: a linked one would send the
-// write to whatever it points at.
-#[test]
-fn force_never_overwrites_the_file_a_linked_agent_points_at() {
-    let repo = repo();
-    let elsewhere = tempdir().expect("create tempdir");
-    let agent = installed(&repo, AGENT_MARKER);
-    fs::create_dir_all(agent.parent().expect("agent has a folder")).expect("create agents folder");
-    let outside = elsewhere.path().join("outside-agent.md");
-    fs::write(&outside, "precious").expect("write outside file");
-    symlink(&outside, &agent).expect("create symlink");
-
-    let stderr = rex_init_ok(&repo, &["--force"]).stderr;
-
     assert_eq!(
-        fs::read_to_string(&outside).expect("read outside file"),
+        fs::read_to_string(&outside_agent).expect("read outside agent file"),
         "precious"
     );
     assert!(
@@ -126,20 +119,28 @@ fn a_symlink_to_an_up_to_date_file_is_left_alone_without_a_warning() {
     assert!(!stderr.contains("symbolic link"), "got: {stderr}");
 }
 
-// People link a shared skills folder into a project on purpose. That folder is
-// followed, and everything in it is installed as usual.
+// People link a shared skills or agents folder into a project on purpose.
+// That folder is followed, and everything in it is installed as usual.
 #[test]
 fn a_symlinked_skills_folder_still_receives_the_install() {
     let repo = repo();
     let elsewhere = tempdir().expect("create tempdir");
     let shared = elsewhere.path().join("shared");
+    let shared_agents = elsewhere.path().join("shared-agents");
     fs::create_dir_all(repo.path().join(".claude")).expect("create .claude");
     fs::create_dir_all(&shared).expect("create shared dir");
+    fs::create_dir_all(&shared_agents).expect("create shared agents dir");
     symlink(&shared, repo.path().join(".claude/skills")).expect("create folder symlink");
+    symlink(&shared_agents, repo.path().join(".claude/agents")).expect("create agents symlink");
 
     let stderr = rex_init_ok(&repo, &[]).stderr;
 
     assert!(shared.join("rex-skill-language/SKILL.md").is_file());
+    assert!(
+        shared_agents
+            .join("model-medium-effort-medium.md")
+            .is_file()
+    );
     assert!(!stderr.contains("symbolic link"), "got: {stderr}");
 }
 
@@ -199,4 +200,61 @@ fn a_dangling_link_never_creates_a_project_file_outside_the_project() {
         installed(&repo, SKILL_MARKER).is_file(),
         "the skill bundle must still be installed"
     );
+}
+
+// A write through a link lands on whatever it points at, a file the person
+// never named in this repo, so rex reads through a link but never writes
+// through one.
+#[test]
+fn a_linked_settings_file_is_not_written_through() {
+    let elsewhere = tempdir().expect("create tempdir");
+    let linked_file = repo();
+    let outside = elsewhere.path().join("shared-settings.json");
+    fs::write(&outside, "{}\n").expect("write outside file");
+    fs::create_dir_all(linked_file.path().join(".claude")).expect("create .claude");
+    symlink(&outside, settings_path(&linked_file)).expect("link settings");
+
+    let printed = rex_init_failed(&linked_file, &[]);
+
+    assert_eq!(
+        fs::read_to_string(&outside).expect("read outside file"),
+        "{}\n"
+    );
+    assert!(installed(&linked_file, SKILL_MARKER).is_file());
+    assert_eq!(
+        printed.stderr,
+        format!(
+            "rex init: failed: .claude/settings.local.json is a symbolic link, and rex does not write through one, so the settings SuperRex needs are not set; add them to .claude/settings.local.json where the link points, then run rex init again\n{ONE_STEP_FAILED}"
+        )
+    );
+
+    let linked_folder = repo();
+    let outside = elsewhere.path().join("shared-claude");
+    fs::create_dir_all(&outside).expect("create outside folder");
+    symlink(&outside, linked_folder.path().join(".claude")).expect("link .claude");
+
+    let printed = rex_init_failed(&linked_folder, &[]);
+
+    assert!(!outside.join("settings.local.json").exists());
+    assert_eq!(
+        printed.stderr,
+        format!(
+            "rex init: failed: .claude is a symbolic link, and rex does not write through one, so the settings SuperRex needs are not set; add them to .claude/settings.local.json where the link points, then run rex init again\n{ONE_STEP_FAILED}"
+        )
+    );
+
+    // A person who merged the settings by hand where the link points is not
+    // stopped.
+    let merged_by_hand = repo();
+    rex_init_ok(&merged_by_hand, &[]);
+    let outside = elsewhere.path().join("merged-by-hand.json");
+    fs::copy(settings_path(&merged_by_hand), &outside).expect("copy settings");
+    fs::remove_file(settings_path(&merged_by_hand)).expect("remove settings");
+    symlink(&outside, settings_path(&merged_by_hand)).expect("link settings");
+    let before = fs::read(&outside).expect("read outside file");
+
+    let printed = rex_init_ok(&merged_by_hand, &[]);
+
+    assert_eq!(printed.stderr, "");
+    assert_eq!(fs::read(&outside).expect("read outside file"), before);
 }

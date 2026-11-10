@@ -9,8 +9,9 @@ use std::{env, fmt};
 use super::error::InitError;
 use super::on_path::{first_on_path, is_missing};
 
-/// The oldest Claude Code that SuperRex was tested against. An older one may
-/// ignore safety settings it does not know, and then run without them.
+/// The oldest Claude Code that SuperRex was tested against. An older one
+/// might ignore a safety setting it does not know and run without it; this
+/// is inferred, not tested.
 const MIN_CLAUDE_CODE_VERSION: ClaudeVersion = ClaudeVersion {
     major: 2,
     minor: 1,
