@@ -1,14 +1,4 @@
-Status: DRAFT
-
-Reviewed at gate G1 and settled by Lane 1, 10 November 2026. Not frozen yet. It waits for:
-
-| Part | Waits for | Until then |
-|---|---|---|
-| `status` = `running`, `runs`, `tokens` (5.2); the run tree (6); the intake in `rex jobs` and `rex watch` | C5 | `runs` and `tokens` are zeros, `status` is never `running`, the tree is empty, the intake does nothing |
-| Column names, the time form, `JobNotFound`, `NoOutcomeYet`, `AnalysisDue`, `status::apply`, the guard of the `experience_recalled` write, who indexes orchestrators | C1 | as in this file |
-| The job ID form, the transition table with the feedback rows, `rex job close` as the fix | C2 | as in this file |
-
-Every other part is stable.
+Status: FROZEN (10 November 2026, by Lane 1 at gate G1, on top of commit 136720b). A change to this file goes through Lane 1.
 
 # C9. Experience and views: `rex recall`, `rex feedback`, `rex jobs`, `rex watch`
 
@@ -36,17 +26,8 @@ Lane 7 builds the commands. C9 is frozen only after the review of the contract d
 - **Time.** Every timestamp is printed as stored: ISO 8601 UTC with milliseconds, `YYYY-MM-DDTHH:MM:SS.sssZ`, such as `2026-11-10T09:14:03.512Z` (C1 5.1).
 - **Output style.** Plain output is `key=value` lines in a fixed order. The first line is the answer (Task A 5 style). Where a record repeats (`rex recall`), each repeated line starts with a word that names its kind. If C11 defines a list style, C9 adopts it.
 - **Values.** In a `key=value` pair the value has no spaces. The last key of a line (`text=`, `description=`) takes the rest of the line.
-- **Intake.** `rex jobs` and `rex watch` first take in the hook event log (C5 intake). Taking the same line twice changes nothing. `rex recall` and `rex feedback` need no intake: they read job records and feedback, not runs.
-- **What each command writes.** `rex recall` writes one job field and `updated_at` (section 3.6). `rex feedback` writes one feedback row and the job status (section 4). `rex jobs` and `rex watch` write nothing except the intake.
-- **What C9 waits for.** C9 is not frozen yet. These parts wait for other contracts:
-
-| Part | Waits for | Until then |
-|---|---|---|
-| `status` = `running`, `runs`, `tokens` (5.2); the run tree (6); the intake in `rex jobs` and `rex watch` | C5 | `runs` and `tokens` are zeros, `status` is never `running`, the tree is empty, the intake does nothing |
-| Column names, the time form, `JobNotFound`, `NoOutcomeYet`, `AnalysisDue`, `status::apply`, the guard of the `experience_recalled` write, who indexes orchestrators | C1 | as in this file |
-| The job ID form, the transition table with the feedback rows, `rex job close` as the fix | C2 | as in this file |
-
-Every other part is stable.
+- **Intake.** `rex jobs` and `rex watch` call `capture::job_runs` for each job they show; it takes in the log itself (C5 1). `rex recall` and `rex feedback` call nothing of capture.
+- **What each command writes.** `rex recall` writes the orchestrator index (section 3.4), one job field and `updated_at` (section 3.6). `rex feedback` writes one feedback row and the job status (section 4). `rex jobs` and `rex watch` write nothing except what `job_runs` stores (C5).
 
 ## 3. `rex recall <job>`
 
@@ -82,13 +63,16 @@ The score of another job against the asked job is the number of these four field
 | `accepted` | Jobs whose status is `accepted`. |
 | `missed` | Jobs whose status is `rejected`, `analyzed` or `failed`. The rest of `runs` are jobs in any other stored status. |
 | `version` | The orchestrator version on the newest job of the group (by `created_at`). |
+| `path` | The absolute path of that orchestrator's `SKILL.md`: `<store>/orchestrators/<name>/SKILL.md`, from `StorePaths.orchestrators` (C1 7.1). |
 
 - Order: `best_match` high to low, then `runs` high to low. At most 3 groups (`MAX_ORCHESTRATORS=3`).
 - Status is the stored status. (`running` is never stored, so it never appears here.)
 
 ### 3.4 Unused orchestrators
 
-Every orchestrator name in the index (C1 5.8) that no job names: one line per name, with the version and description of its newest index row. An empty description prints `description=` empty (JSON `""`). Order: name, A to Z. No limit. Recall reads the store only. It never reads skill or orchestrator files.
+`rex recall` calls `orchestrator::index_all` (C1 7.4) inside its write (section 3.6), before it reads the index, with Lane 6's header reader (C7 2) as the `describe` function. So an orchestrator that a person added, or that `rex init` seeded, shows at the first recall.
+
+Unused: each orchestrator name in the index (C1 5.8) whose newest index version no job names. One line per name, with the version, the `path` (as in section 3.3) and the description of its newest index row. An `unused` line already marks an orchestrator whose newest version never ran, so it needs no other mark. An empty description prints `description=` empty (JSON `""`). Order: name, A to Z. No limit.
 
 ### 3.5 Output
 
@@ -101,9 +85,9 @@ Plain output, in this order. All count lines print even when the count is 0.
 | 3 | `lessons=<n>` |
 | next n | `lesson feedback=<id> job=<id> score=<n> status=<status of that job> causes=<a,b or none> text=<rest of line>` |
 | next | `orchestrators=<n>` |
-| next n | `orchestrator name=<name> version=<v> best_match=<n> runs=<n> accepted=<n> missed=<n>` |
+| next n | `orchestrator name=<name> version=<v> best_match=<n> runs=<n> accepted=<n> missed=<n> path=<rest of line>` |
 | next | `unused=<n>` |
-| next n | `unused name=<name> version=<v> description=<rest of line>` |
+| next n | `unused name=<name> version=<v> path=<path> description=<rest of line>` (`path` ends at the text ` description=`, so a path may hold a space) |
 
 - `causes` are the feedback row's causes, sorted, comma-joined. `none` if the row has no cause.
 - Newlines inside a lesson or description become one space each.
@@ -118,9 +102,9 @@ lessons=2
 lesson feedback=3 job=0g30kh5n1w score=4 status=analyzed causes=missing-context text=Ask which config formats must stay readable before changing a config file.
 lesson feedback=2 job=0g1d7s3j9x score=2 status=analyzed causes=agent-model-effort,agent-skill text=Give the verifier a model one tier higher when no test can check the result.
 orchestrators=1
-orchestrator name=lead-and-verifier version=1 best_match=4 runs=3 accepted=2 missed=1
+orchestrator name=lead-and-verifier version=1 best_match=4 runs=3 accepted=2 missed=1 path=/home/ana/code/widgets/.rex/orchestrators/lead-and-verifier/SKILL.md
 unused=1
-unused name=research-panel version=1 description=Three readers compare options and one writer recommends.
+unused name=research-panel version=1 path=/home/ana/code/widgets/.rex/orchestrators/research-panel/SKILL.md description=Three readers compare options and one writer recommends.
 ```
 
 With no similar jobs and an empty index:
@@ -138,7 +122,7 @@ unused=0
 
 ```
 $ rex recall 0g4imj3x8d --json
-{"schema":1,"job":"0g4imj3x8d","recorded":true,"lessons":[{"feedback":3,"job":"0g30kh5n1w","score":4,"status":"analyzed","causes":["missing-context"],"text":"Ask which config formats must stay readable before changing a config file."},{"feedback":2,"job":"0g1d7s3j9x","score":2,"status":"analyzed","causes":["agent-model-effort","agent-skill"],"text":"Give the verifier a model one tier higher when no test can check the result."}],"orchestrators":[{"name":"lead-and-verifier","version":1,"best_match":4,"runs":3,"accepted":2,"missed":1}],"unused":[{"name":"research-panel","version":1,"description":"Three readers compare options and one writer recommends."}]}
+{"schema":1,"job":"0g4imj3x8d","recorded":true,"lessons":[{"feedback":3,"job":"0g30kh5n1w","score":4,"status":"analyzed","causes":["missing-context"],"text":"Ask which config formats must stay readable before changing a config file."},{"feedback":2,"job":"0g1d7s3j9x","score":2,"status":"analyzed","causes":["agent-model-effort","agent-skill"],"text":"Give the verifier a model one tier higher when no test can check the result."}],"orchestrators":[{"name":"lead-and-verifier","version":1,"best_match":4,"runs":3,"accepted":2,"missed":1,"path":"/home/ana/code/widgets/.rex/orchestrators/lead-and-verifier/SKILL.md"}],"unused":[{"name":"research-panel","version":1,"path":"/home/ana/code/widgets/.rex/orchestrators/research-panel/SKILL.md","description":"Three readers compare options and one writer recommends."}]}
 ```
 
 | Field | Type | Meaning | When empty |
@@ -153,8 +137,8 @@ $ rex recall 0g4imj3x8d --json
 | `lessons[].status` | string | Stored status of that job. | never |
 | `lessons[].causes` | array of string | The row's causes. | `[]` |
 | `lessons[].text` | string | The lesson, as stored (newlines kept in JSON). | never |
-| `orchestrators` | array | One object per group. Keys as in section 3.3. | `[]` |
-| `unused` | array | One object per unused orchestrator: `name`, `version`, `description`. | `[]` |
+| `orchestrators` | array | One object per group. Keys as in section 3.3, `path` included. | `[]` |
+| `unused` | array | One object per unused orchestrator: `name`, `version`, `path`, `description`. | `[]` |
 
 In JSON, `causes` for a row with no cause is `[]` (plain output prints `none`). A description that is empty is `""`. Exit code 0 in every case above.
 
@@ -162,7 +146,7 @@ In JSON, `causes` for a row with no cause is `[]` (plain output prints `none`). 
 
 `rex recall` writes the job field `experience_recalled` (the "experience recalled" of the job record). Rex records facts itself, so the builder does not pass recalled text on.
 
-- It writes only while the job's stored status is `created`. In any other status it writes nothing and prints `recorded=no`. The final guard is C1's: it is settled with C1.
+- It writes only while the job's stored status is `created`. In any other status it writes nothing and prints `recorded=no`. The guard is `status = 'created'` in the one UPDATE of C1 5.12.
 - A second call replaces the first. The last call wins.
 - There is no flag to turn the write off. A repeat call does no harm.
 - The field holds the exact JSON document that `rex recall <job> --json` prints for that call (section 3.5), one line. It holds no time: no caller reads one, and rex writes no time from Rust (C1 5.1). The same UPDATE sets `updated_at`.
@@ -179,6 +163,7 @@ rex feedback <job> --verdict accepted|rejected
                [--by <who>]
                [--cause <value>]...
                [--lesson <text> | --lesson-file <path>]
+               [--evidence <text>]
                [--changed-skill <name>]...
                [--changed-orchestrator <name>]...
 ```
@@ -192,10 +177,11 @@ rex feedback <job> --verdict accepted|rejected
 | `--by` | no | Who gave the feedback. Default `user`. |
 | `--cause` | no, repeatable | A root cause. Values below. |
 | `--lesson` / `--lesson-file` | no, at most one | The lesson, at most 600 characters. |
+| `--evidence` | no | Free text: what in the record shows each cause. |
 | `--changed-skill` | no, repeatable | A skill the analysis changed. |
 | `--changed-orchestrator` | no, repeatable | An orchestrator the analysis changed. |
 
-`--changed-skill` takes the folder name of the skill under `.claude/skills/` (such as `orchestration-selection`). `--changed-orchestrator` takes the folder name under `.rex/orchestrators/`; a lead skill inside it counts as that orchestrator. Names, not paths. The evidence for each cause goes in the skill's report, not in the store. With `--verdict accepted` the call carries no cause and no lesson; what the user said goes in `--said`.
+`--changed-skill` takes the folder name of the skill under `.claude/skills/` (such as `orchestration-selection`). `--changed-orchestrator` takes the folder name under `.rex/orchestrators/`; a lead skill inside it counts as that orchestrator. Names, not paths. `--evidence` is stored in `feedback.evidence` (C1 5.10). `rex recall` prints it nowhere; `rex job show --json` prints it (C2 6.3). With `--verdict accepted` the call carries no cause, no lesson and no evidence; what the user said goes in `--said`.
 
 Causes. More than one can apply. The parser rejects any other value and lists the allowed ones.
 
@@ -215,7 +201,7 @@ Rules 2, 4, 5, 6 and 7 are clap rules (argument groups and `requires`), so they 
 
 | # | Rule | Error text |
 |---|---|---|
-| 1 | `--verdict accepted` with `--cause`, `--lesson` or `--changed-*` | `error: --cause, --lesson, --changed-skill and --changed-orchestrator need --verdict rejected` |
+| 1 | `--verdict accepted` with `--cause`, `--lesson`, `--evidence` or `--changed-*` | `error: --cause, --lesson, --evidence, --changed-skill and --changed-orchestrator need --verdict rejected` |
 | 2 | Not exactly one of `--said`, `--said-file` | `error: give exactly one of --said and --said-file` |
 | 3 | Said text empty | `error: what the user said must not be empty` |
 | 4 | Both `--lesson` and `--lesson-file` | `error: give at most one of --lesson and --lesson-file` |
@@ -233,7 +219,7 @@ The limit is 600 characters because `rex recall` puts lessons into the builder's
 
 ### 4.3 Status table
 
-This is the status change `rex feedback` needs from Lane 2's transition function. That function is the single place for the rules; this table is what C9 requires of it. "Cause and lesson" means at least one cause and a lesson.
+This is the status change `rex feedback` gets from Lane 2's transition function, `status::apply` (C1 7.3). That function is the single place for the rules; this table is the feedback rows of C2 7. "Cause and lesson" means at least one cause and a lesson.
 
 | Status before | Verdict | Cause and lesson | Status after | Result |
 |---|---|---|---|---|
@@ -246,15 +232,14 @@ This is the status change `rex feedback` needs from Lane 2's transition function
 | `rejected` | `rejected` | yes | `analyzed` | feedback row added |
 | `rejected` | `rejected` | no | unchanged | error "analysis due" |
 | `rejected` | `accepted` | none | unchanged | error "analysis due" |
-| `analyzed` | any | any | `analyzed` | feedback row added; status stays |
-| `failed`, `cancelled` | any | any | unchanged | feedback row added; status stays |
-| `created`, `planned`, `blocked` | any | any | unchanged | refused: `NoOutcomeYet` |
+| `blocked`, `failed`, `cancelled`, `analyzed` | any | any | unchanged | Status stays. The feedback row is added. No transition row. |
+| `created`, `planned` | any | any | unchanged | Refused (`NoOutcomeYet`): `job <job> is <status> and has no final outcome yet; close it with rex job close first` (C1 8). No feedback row. |
 
 Notes:
 
 - Rejecting with a known cause is one call. Two calls also work: first `rejected` with no cause (the job stays `rejected`), then `rejected` with cause and lesson (the job becomes `analyzed`).
 - For `failed` and `cancelled` the status already says the work did not finish, so feedback adds a row and leaves the status.
-- A call that leaves the status writes no `job_transition` row (C1 5.5). `blocked` is not an outcome: a later `rex job close` moves it on (C2 7) and would overtake a verdict given before it, so close the job first.
+- A call that leaves the status writes no `job_transition` row (C1 5.5). Feedback on a `blocked` job leaves the status, so a later `rex job close` cannot overtake it, and a lesson about a blocked job is worth keeping.
 - A job whose shown status is `running` has the stored status `planned`. It is refused.
 - State errors exit 1. They print one line that names the job, its stored status and the fix.
 - The status and the new row are written in ONE transaction. If one fails, neither is written.
@@ -305,10 +290,10 @@ A job with no outcome yet. Standard error, exit 1:
 
 ```
 $ rex feedback 0g4imj3x8d --verdict accepted --said "Looks good."
-error: job 0g4imj3x8d is planned and has no outcome yet; close it with rex job close first
+error: job 0g4imj3x8d is planned and has no final outcome yet; close it with rex job close first
 ```
 
-For `created` or `blocked` the text is the same with that status in place of `planned`.
+For `created` the text is the same with `created` in place of `planned`. A `blocked` job takes feedback (section 4.3).
 
 ### 4.6 Finding the job (5.18, step 2)
 
@@ -340,11 +325,11 @@ rex jobs [--json] [--search <text>]... [--since <date>] [--until <date>]
 
 ### 5.2 JSON output
 
-`--json` prints one line. Two jobs, the second one running and with a request longer than 200 characters:
+`--json` prints one line. Three jobs: the first one running and with a request longer than 200 characters; the third one created, with no runs and no main-session figure, so its `tokens` is `null`:
 
 ```
 $ rex jobs --json
-{"schema":1,"jobs":[{"id":"0g4imj3x8d","created_at":"2026-11-10T11:30:19.208Z","updated_at":"2026-11-10T11:41:52.637Z","status":"running","stored_status":"planned","request":"Make the order validator reject a quantity of zero with a typed error, and add a test for it. Also check every other caller of the validator in the order router and the batch importer, and make sure n","request_truncated":true,"asked_by":"human","class_version":1,"work_type":"fix","size":"medium","consequence":"high","languages":["go","rust"],"orchestrator":{"name":"lead-and-verifier","version":1},"merge_agreed":false,"builder_model":null,"builder_effort":null,"deliveries":[],"runs":{"open":2,"finished":1,"unconfirmed":0},"tokens":{"input":9412,"output":2877,"cache_read":151630,"cache_creation":12044,"provisional":true},"has_feedback":false},{"id":"0g4cbf7k2q","created_at":"2026-11-10T09:14:03.512Z","updated_at":"2026-11-10T10:02:47.091Z","status":"delivered","stored_status":"delivered","request":"Add a --json flag to rex status so scripts can read its output.","request_truncated":false,"asked_by":"human","class_version":1,"work_type":"feature","size":"small","consequence":"low","languages":["rust"],"orchestrator":{"name":"solo-engineer","version":2},"merge_agreed":true,"builder_model":"claude-opus-5-5","builder_effort":"high","deliveries":[{"repo":"/home/ana/code/widgets","branch":"feature/rex-status-json-0g4cbf7k2q","pr":"https://github.com/acme/widgets/pull/12","outcome":"merged"}],"runs":{"open":0,"finished":2,"unconfirmed":0},"tokens":{"input":18234,"output":6120,"cache_read":402113,"cache_creation":21580,"provisional":false},"has_feedback":false}]}
+{"schema":1,"jobs":[{"id":"0g4imj3x8d","created_at":"2026-11-10T11:30:19.208Z","updated_at":"2026-11-10T11:41:52.637Z","status":"running","stored_status":"planned","request":"Make the order validator reject a quantity of zero with a typed error, and add a test for it. Also check every other caller of the validator in the order router and the batch importer, and make sure n","request_truncated":true,"asked_by":"human","class_version":1,"work_type":"fix","size":"medium","consequence":"high","languages":["go","rust"],"orchestrator":{"name":"lead-and-verifier","version":1},"merge_agreed":false,"builder_model":null,"builder_effort":null,"deliveries":[],"runs":{"open":2,"finished":1,"unconfirmed":0},"tokens":{"input":9412,"output":2877,"cache_read":151630,"cache_creation":12044,"provisional":true},"incomplete":false,"has_feedback":false},{"id":"0g4cbf7k2q","created_at":"2026-11-10T09:14:03.512Z","updated_at":"2026-11-10T10:02:47.091Z","status":"delivered","stored_status":"delivered","request":"Add a --json flag to rex status so scripts can read its output.","request_truncated":false,"asked_by":"human","class_version":1,"work_type":"feature","size":"small","consequence":"low","languages":["rust"],"orchestrator":{"name":"solo-engineer","version":2},"merge_agreed":true,"builder_model":"claude-opus-5-5","builder_effort":"high","deliveries":[{"repo":"/home/ana/code/widgets","branch":"feature/rex-status-json-0g4cbf7k2q","pr":"https://github.com/acme/widgets/pull/12","outcome":"merged"}],"runs":{"open":0,"finished":2,"unconfirmed":0},"tokens":{"input":18234,"output":6120,"cache_read":402113,"cache_creation":21580,"provisional":false},"incomplete":false,"has_feedback":false},{"id":"0g30ph2w6c","created_at":"2026-11-09T16:05:41.330Z","updated_at":"2026-11-09T16:05:41.330Z","status":"created","stored_status":"created","request":"Compare three ways to cache the price feed and recommend one.","request_truncated":false,"asked_by":"human","class_version":1,"work_type":"research","size":"small","consequence":"low","languages":["none"],"orchestrator":null,"merge_agreed":false,"builder_model":"claude-opus-5-5","builder_effort":"low","deliveries":[],"runs":{"open":0,"finished":0,"unconfirmed":0},"tokens":null,"incomplete":false,"has_feedback":false}]}
 ```
 
 With no match:
@@ -376,8 +361,9 @@ Fields of one job object, in this order:
 | `builder_model` | string | Model ID that ran the builder. | when unknown |
 | `builder_effort` | string | Effort that ran the builder. | when unknown |
 | `deliveries` | array | One object per repository, in the order first recorded: `repo` (absolute path of that repository's main checkout, C1 5.7), `branch` (string or null), `pr` (string or null), `outcome` (`merged`, `pr-open`, `kept-local`, `blocked`). | `[]` when none |
-| `runs` | object | `{"open": n, "finished": n, "unconfirmed": n}`: counts of sub-agent runs (C5). Until C5 merges: zeros, and `status` is never `running`. | never (zeros) |
-| `tokens` | object | `{"input": n, "output": n, "cache_read": n, "cache_creation": n, "provisional": bool}` summed over the job's runs (C5). `provisional` is true if any run of the job has a provisional total, false if none has or the job has no runs. Whether the main session's tokens count is C5's (OP12). | never (zeros) |
+| `runs` | object | `{"open": n, "finished": n, "unconfirmed": n}`: counts of sub-agent runs, `JobRuns.open`, `finished` and `unconfirmed` (C5 1). | never (zeros) |
+| `tokens` | object or null | `JobRuns.tokens` (C5): every run plus the main session (OP12), `{"input", "output", "cache_read", "cache_creation", "provisional"}`, or `null` when unknown. | when unknown |
+| `incomplete` | bool | `JobRuns.incomplete` (C5 7) | never |
 | `has_feedback` | bool | The job has at least one feedback row. | never |
 
 The full record of one job is `rex job show` (C2). `rex jobs` shows only this summary.
@@ -407,7 +393,7 @@ Source: 5.13. A live view for people. No skill calls it.
 rex watch
 ```
 
-- It draws a ratatui screen over the store. It takes in the event log every `REFRESH_SECONDS` (2) seconds. It changes nothing else.
+- It draws a ratatui screen over the store. Every `REFRESH_SECONDS` (2) seconds it calls `capture::job_runs` for each job it shows, which takes in the event log (C5 1). It writes nothing except what `job_runs` stores.
 - Data comes from the same summary builder as `rex jobs`, plus the run tree from C5. So the screen and `rex jobs --json` agree: the same set of jobs, and for each job the same status, run counts and token totals.
 - Keys:
 
@@ -418,7 +404,7 @@ rex watch
 | `q` | Quit. |
 
 - Job list: the columns of the plain output of `rex jobs` (section 5.3), and the run counts and token totals.
-- Run tree: sub-agent runs, nested by parent. Each shows its role, model, effort, duration and tokens. Durations come from C5 timestamps.
+- Run tree: sub-agent runs, nested by parent. Each shows its role, model, effort, duration and tokens. Durations come from C5 timestamps. A run whose parent is not a run of the job is shown at the top level (C5 4). A provisional total has `~` after it. When `tag_job` is set, the tag job is shown beside the run.
 - If standard output is not a terminal, nothing is drawn and the command exits 1:
 
 ```
@@ -428,24 +414,23 @@ error: rex watch needs a terminal; run it without redirecting its output
 
 ## 7. What C9 needs from other lanes
 
-Store boundary: Lane 2 provides `Store::open`, `Store::write` and `status::apply(tx, job, Event::Feedback { verdict, has_analysis })` (C1 7.2, 7.3). `rex feedback` takes `previous` and `status` for its output from the returned `Change`. There is no `set_status`. The shown status is `Shown::of(stored, open_runs)`, with the open-run count from C5. Lane 7 owns its SELECTs, the INSERT of the feedback row and the UPDATE of `experience_recalled`, which also sets `updated_at`. No other lane writes those.
+Store boundary: Lane 2 provides `Store::open`, `Store::write` and `status::apply(tx, job, Event::Feedback { verdict, has_analysis })` (C1 7.2, 7.3). `rex feedback` takes `previous` and `status` for its output from the returned `Change`. There is no `set_status`. The shown status is `Shown::of(stored, open_runs)`, with `open_runs` = `JobRuns.open`. `rex jobs` and `rex watch` call `capture::job_runs(store: &mut Store, job: &JobId, now: SystemTime) -> Result<JobRuns, CaptureError>` (C5 1) for each job they show. Lane 7 owns its SELECTs, the INSERT of the feedback row and the UPDATE of `experience_recalled`, which also sets `updated_at`. No other lane writes those.
 
 | Need | Who | Why |
 |---|---|---|
-| Job columns: `id`, `created_at`, `updated_at`, `status`, `request`, `asked_by`, `class_version`, `work_type`, `size`, `consequence`, `languages` (sorted, comma-joined text), orchestrator name and version, `merge_agreed`, builder model and effort | Lane 2 (C1) | `rex recall` scores on four of them; `rex jobs` and `rex watch` print them all. |
-| Job column `experience_recalled TEXT NULL` | Lane 2 (C1) | `rex recall` writes it (OP8). |
-| Delivery rows per job: repo, branch, pr, outcome | Lane 2 (C1) | `deliveries` in `rex jobs`. |
-| Feedback table: `id` (integer), `job_id`, `given_by`, `said`, `verdict`, `causes` (text), `lesson`, `changed_skills`, `changed_orchestrators`, `created_at` | Lane 2 (C1) | `rex feedback` inserts a row; `rex recall` reads lessons. The lesson is a column of the feedback row. |
-| Orchestrator index with `name`, `version`, `description` (empty allowed) | Lane 2 (C1) | Recall lists unused orchestrators and prints their description. |
-| A transition function that gives the new status for the table in section 4.3 and returns the errors "analysis due" and "no outcome yet" | Lane 2 (C2) | `rex feedback` has no status rules of its own. |
-| One function that gives the shown status (the `running` rule), used by `rex job show`, `rex jobs` and `rex watch` | Lane 2 (C2) with Lane 3 (C5) | The three agree on status. |
-| Job IDs hold no `-`; slugs hold no `--` | Lane 2 (C2); Lane 10 (C12) | The skill reads the ID from a branch name: it cuts the name at the first `--`, then takes the text after the last `-` (section 4.6). |
-| Timestamps are ISO 8601 UTC text | Lane 2 (C1) | Dates compare as text; there is no date library. |
-| Store API: open from any folder (including a worktree); a write transaction that waits for other writers | Lane 2 (C1) | Both writing commands run from any worktree. |
-| Intake entry point | Lane 3 (C5) | The first step of `rex jobs` and `rex watch`. |
-| Per job: run counts (open, finished, unconfirmed) and token totals with the provisional flag | Lane 3 (C5) | `runs` and `tokens` in `rex jobs`. |
-| The run tree: parent links, role, model, effort, start and end times, tokens per run | Lane 3 (C5) | `rex watch`. It is the same source as `rex job show`. |
-| Final exit codes, error style and a way to add an error without editing `src/error.rs`; the `ratatui` dependency (with serde_json and rusqlite shared) | Lane 1 (C11) | Section 2. |
+| Job columns | Lane 2 (C1 5.4) | `rex recall` scores on four of them; `rex jobs` and `rex watch` print them all. |
+| Job column `experience_recalled` and its one guarded UPDATE | Lane 2 (C1 5.4, 5.12) | `rex recall` writes it (OP8). |
+| Delivery rows per job | Lane 2 (C1 5.7) | `deliveries` in `rex jobs`. |
+| Feedback table, `evidence` included | Lane 2 (C1 5.10) | `rex feedback` inserts a row; `rex recall` reads lessons. The lesson is a column of the feedback row. |
+| Orchestrator index and `orchestrator::index_all` | Lane 2 (C1 5.8, 7.4); Lane 6, the header reader (C7 2) | Recall indexes the library, lists unused orchestrators and prints their description. |
+| `status::apply` with `Event::Feedback`, and the errors `AnalysisDue` and `NoOutcomeYet` | Lane 2 (C1 7.3, 8; the table is C2 7) | `rex feedback` has no status rules of its own. |
+| `Shown::of(stored, open_runs)` (C1 7.3), with `open_runs` = `JobRuns.open` (C5) | Lane 2 (C1 7.3) with Lane 3 (C5 1) | `rex job show`, `rex jobs` and `rex watch` agree on status. |
+| Job IDs hold no `-`; slugs hold no `--` | Lane 2 (C2 2.4); Lane 10 (C12 5) | The skill reads the ID from a branch name (section 4.6). |
+| The one time form | Lane 2 (C1 5.1) | Dates compare as text; there is no date library. |
+| `StorePaths::discover`, `Store::open`, `Store::write` | Lane 2 (C1 3.2, 7.2) | Both writing commands run from any worktree. |
+| `capture::job_runs` and `JobRuns`: run counts, `tokens`, `incomplete`, the runs | Lane 3 (C5 1, 7, 8) | `runs`, `tokens` and `incomplete` in `rex jobs`; the job list of `rex watch`. |
+| The run tree | Lane 3 (C5 1, 4) | `rex watch`. It is the same source as `rex job show`. |
+| Exit codes, error style, how to add an error, the `ratatui` dependency | Lane 1 (C11 4 to 7) | Section 2. |
 
 ## 8. Open points
 
@@ -453,7 +438,7 @@ Store boundary: Lane 2 provides `Store::open`, `Store::write` and `status::apply
 
 Question: where is "the experience recalled" written on the job (5.9), and how does `rex-feedback` search the store by request text and date (5.18, step 2)?
 
-Answer, part 1 (where it is written): `rex recall` writes it itself, into the job column `experience_recalled` (section 3.6), in one UPDATE that also sets `updated_at`, and only while the job is `created`. The final guard is C1's: it is settled with C1. The value is the exact one-line JSON document that `rex recall <job> --json` prints for that call. It holds no time. Reason: rex records facts itself (5.9). If the builder passed the text to `rex job plan`, the agent could paraphrase it or leave it out. A separate lesson table was rejected: a lesson is one column of a feedback row. This needs the column in C1.
+Answer, part 1 (where it is written): `rex recall` writes it itself, into the job column `experience_recalled` (section 3.6), in one UPDATE that also sets `updated_at`, and only while the job is `created` (the guard `status = 'created'`, C1 5.12). The value is the exact one-line JSON document that `rex recall <job> --json` prints for that call. It holds no time. Reason: rex records facts itself (5.9). If the builder passed the text to `rex job plan`, the agent could paraphrase it or leave it out. A separate lesson table was rejected: a lesson is one column of a feedback row. The column is C1 5.4.
 
 Answer, part 2 (how the feedback skill searches): `rex jobs --json` with `--search`, `--since` and `--until` (section 5). Reason: `rex-feedback` already reads `rex jobs --json` and needs no new command. `--search <text>` is a literal substring of the full request text, ASCII case ignored, and every term must match. `--since` and `--until` are UTC dates, compared with the first ten characters of `created_at`. A skill that already has the ID uses the commit `Rex-Job:` line or the branch name (section 4.6).
 
@@ -461,7 +446,7 @@ Answer, part 2 (how the feedback skill searches): `rex jobs --json` with `--sear
 
 Question: which states accept feedback, is `blocked` still able to go on, and are `rejected` and `analyzed` one call or two?
 
-Answer: the table in section 4.3. Feedback is accepted on `delivered`, `accepted`, `rejected`, `analyzed`, `failed` and `cancelled`. On `failed`, `cancelled` and `analyzed` it adds a feedback row and the status stays. It is refused with `NoOutcomeYet` on `created`, `planned` and `blocked`. A rejection with a cause and a lesson is one call; a bare `rejected` followed by an analysis is two calls. A `rejected` job needs a cause and lesson before it moves ("analysis due"). Reason: the status already says what is owed. A `rejected` job owes an analysis, so a bare verdict cannot move it. For `failed` and `cancelled` the status already says the work did not finish, so a row is added and the status stays. `blocked` is not an outcome: a later `rex job close` moves it on, and would overtake a verdict given before it. C2 section 7 holds the one transition table; it is settled with C2. The rest of OP10 (the other commands) is C2's.
+Answer: the table in section 4.3. Feedback is refused (`NoOutcomeYet`) only on `created` and `planned`. On `blocked`, `failed`, `cancelled` and `analyzed` the feedback row is added and the status stays (no transition row). On `delivered`, `accepted` and `rejected` it moves the status as section 4.3 says. A rejection with a cause and a lesson is one call; a bare `rejected` followed by an analysis is two calls. A `rejected` job needs a cause and lesson before it moves ("analysis due"). Reason: the status already says what is owed. A `rejected` job owes an analysis, so a bare verdict cannot move it. For `failed` and `cancelled` the status already says the work did not finish, so a row is added and the status stays. A call that leaves the status cannot be overtaken by a later close, and a lesson about a blocked job is worth keeping. C2 section 7 holds the one transition table. The rest of OP10 (the other commands) is C2's.
 
 ## 9. Assumptions
 
@@ -483,7 +468,7 @@ Where the sources and the plan leave a detail open, C9 chose as follows. Each ca
 | A12 | `rex jobs` plain output with no match prints nothing. |
 | A13 | In `rex watch`, Enter switches between the job list and the run tree; `q` quits from either. |
 | A14 | The texts of `outcome`, `asked_by`, `builder_model` and `builder_effort` come from C2 unchanged. |
-| A15 | Feedback with `accepted` cannot carry a cause, lesson or change list. |
+| A15 | Feedback with `accepted` cannot carry a cause, lesson, evidence or change list. |
 
 ## 10. Source map
 
