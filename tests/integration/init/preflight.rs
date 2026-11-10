@@ -4,23 +4,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use super::support::{Printed, Repo, SKILL_MARKER, installed, repo, rex_init};
-
-/// Run `rex init` in `repo` and check that it exited with 1.
-fn rex_init_failed(repo: &Repo) -> Printed {
-    let output = rex_init(repo, &[]);
-    let printed = Printed {
-        stdout: String::from_utf8(output.stdout).expect("utf8 stdout"),
-        stderr: String::from_utf8(output.stderr).expect("utf8 stderr"),
-    };
-    assert_eq!(
-        output.status.code(),
-        Some(1),
-        "rex init must exit with 1; stderr: {}",
-        printed.stderr
-    );
-    printed
-}
+use super::support::{Repo, SKILL_MARKER, installed, repo, rex_init, rex_init_failed, rex_init_ok};
 
 /// The names in the top folder of `repo`, sorted.
 fn names_in(repo: &Repo) -> Vec<String> {
@@ -48,7 +32,7 @@ fn outside_a_repo_root_nothing_is_written() {
     let repo = repo();
     fs::remove_dir_all(repo.path().join(".git")).expect("remove .git directory");
 
-    let printed = rex_init_failed(&repo);
+    let printed = rex_init_failed(&repo, &[]);
 
     assert_eq!(
         printed.stderr,
@@ -64,7 +48,7 @@ fn outside_a_repo_root_nothing_is_written() {
 /// Run `rex init` in `repo`, and check that it stopped with `error` as its one
 /// line on stderr and wrote nothing.
 fn assert_stopped_with(repo: &Repo, error: &str) {
-    let printed = rex_init_failed(repo);
+    let printed = rex_init_failed(repo, &[]);
 
     assert_eq!(printed.stderr, format!("error: {error}\n"));
     assert_eq!(printed.stdout, "");
@@ -91,7 +75,7 @@ fn claude_missing_or_too_old_stops_before_any_write() {
         )
         .expect("chmod");
     }
-    let printed = rex_init_failed(&not_runnable);
+    let printed = rex_init_failed(&not_runnable, &[]);
     let could_not_run = "error: could not run \"claude --version\"; check the Claude Code install, then run rex init again: ";
     assert!(
         printed.stderr.starts_with(could_not_run) && printed.stderr.lines().count() == 1,
@@ -134,17 +118,46 @@ fn gh_missing_is_a_warning() {
     let repo = repo();
     repo.remove_tool("gh");
 
-    let output = rex_init(&repo, &[]);
+    let printed = rex_init_ok(&repo, &[]);
 
-    assert!(
-        output.status.success(),
-        "a missing gh must not stop rex init"
-    );
     assert_eq!(
-        String::from_utf8(output.stderr).expect("utf8 stderr"),
+        printed.stderr,
         "rex init: warning: gh not found on PATH. Delivery works without pull requests until it is installed.\n"
     );
     assert!(installed(&repo, SKILL_MARKER).is_file());
+}
+
+#[test]
+fn a_rex_on_path_that_is_not_this_one_is_a_warning() {
+    let missing = repo();
+    missing.remove_tool("rex");
+
+    let printed = rex_init_ok(&missing, &[]);
+
+    assert_eq!(
+        printed.stderr,
+        "rex init: warning: rex not found on PATH. The hooks log nothing and the skills cannot run rex until it is.\n"
+    );
+    assert!(installed(&missing, SKILL_MARKER).is_file());
+
+    let other = repo();
+    other.remove_tool("rex");
+    other.write_tool("rex", "exit 0");
+
+    let printed = rex_init_ok(&other, &[]);
+
+    let this = PathBuf::from(env!("CARGO_BIN_EXE_rex"))
+        .canonicalize()
+        .expect("canonical rex path");
+    assert_eq!(
+        printed.stderr,
+        format!(
+            "rex init: warning: the rex on PATH is {}, not this one ({}). The hooks and the skills run that one; put this rex first on PATH.\n",
+            other.bin().join("rex").display(),
+            this.display()
+        )
+    );
+    assert!(installed(&other, SKILL_MARKER).is_file());
 }
 
 #[test]

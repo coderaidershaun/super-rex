@@ -2,9 +2,10 @@
 //! and the ones that differ when the caller asks for it.
 
 use std::fs;
-use std::io::{self, ErrorKind, Write};
+use std::io::{self, ErrorKind};
 use std::path::{Path, PathBuf};
 
+use super::print_line_to_stderr;
 use crate::bundle;
 use crate::commands::links::is_symlink;
 use crate::error::RexError;
@@ -39,8 +40,8 @@ pub(super) fn install_bundle(
 ) -> Result<InstallCounts, RexError> {
     let mut counts = InstallCounts::default();
 
-    for (rel_path, contents) in bundle::walk() {
-        let dest = target_root.join(&rel_path);
+    for (bundle_path, contents) in bundle::walk() {
+        let dest = target_root.join(&bundle_path);
 
         let existing = match fs::read(&dest) {
             Ok(existing) => Some(existing),
@@ -58,7 +59,7 @@ pub(super) fn install_bundle(
         } else if is_present && !is_forced {
             counts.skipped += 1;
             counts.differing += 1;
-        } else if is_linked(&dest, &root_folder(target_root, &rel_path)) {
+        } else if is_linked(&dest, &root_folder(target_root, &bundle_path)) {
             warn_linked(&dest);
             counts.skipped += 1;
         } else {
@@ -74,10 +75,10 @@ pub(super) fn install_bundle(
     Ok(counts)
 }
 
-/// The folder under `target_root` that holds the bundle file at `rel_path`:
+/// The folder under `target_root` that holds the bundle file at `bundle_path`:
 /// `skills` or `agents`, the first part of every bundle path.
-fn root_folder(target_root: &Path, rel_path: &Path) -> PathBuf {
-    let first_part = rel_path.iter().next().unwrap_or_default();
+fn root_folder(target_root: &Path, bundle_path: &Path) -> PathBuf {
+    let first_part = bundle_path.iter().next().unwrap_or_default();
     target_root.join(first_part)
 }
 
@@ -93,21 +94,14 @@ fn is_linked(dest: &Path, root_folder: &Path) -> bool {
 }
 
 fn warn_unreadable(path: &Path, source: &io::Error) {
-    // A warning that cannot be shown must not stop the install.
-    let _ = writeln!(
-        io::stderr().lock(),
-        "rex init: skipped {}: {source}",
-        path.display()
-    );
+    print_line_to_stderr(&format!("rex init: skipped {}: {source}", path.display()));
 }
 
 fn warn_linked(path: &Path) {
-    // A warning that cannot be shown must not stop the install.
-    let _ = writeln!(
-        io::stderr().lock(),
+    print_line_to_stderr(&format!(
         "rex init: skipped {}: it or a folder above it is a symbolic link",
         path.display()
-    );
+    ));
 }
 
 fn write_file(dest: &Path, contents: &[u8]) -> Result<(), RexError> {
@@ -123,8 +117,8 @@ fn write_file(dest: &Path, contents: &[u8]) -> Result<(), RexError> {
     })
 }
 
-/// The first line `rex init` prints. It names the files that differ only
-/// when there are some, so an up-to-date install reads as it always did.
+/// The one line `rex init` prints for the skills and agents. The note about
+/// files that differ is added only when some do.
 pub(super) fn summary(counts: InstallCounts) -> String {
     let InstallCounts {
         written,

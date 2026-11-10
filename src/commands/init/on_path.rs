@@ -3,6 +3,7 @@
 
 use std::env;
 use std::ffi::{OsStr, OsString};
+use std::path::PathBuf;
 
 /// True when no file named `tool` is in any of the directories on PATH.
 ///
@@ -10,13 +11,18 @@ use std::ffi::{OsStr, OsString};
 /// installed runs whatever the name points at, on every install, and PATH
 /// holds the answer already.
 pub(super) fn is_missing(tool: &str) -> bool {
-    let Some(path) = env::var_os("PATH") else {
-        return true;
-    };
+    first_on_path(tool).is_none()
+}
 
+/// The file a shell would start for `tool`: the first one found in the
+/// directories on PATH, in their order. The tool is not started.
+pub(super) fn first_on_path(tool: &str) -> Option<PathBuf> {
+    let path = env::var_os("PATH")?;
     let pathext = env::var_os("PATHEXT");
     let names = executable_names(tool, pathext.as_deref());
-    !env::split_paths(&path).any(|dir| names.iter().any(|name| dir.join(name).is_file()))
+    env::split_paths(&path)
+        .flat_map(|dir| names.iter().map(move |name| dir.join(name)))
+        .find(|candidate| candidate.is_file())
 }
 
 /// The file names that count as `tool` being installed. Windows runs

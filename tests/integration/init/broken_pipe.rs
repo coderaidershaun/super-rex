@@ -20,6 +20,7 @@ fn run_with_closed_stdout(args: &[&str], repo: &Repo) -> Output {
         .args(args)
         .current_dir(repo.path())
         .env("PATH", repo.bin())
+        .env_remove("REX_STORE")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

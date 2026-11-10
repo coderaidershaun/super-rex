@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::process::ExitStatus;
 
 use crate::error::{CommandError, RexError};
+use crate::store::StoreError;
 
 /// A failure of `rex init`. None of them is a wrong command line.
 #[derive(thiserror::Error, Debug)]
@@ -43,6 +44,49 @@ pub enum InitError {
         "the Claude Code sandbox cannot start on this machine: {missing} not found on PATH, so Claude Code will refuse to start in this repo until they are installed; install them with sudo apt-get install bubblewrap socat (Ubuntu or Debian), or sudo dnf install bubblewrap socat (Fedora)"
     )]
     SandboxToolsMissing { missing: String },
+
+    #[error(
+        "kept {key} = {found} in .claude/settings.local.json, so the protection it gives is off; set it to {needed} to turn it on"
+    )]
+    SafetySettingKept {
+        key: String,
+        found: String,
+        needed: String,
+    },
+
+    #[error(
+        ".claude/settings.local.json is not valid JSON and was left as it is, so the settings SuperRex needs are not set; correct it, then run rex init again"
+    )]
+    SettingsNotJson {
+        #[source]
+        source: serde_json::Error,
+    },
+
+    #[error(
+        ".claude/settings.local.json is not a JSON object and was left as it is, so the settings SuperRex needs are not set; make its top level an object, then run rex init again"
+    )]
+    SettingsNotObject,
+
+    #[error(
+        ".claude/settings.local.json could not be read and was left as it is, so the settings SuperRex needs are not set; make it readable, then run rex init again"
+    )]
+    SettingsUnreadable {
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error(
+        "{link} is a symbolic link, and rex does not write through one, so the settings SuperRex needs are not set; add them to .claude/settings.local.json where the link points, then run rex init again"
+    )]
+    SettingsLinked { link: &'static str },
+
+    /// No fix is given: the store's own error, shown after this text, says
+    /// what went wrong, and no one fix covers every case.
+    #[error("the store could not be set up")]
+    Store {
+        #[source]
+        source: StoreError,
+    },
 
     #[error(
         "`pre-commit install` exited with {status}; fix what it names, then run rex init again"
