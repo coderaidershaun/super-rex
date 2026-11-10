@@ -4,11 +4,12 @@ description: >
   This is stage 2 of the orchestration builder. It divides a request into
   tasks and finds what depends on what. It finds which tasks can run in
   parallel and which must run in sequence. Its output goes into the plan of the
-  job and into the briefs. Use this skill when `orchestration-builder` reaches
-  stage 2, or when an agent must find what work can run in parallel.
+  job and into the briefs.
+when_to_use: >
+  Use when `orchestration-builder` reaches stage 2, or when an agent must find
+  what work can run in parallel.
 disable-model-invocation: false
 user-invocable: true
-# PENDING(C7): form of the "use when" line and the header keys.
 ---
 
 # Work Breakdown
@@ -31,7 +32,7 @@ IF job has one outcome, THEN write one task and go to step 6.
 - Dependency: Task T2 uses output of task T1. Then T2 depends on T1.
 - Shared contract: Interface, data form, or decision that 2 or more tasks use.
 - Group: Tasks that can run at same time. Group can hold one task.
-- Integration owner: One agent that brings parallel work together and tests result.
+- Integration owner: One agent that combines parallel work and tests result.
 - Work breakdown: Tasks of job, their dependencies, and groups that run in parallel. Output of stage 2.
 - Brief: Prompt that sub-agent gets.
 - Orchestrator skill: Reusable file. It gives roles, order, skills of each role, and checks. Not about one task.
@@ -40,7 +41,7 @@ IF job has one outcome, THEN write one task and go to step 6.
 ## Input
 
 - [ ] From builder: request, classification, recall output, skill list.
-- [ ] Look at repo: `rex codebase --with-context`. It prints structure of codebase, with first comment of each module.
+- [ ] Look at repo: `rex codebase --with-context`. It prints tree of repo, with first sentence of opening comment of each source file.
 - [ ] Use lessons of recall output and skills of skill list where they apply.
 
 Work can be code, research, documents, or other work. Task can change no file.
@@ -72,7 +73,7 @@ IF 2 or more tasks use one shared contract, THEN make contract stable first, in 
   3. Tasks own different files and state.
 - [ ] Different file names do not prove that tasks are independent.
 - [ ] IF tasks change same files or state, THEN put them in sequence.
-- [ ] Each parallel task that writes in Git repo works in its own Git worktree. `rex-deliver` gives path + branch. `PENDING(C12)`: worktree hand-off for parallel writers.
+- [ ] Each parallel task that writes in Git repo works in its own Git worktree. Section "Parallel writers" of `rex-deliver` names branch + worktree. Agent that starts parallel writers reads it.
 
 Groups:
 

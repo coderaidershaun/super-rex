@@ -228,7 +228,7 @@ For a safety key (`sandbox` or any key below it, and `permissions.blockWritesOut
 
 Example, on stderr: `rex init: failed: kept sandbox.enabled = false in .claude/settings.local.json, so the protection it gives is off; set it to true to turn it on`, then the one line `error: rex init did not finish 1 step(s); each is named above`.
 
-Reason: a safety net that is weaker with no failure is the worse case (challenge 1, §5.11). The user's value is never replaced. Decided by the orchestrator at G1 as an assumption: the owner can reverse it to "warning, exit 0".
+Reason: a safety net that is weaker with no failure is the worse case (challenge 1, §5.11). The user's value is never replaced. Keys that are not safety keys stay a warning with exit 0. Decided by the orchestrator at G1 as an assumption. The owner can reverse this to a warning with exit 0.
 
 ### 4.4 A file rex cannot merge
 

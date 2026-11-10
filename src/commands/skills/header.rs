@@ -1,6 +1,9 @@
 //! Reads the header at the top of a `SKILL.md`. Listing and checking skills
 //! both read it here, so the two commands always see the same fields.
 
+use std::fs;
+use std::path::Path;
+
 use yaml_rust2::yaml::Hash;
 use yaml_rust2::{ScanError, Yaml, YamlLoader};
 
@@ -62,6 +65,14 @@ impl Header {
     pub(super) fn of_skill_file(text: &str) -> Option<Header> {
         let parts = Parts::split(text)?;
         Header::parse(&parts.header).ok()
+    }
+
+    /// The header of the `SKILL.md` at `path`, or `None` when the file cannot
+    /// be read or [`Header::of_skill_file`] finds no header. Bytes that are not
+    /// UTF-8 are read as U+FFFD.
+    pub(super) fn of_skill_path(path: &Path) -> Option<Header> {
+        let bytes = fs::read(path).ok()?;
+        Header::of_skill_file(&String::from_utf8_lossy(&bytes))
     }
 
     pub(super) fn value(&self, key: &str) -> Option<&Yaml> {
