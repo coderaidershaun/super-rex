@@ -6,11 +6,11 @@ description: >
   brittleness signals, and a format for the findings report. It only detects
   problems. The fixes are in sister skills.
 when_to_use: >
-  Use when the user says "find code smells", "smell sweep", "audit naming",
-  "what's brittle here", "code quality audit", "review for smells", "is this
-  maintainable", "refactor opportunities in X". Use it also before you refactor
-  unfamiliar code, or when a pipeline orchestrator dispatches a smell or
-  brittleness audit.
+  Use when you are about to refactor unfamiliar code, or when a pipeline
+  orchestrator dispatches a smell or brittleness audit. Use it also when the
+  user says "find code smells", "smell sweep", "audit naming", "what's brittle
+  here", "code quality audit", "review for smells", "is this maintainable",
+  "refactor opportunities in X".
 disable-model-invocation: false
 user-invocable: true
 ---
