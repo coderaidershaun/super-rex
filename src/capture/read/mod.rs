@@ -33,7 +33,7 @@ pub(super) fn job_runs(
         stored_job: &stored_job,
         now,
         now_ms: millis(now),
-        is_file_unreadable: false,
+        has_unreadable_file: false,
     };
     let mut runs = rows::runs(store.conn(), job)?;
     let session = rows::session_total(store.conn(), job)?;
@@ -46,7 +46,7 @@ pub(super) fn job_runs(
     }
 
     let recovery = recovery::recover(store, &stored_job.session_id)?;
-    read.is_file_unreadable |= recovery.has_unreadable_file;
+    read.has_unreadable_file |= recovery.has_unreadable_file;
     if recovery.added > 0 {
         runs = rows::runs(store.conn(), job)?;
     }
@@ -80,7 +80,7 @@ pub(crate) fn last_activity_ms(
         stored_job: &stored_job,
         now,
         now_ms: millis(now),
-        is_file_unreadable: false,
+        has_unreadable_file: false,
     };
     let runs = rows::runs(store.conn(), job)?;
     let files = read.observe(&runs, Need::State);
@@ -94,7 +94,7 @@ struct Read<'a> {
     stored_job: &'a StoredJob,
     now: SystemTime,
     now_ms: u64,
-    is_file_unreadable: bool,
+    has_unreadable_file: bool,
 }
 
 impl Read<'_> {

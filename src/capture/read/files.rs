@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use super::changes::Changes;
 use super::{Read, millis};
-use crate::capture::recovery::{Metadata, read_metadata};
+use crate::capture::recovery::{Metadata, metadata_name, read_metadata};
 use crate::capture::rows::{Fill, Reading, RunReading, StoredRun};
 use crate::capture::runs::RunState;
 use crate::capture::state::{self, Activity};
@@ -65,9 +65,9 @@ impl Read<'_> {
                     .map_or((None, None), |path| self.size_and_time(path));
                 let metadata = match &transcript {
                     Some(path) if need == Need::LaterSources && run.needs_metadata() => {
-                        let path = path.with_file_name(format!("agent-{}.meta.json", run.agent_id));
+                        let path = path.with_file_name(metadata_name(&run.agent_id));
                         read_metadata(&path).unwrap_or_else(|_| {
-                            self.is_file_unreadable = true;
+                            self.has_unreadable_file = true;
                             None
                         })
                     }
@@ -92,7 +92,7 @@ impl Read<'_> {
             }
             Err(error) if error.kind() == ErrorKind::NotFound => (None, None),
             Err(_) => {
-                self.is_file_unreadable = true;
+                self.has_unreadable_file = true;
                 (None, None)
             }
         }
@@ -180,7 +180,7 @@ impl Read<'_> {
     /// A transcript that cannot be read counts as absent for this read.
     fn parse(&mut self, path: &Path) -> Option<TranscriptFacts> {
         read_transcript(path).unwrap_or_else(|_| {
-            self.is_file_unreadable = true;
+            self.has_unreadable_file = true;
             None
         })
     }
@@ -299,8 +299,8 @@ fn derived_depths(runs: &[StoredRun], files: &[RunFiles]) -> Vec<Option<u32>> {
             }
             let parent_depth = match run.parent_agent_id.as_deref() {
                 Some(parent) => depths.get(parent).copied(),
-                // No parent means the main session only once the call that started the
-                // run was seen, and that call is what sets `background`.
+                // A run with no parent was started by the main session only if the call
+                // that started it was seen, and that call is what sets `background`.
                 None if run.background.is_some() => Some(0),
                 None => None,
             };

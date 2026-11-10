@@ -57,7 +57,7 @@ impl Read<'_> {
             Ok(Some(facts)) => facts,
             Ok(None) => return Ok(None),
             Err(_) => {
-                self.is_file_unreadable = true;
+                self.has_unreadable_file = true;
                 return Ok(None);
             }
         };

@@ -172,8 +172,8 @@ fn status_prints_runs() {
 }
 
 /// A planned job whose REVIEWER and PLAIN runs lost their stop and completed-call
-/// lines and their `finished` mark: REVIEWER's transcript is fresh, PLAIN's is three
-/// hours old. The log also holds one damaged line.
+/// lines and their `finished` mark: REVIEWER's transcript is fresh, and PLAIN's was
+/// last written long ago. The log also holds one damaged line.
 fn open_and_unconfirmed_runs_are_shown() {
     let mut fixture = Fixture::new();
     fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();

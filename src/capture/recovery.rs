@@ -5,7 +5,7 @@
 use std::collections::HashSet;
 use std::fs::{self, File};
 use std::io::{self, BufRead, BufReader, ErrorKind};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
@@ -105,10 +105,7 @@ pub(super) fn recover(store: &mut Store, session_id: &str) -> Result<Recovery, C
     let Some(main) = rows::session_transcript(store.conn(), session_id)? else {
         return Ok(recovery);
     };
-    let Some(folder) = Path::new(&main)
-        .parent()
-        .map(|parent| parent.join(session_id).join("subagents"))
-    else {
+    let Some(folder) = subagents_folder(Path::new(&main), session_id) else {
         return Ok(recovery);
     };
     let found = unrecorded_runs(store, session_id, &folder, &mut recovery)?;
@@ -169,7 +166,7 @@ fn unrecorded_runs(
         if known.contains(agent) {
             continue;
         }
-        let transcript = folder.join(format!("agent-{agent}.jsonl"));
+        let transcript = folder.join(transcript_name(agent));
         let first_at = first_record_at(&transcript).unwrap_or_else(|_| {
             recovery.has_unreadable_file = true;
             None
@@ -190,7 +187,23 @@ fn unrecorded_runs(
     Ok(found)
 }
 
-/// The agent ID in the name of a metadata file, `agent-<id>.meta.json`.
+/// The folder where Claude Code writes the files of a session's sub-agents, beside
+/// the session's main transcript.
+pub(super) fn subagents_folder(main_transcript: &Path, session_id: &str) -> Option<PathBuf> {
+    Some(main_transcript.parent()?.join(session_id).join("subagents"))
+}
+
+/// The name of a sub-agent's transcript in that folder.
+pub(super) fn transcript_name(agent_id: &str) -> String {
+    format!("agent-{agent_id}.jsonl")
+}
+
+/// The name of a sub-agent's metadata file, beside its transcript.
+pub(super) fn metadata_name(agent_id: &str) -> String {
+    format!("agent-{agent_id}.meta.json")
+}
+
+/// The agent ID in the name of a metadata file, the reverse of [`metadata_name`].
 fn metadata_agent(name: &str) -> Option<&str> {
     name.strip_prefix("agent-")?.strip_suffix(".meta.json")
 }

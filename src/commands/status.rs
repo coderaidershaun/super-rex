@@ -183,7 +183,7 @@ fn agent_type_text(run: &Run) -> &str {
 
 /// Milliseconds from the run's start to `now_ms`. `None` when the start is not known.
 ///
-/// Rust does no calendar arithmetic here, so SQLite reads the stored time.
+/// SQLite turns the stored time text into milliseconds, so Rust parses no dates.
 fn elapsed_since_start(conn: &Connection, now_ms: u64, run: &Run) -> rusqlite::Result<Option<u64>> {
     let Some(started_at) = &run.started_at else {
         return Ok(None);

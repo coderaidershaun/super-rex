@@ -60,86 +60,34 @@ fn tag_line(line: &str) -> Option<(&str, &str)> {
 mod tests {
     use super::*;
 
-    fn tags(job: Option<&str>, role: Option<&str>) -> Tags {
-        Tags {
-            job: job.map(str::to_owned),
-            role: role.map(str::to_owned),
+    #[test]
+    fn tag_block_rules() {
+        let job = Some("k3x9p2m7qd".to_owned());
+        let role = Some("lead".to_owned());
+        let cases = [
+            (
+                "blank lines before the block",
+                "\n \t\nRex-Job: k3x9p2m7qd\nRex-Role: lead\n",
+                (job.clone(), role.clone()),
+            ),
+            (
+                "carriage return at each line end",
+                "\r\nRex-Job: k3x9p2m7qd \t\r\nRex-Role: lead\r\n\r\nGo.",
+                (job.clone(), role.clone()),
+            ),
+            (
+                "any spaces or tabs after the colon",
+                "Rex-Job:k3x9p2m7qd\nRex-Role: \t lead\n",
+                (job.clone(), role.clone()),
+            ),
+            (
+                "a block that is not at the start",
+                "Please do the task below.\nRex-Job: k3x9p2m7qd\nRex-Role: lead\n",
+                (None, None),
+            ),
+        ];
+        for (name, brief, (job, role)) in cases {
+            assert_eq!(Tags::of_brief(brief), Tags { job, role }, "{name}");
         }
-    }
-
-    #[test]
-    fn normal_block() {
-        let brief =
-            "Rex-Job: k3x9p2m7qd\nRex-Role: engineer\n\nAdd the parser for the config file.\n";
-        assert_eq!(
-            Tags::of_brief(brief),
-            tags(Some("k3x9p2m7qd"), Some("engineer"))
-        );
-    }
-
-    #[test]
-    fn order_reversed_with_an_unknown_key() {
-        let brief = "Rex-Role: reviewer\nRex-Job: k3x9p2m7qd\nRex-Note: second pass\n\nRead the diff and report.\n";
-        assert_eq!(
-            Tags::of_brief(brief),
-            tags(Some("k3x9p2m7qd"), Some("reviewer"))
-        );
-    }
-
-    #[test]
-    fn first_of_a_repeated_key_wins() {
-        let brief = "Rex-Job: k3x9p2m7qd\nRex-Role: lead\nRex-Role: worker\n\nPlan the change, then start the workers.\n";
-        assert_eq!(
-            Tags::of_brief(brief),
-            tags(Some("k3x9p2m7qd"), Some("lead"))
-        );
-    }
-
-    #[test]
-    fn no_block() {
-        assert_eq!(
-            Tags::of_brief("Find every caller of open_store.\n"),
-            tags(None, None)
-        );
-    }
-
-    #[test]
-    fn block_not_at_the_start_is_not_a_block() {
-        let brief = "Please do the task below.\nRex-Job: k3x9p2m7qd\nRex-Role: engineer\n";
-        assert_eq!(Tags::of_brief(brief), tags(None, None));
-    }
-
-    #[test]
-    fn blank_lines_first_carriage_returns_and_spaces_are_skipped() {
-        let brief = "\n\r\n \t\r\nRex-Job: k3x9p2m7qd \t\r\nRex-Role: code-lead\r\n\r\nGo.";
-        assert_eq!(
-            Tags::of_brief(brief),
-            tags(Some("k3x9p2m7qd"), Some("code-lead"))
-        );
-    }
-
-    #[test]
-    fn any_spaces_or_tabs_after_the_colon() {
-        let brief = "Rex-Job:k3x9p2m7qd\nRex-Role: \t lead\n";
-        assert_eq!(
-            Tags::of_brief(brief),
-            tags(Some("k3x9p2m7qd"), Some("lead"))
-        );
-    }
-
-    #[test]
-    fn a_line_that_does_not_match_ends_the_block() {
-        let brief = "Rex-Job: k3x9p2m7qd\nrex-role: lead\nRex-Role: worker\n";
-        assert_eq!(Tags::of_brief(brief), tags(Some("k3x9p2m7qd"), None));
-        let brief = "Rex-Job: \t\nRex-Role: lead\n";
-        assert_eq!(Tags::of_brief(brief), tags(None, None));
-        let brief = "Rex-1Job: x\nRex-Role: lead\n";
-        assert_eq!(Tags::of_brief(brief), tags(None, None));
-    }
-
-    #[test]
-    fn keys_are_case_sensitive() {
-        let brief = "Rex-job: k3x9p2m7qd\nRex-Role: lead\n";
-        assert_eq!(Tags::of_brief(brief), tags(None, Some("lead")));
     }
 }

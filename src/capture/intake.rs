@@ -10,7 +10,7 @@ use rusqlite::Connection;
 use super::error::CaptureError;
 use super::event::{Call, CallOutcome, Completion, Event, EventKind, Stop};
 use super::log::{self, LogLine};
-use super::recovery::first_record_at;
+use super::recovery::{first_record_at, subagents_folder, transcript_name};
 use super::rows::{self, CallColumns, RunLine, StopColumns, TieTime};
 use super::tags::Tags;
 use crate::store::Store;
@@ -235,13 +235,9 @@ fn tie_time(kind: &EventKind, at_ms: u64) -> TieTime {
     }
 }
 
-/// Where Claude Code writes a sub-agent's transcript before its stop line names it:
-/// beside the main transcript, in `<session>/subagents/`.
+/// Where Claude Code writes a sub-agent's transcript, known before its stop line
+/// names it.
 fn derived_transcript(main: &str, session_id: &str, agent_id: &str) -> Option<String> {
-    let folder = Path::new(main).parent()?;
-    let path = folder
-        .join(session_id)
-        .join("subagents")
-        .join(format!("agent-{agent_id}.jsonl"));
+    let path = subagents_folder(Path::new(main), session_id)?.join(transcript_name(agent_id));
     path.to_str().map(str::to_owned)
 }
