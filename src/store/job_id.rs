@@ -65,21 +65,27 @@ impl JobId {
     }
 }
 
+/// Text that is not a job ID. Used as the value parser error of a `<job>`
+/// argument, so it exits as a usage error.
+#[derive(thiserror::Error, Debug)]
+#[error("{text} is not a job ID; a job ID is 10 lower-case letters and digits, such as 0g4cbf7k2q")]
+pub struct JobIdError {
+    text: String,
+}
+
 impl FromStr for JobId {
-    type Err = StoreError;
+    type Err = JobIdError;
 
     /// # Errors
-    /// [`StoreError::InvalidInput`] unless `text` is 10 characters of `0-9` and `a-z`.
-    fn from_str(text: &str) -> Result<JobId, StoreError> {
+    /// [`JobIdError`] unless `text` is 10 characters of `0-9` and `a-z`.
+    fn from_str(text: &str) -> Result<JobId, JobIdError> {
         let is_valid = text.len() == LENGTH
             && text
                 .bytes()
                 .all(|byte| byte.is_ascii_digit() || byte.is_ascii_lowercase());
         if !is_valid {
-            return Err(StoreError::InvalidInput {
-                what: format!(
-                    "job ID {text:?} is not 10 characters of 0-9 and a-z; give an ID that rex job create printed, such as 0g4cbf7k2q"
-                ),
+            return Err(JobIdError {
+                text: text.to_owned(),
             });
         }
         Ok(JobId(text.to_owned()))
