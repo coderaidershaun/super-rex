@@ -4,6 +4,8 @@
 use std::fmt;
 use std::path::{Path, PathBuf};
 
+use crate::error::CommandError;
+
 /// Failure from finding, opening or writing the store.
 #[derive(thiserror::Error, Debug)]
 pub enum StoreError {
@@ -65,6 +67,8 @@ pub enum StoreError {
     )]
     ClockOutOfRange { unix_seconds: i64 },
 }
+
+impl CommandError for StoreError {}
 
 impl From<rusqlite::Error> for StoreError {
     fn from(source: rusqlite::Error) -> Self {
