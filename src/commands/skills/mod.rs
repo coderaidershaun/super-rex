@@ -37,6 +37,9 @@ pub struct SkillsOptions {
 #[derive(clap::Subcommand)]
 pub enum SkillsCommand {
     /// Print each skill's name, description and when to use it.
+    #[command(
+        after_help = "Looks in the repo's .claude/skills and in $HOME/.claude/skills. shadowed=yes marks a repo skill that a user skill of the same name replaces."
+    )]
     List {
         /// Print the list as one JSON line.
         #[arg(long)]
@@ -44,6 +47,9 @@ pub enum SkillsCommand {
     },
 
     /// Check skills against the rules for their header and text.
+    #[command(
+        after_help = "Prints `ok <path>` for each skill that passes, and `<path>: <rule>: <what is wrong>` for each finding. Exits 1 when there is at least one finding."
+    )]
     Check {
         /// A `SKILL.md` file or a skill folder.
         #[arg(required = true)]

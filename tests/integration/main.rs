@@ -1,5 +1,5 @@
-//! Integration tests: each one runs the built `rex` binary, the way a user or
-//! an agent does.
+//! Integration tests: each one meets the outside world the way a user or an
+//! agent does, through the built `rex` binary or real files that Claude Code wrote.
 
 mod capture;
 mod cli;

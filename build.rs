@@ -1,3 +1,5 @@
+//! Tells Cargo when to build the binary again.
+
 // Do not delete this file. Cargo does not know the embedded bundle is built
 // from `.claude`, so without this line an edit under `.claude` would not
 // trigger a rebuild and the binary would keep shipping a stale bundle.

@@ -12,7 +12,7 @@ use super::support::{
     rex_init_ok, settings_path,
 };
 
-/// The `hooks` value of the hook contract, word for word.
+/// The `hooks` value that `rex init` writes, word for word.
 const HOOKS: &str = r#"{
     "SubagentStart": [{ "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }],
     "SubagentStop":  [{ "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }],
@@ -79,7 +79,7 @@ fn quoted(text: &str) -> String {
     serde_json::to_string(text).expect("quote text")
 }
 
-/// The worked example of the init contract: a person's settings file before
+/// A worked example: a person's settings file before
 /// `rex init --no-hooks` runs in the repo `/Users/me/code/app` on macOS...
 const EXAMPLE_BEFORE: &str = r#"{
   "permissions": {

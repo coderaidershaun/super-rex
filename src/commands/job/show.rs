@@ -18,6 +18,9 @@ use crate::store::{JobId, Store, StoreError, StorePaths};
 
 /// Arguments of `rex job show`.
 #[derive(clap::Args)]
+#[command(
+    after_help = "status is the shown status: running for a planned job with a sub-agent open. stored_status is the status as stored."
+)]
 pub struct ShowOptions {
     /// The job to show [default: the open job of $CLAUDE_CODE_SESSION_ID].
     job: Option<JobId>,

@@ -20,7 +20,8 @@ const LESSON_LIMIT: usize = 600;
 #[derive(clap::Args)]
 #[command(
     group(ArgGroup::new("said_source").required(true).args(["said", "said_file"])),
-    group(ArgGroup::new("lesson_source").args(["lesson", "lesson_file"]))
+    group(ArgGroup::new("lesson_source").args(["lesson", "lesson_file"])),
+    after_help = "Prints job=, feedback=, previous= and status=. A created or planned job has no outcome yet and is refused. A cause and a lesson come only with --verdict rejected, and a rejected job moves on only with both."
 )]
 pub struct FeedbackOptions {
     /// The job to give feedback on

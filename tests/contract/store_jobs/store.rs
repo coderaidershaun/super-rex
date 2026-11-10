@@ -1,4 +1,4 @@
-//! What the store promises to the lanes that call it: where it is found, that a
+//! What the store promises to the code that calls it: where it is found, that a
 //! second writer waits, and that schema version 1 guards its own rules.
 
 use std::collections::BTreeMap;

@@ -209,9 +209,9 @@ To build it again from the raw copies: put the main transcript and its `subagent
 
 1. Make a new folder outside any real repo, `git init` it, add `notes.txt` (`alpha`, `beta`, `gamma`, one per line) and `bg.txt` (`one`), commit, and `mkdir .rex`.
 2. Copy the grid agents into `.claude/agents/`, `record/hook-log.sh` into `.claude/hooks/`, and `record/settings.local.json` into `.claude/`. When `rex hook` exists, use `"command": "rex hook"` instead and the hook script is not needed.
-3. Save the prompt from `record/prompt.md` to a file. To change the tag lines (for example after the tag contract is frozen), edit them in that prompt only.
+3. Save the prompt from `record/prompt.md` to a file. To change the tag lines, edit them in that prompt only.
 4. Start the session with the command line in `record/prompt.md`, from that folder, with no `CLAUDE*` variables of an outer session set.
 5. Check: six `SubagentStart`, six `SubagentStop`, six `PostToolUse` Agent, one `async_launched`, five tagged briefs (the commands above). If the model did not obey, record again.
 6. Wait until the transcripts stop changing. Copy into one raw folder: `.rex/events.jsonl` as `events.jsonl`; the `type: "result"` lines of the stream as `result.jsonl`; `~/.claude/projects/<project>/<session>.jsonl` and `<session>/subagents/` under `transcripts/`.
 7. `python3 -I record/sanitize.py <raw folder> tree <repo path> <sibling path>` (remove the old `tree/` first), then `python3 -I record/expected.py tree`.
-8. Search `tree/` for private values as in the lane report (home path, user name, account values, key patterns), update the agent IDs in this file, then remove the throwaway folder and its folders under `~/.claude/projects/` and `/private/tmp/claude-<uid>/`.
+8. Search `tree/` for private values (home path, user name, account values, key patterns), update the agent IDs in this file, then remove the throwaway folder and its folders under `~/.claude/projects/` and `/private/tmp/claude-<uid>/`.

@@ -14,7 +14,9 @@ const VERSION: u64 = 1;
 
 /// Append the event `input` to the log at `path` as one line stamped with `at_ms`,
 /// making the file IF it is absent. Input that is not a JSON object is kept as a
-/// string under `raw`, so nothing is dropped. Empty input writes nothing.
+/// string under `raw`, so nothing is dropped. Empty input writes nothing. Known
+/// limit: the log is never cut short or rotated, so it grows by about three lines
+/// for each sub-agent.
 ///
 /// # Errors
 /// The file cannot be opened or written.
@@ -42,7 +44,8 @@ fn line_for(input: &[u8], at_ms: u64) -> Option<Vec<u8>> {
 /// The line goes out in one `write` call on a file opened for appending, and no
 /// lock is taken. Linux and macOS place each such write at the end of the file in
 /// one step, so lines from hooks that run at the same moment never mix, and a hook
-/// never waits for another.
+/// never waits for another. `write_all` is not used: it may split the line into
+/// several calls, and another hook's line can come between them.
 fn append(path: &Path, line: &[u8]) -> io::Result<()> {
     let mut file = OpenOptions::new().append(true).create(true).open(path)?;
     let written = file.write(line)?;

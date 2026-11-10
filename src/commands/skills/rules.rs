@@ -59,15 +59,20 @@ const SKILLS_FOLDER_TEXT: &str = ".claude/skills/";
 /// One rule of a skill. The order is the order findings are given in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Rule {
-    /// The header opens on line 1 with `---` and is closed by `---`.
+    /// The header opens on line 1 with `---` and is closed by `---`. Claude Code
+    /// reads a header only when `---` is the first line.
     H1,
-    /// The header is valid YAML and a mapping.
+    /// The header is valid YAML and a mapping. Claude Code loads a skill with a
+    /// broken header with no fields set, and says nothing.
     H2,
-    /// `name` is the folder name, in lowercase words joined by hyphens.
+    /// `name` is the folder name, in lowercase words joined by hyphens, because
+    /// `rex init` and the bundle tests find a skill by its folder.
     H3,
-    /// `description` is not empty and holds no "use when" phrase.
+    /// `description` is not empty and holds no "use when" phrase. Claude Code
+    /// shows both keys, so that text would be given twice.
     H4,
-    /// `when_to_use` is not empty and starts with `Use when`.
+    /// `when_to_use` is not empty and starts with `Use when`. The builder
+    /// chooses skills by this line.
     H5,
     /// A plain `description` or `when_to_use` is not cut short by YAML.
     H6,
@@ -77,11 +82,14 @@ pub enum Rule {
     H8,
     /// `SKILL.md` has text after the header.
     B1,
-    /// `SKILL.md` has at most 500 lines.
+    /// `SKILL.md` has at most 500 lines. A loaded skill stays in context, so
+    /// long material belongs in files that the skill links to.
     B2,
-    /// Each link to a Markdown file points to a file in the skills folder.
+    /// Each link to a Markdown file points to a file in the skills folder. A
+    /// link out of that folder breaks once the skill is installed in another repo.
     B3,
-    /// Each `.claude/skills/<name>/SKILL.md` names a known skill.
+    /// Each `.claude/skills/<name>/SKILL.md` names a known skill. An agent told
+    /// to read a skill that is not there goes on without it.
     B4,
 }
 

@@ -121,11 +121,8 @@ pub enum JobError {
     )]
     MergedNotAgreed { root: PathBuf },
 
-    // SMELL: this text names a section of a design document ("C12 6") that a
-    // user of rex has never seen. Changing it changes the output, so it waits
-    // for an agreed change to the error texts.
     #[error(
-        "delivery to {} is {outcome} but merge_agreed is {is_agreed}; C12 6: pr-open and kept-local mean no merge was agreed, blocked means one was",
+        "delivery to {} is {outcome} but merge_agreed is {is_agreed}; pr-open and kept-local mean no merge was agreed, so they need merge_agreed false, and blocked means an agreed merge could not be completed, so it needs merge_agreed true",
         root.display()
     )]
     AgreementMismatch {

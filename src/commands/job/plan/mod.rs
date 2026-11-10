@@ -24,6 +24,9 @@ use output::{PlannedRole, conflict_text, json_text, plain_text, rule_ids};
 
 /// Arguments of `rex job plan`.
 #[derive(clap::Args)]
+#[command(
+    after_help = "Prints job=<id> first, then status=, the orchestrator and its version, and one role.<name>= line per role: the grid agent to start that role with, or session."
+)]
 pub struct PlanOptions {
     /// The job to plan. It must be created and not yet planned.
     job: JobId,

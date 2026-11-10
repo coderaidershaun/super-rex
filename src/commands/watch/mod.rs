@@ -21,6 +21,9 @@ const REFRESH_SECONDS: u64 = 2;
 
 /// Arguments of `rex watch`.
 #[derive(clap::Args)]
+#[command(
+    after_help = "Needs a terminal: with its output redirected it draws nothing and exits 1. Up and Down move, Enter switches between the jobs and the runs of one, q quits."
+)]
 pub struct WatchOptions {}
 
 /// Failure of `rex watch`.

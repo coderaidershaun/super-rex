@@ -14,6 +14,9 @@ const FLAG_WORD: &[u8] = b"SMELL";
 
 /// Arguments of `rex smells`.
 #[derive(clap::Args)]
+#[command(
+    after_help = "Prints one path:line for each flag, then the count. Exits 0 whatever the count."
+)]
 pub struct SmellsOptions {}
 
 /// Walk `cwd`, skip dotfiles and gitignored paths, and print one `path:line`

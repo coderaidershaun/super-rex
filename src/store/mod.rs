@@ -25,7 +25,18 @@ const SCHEMA_VERSION: i64 = 1;
 /// `database is locked`.
 const BUSY_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// An open connection to one store, with the settings its rules need.
+/// An open connection to one store, with the settings its rules need. Write
+/// to `rex.db` only through this type: it turns on `foreign_keys` and
+/// `recursive_triggers` for each connection, and without them a write can
+/// break the rules of the record with no error.
+///
+/// Each kind of row has one writer. The job commands write jobs, roles and
+/// deliveries, and a job's status only through [`status::apply`]. Capture
+/// writes the sub-agent runs, the session tokens, the `intake.` keys of
+/// `meta`, and a job's builder model and effort while they are unset.
+/// `rex feedback` writes feedback, `rex recall` the recalled experience, and
+/// [`orchestrator::index`] the orchestrator index. Every update of a job row
+/// sets `updated_at` in the same statement.
 #[derive(Debug)]
 pub struct Store {
     conn: Connection,

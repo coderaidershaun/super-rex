@@ -48,8 +48,9 @@ fn grid_agent_names_round_trip_and_bad_names_are_typed() {
     ));
 }
 
-/// The store indexes an orchestrator through this function (C1 7.4), so it
-/// must fit the store's `describe` argument and give the one-line text.
+/// The store reads an orchestrator's description through this function when
+/// it indexes the library, so it must fit the store's `describe` argument and
+/// give the one-line text.
 #[test]
 fn describe_gives_the_one_line_description_or_none() {
     let describe: &dyn Fn(&Path) -> Option<String> = &describe;
