@@ -49,6 +49,7 @@ IF your brief starts with tag block that holds `Rex-Job:`, THEN do "Open job exi
 - Grid agent: One of 20 agent definitions in `.claude/agents/`. Name: `model-<tier>-effort-<level>`.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
 - `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
+- `JOB_DIR`: Absolute path where job branch is checked out. START of `rex-deliver` gives it.
 - Role table: For one job: skills, inputs, and agent of each role. Output of stage 3.
 - Orchestrator skill: Reusable file. It gives roles, order, skills of each role, and checks. Not about one task.
 - Brief: Prompt that sub-agent gets.
@@ -60,8 +61,8 @@ Store commands (`rex job …`, `rex recall`) start with `REX_STORE="$HOME_DIR/.r
 
 ## Rules
 
-- [ ] Settle the merge agreement on each request, before work starts.
-- [ ] Never do work on the main branch.
+- [ ] Settle merge agreement on each request, before work starts.
+- [ ] Never work on main branch.
 - [ ] Pass duration, budget, and autonomy only IF user stated them.
 - [ ] Session has max one open job.
 - [ ] Review and feedback: only IF requester asks. See `## On request`.
@@ -160,7 +161,7 @@ Case "inside open job": sign 1, OR sign 2 when you are sub-agent.
 
 1. Record nothing: no plan, no START, no END, no close.
 2. Run `REX_STORE="$HOME_DIR/.rex" rex job show <job-id>`. Job ID = `Rex-Job` of your brief, or `job=` of `rex job create`.
-3. Take from output: `duration`, `budget`, `autonomy` (`none` = not stated), `merge_agreed`, `experience_recalled`.
+3. Take from output: `duration`, `budget`, `autonomy` (`none` = not stated), `merge_agreed`, `experience_recalled` (= recall output for stages).
 4. Do step 1 for your part of work. Record nothing.
 5. Do step 5 for your part. Then run your part with roles of stage 3.
 6. Start each role with agent of `agent` line of `rex oms`: there is no plan.
@@ -181,6 +182,7 @@ REX_STORE="$HOME_DIR/.rex" rex job close <job-id> --status cancelled --outcome "
 ```
 
 - [ ] Use `--status failed` in place of `cancelled` IF work of that job failed.
+- [ ] `--outcome` also names each job branch of that job that stays (step 9).
 - [ ] `blocked` job is not open job.
 
 ## Step 4 — Recall
@@ -246,10 +248,11 @@ orchestrator=<name>
 orchestrator_version=<n>
 role.<name>=<grid agent>
 role.<name>=session
-conflict.<name>=<cap>
+conflict.<name>=<budget, duration, or budget,duration>
 ```
 
-- [ ] One `role.` line for each role. `conflict.` line comes only IF cap applied to that role.
+- [ ] One `role.` line for each role.
+- [ ] `conflict.<name>` line comes right after its role line, only IF floor overrode cap (`budget`, `duration`, or both) of that role.
 
 ## Step 7 — Run
 
@@ -283,7 +286,7 @@ You make `SLUG` only. You name no branch and no worktree.
 IF job has no job branch, THEN skip this step. ELSE do these steps for each repo that has job branch, before `rex job close`:
 
 1. Make `TITLE`: `<type>: <what works now>`.
-2. Make `BODY`: request, what changed, commands that prove it + their results, what it does not do. Last line: `Rex-Job: <JOB>`.
+2. Make `BODY`: request, what changed, commands that prove it + their results, what job left out. Last line: `Rex-Job: <JOB>`.
 3. Read END of `.claude/skills/rex-deliver/SKILL.md`. Obey it.
 4. Keep delivery JSON object that `rex-deliver` gives for that repo.
 

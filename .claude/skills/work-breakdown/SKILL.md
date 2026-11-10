@@ -41,7 +41,7 @@ IF job has one outcome, THEN write one task and go to step 6.
 ## Input
 
 - [ ] From builder: request, classification, recall output, skill list.
-- [ ] Look at repo: `rex codebase --with-context`. It prints structure of codebase, with first comment of each module.
+- [ ] Look at repo: `rex codebase --with-context`. It prints tree of repo, with first sentence of opening comment of each source file.
 - [ ] Use lessons of recall output and skills of skill list where they apply.
 
 Work can be code, research, documents, or other work. Task can change no file.

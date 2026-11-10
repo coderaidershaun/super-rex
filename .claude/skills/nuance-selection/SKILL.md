@@ -89,12 +89,12 @@ Never add rule to skill that exists. Only `rex-feedback` does that.
 
 ## Step 4 — Write skill
 
-Session agent writes new skill. It runs at model + effort of session.
+Session agent writes new skill.
 
 1. Select name: short lower-case words with hyphens. Name = folder name. No skill in list of step 1 has that name.
 2. Run `git -C "$HOME_DIR" check-ignore -q .claude/skills/<name>/SKILL.md`.
 3. IF it succeeds, THEN Git ignores new skill. `<root>` = `HOME_DIR`. No branch is necessary.
-4. ELSE new skill = change of repo. Builder reads START of `.claude/skills/rex-deliver/SKILL.md` for that repo first. `<root>` = `JOB_DIR`.
+4. ELSE new skill = change of repo. Builder makes values of table in its step 7 first. Then builder reads START of `.claude/skills/rex-deliver/SKILL.md` for that repo. `<root>` = `JOB_DIR`.
 5. Start session agent: `subagent_type` = `general-purpose`, no model. Do not call `rex oms` for it.
 6. Give it no worktree isolation. Skill goes into `<root>`.
 7. Give it brief below. It starts with tag block. Replace each `<…>`. Each path is absolute.

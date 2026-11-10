@@ -36,6 +36,7 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 - Preference: Duration, budget, or autonomy that user stated in request.
 - Merge agreement: Answer of requester: merge work to main, yes or no.
 - Skill list: Skills this job uses. Output of stage 1.
+- Nuanced skill: Skill for something particular to repo or to kind of work, that no other skill covers.
 - Gap skill: Nuanced skill for one language. It covers what Rust gives by default and that language does not.
 - Work breakdown: Tasks of job, their dependencies, and groups that run in parallel. Output of stage 2.
 - Integration owner: One agent that brings parallel work together and tests result.
