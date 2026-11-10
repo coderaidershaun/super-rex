@@ -4,6 +4,11 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+### Added
+
+- Plan jobs. A request for a plan writes `.rex/plans/<job-id>/plan.md` and changes no file in the repo. A later run of `orchestration-builder` with "Execute plan <path>" does the work. `orchestration-selection` now says how to build an orchestrator for planning.
+- The skill `rex-codex-adversarial-review`. Every plan job runs it before its plan is final: the Codex CLI challenges the plan read-only, the runner checks each finding, and there is one rebuttal round. Without Codex, a grid agent of `model-high-effort-high` or above is the challenger.
+
 ### Changed
 
 - The builder's stage skills now carry the `orchestration-` prefix: `nuance-selection` is `orchestration-nuance-selection` and `work-breakdown` is `orchestration-work-breakdown`. A repo set up by an earlier `rex init` gets the new folders on its next run; delete the two old folders from `.claude/skills/` by hand.

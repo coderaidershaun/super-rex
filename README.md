@@ -143,6 +143,14 @@ Start Claude Code in the main checkout and give it a request with `/orchestratio
 
 The session is the orchestrator and runs at your model and effort. A small job can be one task and one worker. If an agent inside a job loads the builder again, no second job opens: its work is recorded under the open one.
 
+### Plan first, then build
+
+A request for a plan, such as "plan how we add CSV export", becomes a **plan job**. It changes no file in the repo, so it needs no merge question and no branch. Its orchestrator is built for planning: optional researchers, one plan writer, a `plan-reviewer`, then a revision. The plan goes to `.rex/plans/<job-id>/plan.md`, with a goal, decisions, scope, a task table, risks, acceptance evidence and open questions.
+
+Before the plan is final, `rex-codex-adversarial-review` challenges it with a second model. The OpenAI Codex CLI (`codex`, read-only) questions the approach and the assumptions first, and the agent running the review checks each finding against the real files. Codex then gets one round to concede or hold its position. If Codex is not installed or not logged in, a grid agent challenges the plan instead: `model-high-effort-high`, or `model-xhigh-effort-xhigh` for a large or high-consequence plan. Findings that hold change the plan, and contested ones go into its open questions.
+
+You read the plan, then start the builder again with `/orchestration-builder Execute plan <path of plan.md>`. That second job asks about the merge as usual and works from the plan's task table.
+
 ## The commands
 
 `rex commands` lists them all. Paths in the outputs below are shortened to `/home/ana/code/shop`.
@@ -441,10 +449,11 @@ when_to_use: Use when you write release notes, or when the user says "release no
 
 ## Skills and the agent grid
 
-`rex init` installs 28 skills:
+`rex init` installs 29 skills:
 
 - **The builder:** `orchestration-builder` (the entry skill) and its three stages `orchestration-nuance-selection`, `orchestration-work-breakdown` and `orchestration-selection`.
 - **Delivery:** `rex-deliver`, `rex-pr-review` and `rex-feedback`.
+- **Plan review:** `rex-codex-adversarial-review`, which every plan job runs before its plan is final. You can also ask for it on a plan or a code change ("codex review", "challenge this design").
 - **Rulebooks:** 18 `rex-code-*` skills for writing code, mostly Rust: philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four kinds of test, design sketch, spike, validation plan and priorities. Two utilities go with them: `rex-grill-me` and `rex-mermaid-diagrams`. Run `rex skills list` to see each one's description and when to use it.
 - **`rex-skill-language`:** the language every skill and agent instruction is written in.
 

@@ -53,6 +53,8 @@ Work can be code, research, documents, or other work. Task can change no file.
 - [ ] Keep decisions that are tightly coupled in one task.
 - [ ] Evidence: tests, sources, reproducible observations, or explicit rubric.
 - [ ] IF job has one outcome, THEN write one task. Go to `## Output`.
+- [ ] Plan job: tasks = research + plan writing. Last 2 tasks: adversarial review of plan, then revision. Evidence of review task: verdict table.
+- [ ] Plan execution: start from task table of plan file. Change task only IF repo changed since plan.
 
 ## Step 2 — Dependencies
 

@@ -71,6 +71,7 @@ From request, classification, lessons of recall output, and look at repo: find w
 - [ ] IF skill covers need, THEN add that skill to skill list. Write nothing new.
 - [ ] IF no skill covers need, THEN do step 3 for it.
 - [ ] For each language in classification that is not `rust`: do `## Gap skill`.
+- [ ] Plan job (`## Plan jobs` of `orchestration-builder`): add `rex-codex-adversarial-review` to skill list.
 
 Examples of need: ergonomics are very important in this repo. Repo is very large, and architecture must get attention after work. Skill in list can cover each one already. Then add nothing new.
 

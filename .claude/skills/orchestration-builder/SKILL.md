@@ -5,7 +5,9 @@ description: >
   the requester whether to merge the work to main, and opens a job. It recalls
   experience, then runs three stages: skill selection, work breakdown, and
   orchestration selection. It records its plan, runs the orchestrator on a new
-  branch, delivers the work, and closes the job.
+  branch, delivers the work, and closes the job. A request for a plan becomes a
+  plan job: it writes a plan file, and a second model challenges that plan
+  before it is final. A later run of the builder executes that plan.
 when_to_use: >
   Use when a user or an agent requests substantial work, or work that must
   have a record. The work can be of any kind: code, research, or other work.
@@ -21,7 +23,7 @@ You run at model + effort of your session.
 
 ```
 IF your brief starts with tag block that holds `Rex-Job:`, THEN do "Open job exists" first.
-1. Classify request.
+1. Classify request. IF job = plan job OR plan execution, THEN obey `## Plan jobs` also.
 2. Settle merge agreement with requester.
 3. Open job. IF output gives `existing=yes`, THEN do "Open job exists".
 4. Recall + list skills: run `rex recall` and `rex skills list`.
@@ -55,6 +57,10 @@ IF your brief starts with tag block that holds `Rex-Job:`, THEN do "Open job exi
 - Brief: Prompt that sub-agent gets.
 - Tag block: First lines of brief: `Rex-Job: <job ID>`, `Rex-Role: <role>`, then one blank line.
 - Orchestrator, lead, worker: Level 1 = session. Level 2 = sub-agent of session. Level 3 = sub-agent of lead.
+- Plan job: Job whose deliverable is a plan for later work. It changes no product.
+- Plan file: Output of plan job: `.rex/plans/<job ID>/plan.md`. Store folder, not in Git.
+- Plan execution: Later job whose request names a plan file. It does work of that plan.
+- Adversarial review: Second model challenges plan, then one rebuttal round. Skill `rex-codex-adversarial-review`.
 - Paths: each path in this skill starts at `HOME_DIR`.
 
 Store commands (`rex job …`, `rex recall`) start with `REX_STORE="$HOME_DIR/.rex"`. Then shell in Git worktree or in sibling repo finds store of job.
@@ -67,7 +73,8 @@ Never write `$PWD` there: in job worktree or in sibling repo, `$PWD` gives wrong
 - [ ] Never work on main branch.
 - [ ] Pass duration, budget, and autonomy only IF user stated them.
 - [ ] Session has max one open job.
-- [ ] Review and feedback: only IF requester asks. See `## On request`.
+- [ ] Review of pull request + feedback: only IF requester asks. See `## On request`.
+- [ ] Plan job: adversarial review of plan is required before plan is final. See `## Plan jobs`.
 - [ ] Ask user only as `## Questions to user` says.
 - [ ] Read each skill file with Read tool, one file for each call. Shell command cuts long output.
 
@@ -89,6 +96,9 @@ Work type: what request asks you to deliver. Take first row that applies, from t
 | `chore` | Changes repo, but not behavior and not code structure: documentation, tests, dependencies, build, CI, configuration, tooling. |
 | `research` | Deliverable = answer: findings, comparison, recommendation, or plan. Request asks no change to product. |
 | `other` | No row above applies. |
+
+- [ ] IF request asks for plan, design, or approach for later work, and asks no change now, THEN work type = `research` and job = plan job.
+- [ ] IF request names plan file to execute, THEN read plan file IN FULL before you classify. Job = plan execution. Classify work of plan.
 
 Size: how much separate work request holds. Module = one source file, or one folder of files with one purpose.
 
@@ -128,6 +138,7 @@ Reason: A merge can need the approval of a person, or it can start a deployment.
 
 - [ ] Give answer of job to `rex job create` in step 3. Answer controls delivery.
 - [ ] `MERGE` = `yes` or `no`. One value for each repo: answer of job, unless request gives different answer for that repo.
+- [ ] Plan job: `MERGE` = `no`. Do not ask. Plan job writes no file in Git repo, so nothing merges.
 
 ## Step 3 — Open job
 
@@ -351,6 +362,49 @@ EOF
 - [ ] Blocked job later: record rest with `rex job close` on that job. It names only repos that changed.
 - [ ] New agent work after block = new job.
 - [ ] Then tell requester result in few lines.
+
+## Plan jobs
+
+For person, planning has two stages. Run 1 = plan job: it writes plan file. Person reads plan. Run 2 = plan execution: person starts builder again, and builder does work of plan. Each run = one job.
+
+### Run 1 — plan job
+
+- [ ] Work type `research`. `MERGE` = `no`. No job branch, no delivery.
+- [ ] Plan file: `$HOME_DIR/.rex/plans/<JOB>/plan.md`. Roles write only plan file + scratch files.
+- [ ] Skill list holds `rex-codex-adversarial-review`. Add skills that subject of plan needs. Example: code plan reads `rex-code-design-sketch` + `rex-code-validation-plan`.
+- [ ] Orchestrator skill is built for planning: `### Plan jobs` in `orchestration-selection`.
+- [ ] Before plan is final: adversarial review. Agent that wrote no part of plan reads `.claude/skills/rex-codex-adversarial-review/SKILL.md` IN FULL and obeys it.
+- [ ] Challenger = Codex. IF Codex is not available, THEN grid agent `model-high-effort-high` or above, by complexity. That skill gives choice.
+- [ ] Author changes plan for each `upheld` finding. Each `contested` finding goes into `Open questions` of plan, with both positions.
+- [ ] One review for each plan. IF revision changes approach of plan, THEN review again. Max 2 reviews for each job.
+- [ ] Plan is final only after review. First line of plan file: `Status: final. Reviewed by <challenger>.`
+- [ ] Close job: `--status delivered`, no deliveries file. `--outcome` names plan file.
+- [ ] Tell requester: path of plan file, open questions, and next step: "To execute this plan, start `orchestration-builder` again with: Execute plan `<absolute path of plan file>`."
+
+Plan file sections, in this order:
+
+1. `Status` line.
+2. Goal: request, and outcome that execution must give.
+3. Decisions: each decision, its reason, and alternative that plan rejected.
+4. Scope: what is in, what is out.
+5. Tasks: table of `orchestration-work-breakdown` form: `Task / Outcome / Evidence / Depends on / Owns (files, state) / Group`.
+6. Risks: each risk and its answer.
+7. Acceptance: evidence that shows whole work complete.
+8. Open questions: each with options + recommendation.
+9. Review: verdict table of adversarial review.
+
+- [ ] Plan is for agent with no context. Write Goal, Decisions, Risks in full sentences.
+
+### Run 2 — plan execution
+
+- [ ] Request names plan file, or job ID of plan job. IF only job ID, THEN plan file = `.rex/plans/<that job ID>/plan.md`.
+- [ ] IF first line of plan file is not `Status: final`, THEN tell requester. Stop.
+- [ ] Settle merge agreement as for each job (step 2).
+- [ ] Request text in `rex job create` stays unchanged. It names plan, so record links both jobs.
+- [ ] Stage 2 starts from task table of plan. Change task only IF repo changed since plan. Name each change in report.
+- [ ] Each brief gives absolute path of plan file + task row of that agent.
+- [ ] Open question that blocks task: ask requester (`## Questions to user`). ELSE use recommendation of plan.
+- [ ] Do not review plan again.
 
 ## Questions to user
 
