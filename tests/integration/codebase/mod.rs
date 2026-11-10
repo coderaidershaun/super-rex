@@ -1,8 +1,6 @@
-//! Integration tests of `rex codebase`, `rex smells` and `rex commands`, one
-//! child module for each concern.
+//! Integration tests of `rex codebase` and `rex smells`, one child module for
+//! each concern.
 
-mod broken_pipe;
-mod commands;
 mod languages;
 mod smells;
 mod symlinks;
