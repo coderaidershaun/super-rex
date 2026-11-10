@@ -228,7 +228,7 @@ Status, from `job.stored_status` of Stage 3:
 | `delivered`, `accepted`, `rejected` | `rejected` + cause + lesson | `analyzed` (one call) |
 | `blocked`, `failed`, `cancelled`, `analyzed` | any | `rex` adds row. Status stays. |
 
-Output: four lines `job=`, `feedback=`, `previous=`, `status=`. Put `previous` + `status` in report.
+Output: four lines `job=`, `feedback=`, `previous=`, `status=`. `feedback=` = ID of new row in store, counted over all jobs. It is not a count of feedback rows of this job. Put `previous` + `status` in report.
 IF `rex feedback` exits with an error, THEN it added no row. Tell user + give its `error:` line.
 
 ## Report

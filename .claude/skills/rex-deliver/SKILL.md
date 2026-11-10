@@ -280,10 +280,10 @@ git -C "$REPO_DIR" worktree remove "$DIR"   # once for each path above
    - CAUTION: Do not start an agent or a command outside the sandbox for this removal. Do not propose a change of settings.
    - Go on with the other worktrees and branches. Outcome stays `merged`. A kept worktree is not a reason for `blocked`.
    - Put in `note`, in one line, with real values: "Worktree <path> and branch <branch> are kept. A session cannot remove a worktree that an earlier session made. A person runs these commands in their own shell: <command 1>, then <command 2>."
-   - Commands for that person, outside each session:
+   - Commands for that person, outside each session. For `<PR_HEAD>` write full hash of pull request head (`headRefOid`). Never write `merge_commit` there. A squash commit has one parent, so branch tip is not its ancestor.
 ```sh
 git -C <REPO_DIR> worktree remove <path>   # IF Git says that path is gone: git -C <REPO_DIR> worktree prune
-git -C <REPO_DIR> merge-base --is-ancestor <branch> <PR_HEAD> && git -C <REPO_DIR> branch -D <branch>
+git -C <REPO_DIR> merge-base --is-ancestor <branch> <PR_HEAD: headRefOid, never merge_commit> && git -C <REPO_DIR> branch -D <branch>
 ```
 3. IF job worked in main checkout, THEN `git -C "$REPO_DIR" switch "$MAIN"`. IF mode ≠ `local`, THEN also `git -C "$REPO_DIR" merge --ff-only "origin/$MAIN"`.
 4. Delete a local branch of the job only IF its tip is an ancestor of `PR_HEAD`. A branch with a later commit holds work that is not on main. Keep it and report it. Leave out each branch of a kept worktree. Git sees that branch as checked out, and `git branch -D` fails.
