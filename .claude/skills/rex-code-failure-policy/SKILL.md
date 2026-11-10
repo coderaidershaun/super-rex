@@ -1,16 +1,17 @@
 ---
 name: rex-code-failure-policy
 description: >
-  Hard rules for what a system does after an error: each error variant gets
-  one failure class (HALT, RESET, RETRY, REJECT), the class lives in code on
-  the error type, and one place at the top of the system acts on it. Silent
-  wrong state always halts. Retries are bounded and safe to repeat. Sister to
+  Hard rules for what a system does after an error: each error variant gets one
+  failure class (HALT, RESET, RETRY, REJECT), the class lives in code on the
+  error type, and one place at the top of the system acts on it. Silent wrong
+  state always halts. Retries are bounded and safe to repeat. Sister to
   rex-code-error-writing, which says how errors are written. This skill says
-  what happens next. Use this skill when code has outside inputs, long-running
-  state, retries, reconnects, or a main loop. Use it also when the user says
-  "what happens when this fails", "should this stop the system", "retry or
-  fail", "fatal error", "kill switch", "halt", or "make error handling
-  consistent".
+  what happens next.
+when_to_use: >
+  Use when code has outside inputs, long-running state, retries, reconnects, or
+  a main loop. Use it also when the user says "what happens when this fails",
+  "should this stop the system", "retry or fail", "fatal error", "kill switch",
+  "halt", or "make error handling consistent".
 disable-model-invocation: false
 user-invocable: true
 ---

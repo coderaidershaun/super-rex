@@ -1,14 +1,15 @@
 ---
 name: rex-code-priorities
 description: >
-  Hard rules for the priority block of a repo: ranked qualities plus things
-  the system must never do, written as the crate-level `//!` comment in
-  `lib.rs` or `main.rs`. The orchestrator asks the user for it one time, up
-  front. Each agent that designs or reviews reads it and uses it to break
-  ties. No CONTEXT.md, no docs folder, no ADR. Use this skill when an
-  orchestrator starts work on a repo, when a plan or architecture decision has
-  a tie, when the priority block is missing, or when the user says "repo
-  priorities", "what matters most here", "rank the priorities", or
+  Hard rules for the priority block of a repo: ranked qualities plus things the
+  system must never do, written as the crate-level `//!` comment in `lib.rs` or
+  `main.rs`. The orchestrator asks the user for it one time, up front. Each
+  agent that designs or reviews reads it and uses it to break ties. No
+  CONTEXT.md, no docs folder, no ADR.
+when_to_use: >
+  Use when an orchestrator starts work on a repo, when a plan or architecture
+  decision has a tie, when the priority block is missing, or when the user says
+  "repo priorities", "what matters most here", "rank the priorities", or
   "constitution".
 disable-model-invocation: false
 user-invocable: true
