@@ -22,6 +22,7 @@ use crate::store::{JobId, Store};
 
 pub use error::CaptureError;
 pub(crate) use log::append_event;
+pub(crate) use read::last_activity_ms;
 pub use registration::{HOOK_COMMAND, hook_registration};
 pub use runs::{JobRuns, MainFacts, Run, RunState};
 pub use tokens::{Reading, RunActivity, SETTLE, Step, TokenCounts, TokenTotal, TotalCheck};

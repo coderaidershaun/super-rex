@@ -36,6 +36,18 @@ pub(super) struct RunFiles {
     metadata: Option<Metadata>,
 }
 
+fn activities<'a>(runs: &'a [StoredRun], files: &[RunFiles]) -> Vec<Activity<'a>> {
+    runs.iter()
+        .zip(files)
+        .map(|(run, files)| Activity {
+            agent_id: &run.agent_id,
+            parent_agent_id: run.parent_agent_id.as_deref(),
+            is_finished: run.stopped_at.is_some() || files.says_finished(),
+            last_active_ms: run.started_ms.max(files.modified_ms),
+        })
+        .collect()
+}
+
 /// One run as this read sees it.
 struct Seen<'a> {
     run: &'a StoredRun,
@@ -91,21 +103,21 @@ impl Read<'_> {
         runs: &[StoredRun],
         files: &[RunFiles],
     ) -> HashMap<String, RunState> {
-        let activities: Vec<Activity<'_>> = runs
-            .iter()
-            .zip(files)
-            .map(|(run, files)| Activity {
-                agent_id: &run.agent_id,
-                parent_agent_id: run.parent_agent_id.as_deref(),
-                is_finished: run.stopped_at.is_some() || files.says_finished(),
-                last_active_ms: run.started_ms.max(files.modified_ms),
-            })
-            .collect();
+        let activities = activities(runs, files);
         let states = state::states(&activities, self.now_ms);
         runs.iter()
             .map(|run| run.agent_id.clone())
             .zip(states)
             .collect()
+    }
+
+    /// The last activity of each run, in milliseconds since the epoch.
+    pub(super) fn last_activities(
+        &self,
+        runs: &[StoredRun],
+        files: &[RunFiles],
+    ) -> HashMap<String, u64> {
+        state::last_activities(&activities(runs, files))
     }
 
     /// For each run whose total is not final: the token step, and the columns its

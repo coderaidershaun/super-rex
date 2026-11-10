@@ -2,6 +2,7 @@
 
 mod hook;
 mod main_transcript;
+mod status;
 mod transcript;
 
 use std::fs;

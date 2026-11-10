@@ -2,6 +2,7 @@
 //! worked out at each read and never stored, so a quiet run that becomes active
 //! again is shown as open again.
 
+use std::collections::HashMap;
 use std::time::Duration;
 
 use super::runs::RunState;
@@ -34,6 +35,17 @@ pub(super) fn states(runs: &[Activity<'_>], now_ms: u64) -> Vec<RunState> {
                 }
                 _ => RunState::Unconfirmed,
             }
+        })
+        .collect()
+}
+
+/// The newest activity of each run and of the runs below it, by agent ID. A run with
+/// no known activity is left out.
+pub(super) fn last_activities(runs: &[Activity<'_>]) -> HashMap<String, u64> {
+    runs.iter()
+        .filter_map(|run| {
+            let at = latest_activity(runs, run, runs.len())?;
+            Some((run.agent_id.to_owned(), at))
         })
         .collect()
 }

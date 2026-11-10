@@ -7,6 +7,7 @@ mod files;
 mod result;
 mod session;
 
+use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
 
 use super::error::CaptureError;
@@ -58,6 +59,29 @@ pub(super) fn job_runs(
     }
     let runs = rows::runs(store.conn(), job)?;
     read.result(store.conn(), &runs, &states)
+}
+
+/// The last activity of each run of `job`, by agent ID, in milliseconds since the
+/// epoch: the newest of the run's start and its transcript's modification time, and
+/// of the same for each run below it. Reads no log and writes nothing.
+pub(crate) fn last_activity_ms(
+    store: &Store,
+    job: &JobId,
+) -> Result<HashMap<String, u64>, CaptureError> {
+    let Some(stored_job) = rows::job(store.conn(), job)? else {
+        return Ok(HashMap::new());
+    };
+    let now = SystemTime::now();
+    let mut read = Read {
+        job,
+        stored_job: &stored_job,
+        now,
+        now_ms: millis(now),
+        is_file_unreadable: false,
+    };
+    let runs = rows::runs(store.conn(), job)?;
+    let files = read.observe(&runs, Need::State);
+    Ok(read.last_activities(&runs, &files))
 }
 
 /// One call of `job_runs`: the job, the moment of the read, and whether a file of
