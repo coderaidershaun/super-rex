@@ -12,6 +12,12 @@ SuperRex supersedes rex-skills (Rex 2.0). Rex 2.0 ran one fixed process on every
 ## Install
 
 ```sh
+cargo install super-rex
+```
+
+To build from source instead:
+
+```sh
 git clone https://github.com/coderaidershaun/super-rex
 cd super-rex
 cargo install --path .
