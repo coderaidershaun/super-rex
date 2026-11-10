@@ -1,6 +1,6 @@
 ---
 name: rex-code-tests-unit-testing
-description: 'Hard rules for Rust unit tests. Inline #[cfg(test)] mod tests next to code, TDD scaffold only, delete when contract/integration coverage green. Critical invariants get promoted to fitness functions. Use when writing unit tests, doing TDD, deciding whether to keep/delete a unit test, or user asks "should I unit test this", "TDD this fn", "should I delete this test", "promote to fitness".'
+description: 'This skill gives hard rules for Rust unit tests. A unit test is inline, in a #[cfg(test)] mod tests next to the code. It is only a TDD scaffold. Delete it when contract or integration coverage is green. Promote critical invariants to fitness functions. Use it when you write unit tests, do TDD, or decide whether to keep or delete a unit test. Use it also when the user asks "should I unit test this", "TDD this fn", "should I delete this test", "promote to fitness".'
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -18,9 +18,9 @@ Sister skills:
 
 ## Iron rule
 
-**Unit test = TDD scaffold. Delete when done. Maybe promote to fitness.**
+**Unit test = TDD scaffold. Delete when done. Or promote to fitness.**
 
-Job: drive small fn into existence + catch immediate regression while TDD-ing. Once module stable + covered by contract or integration → DELETE. Codebase hygiene > false safety.
+Job: drive small fn into existence + catch immediate regression during TDD. IF module stable + contract or integration test covers it, THEN DELETE. Codebase hygiene > false safety.
 
 Heterodox vs classical pyramid. This repo: integration + contract carry load. Unit = scaffold.
 
@@ -43,7 +43,7 @@ mod tests {
 }
 ```
 
-NEVER `tests/unit/`. That folder convention reserved for contract/integration/fitness. Unit lives with code → delete with code.
+NEVER `tests/unit/`. That folder convention = only for contract/integration/fitness. Unit lives with code → delete with code.
 
 ## What to unit test
 
@@ -54,14 +54,14 @@ Yes:
 - Edge cases of pure logic (empty, max, min, off-by-one)
 
 No:
-- Anything touching I/O → contract or integration
-- Anything mocking a collaborator → contract (real impls) or integration (real outside)
+- Anything that touches I/O → contract or integration
+- Anything that mocks collaborator → contract (real impls) or integration (real outside)
 - Anything with `tokio::time::sleep` or wall clock → integration
 - Cross-module call chain → contract seam
 
 ## No mocks
 
-Per `rex-code-philosophy`: mock = wrong layer. If you reach for `mockall`, `mockito`, hand-rolled fake → unit-testing what should be contract or integration test.
+Per `rex-code-philosophy`: mock = wrong layer. IF you use `mockall`, `mockito`, or hand-rolled fake, THEN you unit-test what belongs in contract or integration test.
 
 ```rust
 // bad — mocked DB in unit test. Wrong layer.
@@ -85,32 +85,32 @@ fn balance_after_credit() {
 
 ## TDD workflow
 
-1. **Red** — write test for behavior that doesn't exist yet
+1. **Red** — write test for behavior that does not exist yet
 2. **Green** — write minimum code to pass
-3. **Refactor** — clean up, tests still pass
+3. **Refactor** — clean code, tests still pass
 4. **Decide** — keep inline, promote to fitness, or delete
 
-Step 4 = the discipline. Most tests get deleted.
+Step 4 = discipline. You delete most tests.
 
 ## Removal criteria — delete when ALL true
 
 - [ ] Module covered by contract test (seam tested) OR integration test (outside-world path tested)
 - [ ] Logic stable (>2 weeks unchanged)
-- [ ] Test was scaffolding for TDD, not asserting load-bearing invariant
-- [ ] Removing it doesn't reduce signal — refactor still detected by other tests
+- [ ] Test was scaffolding for TDD. It does not assert load-bearing invariant
+- [ ] Removal does not reduce signal — other tests still detect refactor
 
-All 4 → delete. Don't grieve. Git remembers.
+IF all 4 true, THEN delete. Do not grieve. Git remembers.
 
 ## Promotion criteria — to fitness function
 
-Move to `tests/fitness/<name>.rs` when ALL true:
+IF ALL true, THEN move to `tests/fitness/<name>.rs`:
 
-- Tests an invariant with large input space (good `proptest` candidate)
+- Tests invariant with large input space (good `proptest` candidate)
 - Failure = silent corruption, not loud crash
 - Critical to product trust
 - Refactor-proof (outlives any specific impl)
 
-Canonical example: TDD'd `orderbook::apply_update`. Single-input unit served TDD. The invariant — *orderbook from snapshot + N updates = state after streaming N updates from snapshot* — is fitness material. Promote.
+Canonical example: TDD for `orderbook::apply_update`. Single-input unit served TDD. Invariant — *orderbook from snapshot + N updates = state after streaming N updates from snapshot* — is fitness material. Promote.
 
 ```rust
 // during TDD: src/orderbook.rs
@@ -170,8 +170,8 @@ pub fn parse_iso8601(s: &str) -> Result<DateTime<Utc>, ParseError> { ... }
 - [ ] No I/O, clock, network, DB
 - [ ] Tests pure fn or single-struct invariant
 - [ ] After TDD green: revisit. Delete or promote.
-- [ ] Module gained contract or integration coverage? → consider delete
-- [ ] Invariant load-bearing forever? → promote to fitness
+- [ ] IF module gained contract or integration coverage, THEN consider delete
+- [ ] IF invariant load-bearing forever, THEN promote to fitness
 - [ ] `unwrap()` only inside test bodies (fine here, `#[cfg(test)]`-scoped)
 
-Fail any → fix before push.
+IF any fail, THEN fix before push.
