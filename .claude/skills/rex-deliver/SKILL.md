@@ -261,17 +261,20 @@ Do steps in this order:
 git -C "$REPO_DIR" worktree list --porcelain | sed -n "s|^worktree \(.*/\.rex/worktrees/$JOB/.*\)|\1|p"
 git -C "$REPO_DIR" worktree remove "$DIR"   # once for each path above
 ```
-   - IF `git worktree remove` prints `failed to delete '.git/worktrees/…': Operation not permitted`, THEN sandbox blocked it. Do not try again.
-   - CAUTION: Do not use `--force`, `rm`, or `git worktree prune` to go around this error. Keep the branch of that worktree.
-   - Report that worktree + its branch as kept. Go on with the other worktrees and branches. Outcome stays `merged`.
-   - Put in `note`: "Worktree <path> and branch <branch> are kept: the sandbox refused the removal. Run the two commands of the report outside the sandbox."
-   - Give person these commands in report, with real values. Person runs them outside sandbox:
+   - Session that made a worktree can remove it. Do End 3 in that session.
+   - Sandbox does not let a session remove a worktree that an earlier session made. Git then prints `failed to delete '.git/worktrees/…': Operation not permitted`. A new session does not help.
+   - IF a worktree is from an earlier session, OR Git prints that error, THEN keep that worktree + its branch. Do not try again.
+   - CAUTION: Do not use `--force`, `rm`, or `git worktree prune` on that worktree. Do not rename or delete a file below `.git/worktrees/`. Do not run `git branch -D` on its branch.
+   - CAUTION: Do not start an agent or a command outside the sandbox for this removal. Do not propose a change of settings.
+   - Go on with the other worktrees and branches. Outcome stays `merged`. A kept worktree is not a reason for `blocked`.
+   - Put in `note`, in one line, with real values: "Worktree <path> and branch <branch> are kept. A session cannot remove a worktree that an earlier session made. A person runs these commands in their own shell: <command 1>, then <command 2>."
+   - Commands for that person, outside each session:
 ```sh
-git -C <REPO_DIR> worktree prune
+git -C <REPO_DIR> worktree remove <path>   # IF Git says that path is gone: git -C <REPO_DIR> worktree prune
 git -C <REPO_DIR> merge-base --is-ancestor <branch> <PR_HEAD> && git -C <REPO_DIR> branch -D <branch>
 ```
 3. IF job worked in main checkout, THEN `git -C "$REPO_DIR" switch "$MAIN"`. IF mode ≠ `local`, THEN also `git -C "$REPO_DIR" merge --ff-only "origin/$MAIN"`.
-4. Delete a local branch of the job only IF its tip is an ancestor of `PR_HEAD`. A branch with a later commit holds work that is not on main. Keep it and report it.
+4. Delete a local branch of the job only IF its tip is an ancestor of `PR_HEAD`. A branch with a later commit holds work that is not on main. Keep it and report it. Leave out each branch of a kept worktree. Git sees that branch as checked out, and `git branch -D` fails.
 ```sh
 for B in $(git -C "$REPO_DIR" branch --list --format='%(refname:short)' "*-$JOB" "*-$JOB--*"); do
   if git -C "$REPO_DIR" merge-base --is-ancestor "$B" "$PR_HEAD"; then git -C "$REPO_DIR" branch -D "$B"; else echo "KEEP $B"; fi
@@ -319,7 +322,7 @@ Job stops without END (`failed` or `cancelled`, builder decides):
 Blocked repo that a person merged later. A later session does this for that repo:
 1. Read values again from `JOB` (`## Inputs`). Read: `gh pr view "$PR" --repo "$REPO" --json state,headRefOid,mergeCommit --jq '.state, .headRefOid, .mergeCommit.oid'`.
 2. IF state ≠ `MERGED`, THEN stop. Delivery stays `blocked`. Change nothing.
-3. ELSE `PR_HEAD` = `headRefOid`. Run End 3 for that repo, same guard.
+3. ELSE `PR_HEAD` = `headRefOid`. Run End 3 for that repo, same guard. Each worktree of the job is from an earlier session: do not try to remove it. Obey End 3 step 2 for a kept worktree.
 4. Give a new delivery object: outcome `merged`, `merge_commit` = `mergeCommit.oid`, `note` as `## Result` says.
 5. Later session runs `rex job close` call of `## Result` on blocked job, with an array of that one object. Rows of other repos stay.
    - IF a row of another repo stays `blocked`, THEN `--status blocked`. ELSE `--status delivered`.
