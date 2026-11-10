@@ -231,6 +231,22 @@ impl FromStr for Status {
     }
 }
 
+impl Verdict {
+    /// The text stored in `feedback.verdict`: `accepted` or `rejected`.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Verdict::Accepted => "accepted",
+            Verdict::Rejected => "rejected",
+        }
+    }
+}
+
+impl fmt::Display for Verdict {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 impl From<Closed> for Status {
     fn from(closed: Closed) -> Status {
         match closed {
