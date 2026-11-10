@@ -19,7 +19,7 @@ Test before you write anything: *can competent programmer who never saw this cod
 
 Self-evident code gets nothing. No preamble above obvious fn. No summary of block that reads fine. No comment added because file "looks bare" or because comment feels expected. Zero comments in file = healthy file.
 
-IF answer is truly no, THEN comment earns its place — only under [Iron law #2](#iron-law-2--comment-only-why-non-obvious-never-what) and [Iron law #3](#iron-law-3--plain-english-anyone-can-read).
+Comment earns its place only IF answer is truly no. Then only under [Iron law #2](#iron-law-2--comment-only-why-non-obvious-never-what) and [Iron law #3](#iron-law-3--plain-english-anyone-can-read).
 
 ## Iron law #2 — comment only WHY non-obvious, NEVER WHAT
 
