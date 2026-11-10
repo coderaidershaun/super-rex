@@ -182,7 +182,10 @@ pub(super) fn run(cwd: &Path, json: bool) -> Result<(), SkillsError> {
             .iter()
             .map(|folder| Listed::read(folder, place.source))
             .collect();
-        found.sort_by(|left, right| left.name.as_bytes().cmp(right.name.as_bytes()));
+        // Two folders can hold the same name, so the path settles the order.
+        found.sort_by(|left, right| {
+            (left.name.as_bytes(), &left.path).cmp(&(right.name.as_bytes(), &right.path))
+        });
         skills.extend(found);
     }
 

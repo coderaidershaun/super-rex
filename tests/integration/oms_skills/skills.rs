@@ -436,9 +436,11 @@ fn skills_check_names_the_rule_each_bad_skill_breaks() {
 fn skills_check_rejects_a_bad_path_before_checking() {
     let fixture = CheckFixture::new();
     write(&fixture.repo().join("README.md"), "Not a skill.\n");
+    fs::create_dir_all(fixture.repo().join("no-skill-file")).expect("make folder");
 
     for (paths, code) in [
         (vec![".claude/skills/clean", "no-such-skill"], 1),
+        (vec![".claude/skills/clean", "no-skill-file"], 1),
         (vec![".claude/skills/clean", "README.md"], 2),
     ] {
         let output = fixture.check(&paths);

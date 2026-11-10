@@ -223,11 +223,15 @@ fn header_findings(folder: &str, header: &Header) -> Vec<(Rule, String)> {
     findings.extend(name_problem(folder, header).map(|message| (Rule::H3, message)));
     findings.extend(description_problem(header).map(|message| (Rule::H4, message)));
     findings.extend(when_to_use_problem(header).map(|message| (Rule::H5, message)));
-    for key in ["description", "when_to_use"] {
+    let keys = header.keys();
+    for key in keys
+        .iter()
+        .filter(|key| ["description", "when_to_use"].contains(&key.as_str()))
+    {
         findings.extend(shortened_by_yaml(header, key).map(|message| (Rule::H6, message)));
     }
     findings.extend(listing_too_long(header).map(|message| (Rule::H7, message)));
-    for key in header.keys() {
+    for key in keys {
         if !KNOWN_KEYS.contains(&key.as_str()) {
             let message = format!("`{key}` is not a key Claude Code reads, so it is ignored");
             findings.push((Rule::H8, message));

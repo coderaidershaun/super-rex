@@ -29,41 +29,8 @@ struct LoadedSkill {
 
 impl LoadedSkill {
     fn load(cwd: &Path, written: &Path) -> Result<LoadedSkill, SkillsError> {
-        let path = cwd.join(written);
-        let metadata = match fs::metadata(&path) {
-            Ok(metadata) => metadata,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {
-                return Err(SkillsError::Missing {
-                    path: written.to_path_buf(),
-                });
-            }
-            Err(source) => {
-                return Err(SkillsError::Read {
-                    path: written.to_path_buf(),
-                    source,
-                });
-            }
-        };
-
-        let (skill_file, written_folder) = if metadata.is_dir() {
-            let skill_file = path.join(SKILL_FILE);
-            if !skill_file.is_file() {
-                return Err(SkillsError::NoSkillFile {
-                    path: written.to_path_buf(),
-                });
-            }
-            (skill_file, written.to_path_buf())
-        } else if path.file_name() == Some(OsStr::new(SKILL_FILE)) {
-            let folder = written.parent().unwrap_or(Path::new(""));
-            (path, folder.to_path_buf())
-        } else {
-            return Err(SkillsError::NotSkillFile {
-                path: written.to_path_buf(),
-            });
-        };
-
-        let folder = skill_file.parent().unwrap_or(Path::new("."));
-        let folder = folder.canonicalize().map_err(SkillsError::read(written))?;
+        let (skill_file, written_folder) = skill_file_of(cwd, written)?;
+        let folder = absolute_skill_folder(&skill_file).map_err(SkillsError::read(written))?;
         let mut files = Vec::new();
         for file in markdown_files(&folder)? {
             let text = read_text(&folder.join(&file))?;
@@ -86,6 +53,59 @@ impl LoadedSkill {
     }
 }
 
+/// The `SKILL.md` that `written` names, and the skill folder as the user
+/// wrote it.
+fn skill_file_of(cwd: &Path, written: &Path) -> Result<(PathBuf, PathBuf), SkillsError> {
+    let path = cwd.join(written);
+    let metadata = match fs::metadata(&path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            return Err(SkillsError::Missing {
+                path: written.to_path_buf(),
+            });
+        }
+        Err(source) => {
+            return Err(SkillsError::Read {
+                path: written.to_path_buf(),
+                source,
+            });
+        }
+    };
+
+    if metadata.is_dir() {
+        let skill_file = path.join(SKILL_FILE);
+        if !skill_file.is_file() {
+            return Err(SkillsError::NoSkillFile {
+                path: written.to_path_buf(),
+            });
+        }
+        return Ok((skill_file, written.to_path_buf()));
+    }
+    if path.file_name() == Some(OsStr::new(SKILL_FILE)) {
+        let folder = written.parent().unwrap_or(Path::new(""));
+        return Ok((path, folder.to_path_buf()));
+    }
+    Err(SkillsError::NotSkillFile {
+        path: written.to_path_buf(),
+    })
+}
+
+/// The absolute path of the folder that holds `skill_file`. A skill folder
+/// that is a link keeps its own name and its place, because Claude Code
+/// names a skill by its entry in the skills folder.
+fn absolute_skill_folder(skill_file: &Path) -> io::Result<PathBuf> {
+    let folder = skill_file.parent().unwrap_or(Path::new("."));
+    match (folder.parent(), folder.file_name()) {
+        (Some(parent), Some(name)) if !parent.as_os_str().is_empty() => {
+            Ok(parent.canonicalize()?.join(name))
+        }
+        // Known limitation: a path such as `.` names the working folder, which
+        // is always the real folder, so a linked skill checked from inside
+        // itself is named by the folder that the link points to.
+        _ => folder.canonicalize(),
+    }
+}
+
 /// Every Markdown file at or below `root`, relative to it: `SKILL.md` first,
 /// then the others in path order.
 fn markdown_files(root: &Path) -> Result<Vec<PathBuf>, SkillsError> {
@@ -96,9 +116,11 @@ fn markdown_files(root: &Path) -> Result<Vec<PathBuf>, SkillsError> {
             let entry = entry.map_err(SkillsError::read(&folder))?;
             let path = entry.path();
             let file_type = entry.file_type().map_err(SkillsError::read(&path))?;
-            // A link to a folder is not followed, so a loop of links cannot
-            // make the walk run forever. A link to a file is read.
-            if file_type.is_dir() {
+            // A link to a folder is followed only at the top, where a skills
+            // folder may link to a skill. Deeper links are not followed, so a
+            // loop of links cannot make the walk run forever.
+            let is_linked_folder = folder == root && file_type.is_symlink() && path.is_dir();
+            if file_type.is_dir() || is_linked_folder {
                 folders.push(path);
             } else if path.extension() == Some(OsStr::new("md")) && path.is_file() {
                 let relative = path.strip_prefix(root).unwrap_or(&path);

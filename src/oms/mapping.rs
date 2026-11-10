@@ -87,6 +87,7 @@ const SUPPORTED_EFFORTS: SupportedEfforts = [&Effort::ALL; 4];
 
 /// Pick the grid agent for one role. Every combination of inputs has an
 /// answer, so this cannot fail.
+#[must_use]
 pub fn select(inputs: Inputs) -> Selection {
     select_with(inputs, &SUPPORTED_EFFORTS)
 }
@@ -269,7 +270,6 @@ fn conflict(
 
 #[cfg(test)]
 mod tests {
-    use super::super::{Level, Rule, Selection};
     use super::*;
 
     fn inputs_from_code(code: &str) -> Inputs {
