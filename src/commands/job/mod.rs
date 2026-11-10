@@ -2,12 +2,10 @@
 
 mod close;
 mod create;
-mod describe;
 mod error;
 mod input;
 mod plan;
 mod record;
-mod runs;
 mod show;
 
 pub use close::CloseOptions;

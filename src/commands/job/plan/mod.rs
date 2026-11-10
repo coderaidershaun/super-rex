@@ -1,21 +1,25 @@
 //! `rex job plan`: records the plan and asks the selection function for each
 //! role's agent, so the record and the function cannot disagree.
 
+mod file;
+
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use rusqlite::types::Type;
 use rusqlite::{OptionalExtension, Row, Transaction, params};
-use serde::Deserialize;
 use serde_json::{Value, json};
 
+use super::JobError;
 use super::input::read_text;
-use super::{JobError, describe, runs};
+use crate::capture;
+use crate::commands::skills;
 use crate::commands::stdout::print_to_stdout;
 use crate::oms::{self, Inputs, Level, Overridden, Rule, Selection};
 use crate::store::orchestrator;
 use crate::store::status::{self, Event};
 use crate::store::{JobId, Store, StoreError, StorePaths};
+use file::{PlanFile, RoleEntry, check};
 
 /// Arguments of `rex job plan`.
 #[derive(clap::Args)]
@@ -32,37 +36,6 @@ pub struct PlanOptions {
     json: bool,
 }
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct PlanFile {
-    orchestrator: String,
-    skills: Vec<String>,
-    breakdown: String,
-    roles: Vec<RoleEntry>,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct RoleEntry {
-    role: String,
-    #[serde(default)]
-    session: bool,
-    intelligence: Option<Rating>,
-    reliability: Option<Rating>,
-    consequence: Option<Rating>,
-    verification: Option<Rating>,
-}
-
-/// A role input as the plan file writes it.
-#[derive(Deserialize, Clone, Copy)]
-#[serde(rename_all = "lowercase")]
-enum Rating {
-    Low,
-    Medium,
-    High,
-    None,
-}
-
 /// A role as planned: its OMS answer, or `None` when it runs as the session.
 struct PlannedRole {
     name: String,
@@ -76,7 +49,7 @@ struct PlannedRole {
 /// - [`JobError::Store`]: the job is not found, is not `created`, or the store fails.
 pub(super) fn run(cwd: &Path, options: PlanOptions) -> Result<(), JobError> {
     let mut store = Store::open(&StorePaths::discover(cwd)?)?;
-    runs::take_in(&mut store)?;
+    capture::take_in(&mut store)?;
 
     let path = &options.plan_file;
     let text = read_text(cwd, path).map_err(|source| JobError::ReadFile {
@@ -100,50 +73,6 @@ pub(super) fn run(cwd: &Path, options: PlanOptions) -> Result<(), JobError> {
         plain_text(&options.job, &plan.orchestrator, version, &roles)
     };
     print_to_stdout(&text)?;
-    Ok(())
-}
-
-/// Every check of the plan file that needs no store.
-fn check(plan: &PlanFile, path: &Path) -> Result<(), JobError> {
-    let path = path.to_path_buf();
-    if plan.roles.is_empty() {
-        return Err(JobError::NoRoles { path });
-    }
-    if !is_name(&plan.orchestrator) {
-        return Err(JobError::BadOrchestratorName {
-            name: plan.orchestrator.clone(),
-            path,
-        });
-    }
-    if let Some(name) = plan
-        .skills
-        .iter()
-        .find(|name| name.is_empty() || name.contains(|c: char| c == ',' || c.is_whitespace()))
-    {
-        return Err(JobError::BadSkillName {
-            name: name.clone(),
-            path,
-        });
-    }
-    if plan.breakdown.trim().is_empty() {
-        return Err(JobError::EmptyBreakdown { path });
-    }
-    let mut seen = BTreeSet::new();
-    for entry in &plan.roles {
-        if !is_name(&entry.role) {
-            return Err(JobError::BadRoleName {
-                role: entry.role.clone(),
-                path,
-            });
-        }
-        if !seen.insert(entry.role.as_str()) {
-            return Err(JobError::RoleTwice {
-                path,
-                role: entry.role.clone(),
-            });
-        }
-        entry.ratings()?;
-    }
     Ok(())
 }
 
@@ -181,7 +110,7 @@ fn record(
     if !paths.orchestrators.join(name).is_dir() {
         return Err(not_found());
     }
-    let versions = orchestrator::index_all(tx, &paths.orchestrators, &describe::description)?;
+    let versions = orchestrator::index_all(tx, &paths.orchestrators, &skills::describe)?;
     let version = versions
         .iter()
         .find(|indexed| &indexed.name == name)
@@ -324,55 +253,6 @@ fn json_text(job: &JobId, orchestrator: &str, version: i64, roles: &[PlannedRole
         "roles": roles,
     });
     format!("{line}\n")
-}
-
-impl RoleEntry {
-    /// The four role inputs in the order intelligence, reliability,
-    /// consequence, verification, or `None` for a role run as the session.
-    fn ratings(&self) -> Result<Option<[Option<Level>; 4]>, JobError> {
-        let given = [
-            ("intelligence", self.intelligence),
-            ("reliability", self.reliability),
-            ("consequence", self.consequence),
-            ("verification", self.verification),
-        ];
-        if self.session {
-            if given.iter().any(|(_, rating)| rating.is_some()) {
-                return Err(JobError::SessionAndInputs {
-                    role: self.role.clone(),
-                });
-            }
-            return Ok(None);
-        }
-        let mut levels = [None; 4];
-        for (level, (key, rating)) in levels.iter_mut().zip(given) {
-            let rating = rating.ok_or_else(|| JobError::MissingInput {
-                role: self.role.clone(),
-                key,
-            })?;
-            *level = rating.level();
-        }
-        Ok(Some(levels))
-    }
-}
-
-impl Rating {
-    fn level(self) -> Option<Level> {
-        match self {
-            Rating::Low => Some(Level::Low),
-            Rating::Medium => Some(Level::Medium),
-            Rating::High => Some(Level::High),
-            Rating::None => None,
-        }
-    }
-}
-
-/// A role or orchestrator name: lower-case letters, digits and `-`.
-fn is_name(text: &str) -> bool {
-    !text.is_empty()
-        && text
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
 }
 
 fn rule_ids(rules: &[Rule]) -> Vec<&'static str> {

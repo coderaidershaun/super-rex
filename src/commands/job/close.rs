@@ -8,8 +8,9 @@ use rusqlite::{OptionalExtension, Transaction, params};
 use serde::Deserialize;
 use serde_json::json;
 
+use super::JobError;
 use super::input::read_text;
-use super::{JobError, runs};
+use crate::capture;
 use crate::commands::stdout::print_to_stdout;
 use crate::store::status::{self, Closed, Event};
 use crate::store::{JobId, Store, StoreError, StorePaths};
@@ -83,7 +84,7 @@ struct Delivery {
 /// - [`JobError::Store`]: the job is not found, is already closed, or the store fails.
 pub(super) fn run(cwd: &Path, options: CloseOptions) -> Result<(), JobError> {
     let mut store = Store::open(&StorePaths::discover(cwd)?)?;
-    runs::job_runs(&mut store, &options.job, SystemTime::now())?;
+    capture::job_runs(&mut store, &options.job, SystemTime::now())?;
 
     let job_agreed: Option<bool> = store
         .conn()

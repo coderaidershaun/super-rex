@@ -10,8 +10,7 @@ use super::JobError;
 use super::input::non_empty_var;
 use super::plan::level_name;
 use super::record::{self, DeliveryRow, FeedbackRow, JobRecord, RoleRow};
-use super::runs::{self, JobRuns, Run};
-use crate::capture::TokenTotal;
+use crate::capture::{self, JobRuns, Run, RunState, TokenTotal};
 use crate::commands::stdout::print_to_stdout;
 use crate::oms::Level;
 use crate::store::status::Shown;
@@ -58,7 +57,7 @@ pub(super) fn run(cwd: &Path, options: ShowOptions) -> Result<(), JobError> {
         }
     };
 
-    let view = runs::job_runs(&mut store, &job, SystemTime::now())?;
+    let view = capture::job_runs(&mut store, &job, SystemTime::now())?;
     let record = record::read(store.conn(), store.paths(), &job)?;
     let shown = Shown::of(record.status, view.open);
     let text = if options.json {
@@ -173,7 +172,7 @@ fn run_line(run: &Run) -> String {
     format!(
         "run.{}={} parent={} role={} agent={} ran={}/{} skills={skills} tokens={} provisional={}",
         run.agent_id,
-        run.state.name(),
+        state_name(run.state),
         run.parent_agent_id.as_deref().unwrap_or("main"),
         or_none(run.role.as_deref()),
         or_none(run.agent_type.as_deref()),
@@ -321,7 +320,7 @@ fn json_feedback(row: &FeedbackRow) -> Value {
 fn json_run(run: &Run) -> Value {
     json!({
         "agent_id": run.agent_id,
-        "state": run.state.name(),
+        "state": state_name(run.state),
         "parent_agent_id": run.parent_agent_id,
         "depth": run.depth,
         "background": run.background,
@@ -390,4 +389,12 @@ fn number_or_none(value: Option<i64>) -> String {
 
 fn yes_no(is_yes: bool) -> &'static str {
     if is_yes { "yes" } else { "no" }
+}
+
+fn state_name(state: RunState) -> &'static str {
+    match state {
+        RunState::Open => "open",
+        RunState::Finished => "finished",
+        RunState::Unconfirmed => "unconfirmed",
+    }
 }

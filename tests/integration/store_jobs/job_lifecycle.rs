@@ -2,49 +2,21 @@
 //! with the hooks absent, from the main checkout and from worktrees.
 
 use std::fs;
-use std::path::Path;
+
+use serde_json::{Value, json};
 
 use super_rex::store::StoreError;
 
-use super::fixture::{new_repo, new_store, new_worktree, rex, stderr_of, stdout_of, value};
-
-const SESSION: &str = "4f9c2e1a-7b3d-4e8f-9a6c-1d2e3f4a5b6c";
-
-const COMMIT: &str = "3f2a9c1e8b7d6a5f4e3d2c1b0a9f8e7d6c5b4a39";
-
-const PLAN: &str = r#"{
-  "orchestrator": "pipeline",
-  "skills": ["rex-code-tdd", "rex-code-philosophy", "rex-code-tdd"],
-  "breakdown": "1. Reject zero.\n2. Test it.",
-  "roles": [
-    {"role": "engineer", "intelligence": "high", "reliability": "high", "consequence": "high", "verification": "low"},
-    {"role": "reviewer", "intelligence": "medium", "reliability": "medium", "consequence": "medium", "verification": "high"},
-    {"role": "skill-writer", "session": true}
-  ]
-}"#;
-
-fn create_args<'a>(extra: &[&'a str]) -> Vec<&'a str> {
-    let mut args = vec![
-        "job",
-        "create",
-        "--request-file",
-        "-",
-        "--asked-by",
-        "human",
-        "--size",
-        "medium",
-        "--consequence",
-        "high",
-    ];
-    args.extend_from_slice(extra);
-    args
-}
+use super::fixture::{
+    COMMIT, PLAN, SESSION, close, create_args, new_repo, new_store, new_worktree, open_job, plan,
+    rex, show_json, stderr_of, stdout_of, value,
+};
 
 #[test]
 fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
     let temp = tempfile::tempdir().unwrap();
     let main = new_repo(temp.path(), "shop");
-    new_store(&main, "pipeline");
+    let mut store = new_store(&main, "pipeline");
 
     let created = stdout_of(
         rex(
@@ -152,6 +124,23 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
         )
     );
 
+    // What `rex recall` stored is printed whole, however long it is.
+    let lesson = "Check the quantity at the API edge, not only in the client. ".repeat(40);
+    let recalled = format!(
+        r#"{{"lessons":[{{"feedback_id":3,"job":"0g30kh5n1w","score":3,"lesson":"{lesson}"}}],"orchestrators":[{{"name":"pipeline","version":1,"best_match":3}}],"unused":[]}}"#
+    );
+    store
+        .write(|tx| {
+            tx.execute(
+                "UPDATE job SET experience_recalled = ?1,
+                                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                 WHERE id = ?2",
+                [&recalled, &job],
+            )
+            .map_err(StoreError::from)
+        })
+        .unwrap();
+
     let shown = stdout_of(&mut rex(&worktree, &["job", "show", &job]));
     let created_at = value(&shown, "created_at");
     let updated_at = value(&shown, "updated_at");
@@ -173,7 +162,7 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
              delivery.1=merged branch=agent-a1b8 pr=none merge_agreed=yes merge_commit={COMMIT} \
              repo={}\n\
              request:\n  Reject a quantity of zero.\nbreakdown:\n  1. Reject zero.\n  2. Test it.\n\
-             experience_recalled:\n",
+             experience_recalled:\n  {recalled}\n",
             main.display()
         )
     );
@@ -196,21 +185,90 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
     assert_eq!(record["roles"][0]["inputs"]["budget"], "low");
     assert_eq!(record["deliveries"][0]["merge_agreed"], true);
     assert_eq!(record["runs"], serde_json::json!([]));
-}
+    assert_eq!(record["job"]["experience_recalled"], recalled.as_str());
 
-/// Opens a job in `session` and gives its ID.
-fn open_job(cwd: &Path, session: &str, extra: &[&str]) -> String {
+    // The --json form of create, plan and close, on a second job.
     let created = stdout_of(
-        rex(cwd, &create_args(extra))
-            .env("CLAUDE_CODE_SESSION_ID", session)
-            .write_stdin("A request.\n"),
+        rex(
+            &main,
+            &create_args(&[
+                "--merge", "yes", "--type", "fix", "--lang", "rust", "--json",
+            ]),
+        )
+        .env("CLAUDE_CODE_SESSION_ID", "json-session")
+        .write_stdin("Show the error to the user.\n"),
     );
-    value(&created, "job").to_owned()
+    let created: Value = serde_json::from_str(&created).unwrap();
+    assert_eq!(keys(&created), ["schema", "job", "status", "existing"]);
+    assert_eq!(
+        (&created["status"], &created["existing"]),
+        (&json!("created"), &json!(false))
+    );
+    let second = created["job"].as_str().unwrap();
+    let planned = stdout_of(
+        rex(
+            &worktree,
+            &["job", "plan", second, "--plan-file", "-", "--json"],
+        )
+        .write_stdin(PLAN),
+    );
+    let planned: Value = serde_json::from_str(&planned).unwrap();
+    assert_eq!(
+        keys(&planned),
+        ["schema", "job", "status", "orchestrator", "roles"]
+    );
+    assert_eq!(
+        planned["orchestrator"],
+        json!({"name": "pipeline", "version": 1})
+    );
+    let role_keys = [
+        "role",
+        "session",
+        "agent",
+        "demand",
+        "rules",
+        "conflict",
+        "oms_version",
+    ];
+    assert_eq!(keys(&planned["roles"][0]), role_keys);
+    assert_eq!(planned["roles"][0]["conflict"], json!([]));
+    assert_eq!(planned["roles"][2]["agent"], Value::Null);
+    let deliveries =
+        format!(r#"[{{"repo": ".", "merge_commit": "{COMMIT}", "outcome": "merged"}}]"#);
+    let closed = stdout_of(
+        rex(
+            &worktree,
+            &[
+                "job",
+                "close",
+                second,
+                "--status",
+                "delivered",
+                "--outcome",
+                "Shown",
+                "--deliveries-file",
+                "-",
+                "--json",
+            ],
+        )
+        .write_stdin(deliveries),
+    );
+    let closed: Value = serde_json::from_str(&closed).unwrap();
+    assert_eq!(keys(&closed), ["schema", "job", "status", "deliveries"]);
+    assert_eq!(
+        closed["deliveries"],
+        json!([{"outcome": "merged", "repo": main.to_str().unwrap()}])
+    );
 }
 
-/// Records `plan` for `job`, given on standard input.
-fn plan(cwd: &Path, job: &str, plan: &str) -> String {
-    stdout_of(rex(cwd, &["job", "plan", job, "--plan-file", "-"]).write_stdin(plan.to_owned()))
+/// The keys of a JSON object, in the order they were printed.
+fn keys(object: &Value) -> Vec<&str> {
+    object
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect()
 }
 
 #[test]
@@ -304,30 +362,6 @@ fn lifecycle_cases_of_challenge_6() {
     );
 }
 
-/// `rex job close <job> ...` with the deliveries on standard input.
-fn close(cwd: &Path, job: &str, status: &str, deliveries: &str) -> assert_cmd::Command {
-    let mut command = rex(
-        cwd,
-        &[
-            "job",
-            "close",
-            job,
-            "--status",
-            status,
-            "--outcome",
-            "Shop merged",
-            "--deliveries-file",
-            "-",
-        ],
-    );
-    command.write_stdin(deliveries.to_owned());
-    command
-}
-
-fn show_json(cwd: &Path, job: &str) -> serde_json::Value {
-    serde_json::from_str(&stdout_of(&mut rex(cwd, &["job", "show", job, "--json"]))).unwrap()
-}
-
 #[test]
 fn two_repos_one_merged_one_blocked_then_recorded_later() {
     let temp = tempfile::tempdir().unwrap();
@@ -402,51 +436,4 @@ fn two_repos_one_merged_one_blocked_then_recorded_later() {
         .map(|row| (row["from"].as_str().unwrap(), row["to"].as_str().unwrap()))
         .collect();
     assert_eq!(closes, [("planned", "blocked"), ("blocked", "delivered")]);
-}
-
-#[test]
-fn create_in_session_with_open_job_returns_it() {
-    let temp = tempfile::tempdir().unwrap();
-    let main = new_repo(temp.path(), "shop");
-    new_store(&main, "pipeline");
-    let job = open_job(
-        &main,
-        SESSION,
-        &["--merge", "yes", "--type", "fix", "--lang", "rust"],
-    );
-    plan(&main, &job, PLAN);
-
-    // A sub-agent's builder in the same session asks for a job of its own.
-    let nested = rex(
-        &main,
-        &create_args(&["--merge", "no", "--type", "chore", "--lang", "none"]),
-    )
-    .env("CLAUDE_CODE_SESSION_ID", SESSION)
-    .write_stdin("A sub-task.\n")
-    .output()
-    .unwrap();
-    assert!(nested.status.success());
-    assert_eq!(
-        String::from_utf8(nested.stdout).unwrap(),
-        format!("job={job}\nstatus=planned\nexisting=yes\n")
-    );
-    assert_eq!(
-        String::from_utf8(nested.stderr).unwrap(),
-        format!(
-            "note: session {SESSION} already has open job {job}; no job was opened; this work \
-             is recorded under it\n"
-        )
-    );
-
-    let refused = stderr_of(
-        rex(&main, &["job", "plan", &job, "--plan-file", "-"]).write_stdin(PLAN),
-        1,
-    );
-    assert!(
-        refused.contains("rex job plan accepts only a created job"),
-        "{refused}"
-    );
-    let shown = show_json(&main, &job);
-    assert_eq!(shown["transitions"].as_array().unwrap().len(), 2);
-    assert_eq!(shown["roles"].as_array().unwrap().len(), 3);
 }

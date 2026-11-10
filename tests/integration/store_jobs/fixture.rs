@@ -1,5 +1,6 @@
-//! The world each job test runs in: real Git repositories with a store, and the
-//! `rex` binary run in them with none of the session's variables inherited.
+//! The world each job test runs in: real Git repositories with a store, the
+//! `rex` binary run in them with none of the session's variables inherited, and
+//! the job commands the tests share.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -83,6 +84,20 @@ pub fn rex(cwd: &Path, args: &[&str]) -> Command {
     command
 }
 
+/// The same `rex <args>` as [`rex`], as a plain process, so that several can
+/// run at the same moment.
+pub fn rex_process(cwd: &Path, args: &[&str]) -> Process {
+    let mut process = Process::new(assert_cmd::cargo::cargo_bin("rex"));
+    process
+        .current_dir(cwd)
+        .env_remove("REX_STORE")
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .env_remove("CLAUDE_CODE_SESSION_ID")
+        .env_remove("CLAUDE_EFFORT")
+        .args(args);
+    process
+}
+
 /// Runs `command`, checks it succeeded, and gives its standard output.
 pub fn stdout_of(command: &mut Command) -> String {
     let output = command.output().unwrap();
@@ -110,4 +125,75 @@ pub fn value<'a>(stdout: &'a str, key: &str) -> &'a str {
         .lines()
         .find_map(|line| line.strip_prefix(key)?.strip_prefix('='))
         .unwrap_or_else(|| panic!("no {key}= line in:\n{stdout}"))
+}
+
+pub const SESSION: &str = "4f9c2e1a-7b3d-4e8f-9a6c-1d2e3f4a5b6c";
+
+pub const COMMIT: &str = "3f2a9c1e8b7d6a5f4e3d2c1b0a9f8e7d6c5b4a39";
+
+pub const PLAN: &str = r#"{
+  "orchestrator": "pipeline",
+  "skills": ["rex-code-tdd", "rex-code-philosophy", "rex-code-tdd"],
+  "breakdown": "1. Reject zero.\n2. Test it.",
+  "roles": [
+    {"role": "engineer", "intelligence": "high", "reliability": "high", "consequence": "high", "verification": "low"},
+    {"role": "reviewer", "intelligence": "medium", "reliability": "medium", "consequence": "medium", "verification": "high"},
+    {"role": "skill-writer", "session": true}
+  ]
+}"#;
+
+pub fn create_args<'a>(extra: &[&'a str]) -> Vec<&'a str> {
+    let mut args = vec![
+        "job",
+        "create",
+        "--request-file",
+        "-",
+        "--asked-by",
+        "human",
+        "--size",
+        "medium",
+        "--consequence",
+        "high",
+    ];
+    args.extend_from_slice(extra);
+    args
+}
+
+/// Opens a job in `session` and gives its ID.
+pub fn open_job(cwd: &Path, session: &str, extra: &[&str]) -> String {
+    let created = stdout_of(
+        rex(cwd, &create_args(extra))
+            .env("CLAUDE_CODE_SESSION_ID", session)
+            .write_stdin("A request.\n"),
+    );
+    value(&created, "job").to_owned()
+}
+
+/// Records `plan` for `job`, given on standard input.
+pub fn plan(cwd: &Path, job: &str, plan: &str) -> String {
+    stdout_of(rex(cwd, &["job", "plan", job, "--plan-file", "-"]).write_stdin(plan.to_owned()))
+}
+
+/// `rex job close <job> ...` with the deliveries on standard input.
+pub fn close(cwd: &Path, job: &str, status: &str, deliveries: &str) -> assert_cmd::Command {
+    let mut command = rex(
+        cwd,
+        &[
+            "job",
+            "close",
+            job,
+            "--status",
+            status,
+            "--outcome",
+            "Shop merged",
+            "--deliveries-file",
+            "-",
+        ],
+    );
+    command.write_stdin(deliveries.to_owned());
+    command
+}
+
+pub fn show_json(cwd: &Path, job: &str) -> serde_json::Value {
+    serde_json::from_str(&stdout_of(&mut rex(cwd, &["job", "show", job, "--json"]))).unwrap()
 }
