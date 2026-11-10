@@ -23,7 +23,7 @@ You = analyst. Find cause of one verdict. Write lesson. Change a file only where
 
 Stages: 1 Input, 2 Find job, 3 Read, 4 Cause, 5 Lesson, 6 Change, 7 Record. Then Report.
 
-Feedback design (5.18): steps 1 to 4 and 6 = Stages 1 to 4 and 6. Step 5 (record) = Stage 7. Step 7 (lesson) = Stage 5.
+Feedback design: steps 1 to 4 and 6 = Stages 1 to 4 and 6. Step 5 (record) = Stage 7. Step 7 (lesson) = Stage 5.
 
 ## Words
 
@@ -36,7 +36,7 @@ Feedback design (5.18): steps 1 to 4 and 6 = Stages 1 to 4 and 6. Step 5 (record
 - Lesson: 1 or 2 full sentences for a later job of same kind. `rex recall` gives it to builder.
 - Rule: one instruction line in a skill file or an orchestrator file.
 - Home: the one file a rule is written in.
-- Mapping: OMS function, compiled into `rex`. It picks grid agent for each role.
+- Mapping: OMS (optimal model selection) function, compiled into `rex`. It picks grid agent for each role.
 
 ## Rules
 
@@ -48,7 +48,7 @@ Feedback design (5.18): steps 1 to 4 and 6 = Stages 1 to 4 and 6. Step 5 (record
 - [ ] Ask user only where only user can answer: more than one job fits, or no job fits.
 - [ ] Never edit mapping.
 - [ ] One `rex feedback` call, in Stage 7, after all file changes. Each call adds a row. No call changes a row.
-- [ ] CAUTION: Skills and orchestrators are not in Git in a target repo. You cannot undo an edit to one of them. Read the whole file before you change it. Copy the old text into the report.
+- [ ] Before you change a skill or an orchestrator, obey CAUTION of Stage 6.
 
 ## Stage 1 — Input
 
@@ -77,7 +77,7 @@ rex jobs --json --search "<text>" --search "<text>" --since 2026-11-01 --until 2
 ```
 
 - `--search`: repeatable. Each term must be in request text. ASCII case is ignored. Dates: `YYYY-MM-DD`, UTC, both inclusive.
-- `request` in output = first 200 characters of request text. `request_truncated` = `true` IF text is longer.
+- `request` in output = first 200 characters of request text. IF text is longer, THEN `request_truncated` = `true`.
 - IF `gh` is not there, THEN skip `gh` commands and way 4.
 - IF more than one job fits, THEN ask user. Give each job ID with its request text + date. Write the question in full sentences.
 - IF no job fits, THEN tell user in full sentences what you tried. Stop.
@@ -101,12 +101,12 @@ Read from it:
 - [ ] `runs[]`: `role`, `agent_type`, `model_ran`, `effort_ran`, `depth`, `parent_agent_id`, `brief`, `skills_opened` (`null` = no transcript read), `final_message`.
 - [ ] `deliveries[]`: `repo`, `branch`, `pr`, `merge_commit`, `outcome`, `note`.
 - [ ] `feedback[]`: earlier feedback of this job, with `evidence`.
-- [ ] Commits of each delivery. `PR`, `MERGE_COMMIT`, `BRANCH` come from delivery. `MAIN` = default branch of its repo.
+- [ ] Commits of each delivery. `REPO`, `PR`, `MERGE_COMMIT`, `BRANCH` come from delivery. `MAIN` = default branch of its repo.
 
 ```sh
-git show "$MERGE_COMMIT"
+git -C "$REPO" show "$MERGE_COMMIT"
 gh pr view "$PR" --json commits
-git log "$MAIN..$BRANCH"
+git -C "$REPO" log "$MAIN..$BRANCH"
 ```
 
 - [ ] IF a field is empty (hooks not installed, or run not recorded), THEN write it under EMPTY FIELDS. Do not guess.
@@ -134,7 +134,9 @@ IF verdict = `accepted`, THEN skip to Stage 7.
 
 Do checks in this order. Stop at first check that is true. Only check 4 points at mapping.
 
-1. IF `model_ran` or `effort_ran` of a run ≠ `agent` of its role, THEN environment overrode choice. Mapping not at fault. A role with `session` = `true` has no `agent`: skip check 1 for it.
+1. Chosen agent = `agent` of role. Its file `.claude/agents/<agent>.md` has keys `model` (for example `sonnet`) and `effort`. IF `agent_type` of a run ≠ `agent`, OR `model_ran` does not contain `model`, OR `effort_ran` ≠ `effort`, THEN environment overrode choice. Mapping not at fault.
+   - A role with `session` = `true` has no `agent`: skip check 1 for it.
+   - IF `model_ran` or `effort_ran` is `null`, THEN write it under EMPTY FIELDS. Go to check 2.
 2. IF `rules` has `C1`, `C2` or `C3`, THEN user's budget or duration capped choice. Lesson is about that preference.
 3. IF `inputs` were wrong (for example, hard role rated low intelligence), THEN lesson belongs to builder rating. Home = `orchestration-selection`.
 4. ELSE mapping is suspect. List missed jobs (below). DO read `roles[].rules` of next one, newest first, UNTIL all read OR 20 read. One job is not enough. IF same `rules` set fails on several jobs, THEN propose a mapping change in report. Only a `rex` release makes one.
@@ -224,7 +226,7 @@ IF `rex feedback` exits with an error, THEN no row was added. Tell user + give i
 
 ## Report
 
-Write each field value in full sentences: user reads it. Give each field. Write `none` IF field is empty.
+Write each field value in full sentences: user reads it. Give each field. IF field is empty, THEN write `none`.
 
 ```
 JOB: <job ID> + how it was found
