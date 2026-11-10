@@ -6,7 +6,7 @@ use std::fs;
 use std::path::Path;
 
 use super::comments::comment_lines;
-use super::language::is_rust_file;
+use super::language::Language;
 use super::stdout::print_to_stdout;
 use super::walk::{skip_if_denied, visible_entries};
 use crate::error::RexError;
@@ -38,7 +38,8 @@ fn render_report(cwd: &Path) -> Result<String, RexError> {
         let entry = entry?;
         let path = entry.path();
 
-        let is_rust_source = entry.file_type().is_some_and(|ft| ft.is_file()) && is_rust_file(path);
+        let is_rust_source = entry.file_type().is_some_and(|ft| ft.is_file())
+            && Language::of(path) == Some(Language::Rust);
         if !is_rust_source {
             continue;
         }

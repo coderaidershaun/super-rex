@@ -142,3 +142,31 @@ fn codebase_with_context_lists_an_unreadable_rust_file_without_its_sentence() {
         "warning must name the skipped file, got: {stderr}"
     );
 }
+
+#[test]
+fn codebase_with_context_lists_an_unreadable_go_file_without_its_sentence() {
+    let dir = tempdir().expect("create tempdir");
+    fs::write(dir.path().join("ok.go"), "// Fine feed.\n\npackage feed\n").expect("write ok.go");
+    let Some(_locked) = Locked::file(
+        dir.path().join("locked.go"),
+        "// Hidden feed.\n\npackage feed\n",
+    ) else {
+        return;
+    };
+
+    let assert = Command::cargo_bin("rex")
+        .expect("find rex binary")
+        .args(["codebase", "--with-context"])
+        .current_dir(dir.path())
+        .assert()
+        .success();
+
+    let output = assert.get_output();
+    let stdout = String::from_utf8(output.stdout.clone()).expect("utf8 stdout");
+    let stderr = String::from_utf8(output.stderr.clone()).expect("utf8 stderr");
+    assert_eq!(stdout, "locked.go\nok.go - Fine feed.\n");
+    assert!(
+        stderr.contains("rex: skipped ./locked.go: permission denied"),
+        "warning must name the skipped file, got: {stderr}"
+    );
+}

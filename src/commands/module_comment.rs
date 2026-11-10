@@ -169,7 +169,10 @@ fn sentence_end(text: &str) -> Option<usize> {
     text.char_indices()
         .filter(|&(_, c)| c == '.')
         .map(|(index, _)| index + 1)
-        .find(|&end| text[end..].chars().next().is_none_or(char::is_whitespace))
+        .find(|&end| {
+            text.get(end..)
+                .is_some_and(|rest| rest.chars().next().is_none_or(char::is_whitespace))
+        })
 }
 
 #[cfg(test)]

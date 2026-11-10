@@ -3,6 +3,7 @@
 
 mod broken_pipe;
 mod commands;
+mod languages;
 mod smells;
 mod symlinks;
 mod tree;

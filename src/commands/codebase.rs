@@ -3,40 +3,47 @@
 //! walks.
 
 use std::fs::{self, File};
-use std::io::{self, BufRead, BufReader, Read};
+use std::io::Read;
 use std::path::Path;
 
+use clap::ValueEnum;
+use clap::builder::PossibleValue;
 use ignore::DirEntry;
 
-use super::language::is_rust_file;
+use super::language::Language;
 use super::links::is_symlink;
+use super::module_comment::leading_sentence;
 use super::stdout::{print_line_to_stdout, print_to_stdout};
 use super::walk::{skip_if_denied, visible_entries};
 use crate::error::RexError;
 
 const OUTPUT_FILENAME: &str = "CODEBASE.md";
 
-const LAST_DOC_START_LINE: usize = 5;
-
-/// How much of a line, and of the doc block as a whole, is read while looking
-/// for the first sentence. A `.rs` file can be one generated line megabytes
-/// long, and the sentence goes on one line of a tree, so reading further
-/// would only cost memory.
-const MAX_DOC_BYTES: usize = 4096;
+/// How much of the start of a file is read while looking for the first
+/// sentence. A source file can be one generated line megabytes long, and the
+/// sentence goes on one line of a tree, so reading further would only cost
+/// memory.
+const MAX_DOC_BYTES: u64 = 4096;
 
 const WITH_CONTEXT_FLAG: &str = "with-context";
+const ONLY_FLAG: &str = "only";
 const RUST_ONLY_FLAG: &str = "rust-only";
 const FOR_HUMAN_FLAG: &str = "for-human";
 
 /// What `rex codebase` prints and where it goes.
 #[derive(clap::Args, Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct CodebaseOptions {
-    /// Add the first sentence of each Rust file's `//!` doc comment to its line.
+    /// Add the first sentence of each source file's opening comment to its line.
     #[arg(long = WITH_CONTEXT_FLAG)]
     pub has_context: bool,
 
-    /// List only `.rs` files and the directories that hold at least one.
-    #[arg(long = RUST_ONLY_FLAG)]
+    /// List only source files and the directories that hold at least one:
+    /// `code` for every language rex knows, or one language.
+    #[arg(long = ONLY_FLAG, value_name = "WHAT")]
+    only: Option<Only>,
+
+    /// Same as `--only rust`.
+    #[arg(long = RUST_ONLY_FLAG, conflicts_with = "only")]
     pub is_rust_only: bool,
 
     /// Write the tree to CODEBASE.md instead of printing it.
@@ -44,13 +51,67 @@ pub struct CodebaseOptions {
     pub is_for_human: bool,
 }
 
+/// The files `--only` keeps: those in any language rex knows, or in one.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Only {
+    Code,
+    Language(Language),
+}
+
+impl Only {
+    fn matches(self, path: &Path) -> bool {
+        match self {
+            Self::Code => Language::of(path).is_some(),
+            // Not `Language::of`, because a `.h` file is both C and C++.
+            Self::Language(language) => language.has_extension(path),
+        }
+    }
+}
+
+// clap cannot derive this for a variant that holds a value, so the values
+// are listed by hand, in the order the help text shows them.
+impl ValueEnum for Only {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[
+            Self::Code,
+            Self::Language(Language::Rust),
+            Self::Language(Language::Go),
+            Self::Language(Language::C),
+            Self::Language(Language::Cpp),
+            Self::Language(Language::Python),
+            Self::Language(Language::Js),
+            Self::Language(Language::Ts),
+            Self::Language(Language::Shell),
+        ]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        match self {
+            Self::Code => Some(PossibleValue::new("code")),
+            Self::Language(language) => language.to_possible_value(),
+        }
+    }
+}
+
 impl CodebaseOptions {
+    /// The files the tree keeps, or `None` for every file.
+    fn scope(self) -> Option<Only> {
+        if self.is_rust_only {
+            Some(Only::Language(Language::Rust))
+        } else {
+            self.only
+        }
+    }
+
     /// Builds the command line for these options. The flags always come in
     /// the same order, whatever order the user typed them in.
     fn invocation(self) -> String {
         let mut invocation = String::from("rex codebase");
         if self.is_for_human {
             invocation.push_str(&format!(" --{FOR_HUMAN_FLAG}"));
+        }
+        if let Some(value) = self.only.and_then(|only| only.to_possible_value()) {
+            invocation.push_str(&format!(" --{ONLY_FLAG} {}", value.get_name()));
         }
         if self.is_rust_only {
             invocation.push_str(&format!(" --{RUST_ONLY_FLAG}"));
@@ -68,9 +129,9 @@ impl CodebaseOptions {
 /// # Errors
 /// - [`RexError::Walk`] if the directory walk fails (loop, glob). A path that
 ///   cannot be read is skipped with a warning on stderr.
-/// - [`RexError::Io`] if a Rust file cannot be read for its doc comment (a file
-///   that is denied is listed without it, with a warning on stderr), or the
-///   output file cannot be written.
+/// - [`RexError::Io`] if a source file cannot be read for its opening comment
+///   (a file that is denied is listed without it, with a warning on stderr),
+///   or the output file cannot be written.
 /// - [`RexError::SymbolicLink`] if `CODEBASE.md` is a symbolic link.
 /// - [`RexError::Stdout`] if the tree cannot be written to stdout.
 pub fn run(cwd: &Path, options: CodebaseOptions) -> Result<(), RexError> {
@@ -105,8 +166,9 @@ fn write_markdown_file(cwd: &Path, tree: &str, options: CodebaseOptions) -> Resu
 
 fn render_tree(cwd: &Path, options: CodebaseOptions) -> Result<String, RexError> {
     let mut out = String::new();
-    // With --rust-only a directory line waits here until a Rust file shows
-    // up below it, so directories with no Rust files never print.
+    let scope = options.scope();
+    // With a scope a directory line waits here until a file it keeps shows
+    // up below it, so directories with no such file never print.
     let mut pending_dirs: Vec<(usize, String)> = Vec::new();
 
     for entry in visible_entries(cwd) {
@@ -122,18 +184,18 @@ fn render_tree(cwd: &Path, options: CodebaseOptions) -> Result<String, RexError>
         }
 
         // The walk is depth-first, so a pending directory at this depth or
-        // deeper has been left without a Rust file in it.
+        // deeper has been left without a kept file in it.
         pending_dirs.retain(|(pending_depth, _)| *pending_depth < depth);
 
         let indent = "  ".repeat(depth - 1);
         if is_dir {
             let line = format!("{indent}{}/\n", entry.file_name().to_string_lossy());
-            if options.is_rust_only {
+            if scope.is_some() {
                 pending_dirs.push((depth, line));
             } else {
                 out.push_str(&line);
             }
-        } else if !options.is_rust_only || is_rust_file(entry.path()) {
+        } else if scope.is_none_or(|only| only.matches(entry.path())) {
             out.extend(pending_dirs.drain(..).map(|(_, line)| line));
             out.push_str(&file_line(&entry, &indent, options)?);
         }
@@ -150,15 +212,15 @@ fn is_own_output(entry: &DirEntry, is_dir: bool) -> bool {
 }
 
 /// One line of the tree for a file: its name and, with `--with-context`, the
-/// first sentence of the `//!` comment of a Rust file.
+/// first sentence of the comment that opens a file in a language rex knows.
 fn file_line(entry: &DirEntry, indent: &str, options: CodebaseOptions) -> Result<String, RexError> {
     let mut line = format!("{indent}{}", entry.file_name().to_string_lossy());
 
     let is_regular_file = entry.file_type().is_some_and(|ft| ft.is_file());
     if options.has_context
-        && is_rust_file(entry.path())
         && is_regular_file
-        && let Some(sentence) = first_doc_sentence(entry.path())?
+        && let Some(language) = Language::of(entry.path())
+        && let Some(sentence) = first_doc_sentence(entry.path(), language)?
     {
         line = format!("{line} - {sentence}");
     }
@@ -167,139 +229,22 @@ fn file_line(entry: &DirEntry, indent: &str, options: CodebaseOptions) -> Result
     Ok(line)
 }
 
-/// Reads the first sentence of the `//!` block that opens a Rust file, if it
-/// has one.
-///
-/// The block must start within the first few lines. The sentence ends at the
-/// first full stop that is followed by whitespace or the end of a line, or at
-/// an empty `//!` line once text has started. It also ends at
-/// [`MAX_DOC_BYTES`], so no file can make this line of the tree grow.
-fn first_doc_sentence(path: &Path) -> Result<Option<String>, RexError> {
-    let io_error = |source| RexError::Io {
-        path: path.to_path_buf(),
-        source,
-    };
-
+/// Reads the first sentence of the comment that opens a source file, if it
+/// has one. Only the first [`MAX_DOC_BYTES`] of the file are read, so no file
+/// can make this line of the tree grow.
+fn first_doc_sentence(path: &Path, language: Language) -> Result<Option<String>, RexError> {
     let Some(file) = skip_if_denied(path, File::open(path))? else {
         return Ok(None);
     };
-    let mut reader = BufReader::new(file);
-    let mut raw_line = Vec::new();
-    let mut text = String::new();
-    let mut line_number = 0;
-    let mut is_in_block = false;
+    let mut head = Vec::new();
+    file.take(MAX_DOC_BYTES)
+        .read_to_end(&mut head)
+        .map_err(|source| RexError::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
 
-    // Lines are read as bytes because `lines()` returns an error on text that
-    // is not valid UTF-8, and one such file must not fail the whole command.
-    while read_capped_line(&mut reader, &mut raw_line).map_err(io_error)? {
-        line_number += 1;
-        let line = String::from_utf8_lossy(&raw_line);
-
-        let Some(doc) = line.strip_prefix("//!") else {
-            if is_in_block || line_number >= LAST_DOC_START_LINE {
-                break;
-            }
-            continue;
-        };
-        is_in_block = true;
-
-        let doc = doc.trim();
-        if doc.is_empty() {
-            if text.is_empty() {
-                continue;
-            }
-            break;
-        }
-
-        if !text.is_empty() {
-            text.push(' ');
-        }
-        text.push_str(doc);
-
-        if let Some(end) = sentence_end(&text) {
-            text.truncate(end);
-            break;
-        }
-        if text.len() >= MAX_DOC_BYTES {
-            break;
-        }
-    }
-
-    Ok(Some(text).filter(|sentence| !sentence.is_empty()))
-}
-
-/// Reads the next line of `reader` into `raw_line`, up to [`MAX_DOC_BYTES`].
-/// What is left of a longer line is dropped, so the next read starts where a
-/// line does. False at the end of the file.
-fn read_capped_line<R: BufRead>(reader: &mut R, raw_line: &mut Vec<u8>) -> io::Result<bool> {
-    raw_line.clear();
-    let mut capped = reader.by_ref().take(MAX_DOC_BYTES as u64);
-    let read = capped.read_until(b'\n', raw_line)?;
-
-    if read == 0 {
-        return Ok(false);
-    }
-
-    let is_whole_line = raw_line.ends_with(b"\n") || read < MAX_DOC_BYTES;
-    if !is_whole_line {
-        reader.skip_until(b'\n')?;
-    }
-    Ok(true)
-}
-
-/// Finds the byte offset just past the first full stop that is followed by
-/// whitespace or the end of the text. A full stop inside a word, such as
-/// `CODEBASE.md`, does not count.
-fn sentence_end(text: &str) -> Option<usize> {
-    text.char_indices()
-        .filter(|&(_, c)| c == '.')
-        .map(|(index, _)| index + 1)
-        .find(|&end| text[end..].chars().next().is_none_or(char::is_whitespace))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn read_line(reader: &mut &[u8], raw_line: &mut Vec<u8>) -> bool {
-        read_capped_line(reader, raw_line).expect("reading a slice cannot fail")
-    }
-
-    #[test]
-    fn a_line_longer_than_the_cap_is_cut_and_the_next_read_starts_on_a_line() {
-        let source = format!("{}\nsecond\n", "x".repeat(MAX_DOC_BYTES * 3));
-        let mut reader = source.as_bytes();
-        let mut raw_line = Vec::new();
-
-        assert!(read_line(&mut reader, &mut raw_line));
-        assert_eq!(raw_line.len(), MAX_DOC_BYTES);
-
-        assert!(read_line(&mut reader, &mut raw_line));
-        assert_eq!(raw_line, b"second\n");
-    }
-
-    // A line that fills the cap exactly is already whole. Skipping to the
-    // next newline here would drop the line after it.
-    #[test]
-    fn a_line_that_ends_on_the_cap_keeps_the_line_after_it() {
-        let source = format!("{}\nsecond\n", "x".repeat(MAX_DOC_BYTES - 1));
-        let mut reader = source.as_bytes();
-        let mut raw_line = Vec::new();
-
-        assert!(read_line(&mut reader, &mut raw_line));
-        assert_eq!(raw_line.len(), MAX_DOC_BYTES);
-
-        assert!(read_line(&mut reader, &mut raw_line));
-        assert_eq!(raw_line, b"second\n");
-    }
-
-    #[test]
-    fn the_last_line_of_a_file_that_ends_without_a_newline_is_read_once() {
-        let mut reader = &b"only"[..];
-        let mut raw_line = Vec::new();
-
-        assert!(read_line(&mut reader, &mut raw_line));
-        assert_eq!(raw_line, b"only");
-        assert!(!read_line(&mut reader, &mut raw_line));
-    }
+    // Text that is not valid UTF-8 must not fail the whole command.
+    let head = String::from_utf8_lossy(&head);
+    Ok(leading_sentence(&head, &language.syntax()))
 }
