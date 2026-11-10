@@ -12,7 +12,9 @@ use std::time::{Duration, Instant, SystemTime};
 use rusqlite::{ErrorCode, Transaction, params};
 use super_rex::store::{JobId, Place, Store, StoreError, StorePaths};
 
-fn git(dir: &Path, args: &[&str]) {
+/// `git <args>` in `dir`, with none of the variables that point Git at another
+/// repository, so a test run from a Git hook cannot touch the outer repository.
+pub(super) fn git(dir: &Path, args: &[&str]) {
     let status = Command::new("git")
         .args(["-c", "user.name=rex", "-c", "user.email=rex@example.com"])
         .args([
