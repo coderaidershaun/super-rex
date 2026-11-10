@@ -6,6 +6,7 @@ use serde::Serialize;
 use super::JobsError;
 use super::select::{DeliveryRow, JobRow};
 use crate::capture::{JobRuns, TokenCounts, TokenTotal};
+use crate::store::status::Shown;
 
 /// How many characters of the request a summary keeps.
 pub const EXCERPT_CHARS: usize = 200;
@@ -100,21 +101,19 @@ impl TokenSummary {
 }
 
 impl JobSummary {
-    /// `shown_status` is the stored status, or `running` when the caller worked
-    /// that out from the open runs.
     pub fn new(
         row: JobRow,
         deliveries: Vec<DeliveryRow>,
         runs: &JobRuns,
         has_feedback: bool,
-        shown_status: &str,
+        shown: Shown,
     ) -> JobSummary {
         let request_truncated = row.request.chars().nth(EXCERPT_CHARS).is_some();
         JobSummary {
             id: row.id,
             created_at: row.created_at,
             updated_at: row.updated_at,
-            status: shown_status.to_owned(),
+            status: shown.to_string(),
             stored_status: row.stored_status,
             request: row.request.chars().take(EXCERPT_CHARS).collect(),
             request_truncated,
@@ -190,6 +189,7 @@ mod tests {
     use super::*;
     use crate::commands::jobs::select::{JobFilter, select_job_rows};
     use crate::commands::jobs::test_support::{empty_runs, insert, store};
+    use crate::store::status::Status;
 
     #[test]
     fn summary_has_the_contract_shape() {
@@ -199,7 +199,13 @@ mod tests {
         let row = select_job_rows(&conn, &JobFilter::default())
             .unwrap()
             .remove(0);
-        let summary = JobSummary::new(row, vec![], &empty_runs(), false, "created");
+        let summary = JobSummary::new(
+            row,
+            vec![],
+            &empty_runs(),
+            false,
+            Shown::Stored(Status::Created),
+        );
         assert!(summary.request_truncated);
         assert_eq!(summary.request.chars().count(), EXCERPT_CHARS);
         assert_eq!(summary.languages, ["go", "rust"]);
@@ -222,7 +228,7 @@ mod tests {
         let row = select_job_rows(&conn, &JobFilter::default())
             .unwrap()
             .remove(0);
-        let summary = JobSummary::new(row, vec![], &empty_runs(), false, "running");
+        let summary = JobSummary::new(row, vec![], &empty_runs(), false, Shown::Running);
         assert_eq!(
             summary.plain_line(),
             "0000000001 running fix small low go,rust 2026-11-09T10:00:00.000Z one two three"

@@ -76,6 +76,31 @@ struct Group {
     path: String,
 }
 
+impl Group {
+    fn empty(paths: &StorePaths, name: String, version: i64) -> Group {
+        Group {
+            path: skill_path(paths, &name),
+            name,
+            version,
+            best_match: 0,
+            runs: 0,
+            accepted: 0,
+            missed: 0,
+        }
+    }
+
+    /// Adds one similar job, by its score and stored status.
+    fn count(&mut self, score: i64, status: &str) {
+        self.best_match = self.best_match.max(score);
+        self.runs += 1;
+        match status {
+            "accepted" => self.accepted += 1,
+            "rejected" | "analyzed" | "failed" => self.missed += 1,
+            _ => {}
+        }
+    }
+}
+
 #[derive(Serialize)]
 struct Unused {
     name: String,
@@ -257,28 +282,13 @@ fn groups(
     let mut groups: Vec<Group> = Vec::new();
     for row in rows {
         let (name, version, score, status) = row?;
-        let index = match groups.iter().position(|group| group.name == name) {
-            Some(index) => index,
+        match groups.iter_mut().find(|group| group.name == name) {
+            Some(group) => group.count(score, &status),
             None => {
-                groups.push(Group {
-                    path: skill_path(paths, &name),
-                    name,
-                    version,
-                    best_match: 0,
-                    runs: 0,
-                    accepted: 0,
-                    missed: 0,
-                });
-                groups.len() - 1
+                let mut group = Group::empty(paths, name, version);
+                group.count(score, &status);
+                groups.push(group);
             }
-        };
-        let group = &mut groups[index];
-        group.best_match = group.best_match.max(score);
-        group.runs += 1;
-        match status.as_str() {
-            "accepted" => group.accepted += 1,
-            "rejected" | "analyzed" | "failed" => group.missed += 1,
-            _ => {}
         }
     }
     groups.sort_by(|a, b| {
@@ -372,8 +382,9 @@ fn plain_lines(report: &Report) -> Vec<String> {
     lines
 }
 
-// SMELL: duplicates the header reader of `commands::skills::header`; replace
-// it when that reader is exported for other commands to use.
+// SMELL: duplicates the header reader of `rex skills`, so the two can read a
+// description differently and the index keeps whichever ran first. Pass
+// `commands::skills::describe` to `index_all` instead once this crate has it.
 /// The `description` of the header of `<name>/SKILL.md`: the lines between the
 /// `---` on line 1 and the next `---` line. `None` if the file or the field
 /// is missing or the header is not YAML.

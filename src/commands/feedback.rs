@@ -264,6 +264,8 @@ fn record(
             has_analysis: feedback.has_analysis(),
         },
     )?;
+    // SMELL: the store's `Verdict` has no text form, so the column text is
+    // spelled here a second time. Use the store's text once it gives one.
     let verdict = match feedback.verdict {
         Verdict::Accepted => "accepted",
         Verdict::Rejected => "rejected",

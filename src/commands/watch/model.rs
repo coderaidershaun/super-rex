@@ -135,6 +135,12 @@ impl Snapshot {
         Snapshot { jobs }
     }
 
+    /// Where the job `id` is in the list, so the selection can follow the job
+    /// when a refresh puts a new job above it.
+    pub fn position(&self, id: &str) -> Option<usize> {
+        self.jobs.iter().position(|(summary, _)| summary.id == id)
+    }
+
     /// The job list, and the run tree of the job at `selected`.
     pub fn view(&self, selected: usize) -> ViewModel {
         ViewModel {
@@ -203,11 +209,7 @@ fn tree_row(run: &Run, depth: usize) -> TreeRow {
     TreeRow {
         depth,
         role: run.role.clone().unwrap_or_else(dash),
-        agent: run
-            .agent_type
-            .clone()
-            .or_else(|| run.model_ran.clone())
-            .unwrap_or_else(dash),
+        model: run.model_ran.clone().unwrap_or_else(dash),
         effort: run.effort_ran.clone().unwrap_or_else(dash),
         state: match run.state {
             RunState::Open => "open",

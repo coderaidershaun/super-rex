@@ -23,6 +23,7 @@ pub struct JobListRow {
     pub languages: String,
     pub created_at: String,
     pub excerpt: String,
+    /// Open, finished and unconfirmed runs, as `2/1/0`.
     pub runs: String,
     pub tokens: String,
 }
@@ -30,10 +31,6 @@ pub struct JobListRow {
 impl JobListRow {
     pub fn of(summary: &JobSummary) -> JobListRow {
         let counts = &summary.runs;
-        let mut runs = format!("{} open {} finished", counts.open, counts.finished);
-        if counts.unconfirmed > 0 {
-            runs.push_str(&format!(" {} unconfirmed", counts.unconfirmed));
-        }
         JobListRow {
             id: summary.id.clone(),
             status: summary.status.clone(),
@@ -43,7 +40,7 @@ impl JobListRow {
             languages: summary.languages.join(","),
             created_at: summary.created_at.clone(),
             excerpt: summary.excerpt_on_one_line(),
-            runs,
+            runs: format!("{}/{}/{}", counts.open, counts.finished, counts.unconfirmed),
             tokens: summary.tokens.as_ref().map(tokens_text).unwrap_or_default(),
         }
     }
@@ -54,8 +51,8 @@ impl JobListRow {
 pub struct TreeRow {
     pub depth: usize,
     pub role: String,
-    /// The agent type, else the model that ran, else `-`.
-    pub agent: String,
+    /// The model that ran, else `-`.
+    pub model: String,
     pub effort: String,
     pub state: &'static str,
     /// `-` when the run has no duration yet.
@@ -156,16 +153,17 @@ fn draw_jobs(frame: &mut Frame, area: ratatui::layout::Rect, view: &ViewModel, s
             job.excerpt.as_str(),
         ])
     });
+    // The fixed columns fit in 110 terminal columns; the request takes the rest.
     let widths = [
         Constraint::Length(10),
         Constraint::Length(9),
         Constraint::Length(8),
         Constraint::Length(6),
-        Constraint::Length(11),
+        Constraint::Length(6),
         Constraint::Length(10),
         Constraint::Length(24),
-        Constraint::Length(30),
-        Constraint::Length(15),
+        Constraint::Length(10),
+        Constraint::Length(14),
         Constraint::Fill(1),
     ];
     let header = Row::new([
@@ -173,10 +171,10 @@ fn draw_jobs(frame: &mut Frame, area: ratatui::layout::Rect, view: &ViewModel, s
         "status",
         "type",
         "size",
-        "consequence",
+        "conseq",
         "languages",
         "created",
-        "runs",
+        "runs o/f/u",
         "tokens",
         "request",
     ])
@@ -207,32 +205,27 @@ fn draw_tree(frame: &mut Frame, area: ratatui::layout::Rect, view: &ViewModel, s
             branch,
             run.role
         );
-        let tag = run
-            .tag_job
-            .as_deref()
-            .map(|job| format!("job {job}"))
-            .unwrap_or_default();
         Row::new([
             Cell::from(role),
-            Cell::from(run.agent.as_str()),
+            Cell::from(run.model.as_str()),
             Cell::from(run.effort.as_str()),
             Cell::from(run.state),
             Cell::from(run.duration.as_str()),
             Cell::from(run.tokens.as_str()),
-            Cell::from(tag),
+            Cell::from(run.tag_job.as_deref().unwrap_or_default()),
         ])
     });
     let widths = [
-        Constraint::Length(28),
-        Constraint::Length(28),
-        Constraint::Length(8),
-        Constraint::Length(12),
-        Constraint::Length(8),
-        Constraint::Length(15),
+        Constraint::Length(24),
+        Constraint::Length(26),
+        Constraint::Length(6),
+        Constraint::Length(11),
+        Constraint::Length(5),
+        Constraint::Length(14),
         Constraint::Fill(1),
     ];
     let header = Row::new([
-        "role", "agent", "effort", "state", "time", "tokens", "tag job",
+        "role", "model", "effort", "state", "time", "tokens", "tag job",
     ])
     .style(header_style());
     let table = Table::new(rows, widths)

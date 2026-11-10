@@ -1,8 +1,6 @@
-//! `rex jobs`: lists jobs for scripts and agents. `select.rs` holds the filter
-//! and the SELECTs, `summary.rs` the summary of one job and its two output
-//! forms. This file ties them to the store and the run read model. `rex watch`
-//! builds its job list with [`load_summaries`], the same function, so the
-//! screen and `rex jobs --json` cannot drift apart.
+//! `rex jobs`: lists jobs for scripts and agents. `rex watch` builds its job
+//! list with [`load_summaries`], the same function, so the screen and
+//! `rex jobs --json` cannot drift apart.
 
 mod select;
 mod summary;
@@ -16,12 +14,11 @@ use crate::error::{CommandError, RexError};
 use crate::store::status::{Shown, Status, StatusError};
 use crate::store::{JobId, Store, StoreError, StorePaths};
 
-pub use select::{
-    DeliveryRow, JobFilter, JobRow, has_feedback, select_deliveries, select_job_rows,
-};
-pub use summary::{
-    DeliverySummary, EXCERPT_CHARS, JobSummary, OrchestratorRef, RunCounts, TokenSummary, jobs_json,
-};
+use select::{has_feedback, select_deliveries, select_job_rows};
+use summary::jobs_json;
+
+pub use select::JobFilter;
+pub use summary::{JobSummary, TokenSummary};
 
 /// Arguments of `rex jobs`.
 #[derive(clap::Args)]
@@ -85,7 +82,8 @@ impl CommandError for JobsError {
 /// - [`JobsError::BadDate`] for a bad `--since` or `--until`.
 /// - [`JobsError::Store`] if the store is missing or a read fails.
 /// - [`JobsError::Capture`] if the runs of a job cannot be read.
-/// - [`JobsError::StoredStatus`] if a job holds a status that is not one of the nine.
+/// - [`JobsError::StoredStatus`], [`JobsError::StoredId`] if a job row holds a
+///   status or an ID that rex does not accept.
 /// - [`JobsError::Json`], [`JobsError::Rex`] if the output cannot be written.
 pub fn run(cwd: &Path, options: JobsOptions) -> Result<(), JobsError> {
     let filter = options.filter()?;
@@ -114,6 +112,7 @@ pub fn run(cwd: &Path, options: JobsOptions) -> Result<(), JobsError> {
 /// - [`JobsError::Store`] if a read fails.
 /// - [`JobsError::Capture`] if the runs of a job cannot be read.
 /// - [`JobsError::StoredStatus`] if a job holds a status that is not one of the nine.
+/// - [`JobsError::StoredId`] if a job holds an ID that is not of the job ID form.
 pub(crate) fn load_summaries(
     store: &mut Store,
     filter: &JobFilter,
@@ -136,8 +135,8 @@ pub(crate) fn load_summaries(
         let runs = capture::job_runs(store, &id, now)?;
         let deliveries = select_deliveries(store.conn(), &id)?;
         let feedback = has_feedback(store.conn(), &id)?;
-        let shown = Shown::of(stored, runs.open).to_string();
-        let summary = JobSummary::new(row, deliveries, &runs, feedback, &shown);
+        let shown = Shown::of(stored, runs.open);
+        let summary = JobSummary::new(row, deliveries, &runs, feedback, shown);
         loaded.push((summary, runs));
     }
     Ok(loaded)

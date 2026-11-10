@@ -1,9 +1,8 @@
-//! `rex watch`: a live view of jobs and their agent trees, for people. This
-//! file owns the terminal and the loop; `model.rs` holds the data and the keys,
-//! `view.rs` the drawing. The job data comes from the function `rex jobs` uses.
+//! `rex watch`: a live view of jobs and their agent trees, for people. The job
+//! data comes from the function `rex jobs` uses, so the screen and the list agree.
 
-pub mod model;
-pub mod view;
+mod model;
+mod view;
 
 use std::io::{self, IsTerminal};
 use std::path::Path;
@@ -64,8 +63,9 @@ pub fn run(cwd: &Path, _options: WatchOptions) -> Result<(), WatchError> {
     let mut store = Store::open(&paths)?;
     let first = Snapshot::load(&mut store, SystemTime::now())?;
 
-    let terminal = ratatui::try_init().map_err(WatchError::Terminal)?;
+    // The guard comes first: a start that fails half way can leave raw mode on.
     let _restore = TerminalGuard;
+    let terminal = ratatui::try_init().map_err(WatchError::Terminal)?;
     event_loop(terminal, &mut store, first)
 }
 
@@ -104,8 +104,12 @@ fn event_loop(
             state = next;
         }
         if refreshed.elapsed() >= refresh {
+            let selected = view.jobs.get(state.job).map(|row| row.id.clone());
             snapshot = Snapshot::load(store, SystemTime::now())?;
             refreshed = Instant::now();
+            if let Some(index) = selected.and_then(|id| snapshot.position(&id)) {
+                state.job = index;
+            }
         }
     }
 }
