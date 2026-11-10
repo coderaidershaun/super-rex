@@ -256,9 +256,10 @@ fn schema_v1_applies_once_and_guards_its_invariants() {
     let tables = count(
         &store,
         "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name IN
-         ('job', 'job_transition', 'role', 'delivery', 'orchestrator', 'sub_agent_run', 'feedback', 'meta')",
+         ('job', 'job_transition', 'role', 'delivery', 'orchestrator', 'sub_agent_run',
+          'session_tokens', 'feedback', 'meta')",
     );
-    assert_eq!(tables, 8);
+    assert_eq!(tables, 9);
     assert!(paths.orchestrators.is_dir());
     drop(store);
 
