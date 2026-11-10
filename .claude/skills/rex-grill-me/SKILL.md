@@ -1,6 +1,11 @@
 ---
 name: rex-grill-me
-description: Interview the user relentlessly about a plan or design until you and the user reach a shared understanding. Resolve each branch of the decision tree. Use when the user wants to stress-test a plan, asks you to grill them on their design, or mentions "grill me".
+description: >
+  Interview the user relentlessly about a plan or design until you and the user
+  reach a shared understanding. Resolve each branch of the decision tree.
+when_to_use: >
+  Use when the user wants to stress-test a plan, asks you to grill them on their
+  design, or mentions "grill me".
 ---
 
 DO interview me relentlessly about every aspect of plan UNTIL we reach shared understanding OR I say stop.

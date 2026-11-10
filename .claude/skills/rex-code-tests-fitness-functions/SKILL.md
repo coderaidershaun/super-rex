@@ -1,6 +1,16 @@
 ---
 name: rex-code-tests-fitness-functions
-description: This skill gives hard rules for Rust fitness function tests. Fitness functions are few, immortal architectural invariants. Use proptest for a large input space. The tests live in tests/fitness/ and run on every CI run. The anchor example is orderbook reconstruction (snapshot + updates always equals streamed state). Use it when you test critical invariants like orderbook reconstruction, money conservation, or schema backward-compat. Use it also when the user asks "make sure X never breaks", "invariant must always hold", "property test", "promote to fitness".
+description: >
+  This skill gives hard rules for Rust fitness function tests. Fitness functions
+  are few, immortal architectural invariants. Use proptest for a large input
+  space. The tests live in tests/fitness/ and run on every CI run. The anchor
+  example is orderbook reconstruction (snapshot + updates always equals streamed
+  state).
+when_to_use: >
+  Use when you test critical invariants like orderbook reconstruction, money
+  conservation, or schema backward-compat. Use it also when the user asks "make
+  sure X never breaks", "invariant must always hold", "property test", "promote
+  to fitness".
 disable-model-invocation: false
 user-invocable: true
 ---

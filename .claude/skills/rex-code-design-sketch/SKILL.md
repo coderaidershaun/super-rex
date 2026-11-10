@@ -4,11 +4,12 @@ description: >
   Hard rules for the design sketch that comes before code: boxes, arrows, one
   named pattern, one extension point, and how existing code changes to fit.
   Output goes in the plan as a module table plus one Mermaid diagram. Finds
-  bandages and unknowns before an engineer starts. Use this skill when a lead
-  writes a plan for a new system, a new feature, or a change that adds or
-  reshapes a module. Use it also when the user says "draw the architecture",
-  "design this first", "boxes and arrows", "what is the design pattern", or
-  "how should this fit in".
+  bandages and unknowns before an engineer starts.
+when_to_use: >
+  Use when a lead writes a plan for a new system, a new feature, or a change
+  that adds or reshapes a module. Use it also when the user says "draw the
+  architecture", "design this first", "boxes and arrows", "what is the design
+  pattern", or "how should this fit in".
 disable-model-invocation: false
 user-invocable: true
 ---

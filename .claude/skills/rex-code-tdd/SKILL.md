@@ -1,6 +1,11 @@
 ---
 name: rex-code-tdd
-description: This skill gives test-driven development with a red-green-refactor loop. Use it when the user wants to build features or fix bugs with TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
+description: >
+  This skill gives test-driven development with a red-green-refactor loop.
+when_to_use: >
+  Use when the user wants to build features or fix bugs with TDD, mentions
+  "red-green-refactor", wants integration tests, or asks for test-first
+  development.
 disable-model-invocation: false
 user-invocable: true
 ---

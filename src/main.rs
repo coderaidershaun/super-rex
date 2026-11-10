@@ -95,8 +95,13 @@ fn finish(result: Result<(), impl CommandError>) -> ExitCode {
     };
     let code = exit_code_for(&error);
     // If stderr cannot be written to, there is nowhere left to report it.
-    let _ = writeln!(std::io::stderr(), "error: {:#}", anyhow::Error::new(error));
+    let _ = writeln!(std::io::stderr(), "{}", error_line(error));
     ExitCode::from(code)
+}
+
+fn error_line(error: impl CommandError) -> String {
+    let text = format!("error: {:#}", anyhow::Error::new(error));
+    text.replace("\r\n", " ").replace(['\r', '\n'], " ")
 }
 
 fn exit_code_for(error: &impl CommandError) -> u8 {
@@ -114,6 +119,9 @@ mod tests {
 
         #[error("the work failed")]
         Work,
+
+        #[error("a tool failed: {output}")]
+        Tool { output: String },
     }
 
     impl CommandError for TestError {
@@ -126,5 +134,18 @@ mod tests {
     fn a_usage_error_exits_with_2_and_any_other_error_with_1() {
         assert_eq!(exit_code_for(&TestError::Usage), 2);
         assert_eq!(exit_code_for(&TestError::Work), 1);
+    }
+
+    #[test]
+    fn an_error_text_with_line_ends_prints_as_one_line() {
+        let error = TestError::Tool {
+            output: "first line\nsecond line\r\nthird line".to_string(),
+        };
+
+        let line = error_line(error);
+
+        assert!(line.starts_with("error: "));
+        assert!(!line.contains('\n'));
+        assert!(!line.contains('\r'));
     }
 }

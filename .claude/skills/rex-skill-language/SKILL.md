@@ -4,11 +4,12 @@ description: >
   Language for skills, prompts, and agent instructions. It is Simplified
   Technical English (ASD-STE100) with caveman compression. One word has one
   meaning. Lines are short, with no articles and no filler. Conditions are
-  IF/THEN, loops are DO/UNTIL, and important items are checklists. Use this
-  skill when you write, rewrite, or shorten a skill, a SKILL.md, a system
-  prompt, or agent instructions. Use it also when the user says "skill
-  language", "STE", "STE100", "ASD-STE100", "simplified technical English",
-  "controlled language", "caveman the skill", or "make this skill shorter".
+  IF/THEN, loops are DO/UNTIL, and important items are checklists.
+when_to_use: >
+  Use when you write, rewrite, or shorten a skill, a SKILL.md, a system prompt,
+  or agent instructions. Use it also when the user says "skill language", "STE",
+  "STE100", "ASD-STE100", "simplified technical English", "controlled language",
+  "caveman the skill", or "make this skill shorter".
 ---
 
 # Skill Language
