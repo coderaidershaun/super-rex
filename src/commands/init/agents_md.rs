@@ -21,11 +21,14 @@ const CODEBASE_SECTION_BODY: &str = "\
 Run one of these commands before you search the tree by hand. Each one prints a tree of the working directory and skips the files that git ignores.
 
 - `rex codebase`: every file.
-- `rex codebase --rust-only`: only `.rs` files.
-- `rex codebase --with-context`: adds the first sentence of each Rust module's `//!` doc comment to its line.
-- `rex codebase --rust-only --with-context`: the Rust modules and what each one is for. Start here in a Rust crate.
+- `rex codebase --only code`: only source files (Rust, Go, C, C++, Python, JavaScript, TypeScript, shell).
+- `rex codebase --only go`: only one language. `--rust-only` is the same as `--only rust`.
+- `rex codebase --with-context`: adds the first sentence of each source file's opening comment to its line.
+- `rex codebase --only code --with-context`: the source files and what each one is for. Start here.
 
-Add `--for-human` to write the tree to `CODEBASE.md` instead of printing it, for example `rex codebase --for-human --rust-only --with-context`.
+Add `--for-human` to write the tree to `CODEBASE.md` instead of printing it, for example `rex codebase --for-human --only code --with-context`.
+
+Every source file opens with a comment of one or two lines that says what the file is for. A file with no sentence after its name in the tree is missing that comment. When you create or change a file, write the comment or bring it up to date.
 ";
 
 const SMELLS_SECTION_BODY: &str = "\

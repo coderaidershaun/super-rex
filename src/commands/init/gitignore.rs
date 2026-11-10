@@ -1,5 +1,5 @@
-//! Adds a block to `.gitignore` so the installed skill files, which `rex
-//! init` can always write again, are not committed.
+//! Adds a block to `.gitignore` so what `rex init` installs (the skills, the
+//! agents, the local settings and the store) is not committed.
 
 use std::fs;
 use std::io::ErrorKind;
@@ -11,11 +11,13 @@ use crate::error::RexError;
 pub(super) const GITIGNORE_FILENAME: &str = ".gitignore";
 
 /// The first line of the block. Finding it in `.gitignore` is what stops a
-/// second run from adding the block again.
-const IGNORE_MARKER: &str = "# rex:ignore claude";
+/// second run from adding the block again. The older `# rex:ignore claude`
+/// block of rex-skills does not count, so a repo that has it still gets the
+/// new entries.
+const IGNORE_MARKER: &str = "# rex:ignore superrex";
 
 /// The whole block, marker line included, ending in a newline.
-const IGNORE_BLOCK: &str = "# rex:ignore claude\n.claude/skills/\n.claude/settings.local.json\n";
+const IGNORE_BLOCK: &str = "# rex:ignore superrex\n.claude/skills/\n.claude/agents/\n.claude/settings.local.json\n/.rex/\n";
 
 /// Make sure `cwd/.gitignore` has the rex block: create the file if it is
 /// missing, append the block after the existing lines if it is not there yet,
