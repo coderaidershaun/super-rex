@@ -1,6 +1,6 @@
 ---
 name: rex-code-ergonomics
-description: Hard rules for ergonomic Rust code. Naming, types, traits, iterators, lifetimes, panics, fn signatures. Bad/good examples throughout. Use when writing or reviewing Rust, designing public APIs, naming types/fns, choosing String vs &str, Result vs panic, generic vs dyn, builder vs struct literal, or user asks "is this idiomatic Rust", "ergonomic API", "make this nicer".
+description: This skill gives hard rules for ergonomic Rust code. It covers naming, types, traits, iterators, lifetimes, panics, and fn signatures, with bad and good examples throughout. Use it when you write or review Rust, design public APIs, or name types and fns. Use it also when you choose String vs &str, Result vs panic, generic vs dyn, or builder vs struct literal. Use it also when the user asks "is this idiomatic Rust", "ergonomic API", "make this nicer".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -14,7 +14,7 @@ Sister skills:
 - `rex-code-commenting` — no comments unless WHY non-obvious
 - `rex-code-error-writing` — thiserror/anyhow rules + Result patterns (read for all error work)
 
-This skill = Rust-specific applications. Errors deferred to error-writing skill.
+This skill = Rust-specific applications. Error rules: see error-writing skill.
 
 Default: **caller's life > author's cleverness**. Public API = your gift to future self.
 
@@ -51,7 +51,7 @@ fn ban(user: UserId, reason: BanReason)
 ban(OrderId(42), reason); // compile error. saved.
 ```
 
-- **Newtype = ~free.** `#[repr(transparent)]` if perf paranoid.
+- **Newtype = ~free.** IF perf paranoid, THEN `#[repr(transparent)]`.
 - **`NonZeroU32`, `NonEmpty<T>`** when invariant exist. Push to type, drop runtime check.
 - **No `bool` flags in public fn.** Two bools = 4 states = caller confusion. Use enum.
 
@@ -75,7 +75,7 @@ copy(&a, &b, CopyOpts { overwrite: Yes, symlinks: Follow });
 | Owned, immutable, cheap clone | `Arc<str>` or `Box<str>` |
 
 - **Public fn args: `&str` not `&String`.** Caller pass either.
-- **Return `String` if you create it.** Don't fight lifetimes for fun.
+- **IF you create it, THEN return `String`.** Do not fight lifetimes for fun.
 - **`Box<str>` over `String` for stored-once data.** Skip capacity field.
 
 ## Errors
@@ -83,7 +83,7 @@ copy(&a, &b, CopyOpts { overwrite: Yes, symlinks: Follow });
 **See `rex-code-error-writing` for full rules.** Summary:
 
 - **Lib: `thiserror`. Bin: `anyhow`.** Never `Box<dyn Error>` in lib pub API.
-- **`?` everywhere.** `.unwrap()` = test only. `.expect("WHY")` at boundary if must.
+- **`?` everywhere.** `.unwrap()` = test only. IF must, THEN `.expect("WHY")` at boundary.
 - **Panic = bug only.** Bad input → `Result`. Invariant violated → `panic!`.
 
 For variant design, `#[from]`/`#[source]`, error messages, `anyhow::Context`, panic-vs-Result decision table → load `rex-code-error-writing`.
@@ -94,7 +94,7 @@ For variant design, `#[from]`/`#[source]`, error messages, `anyhow::Context`, pa
 - **Return owned (`Vec`, `String`) when you allocate.** No lifetime games.
 - **`impl Trait` in return for hide-the-iterator.** `-> impl Iterator<Item = User>`.
 - **Generic in arg, concrete in return.** `fn read(r: impl Read) -> Vec<u8>`.
-- **More than 3 args -> struct.** Builder if many optional.
+- **More than 3 args -> struct.** IF many optional, THEN builder.
 
 ```rust
 // bad
@@ -109,7 +109,7 @@ let img = Render::new(800, 600).quality(90).alpha().build();
 
 ## Methods on types (locality)
 
-Per philosophy: behavior on the thing. Not free fn somewhere.
+Per philosophy: behavior on thing. Not free fn somewhere.
 
 ```rust
 // bad — caller hunt
@@ -164,7 +164,7 @@ let name = user.name.unwrap_or_else(|| "anon".into());
 ## Lifetimes — minimize
 
 - **Owned > borrowed in struct fields.** Lifetime in struct = viral pain.
-- **Elision works 90%.** Don't annotate when compiler infer.
+- **Elision works 90%.** Do not annotate when compiler infer.
 - **`'static` bound only when necessary.** Spreads.
 - **`Cow` when sometimes-borrowed-sometimes-owned.**
 
@@ -180,8 +180,8 @@ struct Parser { input: String, cursor: usize }
 
 - **Small trait. Single purpose.** `Read`, `Write`, `Display`. Not `EverythingDoer`.
 - **Default methods OK.** Reduce impl burden.
-- **`dyn Trait` if heterogeneous collection.** `impl Trait` if known at compile.
-- **`From`/`Into` for conversion.** `TryFrom`/`TryInto` if can fail. Free `?` integration.
+- **IF heterogeneous collection, THEN `dyn Trait`.** IF known at compile, THEN `impl Trait`.
+- **`From`/`Into` for conversion.** IF can fail, THEN `TryFrom`/`TryInto`. Free `?` integration.
 
 ```rust
 // good — From give caller ergonomics
@@ -195,7 +195,7 @@ let id: UserId = "42".into();
 
 `#[derive(Debug, Clone, PartialEq, Eq, Hash)]` on data types. Default. No reason not.
 
-`#[derive(Default)]` if all fields default-able. Else `impl Default` manual.
+IF all fields default-able, THEN `#[derive(Default)]`. ELSE manual `impl Default`.
 
 ## Panic discipline
 
@@ -211,16 +211,16 @@ See `rex-code-error-writing` for full panic-vs-Result table. Short version: pani
 ## Async traps
 
 - **`async fn` in trait: stable since 1.75.** Use it. No `#[async_trait]` macro any more (mostly).
-- **`Send` bound by default.** Drop only if proven need.
+- **`Send` bound by default.** IF proven need, THEN drop.
 - **`tokio::spawn` capture = `'static`.** Clone `Arc` not borrow.
-- **`.await` hold `MutexGuard` = deadlock waiting.** Drop guard before await.
+- **`.await` hold `MutexGuard` = deadlock risk.** Drop guard before await.
 
 ## Comments
 
 Per `rex-code-commenting`: default no comment. Rust-specific:
 
 - **No `// returns user` on `fn -> User`.** Type say it.
-- **`///` doc comment on pub item.** Required by lint (`missing_docs`). Write WHY, example, panics, errors.
+- **`///` doc comment on pub item.** Lint (`missing_docs`) requires it. Write WHY, example, panics, errors.
 - **`//` inline comment only when WHY non-obvious.** Lifetime quirk, perf hack, vendor bug.
 
 ```rust
@@ -247,4 +247,4 @@ fn get_user(id: UserId) -> Option<User>
 - [ ] Error rules → `rex-code-error-writing` checklist
 - [ ] Comment rules → `rex-code-commenting` checklist
 
-Fail any -> fix before push.
+IF any fail, THEN fix before push.
