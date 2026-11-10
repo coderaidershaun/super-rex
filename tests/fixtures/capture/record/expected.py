@@ -48,6 +48,43 @@ def tokens_by_model(records):
     return totals, len(seen)
 
 
+def piece_count(text):
+    return len(text.split("\n"))
+
+
+def transcript_counts(records):
+    """Tool calls and lines changed, counted the way Claude Code counts them in toolStats:
+    pieces of text split on newlines, not a line diff."""
+    seen = set()
+    lines_added = 0
+    lines_removed = 0
+    for record in records:
+        if record.get("type") != "assistant":
+            continue
+        for block in record["message"]["content"]:
+            if block.get("type") != "tool_use" or block["id"] in seen:
+                continue
+            seen.add(block["id"])
+            tool_input = block["input"]
+            if block["name"] == "Edit":
+                lines_added += piece_count(tool_input["new_string"])
+                lines_removed += piece_count(tool_input["old_string"])
+            elif block["name"] == "Write":
+                lines_added += piece_count(tool_input["content"])
+    return {"tool_uses": len(seen), "lines_added": lines_added, "lines_removed": lines_removed}
+
+
+def check_against_event(agent_id, counts, call):
+    tool_stats = call["tool_response"].get("toolStats") or {}
+    from_event = {
+        "tool_uses": call["tool_response"]["totalToolUseCount"],
+        "lines_added": tool_stats.get("linesAdded", 0),
+        "lines_removed": tool_stats.get("linesRemoved", 0),
+    }
+    if counts != from_event:
+        sys.exit(f"agent {agent_id}: counts from its transcript {counts} differ from its event {from_event}")
+
+
 def add_into(total, part):
     for model, counts in part.items():
         into = total.setdefault(model, {"input": 0, "output": 0, "cache_write": 0, "cache_read": 0})
@@ -95,8 +132,10 @@ def write_tree_expected(tree):
             "effort": stops[agent_id]["effort"]["level"],
             "requests": requests,
             "tokens": tokens,
+            "transcript_counts": transcript_counts(records),
         }
         if not background:
+            check_against_event(agent_id, entry["transcript_counts"], call)
             # A run that used no tool has no toolStats key at all.
             entry["toolStats"] = call["tool_response"].get("toolStats")
             entry["totalToolUseCount"] = call["tool_response"]["totalToolUseCount"]
