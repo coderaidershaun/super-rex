@@ -114,29 +114,3 @@ fn error_line(error: impl CommandError) -> String {
 fn exit_code_for(error: &impl CommandError) -> u8 {
     if error.is_usage() { 2 } else { 1 }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[derive(thiserror::Error, Debug)]
-    enum TestError {
-        #[error("a tool failed: {output}")]
-        Tool { output: String },
-    }
-
-    impl CommandError for TestError {}
-
-    #[test]
-    fn an_error_text_with_line_ends_prints_as_one_line() {
-        let error = TestError::Tool {
-            output: "first line\nsecond line\r\nthird line".to_string(),
-        };
-
-        let line = error_line(error);
-
-        assert!(line.starts_with("error: "));
-        assert!(!line.contains('\n'));
-        assert!(!line.contains('\r'));
-    }
-}

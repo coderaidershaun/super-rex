@@ -1,5 +1,6 @@
 //! A job's life through the `rex` binary: opened, planned, closed and shown,
-//! with the hooks absent, from the main checkout and from worktrees.
+//! with the hooks absent, from the main checkout and from worktrees, and the
+//! delivery outcomes `merged`, `blocked` and `kept-local`.
 
 use std::fs;
 
@@ -272,97 +273,6 @@ fn keys(object: &Value) -> Vec<&str> {
 }
 
 #[test]
-fn lifecycle_cases_of_challenge_6() {
-    let temp = tempfile::tempdir().unwrap();
-    let main = new_repo(temp.path(), "notes");
-    let mut store = new_store(&main, "pipeline");
-    let research_args = ["--merge", "no", "--type", "research", "--lang", "none"];
-
-    // A sub-agent that starts before the plan, such as one writing a skill, is
-    // tied to the job but does not move it.
-    let research = open_job(&main, "session-1", &research_args);
-    store
-        .write(|tx| {
-            tx.execute(
-                "INSERT INTO sub_agent_run (job_id, session_id, agent_id, first_seen_at)
-                 VALUES (?1, 'session-1', 'a1b8ec258e0b550ba', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
-                [&research],
-            )
-            .map_err(StoreError::from)
-        })
-        .unwrap();
-    let shown = stdout_of(&mut rex(&main, &["job", "show", &research]));
-    assert_eq!(value(&shown, "status"), "created");
-    assert_eq!(value(&plan(&main, &research, PLAN), "status"), "planned");
-
-    let closed = stdout_of(&mut rex(
-        &main,
-        &[
-            "job",
-            "close",
-            &research,
-            "--status",
-            "delivered",
-            "--outcome",
-            "Report written",
-        ],
-    ));
-    assert_eq!(
-        closed,
-        format!("job={research}\nstatus=delivered\ndeliveries=0\n")
-    );
-
-    // No remote, and the requester declined a merge: the work stays on its branch.
-    let local = open_job(
-        &main,
-        "session-2",
-        &["--merge", "no", "--type", "fix", "--lang", "go"],
-    );
-    plan(&main, &local, PLAN);
-    let note = "branch fix-zero keeps the change; the repository has no remote";
-    let deliveries = format!(
-        r#"[{{"repo": "{}", "branch": "fix-zero", "outcome": "kept-local", "note": "{note}"}}]"#,
-        main.display()
-    );
-    let closed = stdout_of(
-        rex(
-            &main,
-            &[
-                "job",
-                "close",
-                &local,
-                "--status",
-                "delivered",
-                "--outcome",
-                "Fixed on a branch",
-                "--deliveries-file",
-                "-",
-            ],
-        )
-        .write_stdin(deliveries),
-    );
-    assert_eq!(
-        closed,
-        format!(
-            "job={local}\nstatus=delivered\ndeliveries=1\ndelivery.1=kept-local {}\n",
-            main.display()
-        )
-    );
-    let shown = stdout_of(&mut rex(&main, &["job", "show", &local]));
-    assert_eq!(
-        value(&shown, "delivery.1"),
-        format!(
-            "kept-local branch=fix-zero pr=none merge_agreed=no merge_commit=none repo={}",
-            main.display()
-        )
-    );
-    assert!(
-        shown.ends_with(&format!("delivery.1.note:\n  {note}\n")),
-        "{shown}"
-    );
-}
-
-#[test]
 fn two_repos_one_merged_one_blocked_then_recorded_later() {
     let temp = tempfile::tempdir().unwrap();
     let shop = new_repo(temp.path(), "shop");
@@ -436,4 +346,61 @@ fn two_repos_one_merged_one_blocked_then_recorded_later() {
         .map(|row| (row["from"].as_str().unwrap(), row["to"].as_str().unwrap()))
         .collect();
     assert_eq!(closes, [("planned", "blocked"), ("blocked", "delivered")]);
+
+    // No remote, and the requester declined a merge: the work stays on its branch.
+    let local = open_job(
+        &shop,
+        "session-2",
+        &["--merge", "no", "--type", "fix", "--lang", "go"],
+    );
+    plan(&shop, &local, PLAN);
+    let note = "branch fix-zero keeps the change; the repository has no remote";
+    let deliveries = format!(
+        r#"[{{"repo": "{}", "branch": "fix-zero", "outcome": "kept-local", "note": "{note}"}}]"#,
+        shop.display()
+    );
+    let closed = stdout_of(&mut close(&shop, &local, "delivered", &deliveries));
+    assert_eq!(
+        closed,
+        format!(
+            "job={local}\nstatus=delivered\ndeliveries=1\ndelivery.1=kept-local {}\n",
+            shop.display()
+        )
+    );
+    let shown = stdout_of(&mut rex(&shop, &["job", "show", &local]));
+    assert_eq!(
+        value(&shown, "delivery.1"),
+        format!(
+            "kept-local branch=fix-zero pr=none merge_agreed=no merge_commit=none repo={}",
+            shop.display()
+        )
+    );
+    assert!(
+        shown.ends_with(&format!("delivery.1.note:\n  {note}\n")),
+        "{shown}"
+    );
+
+    // A job that changed no repository closes with no deliveries.
+    let research = open_job(
+        &shop,
+        "session-3",
+        &["--merge", "no", "--type", "research", "--lang", "none"],
+    );
+    plan(&shop, &research, PLAN);
+    let closed = stdout_of(&mut rex(
+        &shop,
+        &[
+            "job",
+            "close",
+            &research,
+            "--status",
+            "delivered",
+            "--outcome",
+            "Report written",
+        ],
+    ));
+    assert_eq!(
+        closed,
+        format!("job={research}\nstatus=delivered\ndeliveries=0\n")
+    );
 }

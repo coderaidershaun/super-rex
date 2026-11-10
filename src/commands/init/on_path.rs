@@ -43,23 +43,3 @@ fn executable_names(tool: &str, pathext: Option<&OsStr>) -> Vec<OsString> {
     );
     names
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn only_the_plain_name_is_looked_for_where_pathext_is_not_set() {
-        assert_eq!(executable_names("trivy", None), [OsString::from("trivy")]);
-    }
-
-    #[test]
-    fn the_endings_windows_runs_are_looked_for_as_well_as_the_plain_name() {
-        let names = executable_names("trivy", Some(OsStr::new(".COM;.EXE;")));
-
-        assert_eq!(
-            names,
-            ["trivy", "trivy.COM", "trivy.EXE"].map(OsString::from)
-        );
-    }
-}

@@ -163,6 +163,28 @@ fn hook_never_fails_or_prints() {
     let unwritable = Repo::new();
     fs::create_dir(unwritable.log()).unwrap();
     assert_silent_success(&mut rex_hook(&unwritable.root, "{\"a\":1}\n"));
+
+    let argument_sets: [&[&str]; 5] = [
+        &[],
+        &["--help"],
+        &["-h"],
+        &["--event", "PreToolUse", "unknown", "words"],
+        &["-x", "--", "--version", "-V"],
+    ];
+    let inputs: [&[u8]; 3] = [b"", b"not json {", &[0xff, 0xfe, 0x00, 0x01]];
+    let working_dir = tempfile::tempdir().unwrap();
+    for arguments in argument_sets {
+        for input in inputs {
+            let mut command = Command::cargo_bin("rex").unwrap();
+            command
+                .current_dir(working_dir.path())
+                .env_clear()
+                .arg("hook")
+                .args(arguments)
+                .write_stdin(input);
+            assert_silent_success(&mut command);
+        }
+    }
 }
 
 #[test]
