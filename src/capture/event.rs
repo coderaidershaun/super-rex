@@ -107,10 +107,17 @@ impl Start {
 }
 
 impl Stop {
+    /// `None` for a stop with an empty agent type. Claude Code sends one for each
+    /// call it makes on its own, such as the reply it suggests after a turn. No
+    /// agent was started, so the line names no run.
     fn of(event: &Value) -> Option<Stop> {
+        let agent_type = owned_text(event, "agent_type");
+        if agent_type.as_deref() == Some("") {
+            return None;
+        }
         Some(Stop {
             agent_id: owned_text(event, "agent_id")?,
-            agent_type: owned_text(event, "agent_type"),
+            agent_type,
             effort: event
                 .get("effort")
                 .and_then(|effort| owned_text(effort, "level")),

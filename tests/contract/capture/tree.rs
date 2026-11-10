@@ -1,6 +1,7 @@
 //! The recorded session, taken in whole, gives the tree and the totals that the
 //! fixture's own script worked out; the order of its lines does not matter.
 
+use serde_json::{Value, json};
 use super_rex::capture::{RunState, TokenTotal, take_in};
 use super_rex::store::StoreError;
 
@@ -137,6 +138,39 @@ fn lines_twice_or_in_any_order_change_nothing() {
         recorded,
         "sub-agent tool named Task"
     );
+}
+
+/// Claude Code also sends a stop line for a call it makes on its own, such as the
+/// reply it suggests after a turn. The agent type is empty, and no start line, call
+/// or transcript goes with it.
+#[test]
+fn stop_line_of_claude_codes_own_call_makes_no_run() {
+    let recorded = {
+        let mut fixture = Fixture::new();
+        fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
+        fixture.append(&fixture.lines.clone());
+        fixture.read(JOB_A, AFTER_SESSION)
+    };
+
+    let own_call = "a1f16da89dcf482e4";
+    let mut fixture = Fixture::new();
+    fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
+    let mut line: Value = serde_json::from_str(&fixture.lines_of(PLAIN)[1]).unwrap();
+    let event = &mut line["event"];
+    assert_eq!(event["hook_event_name"], "SubagentStop");
+    event["agent_id"] = json!(own_call);
+    event["agent_type"] = json!("");
+    event["last_assistant_message"] = json!("yes, run a review before merging");
+    event["agent_transcript_path"] = json!(fixture.transcript(own_call).to_str().unwrap());
+    let mut lines = fixture.lines.clone();
+    lines.push(line.to_string());
+    fixture.append(&lines);
+
+    let runs = fixture.read(JOB_A, AFTER_SESSION);
+
+    assert_eq!(runs.runs, recorded.runs);
+    assert_eq!((runs.open, runs.finished, runs.unconfirmed), (0, 6, 0));
+    assert!(!runs.incomplete);
 }
 
 /// Makes the next intake read the whole log again, as if the offset were lost.
