@@ -141,34 +141,17 @@ fn record(
     deliveries: &[Delivery],
 ) -> Result<Vec<(String, String)>, JobError> {
     let job = options.job.as_str();
-    let now: String = tx.query_row("SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now')", [], |row| {
+    // The status check comes first, so a job that cannot be closed this way
+    // gets that refusal and its fix, not a delivery error. On any error below
+    // the whole write is rolled back.
+    status::apply(tx, &options.job, Event::Close(options.status.closed()))?;
+    // A close always writes its status row, even blocked to blocked, so this is
+    // the time of that row, and every row of this close gets the same time.
+    let now: String = tx.query_row("SELECT updated_at FROM job WHERE id = ?1", [job], |row| {
         row.get(0)
     })?;
     for delivery in deliveries {
-        let entry = &delivery.entry;
-        // An upsert, never INSERT OR REPLACE, so a row recorded by an earlier
-        // close keeps its id and with it its place in the list.
-        tx.execute(
-            "INSERT INTO delivery (job_id, repo, branch, pr, merge_agreed, merge_commit, outcome,
-                                   note, recorded_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
-             ON CONFLICT(job_id, repo) DO UPDATE SET
-                 branch = excluded.branch, pr = excluded.pr,
-                 merge_agreed = excluded.merge_agreed, merge_commit = excluded.merge_commit,
-                 outcome = excluded.outcome, note = excluded.note,
-                 recorded_at = excluded.recorded_at",
-            params![
-                job,
-                delivery.root.to_string_lossy(),
-                entry.branch,
-                entry.pr,
-                delivery.is_agreed,
-                entry.merge_commit,
-                entry.outcome.name(),
-                entry.note,
-                now,
-            ],
-        )?;
+        upsert_delivery(tx, job, delivery, &now)?;
     }
 
     if matches!(options.status, CloseStatus::Delivered) {
@@ -191,7 +174,6 @@ fn record(
         "UPDATE job SET outcome = ?1, updated_at = ?2 WHERE id = ?3",
         params![options.outcome, now, job],
     )?;
-    status::apply(tx, &options.job, Event::Close(options.status.closed()))?;
 
     let mut statement =
         tx.prepare("SELECT outcome, repo FROM delivery WHERE job_id = ?1 ORDER BY id")?;
@@ -199,6 +181,39 @@ fn record(
         .query_map([job], |row| Ok((row.get(0)?, row.get(1)?)))?
         .collect::<Result<Vec<_>, _>>()?;
     Ok(recorded)
+}
+
+/// Writes one delivery. An upsert, never INSERT OR REPLACE, so a row recorded
+/// by an earlier close keeps its id and with it its place in the list.
+fn upsert_delivery(
+    tx: &Transaction<'_>,
+    job: &str,
+    delivery: &Delivery,
+    now: &str,
+) -> rusqlite::Result<()> {
+    let entry = &delivery.entry;
+    tx.execute(
+        "INSERT INTO delivery (job_id, repo, branch, pr, merge_agreed, merge_commit, outcome,
+                               note, recorded_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+         ON CONFLICT(job_id, repo) DO UPDATE SET
+             branch = excluded.branch, pr = excluded.pr,
+             merge_agreed = excluded.merge_agreed, merge_commit = excluded.merge_commit,
+             outcome = excluded.outcome, note = excluded.note,
+             recorded_at = excluded.recorded_at",
+        params![
+            job,
+            delivery.root.to_string_lossy(),
+            entry.branch,
+            entry.pr,
+            delivery.is_agreed,
+            entry.merge_commit,
+            entry.outcome.name(),
+            entry.note,
+            now,
+        ],
+    )?;
+    Ok(())
 }
 
 /// Reads the deliveries file and checks each entry by the rules of a delivery.
@@ -291,15 +306,22 @@ fn check_rules(root: &Path, entry: &Entry, is_agreed: bool) -> Result<(), JobErr
     Ok(())
 }
 
+/// An `--outcome` that the value parser refuses; clap prints it as a usage error.
+#[derive(thiserror::Error, Debug)]
+enum OutcomeError {
+    #[error("--outcome must be one line; put the details in each delivery's \"note\"")]
+    NotOneLine,
+    #[error("--outcome must not be empty; say in one line what happened")]
+    Empty,
+}
+
 /// The value parser of `--outcome`: one line, not empty.
-fn one_line(text: &str) -> Result<String, String> {
+fn one_line(text: &str) -> Result<String, OutcomeError> {
     if text.contains(['\n', '\r']) {
-        return Err(
-            "--outcome must be one line; put the details in each delivery's \"note\"".into(),
-        );
+        return Err(OutcomeError::NotOneLine);
     }
     if text.trim().is_empty() {
-        return Err("--outcome must not be empty; say in one line what happened".into());
+        return Err(OutcomeError::Empty);
     }
     Ok(text.to_owned())
 }

@@ -105,14 +105,7 @@ pub(super) fn read(
         conn,
         "SELECT from_status, to_status, event, at FROM job_transition WHERE job_id = ?1 ORDER BY id",
         job,
-        |row| {
-            Ok(Transition {
-                from: row.get(0)?,
-                to: row.get(1)?,
-                event: row.get(2)?,
-                at: row.get(3)?,
-            })
-        },
+        transition_row,
     )?;
     record.roles = rows(
         conn,
@@ -128,18 +121,7 @@ pub(super) fn read(
         "SELECT repo, branch, pr, merge_agreed, merge_commit, outcome, note, recorded_at
          FROM delivery WHERE job_id = ?1 ORDER BY id",
         job,
-        |row| {
-            Ok(DeliveryRow {
-                repo: row.get(0)?,
-                branch: row.get(1)?,
-                pr: row.get(2)?,
-                merge_agreed: row.get(3)?,
-                merge_commit: row.get(4)?,
-                outcome: row.get(5)?,
-                note: row.get(6)?,
-                recorded_at: row.get(7)?,
-            })
-        },
+        delivery_row,
     )?;
     record.feedback = rows(
         conn,
@@ -147,20 +129,7 @@ pub(super) fn read(
                 changed_orchestrators, created_at
          FROM feedback WHERE job_id = ?1 ORDER BY id",
         job,
-        |row| {
-            Ok(FeedbackRow {
-                id: row.get(0)?,
-                given_by: row.get(1)?,
-                said: row.get(2)?,
-                verdict: row.get(3)?,
-                causes: row.get(4)?,
-                evidence: row.get(5)?,
-                lesson: row.get(6)?,
-                changed_skills: row.get(7)?,
-                changed_orchestrators: row.get(8)?,
-                created_at: row.get(9)?,
-            })
-        },
+        feedback_row,
     )?;
     Ok(record)
 }
@@ -230,5 +199,42 @@ fn role_row(row: &Row<'_>) -> rusqlite::Result<RoleRow> {
         rules: row.get(11)?,
         conflict: row.get(12)?,
         oms_version: row.get(13)?,
+    })
+}
+
+fn transition_row(row: &Row<'_>) -> rusqlite::Result<Transition> {
+    Ok(Transition {
+        from: row.get(0)?,
+        to: row.get(1)?,
+        event: row.get(2)?,
+        at: row.get(3)?,
+    })
+}
+
+fn delivery_row(row: &Row<'_>) -> rusqlite::Result<DeliveryRow> {
+    Ok(DeliveryRow {
+        repo: row.get(0)?,
+        branch: row.get(1)?,
+        pr: row.get(2)?,
+        merge_agreed: row.get(3)?,
+        merge_commit: row.get(4)?,
+        outcome: row.get(5)?,
+        note: row.get(6)?,
+        recorded_at: row.get(7)?,
+    })
+}
+
+fn feedback_row(row: &Row<'_>) -> rusqlite::Result<FeedbackRow> {
+    Ok(FeedbackRow {
+        id: row.get(0)?,
+        given_by: row.get(1)?,
+        said: row.get(2)?,
+        verdict: row.get(3)?,
+        causes: row.get(4)?,
+        evidence: row.get(5)?,
+        lesson: row.get(6)?,
+        changed_skills: row.get(7)?,
+        changed_orchestrators: row.get(8)?,
+        created_at: row.get(9)?,
     })
 }

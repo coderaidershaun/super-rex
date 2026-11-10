@@ -4,12 +4,13 @@
 
 use std::fs;
 use std::path::Path;
-use std::process::Command as Process;
 
 use assert_cmd::Command;
 use rusqlite::Row;
 use super_rex::oms::{self, Inputs, Level};
 use super_rex::store::{Store, StorePaths};
+
+use super::store::git;
 
 fn rex(cwd: &Path, args: &[&str], stdin: &str) -> String {
     let output = Command::cargo_bin("rex")
@@ -57,12 +58,7 @@ fn plan_records_what_oms_returns() {
     let temp = tempfile::tempdir().unwrap();
     let repo = temp.path().join("shop");
     fs::create_dir_all(&repo).unwrap();
-    let status = Process::new("git")
-        .args(["init", "-q"])
-        .current_dir(&repo)
-        .status()
-        .unwrap();
-    assert!(status.success());
+    git(&repo, &["init", "-q"]);
     let paths = StorePaths::locate(&repo).unwrap();
     Store::create(&paths).unwrap();
     fs::create_dir_all(paths.orchestrators.join("pipeline")).unwrap();

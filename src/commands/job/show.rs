@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use super::JobError;
 use super::input::non_empty_var;
 use super::plan::level_name;
-use super::record::{self, JobRecord};
+use super::record::{self, DeliveryRow, FeedbackRow, JobRecord, RoleRow};
 use super::runs::{self, JobRuns, Run};
 use crate::capture::TokenTotal;
 use crate::commands::stdout::print_to_stdout;
@@ -71,8 +71,19 @@ pub(super) fn run(cwd: &Path, options: ShowOptions) -> Result<(), JobError> {
 }
 
 fn plain_text(record: &JobRecord, shown: Shown, view: &JobRuns) -> String {
-    let none = |value: &Option<String>| value.clone().unwrap_or_else(|| "none".to_owned());
-    let mut lines = Vec::new();
+    let mut lines = scalar_lines(record, shown, view);
+    lines.extend(record.roles.iter().map(role_line));
+    for (number, delivery) in record.deliveries.iter().enumerate() {
+        lines.push(delivery_line(number + 1, delivery));
+    }
+    lines.extend(view.runs.iter().map(run_line));
+    lines.extend(long_field_lines(record));
+    lines.push(String::new());
+    lines.join("\n")
+}
+
+/// One `key=value` line for each single value, `outcome` last.
+fn scalar_lines(record: &JobRecord, shown: Shown, view: &JobRuns) -> Vec<String> {
     let scalars = [
         ("job", record.id.clone()),
         ("status", shown.to_string()),
@@ -81,20 +92,35 @@ fn plain_text(record: &JobRecord, shown: Shown, view: &JobRuns) -> String {
         ("size", record.size.clone()),
         ("consequence", record.consequence.clone()),
         ("languages", record.languages.clone()),
-        ("duration", none(&record.pref_duration)),
-        ("budget", none(&record.pref_budget)),
-        ("autonomy", none(&record.pref_autonomy)),
+        (
+            "duration",
+            or_none(record.pref_duration.as_deref()).to_owned(),
+        ),
+        ("budget", or_none(record.pref_budget.as_deref()).to_owned()),
+        (
+            "autonomy",
+            or_none(record.pref_autonomy.as_deref()).to_owned(),
+        ),
         ("merge_agreed", yes_no(record.merge_agreed).to_owned()),
         ("session", record.session_id.clone()),
         ("asked_by", record.asked_by.clone()),
-        ("builder_model", none(&record.builder_model)),
-        ("builder_effort", none(&record.builder_effort)),
-        ("orchestrator", none(&record.orchestrator_name)),
+        (
+            "builder_model",
+            or_none(record.builder_model.as_deref()).to_owned(),
+        ),
+        (
+            "builder_effort",
+            or_none(record.builder_effort.as_deref()).to_owned(),
+        ),
+        (
+            "orchestrator",
+            or_none(record.orchestrator_name.as_deref()).to_owned(),
+        ),
         (
             "orchestrator_version",
-            none(&record.orchestrator_version.map(|v| v.to_string())),
+            number_or_none(record.orchestrator_version),
         ),
-        ("skills", none(&record.skills)),
+        ("skills", or_none(record.skills.as_deref()).to_owned()),
         ("created_at", record.created_at.clone()),
         ("updated_at", record.updated_at.clone()),
         ("tokens", plain_total(view.tokens)),
@@ -105,58 +131,63 @@ fn plain_text(record: &JobRecord, shown: Shown, view: &JobRuns) -> String {
         ("incomplete", yes_no(view.incomplete).to_owned()),
         ("outcome", record.outcome.clone().unwrap_or_default()),
     ];
-    for (key, value) in scalars {
-        lines.push(format!("{key}={value}"));
-    }
+    scalars
+        .into_iter()
+        .map(|(key, value)| format!("{key}={value}"))
+        .collect()
+}
 
-    for role in &record.roles {
-        let Some(agent) = &role.agent else {
-            lines.push(format!("role.{}=session", role.role));
-            continue;
-        };
-        lines.push(format!(
-            "role.{}={agent} inputs={} demand={} rules={} conflict={} oms_version={}",
-            role.role,
-            role.inputs.code(),
-            none(&role.demand),
-            none(&role.rules),
-            none(&role.conflict),
-            none(&role.oms_version.map(|v| v.to_string())),
-        ));
-    }
-    for (number, delivery) in record.deliveries.iter().enumerate() {
-        lines.push(format!(
-            "delivery.{}={} branch={} pr={} merge_agreed={} merge_commit={} repo={}",
-            number + 1,
-            delivery.outcome,
-            none(&delivery.branch),
-            none(&delivery.pr),
-            yes_no(delivery.merge_agreed),
-            none(&delivery.merge_commit),
-            delivery.repo,
-        ));
-    }
-    for run in &view.runs {
-        lines.push(format!(
-            "run.{}={} parent={} role={} agent={} ran={}/{} skills={} tokens={} provisional={}",
-            run.agent_id,
-            run.state.name(),
-            run.parent_agent_id.as_deref().unwrap_or("main"),
-            none(&run.role),
-            none(&run.agent_type),
-            none(&run.model_ran),
-            none(&run.effort_ran),
-            if run.skills_opened.is_empty() {
-                "none".to_owned()
-            } else {
-                run.skills_opened.join(",")
-            },
-            plain_total(run.tokens),
-            yes_no(is_provisional(run.tokens)),
-        ));
-    }
+fn role_line(role: &RoleRow) -> String {
+    let Some(agent) = &role.agent else {
+        return format!("role.{}=session", role.role);
+    };
+    format!(
+        "role.{}={agent} inputs={} demand={} rules={} conflict={} oms_version={}",
+        role.role,
+        role.inputs.code(),
+        or_none(role.demand.as_deref()),
+        or_none(role.rules.as_deref()),
+        or_none(role.conflict.as_deref()),
+        number_or_none(role.oms_version),
+    )
+}
 
-    let mut long_fields = vec![
+fn delivery_line(number: usize, delivery: &DeliveryRow) -> String {
+    format!(
+        "delivery.{number}={} branch={} pr={} merge_agreed={} merge_commit={} repo={}",
+        delivery.outcome,
+        or_none(delivery.branch.as_deref()),
+        or_none(delivery.pr.as_deref()),
+        yes_no(delivery.merge_agreed),
+        or_none(delivery.merge_commit.as_deref()),
+        delivery.repo,
+    )
+}
+
+fn run_line(run: &Run) -> String {
+    let skills = if run.skills_opened.is_empty() {
+        "none".to_owned()
+    } else {
+        run.skills_opened.join(",")
+    };
+    format!(
+        "run.{}={} parent={} role={} agent={} ran={}/{} skills={skills} tokens={} provisional={}",
+        run.agent_id,
+        run.state.name(),
+        run.parent_agent_id.as_deref().unwrap_or("main"),
+        or_none(run.role.as_deref()),
+        or_none(run.agent_type.as_deref()),
+        or_none(run.model_ran.as_deref()),
+        or_none(run.effort_ran.as_deref()),
+        plain_total(run.tokens),
+        yes_no(is_provisional(run.tokens)),
+    )
+}
+
+/// The fields that can hold several lines: a `<key>:` line, then each line of
+/// the text indented by two spaces.
+fn long_field_lines(record: &JobRecord) -> Vec<String> {
+    let mut fields = vec![
         ("request".to_owned(), Some(record.request.as_str())),
         ("breakdown".to_owned(), record.breakdown.as_deref()),
         (
@@ -166,25 +197,46 @@ fn plain_text(record: &JobRecord, shown: Shown, view: &JobRuns) -> String {
     ];
     for (number, delivery) in record.deliveries.iter().enumerate() {
         if let Some(note) = &delivery.note {
-            long_fields.push((format!("delivery.{}.note", number + 1), Some(note)));
+            fields.push((format!("delivery.{}.note", number + 1), Some(note)));
         }
     }
-    for (key, value) in long_fields {
+    let mut lines = Vec::new();
+    for (key, value) in fields {
         lines.push(format!("{key}:"));
         for line in value.unwrap_or_default().lines() {
             lines.push(format!("  {line}"));
         }
     }
-    lines.push(String::new());
-    lines.join("\n")
+    lines
 }
 
 fn json_record(record: &JobRecord, shown: Shown, view: &JobRuns) -> Value {
+    let transitions: Vec<Value> = record
+        .transitions
+        .iter()
+        .map(|row| json!({"from": row.from, "to": row.to, "event": row.event, "at": row.at}))
+        .collect();
+    json!({
+        "schema": 1,
+        "job": json_job(record, shown),
+        "transitions": transitions,
+        "roles": record.roles.iter().map(json_role).collect::<Vec<_>>(),
+        "deliveries": record.deliveries.iter().map(json_delivery).collect::<Vec<_>>(),
+        "runs": view.runs.iter().map(json_run).collect::<Vec<_>>(),
+        "tokens": json_total(view.tokens),
+        "session_tokens": json_total(view.session_tokens),
+        "incomplete": view.incomplete,
+        "damaged_log_lines": view.damaged_log_lines,
+        "feedback": record.feedback.iter().map(json_feedback).collect::<Vec<_>>(),
+    })
+}
+
+fn json_job(record: &JobRecord, shown: Shown) -> Value {
     let orchestrator = match (&record.orchestrator_name, record.orchestrator_version) {
         (Some(name), Some(version)) => json!({"name": name, "version": version}),
         _ => Value::Null,
     };
-    let job = json!({
+    json!({
         "id": record.id,
         "status": shown.to_string(),
         "stored_status": record.status.to_string(),
@@ -209,87 +261,60 @@ fn json_record(record: &JobRecord, shown: Shown, view: &JobRuns) -> Value {
         "outcome": record.outcome,
         "created_at": record.created_at,
         "updated_at": record.updated_at,
-    });
-    let transitions: Vec<Value> = record
-        .transitions
-        .iter()
-        .map(|row| json!({"from": row.from, "to": row.to, "event": row.event, "at": row.at}))
-        .collect();
-    let roles: Vec<Value> = record
-        .roles
-        .iter()
-        .map(|role| {
-            let level = |level: Option<Level>| level.map(level_name);
-            let inputs = role.inputs;
-            json!({
-                "role": role.role,
-                "session": role.runs_as_session,
-                "inputs": {
-                    "duration": level(inputs.duration),
-                    "budget": level(inputs.budget),
-                    "autonomy": level(inputs.autonomy),
-                    "intelligence": level(inputs.intelligence),
-                    "reliability": level(inputs.reliability),
-                    "consequence": level(inputs.consequence),
-                    "verification": level(inputs.verification),
-                },
-                "agent": role.agent,
-                "demand": role.demand,
-                "rules": role.rules.as_ref().map(|rules| list(Some(rules))),
-                "conflict": role.conflict.as_ref().map(|conflict| match conflict.as_str() {
-                    "none" => json!([]),
-                    _ => list(Some(conflict)),
-                }),
-                "oms_version": role.oms_version,
-            })
-        })
-        .collect();
-    let deliveries: Vec<Value> = record
-        .deliveries
-        .iter()
-        .map(|delivery| {
-            json!({
-                "repo": delivery.repo,
-                "branch": delivery.branch,
-                "pr": delivery.pr,
-                "merge_agreed": delivery.merge_agreed,
-                "merge_commit": delivery.merge_commit,
-                "outcome": delivery.outcome,
-                "note": delivery.note,
-                "recorded_at": delivery.recorded_at,
-            })
-        })
-        .collect();
-    let feedback: Vec<Value> = record
-        .feedback
-        .iter()
-        .map(|row| {
-            json!({
-                "id": row.id,
-                "given_by": row.given_by,
-                "said": row.said,
-                "verdict": row.verdict,
-                "causes": list(row.causes.as_ref()),
-                "evidence": row.evidence,
-                "lesson": row.lesson,
-                "changed_skills": list(row.changed_skills.as_ref()),
-                "changed_orchestrators": list(row.changed_orchestrators.as_ref()),
-                "created_at": row.created_at,
-            })
-        })
-        .collect();
+    })
+}
+
+fn json_role(role: &RoleRow) -> Value {
+    let level = |level: Option<Level>| level.map(level_name);
+    let inputs = role.inputs;
     json!({
-        "schema": 1,
-        "job": job,
-        "transitions": transitions,
-        "roles": roles,
-        "deliveries": deliveries,
-        "runs": view.runs.iter().map(json_run).collect::<Vec<_>>(),
-        "tokens": json_total(view.tokens),
-        "session_tokens": json_total(view.session_tokens),
-        "incomplete": view.incomplete,
-        "damaged_log_lines": view.damaged_log_lines,
-        "feedback": feedback,
+        "role": role.role,
+        "session": role.runs_as_session,
+        "inputs": {
+            "duration": level(inputs.duration),
+            "budget": level(inputs.budget),
+            "autonomy": level(inputs.autonomy),
+            "intelligence": level(inputs.intelligence),
+            "reliability": level(inputs.reliability),
+            "consequence": level(inputs.consequence),
+            "verification": level(inputs.verification),
+        },
+        "agent": role.agent,
+        "demand": role.demand,
+        "rules": role.rules.as_ref().map(|rules| list(Some(rules))),
+        "conflict": role.conflict.as_ref().map(|conflict| match conflict.as_str() {
+            "none" => json!([]),
+            _ => list(Some(conflict)),
+        }),
+        "oms_version": role.oms_version,
+    })
+}
+
+fn json_delivery(delivery: &DeliveryRow) -> Value {
+    json!({
+        "repo": delivery.repo,
+        "branch": delivery.branch,
+        "pr": delivery.pr,
+        "merge_agreed": delivery.merge_agreed,
+        "merge_commit": delivery.merge_commit,
+        "outcome": delivery.outcome,
+        "note": delivery.note,
+        "recorded_at": delivery.recorded_at,
+    })
+}
+
+fn json_feedback(row: &FeedbackRow) -> Value {
+    json!({
+        "id": row.id,
+        "given_by": row.given_by,
+        "said": row.said,
+        "verdict": row.verdict,
+        "causes": list(row.causes.as_ref()),
+        "evidence": row.evidence,
+        "lesson": row.lesson,
+        "changed_skills": list(row.changed_skills.as_ref()),
+        "changed_orchestrators": list(row.changed_orchestrators.as_ref()),
+        "created_at": row.created_at,
     })
 }
 
@@ -352,6 +377,15 @@ fn plain_total(total: TokenTotal) -> String {
 /// Only a final total is known not to grow, so an unknown one counts as provisional.
 fn is_provisional(total: TokenTotal) -> bool {
     !matches!(total, TokenTotal::Final(_))
+}
+
+/// A value that is not set prints as `none`.
+fn or_none(value: Option<&str>) -> &str {
+    value.unwrap_or("none")
+}
+
+fn number_or_none(value: Option<i64>) -> String {
+    value.map_or_else(|| "none".to_owned(), |number| number.to_string())
 }
 
 fn yes_no(is_yes: bool) -> &'static str {

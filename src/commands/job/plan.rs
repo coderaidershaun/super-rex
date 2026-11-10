@@ -187,9 +187,31 @@ fn record(
         .find(|indexed| &indexed.name == name)
         .ok_or_else(not_found)?
         .version;
+    let roles = record_roles(tx, job, &plan.roles, [duration, budget, autonomy])?;
 
-    let mut roles = Vec::with_capacity(plan.roles.len());
-    for entry in &plan.roles {
+    let skills: BTreeSet<&str> = plan.skills.iter().map(String::as_str).collect();
+    let skills = (!skills.is_empty()).then(|| skills.into_iter().collect::<Vec<_>>().join(","));
+    tx.execute(
+        "UPDATE job SET breakdown = ?1, skills = ?2, orchestrator_name = ?3,
+                        orchestrator_version = ?4,
+                        updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+         WHERE id = ?5",
+        params![plan.breakdown, skills, name, version, job.as_str()],
+    )?;
+    Ok((version, roles))
+}
+
+/// Asks the selection function for each role not run as the session, with the
+/// job's three preferences, and writes each role row in the order of the file.
+fn record_roles(
+    tx: &Transaction<'_>,
+    job: &JobId,
+    entries: &[RoleEntry],
+    preferences: [Option<Level>; 3],
+) -> Result<Vec<PlannedRole>, JobError> {
+    let [duration, budget, autonomy] = preferences;
+    let mut roles = Vec::with_capacity(entries.len());
+    for entry in entries {
         let selection =
             entry
                 .ratings()?
@@ -204,29 +226,13 @@ fn record(
                         verification,
                     })
                 });
-        insert_role(
-            tx,
-            job,
-            &entry.role,
-            [duration, budget, autonomy],
-            selection.as_ref(),
-        )?;
+        insert_role(tx, job, &entry.role, preferences, selection.as_ref())?;
         roles.push(PlannedRole {
             name: entry.role.clone(),
             selection,
         });
     }
-
-    let skills: BTreeSet<&str> = plan.skills.iter().map(String::as_str).collect();
-    let skills = (!skills.is_empty()).then(|| skills.into_iter().collect::<Vec<_>>().join(","));
-    tx.execute(
-        "UPDATE job SET breakdown = ?1, skills = ?2, orchestrator_name = ?3,
-                        orchestrator_version = ?4,
-                        updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-         WHERE id = ?5",
-        params![plan.breakdown, skills, name, version, job.as_str()],
-    )?;
-    Ok((version, roles))
+    Ok(roles)
 }
 
 /// Writes one role row. The job's three preferences are stored on every role,

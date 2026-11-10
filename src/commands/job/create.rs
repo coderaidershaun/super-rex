@@ -269,8 +269,17 @@ fn is_id_clash(error: &rusqlite::Error) -> bool {
     )
 }
 
+/// A `--lang` value that the value parser refuses; clap prints it as a usage error.
+#[derive(thiserror::Error, Debug)]
+#[error(
+    "{text} is not a language name; use lower-case letters and digits only, such as cpp or csharp"
+)]
+struct LanguageError {
+    text: String,
+}
+
 /// The value parser of `--lang`: lower-cased, letters and digits only.
-fn language(text: &str) -> Result<String, String> {
+fn language(text: &str) -> Result<String, LanguageError> {
     let name = text.to_lowercase();
     let is_name = !name.is_empty()
         && name
@@ -279,9 +288,9 @@ fn language(text: &str) -> Result<String, String> {
     if is_name {
         Ok(name)
     } else {
-        Err(format!(
-            "{text} is not a language name; use lower-case letters and digits only, such as cpp or csharp"
-        ))
+        Err(LanguageError {
+            text: text.to_owned(),
+        })
     }
 }
 
