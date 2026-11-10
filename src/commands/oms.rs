@@ -6,7 +6,7 @@ use std::path::Path;
 use serde::Serialize;
 
 use crate::commands::stdout::print_line_to_stdout;
-use crate::error::RexError;
+use crate::error::{CommandError, RexError};
 use crate::oms::{Inputs, Level, Selection, VERSION, select};
 
 /// Arguments of `rex oms`. A rating left out is the same as `none`.
@@ -114,6 +114,8 @@ pub enum OmsError {
     #[error(transparent)]
     Rex(#[from] RexError),
 }
+
+impl CommandError for OmsError {}
 
 /// The printed result. The fields are in output order, which the JSON form
 /// keeps.
