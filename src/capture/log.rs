@@ -46,19 +46,16 @@ fn line_for(input: &[u8], at_ms: u64) -> Option<Vec<u8>> {
 fn append(path: &Path, line: &[u8]) -> io::Result<()> {
     let mut file = OpenOptions::new().append(true).create(true).open(path)?;
     let written = file.write(line)?;
-    // A short write (a full disk) is tried once more and no further. What it leaves
-    // behind is one damaged line, which every reader of the log skips.
-    if let Some(rest) = line.get(written..)
-        && !rest.is_empty()
-    {
-        let _written_again = file.write(rest)?;
+    // A short write (a full disk) is ended with a newline, so the damage stays in
+    // this one line and the next hook's line starts on a line of its own.
+    if written < line.len() {
+        let _newline_written = file.write(b"\n")?;
     }
     Ok(())
 }
 
 /// The whole lines found after one offset of the log, and the offset to read from
 /// next time.
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct LogRead {
     /// In log order.
@@ -68,7 +65,6 @@ pub(crate) struct LogRead {
 }
 
 /// One whole line of the log.
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum LogLine {
     /// A line of this version that holds an event.
@@ -85,7 +81,6 @@ pub(crate) enum LogLine {
 ///
 /// # Errors
 /// [`CaptureError::ReadLog`] if the log exists and cannot be read.
-#[allow(dead_code)]
 pub(crate) fn read_log(path: &Path, offset: u64) -> Result<LogRead, CaptureError> {
     let failed = |source| CaptureError::ReadLog {
         path: path.to_path_buf(),

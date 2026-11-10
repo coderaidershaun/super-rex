@@ -12,15 +12,15 @@ pub(crate) struct Tags {
 
 impl Tags {
     /// The tags of `brief`. The block is the first lines that are tag lines, after
-    /// any empty lines; the first line that is not a tag line ends it. A key given
-    /// twice keeps its first value, and an unknown `Rex-` key is ignored, so keys can
-    /// be added later without breaking this reader.
+    /// any lines that hold only spaces, tabs or `\r`; the first line that is not a
+    /// tag line ends it. A key given twice keeps its first value, and an unknown
+    /// `Rex-` key is ignored, so keys can be added later without breaking this reader.
     pub(crate) fn of_brief(brief: &str) -> Tags {
         let mut tags = Tags::default();
         let lines = brief
             .split('\n')
-            .map(|line| line.strip_suffix('\r').unwrap_or(line))
-            .skip_while(|line| line.is_empty());
+            .skip_while(|line| line.chars().all(|c| matches!(c, ' ' | '\t' | '\r')))
+            .map(|line| line.strip_suffix('\r').unwrap_or(line));
         for line in lines {
             let Some((key, value)) = tag_line(line) else {
                 break;
@@ -38,8 +38,8 @@ impl Tags {
     }
 }
 
-/// The key after `Rex-` and the trimmed value, IF `line` matches
-/// `^Rex-[A-Za-z][A-Za-z-]*: \S.*$`.
+/// The key after `Rex-` and the value trimmed of spaces and tabs, IF `line` matches
+/// `^Rex-([A-Za-z][A-Za-z-]*):[ \t]*(\S.*)$`.
 fn tag_line(line: &str) -> Option<(&str, &str)> {
     let rest = line.strip_prefix("Rex-")?;
     let key_end = rest
@@ -49,11 +49,11 @@ fn tag_line(line: &str) -> Option<(&str, &str)> {
     if !key.starts_with(|c: char| c.is_ascii_alphabetic()) {
         return None;
     }
-    let value = rest.strip_prefix(": ")?;
+    let value = rest.strip_prefix(':')?.trim_start_matches([' ', '\t']);
     if !value.starts_with(|c: char| !c.is_whitespace()) {
         return None;
     }
-    Some((key, value.trim()))
+    Some((key, value.trim_end_matches([' ', '\t'])))
 }
 
 #[cfg(test)]
@@ -110,8 +110,8 @@ mod tests {
     }
 
     #[test]
-    fn empty_lines_first_carriage_returns_and_spaces_are_skipped() {
-        let brief = "\n\r\nRex-Job: k3x9p2m7qd  \r\nRex-Role: code-lead\r\n\r\nGo.";
+    fn blank_lines_first_carriage_returns_and_spaces_are_skipped() {
+        let brief = "\n\r\n \t\r\nRex-Job: k3x9p2m7qd \t\r\nRex-Role: code-lead\r\n\r\nGo.";
         assert_eq!(
             Tags::of_brief(brief),
             tags(Some("k3x9p2m7qd"), Some("code-lead"))
@@ -119,10 +119,19 @@ mod tests {
     }
 
     #[test]
+    fn any_spaces_or_tabs_after_the_colon() {
+        let brief = "Rex-Job:k3x9p2m7qd\nRex-Role: \t lead\n";
+        assert_eq!(
+            Tags::of_brief(brief),
+            tags(Some("k3x9p2m7qd"), Some("lead"))
+        );
+    }
+
+    #[test]
     fn a_line_that_does_not_match_ends_the_block() {
         let brief = "Rex-Job: k3x9p2m7qd\nrex-role: lead\nRex-Role: worker\n";
         assert_eq!(Tags::of_brief(brief), tags(Some("k3x9p2m7qd"), None));
-        let brief = "Rex-Job:  k3x9p2m7qd\nRex-Role: lead\n";
+        let brief = "Rex-Job: \t\nRex-Role: lead\n";
         assert_eq!(Tags::of_brief(brief), tags(None, None));
         let brief = "Rex-1Job: x\nRex-Role: lead\n";
         assert_eq!(Tags::of_brief(brief), tags(None, None));
