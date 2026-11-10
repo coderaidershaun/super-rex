@@ -59,6 +59,11 @@ pub enum StoreError {
 
     #[error("{what}")]
     InvalidInput { what: String },
+
+    #[error(
+        "the system clock reads {unix_seconds} seconds since 1970, outside the years 2026 to 2094 that a job ID can hold; set the system clock to the right time"
+    )]
+    ClockOutOfRange { unix_seconds: i64 },
 }
 
 impl From<rusqlite::Error> for StoreError {
