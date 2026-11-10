@@ -76,6 +76,7 @@ impl Fixture {
             orchestrator: None,
             experience_recalled: None,
             created_at,
+            request: "A request.".to_owned(),
         }
     }
 
@@ -125,6 +126,19 @@ impl Fixture {
         self.conn.query_row(sql, [], |row| row.get(0)).unwrap()
     }
 
+    /// A delivery of `job` that opened a pull request and waits for review.
+    pub fn add_open_pr(&self, job: &str, repo: &str, branch: &str, pr: &str) {
+        self.conn
+            .execute(
+                "INSERT INTO delivery (job_id, repo, branch, pr, merge_agreed, outcome, note,
+                                       recorded_at)
+                 VALUES (?1, ?2, ?3, ?4, 0, 'pr-open', 'Waiting for review.',
+                         '2026-11-10T12:00:00.000Z')",
+                (job, repo, branch, pr),
+            )
+            .unwrap();
+    }
+
     pub fn feedback_rows(&self, id: &str) -> i64 {
         self.count(&format!(
             "SELECT count(*) FROM feedback WHERE job_id = '{id}'"
@@ -141,6 +155,7 @@ pub struct JobBuilder<'a> {
     orchestrator: Option<(String, i64)>,
     experience_recalled: Option<String>,
     created_at: String,
+    request: String,
 }
 
 impl JobBuilder<'_> {
@@ -153,6 +168,16 @@ impl JobBuilder<'_> {
         languages: &str,
     ) -> Self {
         self.class = [work_type, size, consequence, languages].map(str::to_owned);
+        self
+    }
+
+    pub fn request(mut self, text: &str) -> Self {
+        self.request = text.to_owned();
+        self
+    }
+
+    pub fn created_at(mut self, timestamp: &str) -> Self {
+        self.created_at = timestamp.to_owned();
         self
     }
 
@@ -186,7 +211,7 @@ impl JobBuilder<'_> {
                                   consequence, languages, merge_agreed, session_id,
                                   experience_recalled, orchestrator_name,
                                   orchestrator_version, status, created_at, updated_at)
-                 VALUES (?1, 'A request.', 'human', 1, ?2, ?3, ?4, ?5, 0, ?6, ?7, ?8, ?9, ?10,
+                 VALUES (?1, ?12, 'human', 1, ?2, ?3, ?4, ?5, 0, ?6, ?7, ?8, ?9, ?10,
                          ?11, ?11)",
                 rusqlite::params![
                     self.id,
@@ -200,6 +225,7 @@ impl JobBuilder<'_> {
                     version,
                     self.status,
                     self.created_at,
+                    self.request,
                 ],
             )
             .unwrap();

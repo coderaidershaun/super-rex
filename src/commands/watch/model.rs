@@ -5,8 +5,11 @@ use std::collections::{HashMap, HashSet};
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 
-use super::view::{TreeRow, duration_text, total_text};
-use crate::capture::{Run, RunState};
+use super::view::{JobListRow, TreeRow, ViewModel, duration_text, total_text};
+use crate::capture::{JobRuns, Run, RunState};
+use crate::commands::jobs::{JobFilter, JobSummary, JobsError, load_summaries};
+use crate::store::Store;
+use std::time::SystemTime;
 
 /// Which of the two screens is shown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -107,6 +110,48 @@ pub fn on_key(state: State, key: Key, sizes: Sizes) -> (State, Action) {
     (next.clamped(sizes), Action::Continue)
 }
 
+/// What one refresh read: every job, as `rex jobs` lists it, with its runs.
+#[derive(Debug)]
+pub struct Snapshot {
+    jobs: Vec<(JobSummary, JobRuns)>,
+}
+
+impl Snapshot {
+    /// Reads every job through the function that `rex jobs` uses, so the
+    /// screen and `rex jobs --json` show the same jobs, statuses, run counts
+    /// and token totals.
+    ///
+    /// # Errors
+    /// [`JobsError`] as [`load_summaries`] gives it.
+    pub fn load(store: &mut Store, now: SystemTime) -> Result<Snapshot, JobsError> {
+        Ok(Snapshot::of(load_summaries(
+            store,
+            &JobFilter::default(),
+            now,
+        )?))
+    }
+
+    pub fn of(jobs: Vec<(JobSummary, JobRuns)>) -> Snapshot {
+        Snapshot { jobs }
+    }
+
+    /// The job list, and the run tree of the job at `selected`.
+    pub fn view(&self, selected: usize) -> ViewModel {
+        ViewModel {
+            jobs: self
+                .jobs
+                .iter()
+                .map(|(summary, _)| JobListRow::of(summary))
+                .collect(),
+            tree: self
+                .jobs
+                .get(selected)
+                .map(|(_, runs)| build_tree(&runs.runs))
+                .unwrap_or_default(),
+        }
+    }
+}
+
 /// The runs of one job as tree rows: children under their parent, each level
 /// in start order. A run whose parent is not a run of the job is a top-level row.
 pub fn build_tree(runs: &[Run]) -> Vec<TreeRow> {
@@ -179,6 +224,7 @@ fn tree_row(run: &Run, depth: usize) -> TreeRow {
 mod tests {
     use super::*;
     use crate::capture::{TokenCounts, TokenTotal};
+    use crate::store::StorePaths;
 
     fn run(id: &str, parent: Option<&str>, started: &str) -> Run {
         Run {
@@ -205,8 +251,50 @@ mod tests {
         }
     }
 
+    fn seed(store: &Store, id: &str, created_at: &str, status: &str) {
+        store
+            .conn()
+            .execute(
+                "INSERT INTO job (id, request, asked_by, class_version, work_type, size, \
+                 consequence, languages, merge_agreed, session_id, status, created_at, updated_at) \
+                 VALUES (?1, 'A request.', 'human', 1, 'fix', 'small', 'low', 'rust', 0, ?1, ?2, \
+                 ?3, ?3)",
+                (id, status, created_at),
+            )
+            .unwrap();
+    }
+
     #[test]
-    fn tree_nests_by_parent_and_marks_what_can_still_change() {
+    fn watch_model_matches_jobs_listing_and_builds_tree() {
+        let dir = tempfile::TempDir::new().unwrap();
+        std::fs::create_dir(dir.path().join(".git")).unwrap();
+        let paths = StorePaths::locate(dir.path()).unwrap();
+        let mut store = Store::create(&paths).unwrap();
+        seed(&store, "0g4aaaaaa1", "2026-11-10T09:00:00.000Z", "planned");
+        seed(
+            &store,
+            "0g4bbbbbb2",
+            "2026-11-10T10:00:00.000Z",
+            "delivered",
+        );
+
+        // The watch data and the `rex jobs` data come from the same function.
+        let now = SystemTime::now();
+        let listed = load_summaries(&mut store, &JobFilter::default(), now).unwrap();
+        let watched = Snapshot::load(&mut store, now).unwrap();
+        assert_eq!(watched.jobs.len(), listed.len());
+        for ((shown, runs), (listed, listed_runs)) in watched.jobs.iter().zip(&listed) {
+            assert_eq!(shown, listed);
+            assert_eq!(runs.open, listed_runs.open);
+            assert_eq!(runs.finished, listed_runs.finished);
+            assert_eq!(runs.tokens, listed_runs.tokens);
+        }
+        let view = watched.view(0);
+        let ids: Vec<_> = view.jobs.iter().map(|row| row.id.as_str()).collect();
+        assert_eq!(ids, ["0g4bbbbbb2", "0g4aaaaaa1"]);
+        assert_eq!(view.jobs[1].status, "planned");
+
+        // Hand-built runs: nesting, the provisional mark and the tag job.
         let counts = TokenCounts {
             input: 61_000,
             output: 0,
@@ -224,8 +312,11 @@ mod tests {
         let later_child = run("b", Some("lead"), "2026-11-10T10:03:00.000Z");
         let first_child = run("a", Some("lead"), "2026-11-10T10:02:00.000Z");
         let grandchild = run("c", Some("a"), "2026-11-10T10:02:30.000Z");
+        let mut hand_built = watched.jobs[0].1.clone();
+        hand_built.runs = vec![later_child, orphan, grandchild, lead, first_child];
+        let with_runs = Snapshot::of(vec![(watched.jobs[0].0.clone(), hand_built)]);
 
-        let rows = build_tree(&[later_child, orphan, grandchild, lead, first_child]);
+        let rows = with_runs.view(0).tree;
         let shape: Vec<_> = rows.iter().map(|row| row.depth).collect();
         assert_eq!(shape, [0, 1, 2, 1, 0]);
         assert_eq!(rows[0].tokens, "61.0k tokens~");
