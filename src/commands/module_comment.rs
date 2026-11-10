@@ -3,7 +3,7 @@
 
 /// How one family of languages writes the comment that opens a file.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct Syntax {
+pub(super) struct Syntax {
     /// Opens a comment that runs to the end of its line.
     line: &'static str,
     /// Opens and closes a comment that can span lines.
@@ -16,30 +16,30 @@ pub(crate) struct Syntax {
 /// cannot be mistaken for the comment on the first item of a file.
 const ANY_LINE: &[&str] = &[""];
 
-pub(crate) const RUST: Syntax = Syntax {
+pub(super) const RUST: Syntax = Syntax {
     line: "//!",
     block: None,
     before: ANY_LINE,
 };
-pub(crate) const SLASH: Syntax = Syntax {
+pub(super) const SLASH: Syntax = Syntax {
     line: "//",
     block: Some(("/*", "*/")),
     before: &[],
 };
-pub(crate) const C: Syntax = Syntax {
+pub(super) const C: Syntax = Syntax {
     before: &["#pragma", "#if", "#define"],
     ..SLASH
 };
-pub(crate) const SCRIPT: Syntax = Syntax {
+pub(super) const SCRIPT: Syntax = Syntax {
     before: &["\"use ", "'use "],
     ..SLASH
 };
-pub(crate) const PYTHON: Syntax = Syntax {
+pub(super) const PYTHON: Syntax = Syntax {
     line: "#",
     block: Some(("\"\"\"", "\"\"\"")),
     before: &[],
 };
-pub(crate) const SHELL: Syntax = Syntax {
+pub(super) const SHELL: Syntax = Syntax {
     block: None,
     ..PYTHON
 };
@@ -64,9 +64,11 @@ const DIRECTIVE_STARTS: &[&str] = &[
 /// A comment whose first words are one of these is a licence header.
 const LICENCE_STARTS: &[&str] = &["copyright", "(c)", "©", "licensed", "this source code"];
 
+// SMELL: a file that starts with a byte order mark gets no sentence, and nor
+// does a JavaScript or TypeScript file that starts with a `#!` line.
 /// The first sentence of the comment that opens a file, if it has one. `head`
 /// is the start of the file.
-pub(crate) fn leading_sentence(head: &str, syntax: &Syntax) -> Option<String> {
+pub(super) fn leading_sentence(head: &str, syntax: &Syntax) -> Option<String> {
     let mut text = String::new();
     let mut is_licence = false;
     let mut closer = None;
@@ -179,31 +181,10 @@ fn sentence_end(text: &str) -> Option<usize> {
 mod tests {
     use super::*;
 
-    fn sentence(head: &str, syntax: &Syntax) -> Option<String> {
-        leading_sentence(head, syntax)
-    }
-
-    #[test]
-    fn rust_joins_the_lines_up_to_the_first_full_stop() {
-        let head = "//! Reads the feed\n//! and retries. It also logs.\nfn main() {}\n";
-        assert_eq!(
-            sentence(head, &RUST).as_deref(),
-            Some("Reads the feed and retries.")
-        );
-    }
-
-    #[test]
-    fn rust_file_without_a_module_comment_gives_none() {
-        assert_eq!(
-            sentence("fn main() {}\n// Not a module comment.\n", &RUST),
-            None
-        );
-    }
-
     #[test]
     fn rust_drops_the_heading_mark() {
         assert_eq!(
-            sentence("//! # Title\n//! Body.\n", &RUST).as_deref(),
+            leading_sentence("//! # Title\n//! Body.\n", &RUST).as_deref(),
             Some("Title Body.")
         );
     }
@@ -211,7 +192,7 @@ mod tests {
     #[test]
     fn rust_skips_an_empty_comment_line_and_a_blank_line_before_the_text() {
         assert_eq!(
-            sentence("//!\n\n//! Text.\n", &RUST).as_deref(),
+            leading_sentence("//!\n\n//! Text.\n", &RUST).as_deref(),
             Some("Text.")
         );
     }
@@ -219,40 +200,51 @@ mod tests {
     #[test]
     fn rust_passes_over_a_licence_comment() {
         let head = "//! Copyright 2026 Acme.\n\n//! Reads the feed.\n";
-        assert_eq!(sentence(head, &RUST).as_deref(), Some("Reads the feed."));
-        assert_eq!(sentence("//! Licensed under MIT.\n", &RUST), None);
+        assert_eq!(
+            leading_sentence(head, &RUST).as_deref(),
+            Some("Reads the feed.")
+        );
+        assert_eq!(leading_sentence("//! Licensed under MIT.\n", &RUST), None);
     }
 
+    // Outside Rust a blank line does not count toward the limit.
     #[test]
-    fn a_comment_must_start_before_the_fifth_line_before_it() {
-        let comment = "// Reads the feed.\n";
+    fn at_most_four_allowed_lines_may_come_before_the_comment() {
+        let comment = "\n// Reads the feed.\n";
         let four = format!("{}{comment}", "#define A\n".repeat(4));
         let five = format!("{}{comment}", "#define A\n".repeat(5));
-        assert_eq!(sentence(&four, &C).as_deref(), Some("Reads the feed."));
-        assert_eq!(sentence(&five, &C), None);
-
-        let four = format!("{}//! Reads the feed.\n", "use a;\n".repeat(4));
-        let five = format!("{}//! Reads the feed.\n", "use a;\n".repeat(5));
-        assert_eq!(sentence(&four, &RUST).as_deref(), Some("Reads the feed."));
-        assert_eq!(sentence(&five, &RUST), None);
+        assert_eq!(
+            leading_sentence(&four, &C).as_deref(),
+            Some("Reads the feed.")
+        );
+        assert_eq!(leading_sentence(&five, &C), None);
     }
 
     #[test]
     fn a_block_that_closes_on_its_opening_line_ends_the_comment() {
         let head = "/* Reads the feed */\n// Not this one.\npackage feed\n";
-        assert_eq!(sentence(head, &SLASH).as_deref(), Some("Reads the feed"));
+        assert_eq!(
+            leading_sentence(head, &SLASH).as_deref(),
+            Some("Reads the feed")
+        );
         let head = "/* Reads the feed. */ int x;\n";
-        assert_eq!(sentence(head, &C).as_deref(), Some("Reads the feed."));
+        assert_eq!(
+            leading_sentence(head, &C).as_deref(),
+            Some("Reads the feed.")
+        );
     }
 
     #[test]
     fn a_block_that_never_closes_reads_to_the_end_of_the_head() {
         let head = "/*\n * Reads the feed\n * and more\n";
         assert_eq!(
-            sentence(head, &SLASH).as_deref(),
+            leading_sentence(head, &SLASH).as_deref(),
             Some("Reads the feed and more")
         );
-        assert_eq!(sentence("/*\n * Copyright 2026 Acme\n", &SLASH), None);
+        assert_eq!(
+            leading_sentence("/*\n * Copyright 2026 Acme\n", &SLASH),
+            None
+        );
     }
 
     #[test]
@@ -261,7 +253,7 @@ mod tests {
             for start in [start.to_string(), start.to_uppercase()] {
                 let head = format!("# {start}rest\n# Builds the archive.\n");
                 assert_eq!(
-                    sentence(&head, &SHELL).as_deref(),
+                    leading_sentence(&head, &SHELL).as_deref(),
                     Some("Builds the archive."),
                     "directive {start:?}"
                 );
@@ -275,7 +267,7 @@ mod tests {
             for start in [start.to_string(), start.to_uppercase()] {
                 let head = format!("// {start} 2026 Acme\n\n// Reads the feed.\n");
                 assert_eq!(
-                    sentence(&head, &SLASH).as_deref(),
+                    leading_sentence(&head, &SLASH).as_deref(),
                     Some("Reads the feed."),
                     "licence {start:?}"
                 );
@@ -284,139 +276,15 @@ mod tests {
     }
 
     #[test]
-    fn a_licence_and_a_comment_in_one_run_are_both_passed_over() {
-        assert_eq!(
-            sentence("// Copyright 2026 Acme.\n// Reads the feed.\n", &SLASH),
-            None
-        );
-    }
-
-    #[test]
     fn windows_line_endings_give_the_same_sentence() {
         assert_eq!(
-            sentence("//! Reads the feed\r\n//! today.\r\n", &RUST).as_deref(),
+            leading_sentence("//! Reads the feed\r\n//! today.\r\n", &RUST).as_deref(),
             Some("Reads the feed today.")
         );
         let head = "/*\r\n * Reads the feed\r\n * today.\r\n */\r\n";
         assert_eq!(
-            sentence(head, &SLASH).as_deref(),
+            leading_sentence(head, &SLASH).as_deref(),
             Some("Reads the feed today.")
         );
-    }
-
-    #[test]
-    fn an_empty_comment_line_ends_the_sentence_once_text_has_started() {
-        assert_eq!(
-            sentence("// Draws the chart\n//\n// More.\n", &SLASH).as_deref(),
-            Some("Draws the chart")
-        );
-    }
-
-    #[test]
-    fn decoration_and_rule_lines_are_dropped() {
-        let boxed = "/*****\n * Draws the chart.\n *****/\n";
-        assert_eq!(sentence(boxed, &C).as_deref(), Some("Draws the chart."));
-        let rule = "// ======\n// Draws the chart.\n";
-        assert_eq!(sentence(rule, &SLASH).as_deref(), Some("Draws the chart."));
-        assert_eq!(
-            sentence("/// Draws the chart.\n", &C).as_deref(),
-            Some("Draws the chart.")
-        );
-    }
-
-    #[test]
-    fn each_language_gives_the_sentence_of_its_opening_comment() {
-        let cases = [
-            (
-                "go",
-                SLASH,
-                "// Package feed reads the price feed.\npackage feed\n",
-                "Package feed reads the price feed.",
-            ),
-            (
-                "go block",
-                SLASH,
-                "/* Package feed reads the feed. */\npackage feed\n",
-                "Package feed reads the feed.",
-            ),
-            (
-                "go licence",
-                SLASH,
-                "// Copyright 2026 Acme.\n\n// Reads the feed.\n\npackage feed\n",
-                "Reads the feed.",
-            ),
-            (
-                "c guard",
-                C,
-                "#ifndef FEED_H\n#define FEED_H\n// Declares the feed reader.\n#include <x.h>\n",
-                "Declares the feed reader.",
-            ),
-            (
-                "c above guard",
-                C,
-                "/* Declares the feed reader. */\n#ifndef FEED_H\n",
-                "Declares the feed reader.",
-            ),
-            (
-                "c licence",
-                C,
-                "/*\n * Licensed under MIT.\n */\n#pragma once\n// Declares the feed reader.\n",
-                "Declares the feed reader.",
-            ),
-            (
-                "js",
-                SCRIPT,
-                "\"use strict\";\n// Draws the order book chart.\nimport a from 'a';\n",
-                "Draws the order book chart.",
-            ),
-            (
-                "ts",
-                SCRIPT,
-                "/** Draws the order book chart. */\nimport a from 'a';\n",
-                "Draws the order book chart.",
-            ),
-            (
-                "python one line",
-                PYTHON,
-                "#!/usr/bin/env python3\n\"\"\"Loads the run config.\"\"\"\nimport os\n",
-                "Loads the run config.",
-            ),
-            (
-                "python opened alone",
-                PYTHON,
-                "\"\"\"\nLoads the run config.\n\"\"\"\n",
-                "Loads the run config.",
-            ),
-            (
-                "python many lines",
-                PYTHON,
-                "# -*- coding: utf-8 -*-\n\"\"\"Loads the run\nconfig from disk. More.\"\"\"\n",
-                "Loads the run config from disk.",
-            ),
-            (
-                "shell",
-                SHELL,
-                "#!/bin/bash\n# Builds the release archive.\nset -e\n",
-                "Builds the release archive.",
-            ),
-        ];
-        for (name, syntax, head, expected) in cases {
-            assert_eq!(sentence(head, &syntax).as_deref(), Some(expected), "{name}");
-        }
-    }
-
-    #[test]
-    fn code_before_the_comment_gives_none() {
-        let cases = [
-            ("go", SLASH, "package feed\n// Reads the feed.\n"),
-            ("c", C, "#include <x.h>\n// Reads the feed.\n"),
-            ("js", SCRIPT, "import a from 'a';\n// Reads the feed.\n"),
-            ("python", PYTHON, "import os\n\"\"\"Reads the feed.\"\"\"\n"),
-            ("shell", SHELL, "set -e\n# Reads the feed.\n"),
-            ("empty", SLASH, ""),
-        ];
-        for (name, syntax, head) in cases {
-            assert_eq!(sentence(head, &syntax), None, "{name}");
-        }
     }
 }

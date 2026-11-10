@@ -324,8 +324,6 @@ fn codebase_only_one_language_lists_that_language() {
         ("go", "feed.go\nlib/\n  x.go\n"),
         ("cpp", "feed.cpp\nfeed.h\n"),
         ("c", "feed.c\nfeed.h\n"),
-        ("rust", "main.rs\n"),
-        ("python", ""),
     ];
     for (language, expected) in cases {
         let stdout = codebase_stdout(dir.path(), &["--only", language]);

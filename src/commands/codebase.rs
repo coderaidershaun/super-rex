@@ -4,7 +4,9 @@
 
 use std::fs::{self, File};
 use std::io::Read;
+use std::iter;
 use std::path::Path;
+use std::sync::LazyLock;
 
 use clap::ValueEnum;
 use clap::builder::PossibleValue;
@@ -35,7 +37,7 @@ const FOR_HUMAN_FLAG: &str = "for-human";
 pub struct CodebaseOptions {
     /// Add the first sentence of each source file's opening comment to its line.
     #[arg(long = WITH_CONTEXT_FLAG)]
-    pub has_context: bool,
+    has_context: bool,
 
     /// List only source files and the directories that hold at least one:
     /// `code` for every language rex knows, or one language.
@@ -44,11 +46,11 @@ pub struct CodebaseOptions {
 
     /// Same as `--only rust`.
     #[arg(long = RUST_ONLY_FLAG, conflicts_with = "only")]
-    pub is_rust_only: bool,
+    is_rust_only: bool,
 
     /// Write the tree to CODEBASE.md instead of printing it.
     #[arg(long = FOR_HUMAN_FLAG)]
-    pub is_for_human: bool,
+    is_for_human: bool,
 }
 
 /// The files `--only` keeps: those in any language rex knows, or in one.
@@ -68,21 +70,16 @@ impl Only {
     }
 }
 
-// clap cannot derive this for a variant that holds a value, so the values
-// are listed by hand, in the order the help text shows them.
+// clap cannot derive this for a variant that holds a value.
 impl ValueEnum for Only {
     fn value_variants<'a>() -> &'a [Self] {
-        &[
-            Self::Code,
-            Self::Language(Language::Rust),
-            Self::Language(Language::Go),
-            Self::Language(Language::C),
-            Self::Language(Language::Cpp),
-            Self::Language(Language::Python),
-            Self::Language(Language::Js),
-            Self::Language(Language::Ts),
-            Self::Language(Language::Shell),
-        ]
+        static VARIANTS: LazyLock<Vec<Only>> = LazyLock::new(|| {
+            let languages = Language::value_variants().iter().copied();
+            iter::once(Only::Code)
+                .chain(languages.map(Only::Language))
+                .collect()
+        });
+        &VARIANTS
     }
 
     fn to_possible_value(&self) -> Option<PossibleValue> {
@@ -96,11 +93,8 @@ impl ValueEnum for Only {
 impl CodebaseOptions {
     /// The files the tree keeps, or `None` for every file.
     fn scope(self) -> Option<Only> {
-        if self.is_rust_only {
-            Some(Only::Language(Language::Rust))
-        } else {
-            self.only
-        }
+        let rust_only = self.is_rust_only.then_some(Only::Language(Language::Rust));
+        rust_only.or(self.only)
     }
 
     /// Builds the command line for these options. The flags always come in

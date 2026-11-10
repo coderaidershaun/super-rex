@@ -32,7 +32,7 @@ pub(super) fn visible_entries(
         .git_exclude(true)
         .git_global(true)
         .require_git(false)
-        .sort_by_file_name(|a, b| a.cmp(b))
+        .sort_by_file_name(Ord::cmp)
         .build()
         .filter_map(move |entry| match entry {
             Ok(entry) => Some(Ok(entry)),

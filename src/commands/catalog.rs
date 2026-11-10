@@ -1,7 +1,5 @@
-//! Recursively walks the clap command tree and prints every reachable command
-//! with its full invocation path and one-line description. Kept separate so
-//! agents can call `rex commands` once to discover the full CLI surface area
-//! without parsing --help output from every subcommand.
+//! Lists every `rex` command with its one-line description, so an agent learns
+//! them all in one call instead of reading the help of each command.
 
 use clap::Command;
 
