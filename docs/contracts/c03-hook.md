@@ -196,7 +196,7 @@ The same question for a `rex` command that an agent runs in its shell from a sib
 - Find SuperRex's own entries by the exact `command` string, and add each event's group one time only (C6 rule 3a).
 - Under `--no-hooks`, write none of the three entries and remove none (C6 4.6).
 - At `rex init`, give a warning on stderr IF no `rex` is found on `PATH`, or IF the first one found is not the binary that runs `init`. It is a warning only: the install goes on. C6 section 2 holds the method and the text.
-- State this limit to the user: a session started inside a Git worktree made with `git worktree add` has no `.claude/settings.local.json`, because that file is ignored by Git, so no hook fires there. (Worktrees that Claude Code makes for sub-agents are not affected: the session's settings apply.)
+- A session started inside a job worktree under the main checkout fires the hooks, because it gets the settings of the main checkout (tested live). A worktree outside the main checkout's folder is not tested: tell the user to start a session in the main checkout. (Worktrees that Claude Code makes for sub-agents are not affected: the session's settings apply.)
 
 **Lane 2 (C1).** Nothing more is asked. C1 gives what the hook needs: `StorePaths::discover(cwd)` (opens no database, runs no `git`) and `StorePaths::event_log`.
 
@@ -224,5 +224,5 @@ Not tested: Linux; a failure or an interrupt in the middle of a run; a `PATH` wi
 - The log grows by about three lines for each sub-agent and is never truncated in version 1.
 - IF `rex` is not on the `PATH` of Claude Code, or is not SuperRex, THEN no event is logged. Nothing fails. `rex init` warns about it (C6 section 2).
 - A short write (full disk) can leave one damaged line. Intake counts it; recovery from transcripts fills the gap (C5).
-- A session started inside a worktree made with `git worktree add` has no `.claude/settings.local.json`, so no hook fires there. Start a session in the main checkout.
+- A session started inside a job worktree under the main checkout (`<repo>/.rex/worktrees/<name>`, made with `git worktree add`) gets the settings of the main checkout: the sandbox applies and the hooks fire (tested live, Claude Code 2.1.322). A worktree outside the main checkout's folder is not tested: start a session in the main checkout.
 - A `REX_STORE` that the user's shell exports applies to the hook too: every event of the session goes to that store.

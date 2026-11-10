@@ -326,7 +326,7 @@ unconfirmed
 
 Table `session_tokens` (C1): one row for each job, written only by `job_runs`: `job_id`, the four counts, `tokens_provisional`, `transcript_bytes`, `transcript_damaged_lines`, `tokens_read_at`.
 
-Limits: (a) when one session runs several jobs, its main-session tokens are split by time; (b) the figure is known only for a session that logged at least one event line, so a job with no sub-agent, or a session started in a `git worktree add` folder, has `session_tokens` `Unknown`; (c) a request that Claude Code bills but does not write to any transcript (seen: one stopped by a safety classifier) is not counted, so a sum can be lower than Claude Code's `modelUsage`.
+Limits: (a) when one session runs several jobs, its main-session tokens are split by time; (b) the figure is known only for a session that logged at least one event line, so a job with no sub-agent has `session_tokens` `Unknown`; (c) a request that Claude Code bills but does not write to any transcript (seen: one stopped by a safety classifier) is not counted, so a sum can be lower than Claude Code's `modelUsage`.
 
 Alternatives not chosen: tokens on sub-agent runs only (a job's cost then misses the orchestrator, and no total can be checked against `modelUsage`); storing only the final value (a job whose transcripts were removed before a final read then has no cost at all).
 
@@ -387,7 +387,7 @@ Not tested: a run that is killed or interrupted (does `finished` still appear?);
 - A sub-agent resumed after its totals became final: the new requests are not counted.
 - When one session runs several jobs, its main-session tokens are split by time.
 - Requests that Claude Code bills but does not write to the transcript (seen one time: a request stopped by a safety classifier) are not counted. A sum can then be lower than Claude Code's own `modelUsage` for that model.
-- A session started in a folder made with `git worktree add` has no `.claude/settings.local.json`, so no hook fires there (C3 7) and the safety settings do not apply: start a session in the main checkout. Its jobs have no runs, and `session_tokens` is `Unknown`. `incomplete` stays false, because nothing tells this case apart from a job that started no sub-agent.
+- A session started inside a job worktree under the main checkout (`<repo>/.rex/worktrees/<name>`, made with `git worktree add`) gets the settings of the main checkout: the sandbox applies and the hooks fire (tested live, Claude Code 2.1.322). A worktree outside the main checkout's folder is not tested: start a session in the main checkout. IF no hook fires for a session, THEN its jobs have no runs, and `session_tokens` is `Unknown`. `incomplete` stays false, because nothing tells this case apart from a job that started no sub-agent.
 - A job whose session logged no line (no sub-agent, or the hooks off) has `session_tokens` `Unknown`: its main-session cost is not recorded.
 - Requests of the main session before `rex job create`, or between two jobs, count for no job.
 - A run that started before its session's job was created is not stored, also when the builder runs inside it. Its children are roots of the job's tree (section 4).

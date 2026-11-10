@@ -504,7 +504,9 @@ Not tested: `~/` entries in a session started from a subfolder; an absolute `add
 
 Not tested: the trivy cache path on Linux.
 
-A session started in a `git worktree add` folder has no `.claude/settings.local.json`. So none of these settings apply there and no hook fires. Reasoned, not tested. Start a session in the main checkout.
+A session started inside a job worktree under the main checkout (`<repo>/.rex/worktrees/<name>`, made with `git worktree add`) gets the settings of the main checkout: the sandbox applies and the hooks fire (tested live, Claude Code 2.1.322). A worktree outside the main checkout's folder is not tested: start a session in the main checkout.
+
+The sandbox does not let a session remove a Git worktree that an earlier session (or a person) made: at session start it finds each worktree under `.git/worktrees/` and denies writes to its `commondir`, `config.worktree` and `config.worktree.lock`. It is built into Claude Code, and no entry of `allowWrite` changes it. So `rex init` writes no setting for it. `rex-deliver` keeps such a worktree and records it (C12 section 5).
 
 An agent writes below `.claude/skills/` only with the Write and Edit tools. A shell write there is refused by a built-in rule of the sandbox (`Operation not permitted`), not by a setting of this contract. So a `rex` command that an agent runs cannot write a skill. `.rex/orchestrators/` is writable both ways. (Live check, Claude Code 2.1.322.)
 

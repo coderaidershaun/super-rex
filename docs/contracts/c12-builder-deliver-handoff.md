@@ -127,6 +127,8 @@ git worktree add -b "$BRANCH" "$DIR" "$BASE"
 
 **Clean-up finds things by name only.** It takes local and remote branches whose name ends with `-<job-id>` or contains `-<job-id>--`, and worktrees under `.rex/worktrees/<job-id>/`. There is no register.
 
+**A worktree from an earlier session is kept.** The sandbox does not let a session remove a worktree that an earlier session, or a person, made: `git worktree remove` prints `failed to delete '.git/worktrees/<name>': Operation not permitted` (gate P2.4; the cause is in C6 section 11). `rex-deliver` then uses no `--force`, no `rm` and no `git worktree prune`. It keeps the worktree and its branch. The outcome stays `merged`, and the `note` names the kept worktree and branch and gives the two commands that a person runs in their own shell: `git -C <REPO_DIR> worktree remove <path>` (or `git -C <REPO_DIR> worktree prune` IF Git says the path is gone), then `git -C <REPO_DIR> branch -D <branch>`. No settings change does it.
+
 **Reading the job ID from a branch name** (C9 4.6, `rex-feedback`). Cut the name at the first `--`. The job ID is the text after the last `-` of what is left. Use it only if it is 10 characters of `[0-9a-z]` (C2 2.4). This works because a slug holds no `--` and does not end with `-`, a unit name holds no `--`, and a job ID holds no `-` (C2 2.4).
 
 **Sibling repos.** A sibling repo can have no SuperRex ignore block. Before the first worktree there: IF `git -C "$REPO_DIR" check-ignore -q .rex` fails, THEN append `.rex/` to `$REPO_DIR/.git/info/exclude`. That is a local file and is not committed.
@@ -217,9 +219,9 @@ This rule is C12's own. It does not rest on a deny rule in the settings (C6).
 
 ## 10. Not tested
 
-No live check ran for this draft. Not tested: (1) what `gh` reports for a pull request with no checks; (2) `git worktree add` under `.rex/worktrees/` inside the sandbox; (3) a write to `.git/info/exclude` of a sibling repo inside the sandbox; (4) `ssh -G` inside the sandbox (the `github` mode test for an SSH host alias). Gates P2.1, P2.9 and P2.11 cover the first three.
+No live check ran for this draft. Not tested: (1) what `gh` reports for a pull request with no checks; (2) a write to `.git/info/exclude` of a sibling repo inside the sandbox; (3) `ssh -G` inside the sandbox (the `github` mode test for an SSH host alias). Tested at gate P2: `git worktree add` and `git worktree remove` under `.rex/worktrees/` work inside the sandbox for a worktree that the same session made.
 
-A session started in a `git worktree add` folder has no `.claude/settings.local.json`: no hook fires there and the safety settings do not apply. The session starts in the main checkout; its sub-agents work in the job worktrees.
+A session started inside a job worktree under the main checkout (`<repo>/.rex/worktrees/<name>`, made with `git worktree add`) gets the settings of the main checkout: the sandbox applies and the hooks fire (tested live, Claude Code 2.1.322). A worktree outside the main checkout's folder is not tested: start a session in the main checkout. The session starts in the main checkout; its sub-agents work in the job worktrees.
 
 ## 11. Decisions made here that the G1 review can change
 
