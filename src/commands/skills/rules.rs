@@ -20,6 +20,10 @@ const MAX_NAME_LENGTH: usize = 64;
 
 const MAX_SKILL_LINES: usize = 500;
 
+const MAX_BODY_WORDS: usize = 1500;
+
+const MAX_HEADER_WORDS: usize = 60;
+
 /// The "use when" phrases that belong in `when_to_use`, not in `description`.
 const USE_WHEN_PHRASES: [&str; 5] = [
     "Use when",
@@ -80,6 +84,10 @@ pub enum Rule {
     H7,
     /// Every header key is one Claude Code reads.
     H8,
+    /// `description` and `when_to_use` together have at most 60 words. Claude
+    /// Code lists every skill in every session, and drops descriptions when
+    /// the list grows too long.
+    H9,
     /// `SKILL.md` has text after the header.
     B1,
     /// `SKILL.md` has at most 500 lines. A loaded skill stays in context, so
@@ -88,9 +96,14 @@ pub enum Rule {
     /// Each link to a Markdown file points to a file in the skills folder. A
     /// link out of that folder breaks once the skill is installed in another repo.
     B3,
-    /// Each `.claude/skills/<name>/SKILL.md` names a known skill. An agent told
-    /// to read a skill that is not there goes on without it.
+    /// Each `.claude/skills/<name>/<file>.md` names a Markdown file of a known
+    /// skill: its `SKILL.md`, or a file in its folder or below it. An agent
+    /// told to read a file that is not there goes on without it.
     B4,
+    /// The text after the header of `SKILL.md` has at most 1,500 words. An
+    /// agent reads all of `SKILL.md`, so the text for one step or one case
+    /// belongs in a sibling file that the agent reads only when it needs it.
+    B5,
 }
 
 impl Rule {
@@ -106,10 +119,12 @@ impl Rule {
             Rule::H6 => "H6",
             Rule::H7 => "H7",
             Rule::H8 => "H8",
+            Rule::H9 => "H9",
             Rule::B1 => "B1",
             Rule::B2 => "B2",
             Rule::B3 => "B3",
             Rule::B4 => "B4",
+            Rule::B5 => "B5",
         }
     }
 }
@@ -145,8 +160,10 @@ pub struct Skill {
 /// What exists around the skill being checked.
 #[derive(Debug, Clone, Default)]
 pub struct KnownSkills {
-    /// The folder name of each skill that a path may name (rule B4).
-    pub names: BTreeSet<String>,
+    /// Each Markdown file of each skill that a path may name, relative to the
+    /// skills folder that holds the skill, such as `rex-deliver/SKILL.md`. A
+    /// skill is known when its `SKILL.md` is here (rule B4).
+    pub skill_paths: BTreeSet<PathBuf>,
     /// Each Markdown file in the skills folder, relative to it, such as
     /// `rex-code-tdd/SKILL.md`. A link may point into another skill (rule B3).
     pub files: BTreeSet<PathBuf>,
@@ -181,7 +198,7 @@ pub fn check_skill(skill: &Skill, known: &KnownSkills) -> Vec<Finding> {
         for message in broken_links(&in_skills_folder, &file.text, &known.files) {
             finding(&file.path, Rule::B3, message);
         }
-        for message in unknown_skill_paths(&file.text, &known.names) {
+        for message in unknown_skill_paths(&file.text, &known.skill_paths) {
             finding(&file.path, Rule::B4, message);
         }
     }
@@ -190,7 +207,8 @@ pub fn check_skill(skill: &Skill, known: &KnownSkills) -> Vec<Finding> {
     findings
 }
 
-/// The findings of every rule that reads `SKILL.md` alone: H1 to H8, B1, B2.
+/// The findings of every rule that reads `SKILL.md` alone: H1 to H9, B1, B2
+/// and B5.
 fn skill_md_findings(folder: &str, text: &str) -> Vec<(Rule, String)> {
     let mut findings = Vec::new();
     let body = match Parts::split(text) {
@@ -225,6 +243,13 @@ fn skill_md_findings(folder: &str, text: &str) -> Vec<(Rule, String)> {
             format!("{lines} lines, more than {MAX_SKILL_LINES}; move long material into a reference file"),
         ));
     }
+    let words = word_count(&body);
+    if words > MAX_BODY_WORDS {
+        findings.push((
+            Rule::B5,
+            format!("{words} words after the header, more than {MAX_BODY_WORDS}; move the text for one step or one case into a sibling file, and say in SKILL.md when to read it"),
+        ));
+    }
     findings
 }
 
@@ -241,6 +266,7 @@ fn header_findings(folder: &str, header: &Header) -> Vec<(Rule, String)> {
         findings.extend(shortened_by_yaml(header, key).map(|message| (Rule::H6, message)));
     }
     findings.extend(listing_too_long(header).map(|message| (Rule::H7, message)));
+    findings.extend(header_too_wordy(header).map(|message| (Rule::H9, message)));
     for key in keys {
         if !KNOWN_KEYS.contains(&key.as_str()) {
             let message = format!("`{key}` is not a key Claude Code reads, so it is ignored");
@@ -335,6 +361,23 @@ fn listing_too_long(header: &Header) -> Option<String> {
     })
 }
 
+/// Words as `wc -w` counts them: runs of characters between white space.
+fn word_count(text: &str) -> usize {
+    text.split_whitespace().count()
+}
+
+fn header_too_wordy(header: &Header) -> Option<String> {
+    let words: usize = ["description", "when_to_use"]
+        .iter()
+        .map(|key| word_count(&header.text(key).unwrap_or_default()))
+        .sum();
+    (words > MAX_HEADER_WORDS).then(|| {
+        format!(
+            "description and when_to_use have {words} words together, more than {MAX_HEADER_WORDS}"
+        )
+    })
+}
+
 /// A message for each Markdown link in `text` to a `.md` file that is not in
 /// `existing`. `file` is the path of the file that holds the links, relative
 /// to the skills folder.
@@ -378,9 +421,10 @@ fn resolve(from: &Path, target: &str) -> Option<PathBuf> {
     Some(resolved)
 }
 
-/// A message for each `.claude/skills/<name>/SKILL.md` in `text` whose name
-/// is not in `known`.
-fn unknown_skill_paths(text: &str, known: &BTreeSet<String>) -> Vec<String> {
+/// A message for each `.claude/skills/<name>/<file>.md` in `text` that is not
+/// in `known`. A placeholder such as `<name>` or `<file>` makes the path a
+/// template, which names no file, so it is not checked.
+fn unknown_skill_paths(text: &str, known: &BTreeSet<PathBuf>) -> Vec<String> {
     let mut messages = Vec::new();
     for (at, _) in text.match_indices(SKILLS_FOLDER_TEXT) {
         let after = &text[at + SKILLS_FOLDER_TEXT.len()..];
@@ -389,11 +433,29 @@ fn unknown_skill_paths(text: &str, known: &BTreeSet<String>) -> Vec<String> {
             .take_while(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
             .count();
         let name = &after[..name_length];
-        let names_a_skill = !name.is_empty() && after[name_length..].starts_with("/SKILL.md");
-        if names_a_skill && !known.contains(name) {
-            messages.push(format!(
-                "{SKILLS_FOLDER_TEXT}{name}/SKILL.md is not a known skill"
-            ));
+        let Some(rest) = after[name_length..].strip_prefix('/') else {
+            continue;
+        };
+        let file_length = rest
+            .bytes()
+            .take_while(|byte| byte.is_ascii_alphanumeric() || b"-_./".contains(byte))
+            .count();
+        // A path at the end of a sentence is followed by its full stop.
+        let file = rest[..file_length].trim_end_matches('.');
+        if name.is_empty() || !file.ends_with(".md") {
+            continue;
+        }
+
+        let written = format!("{SKILLS_FOLDER_TEXT}{name}/{file}");
+        let skill_file = Path::new(name).join(SKILL_FILE);
+        if !known.contains(&skill_file) {
+            messages.push(if file == SKILL_FILE {
+                format!("{written} is not a known skill")
+            } else {
+                format!("{written} is in `{name}`, which is not a known skill")
+            });
+        } else if !resolve(&skill_file, file).is_some_and(|target| known.contains(&target)) {
+            messages.push(format!("{written} is not a file of the skill `{name}`"));
         }
     }
     messages

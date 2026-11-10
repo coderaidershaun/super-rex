@@ -44,7 +44,7 @@ impl LoadedSkill {
                 files,
             },
             neighbours: KnownSkills {
-                names: skill_names(skills_folder)?,
+                skill_paths: skill_paths(skills_folder)?,
                 files: markdown_files(skills_folder)?.into_iter().collect(),
             },
         })
@@ -142,28 +142,34 @@ fn file_name(path: &Path) -> String {
         .into_owned()
 }
 
-fn skill_names(skills_folder: &Path) -> Result<BTreeSet<String>, SkillsError> {
-    let folders = list::skill_folders(skills_folder)?;
-    Ok(folders.iter().map(|folder| file_name(folder)).collect())
-}
-
-/// The names of the skills that `rex skills list` finds from `cwd`, and of
-/// the skills in the bundle that `rex init` installs.
-fn names_outside(cwd: &Path) -> Result<BTreeSet<String>, SkillsError> {
-    let mut names = BTreeSet::new();
-    for place in list::places(cwd)? {
-        names.extend(skill_names(&place.folder)?);
-    }
-    for (path, _) in crate::bundle::walk() {
-        let parts: Vec<&OsStr> = path.iter().collect();
-        if let [skills, name, file] = parts.as_slice()
-            && *skills == "skills"
-            && *file == SKILL_FILE
-        {
-            names.insert(name.to_string_lossy().into_owned());
+/// Each Markdown file of each skill in `skills_folder`, relative to it, such
+/// as `rex-deliver/SKILL.md`.
+fn skill_paths(skills_folder: &Path) -> Result<BTreeSet<PathBuf>, SkillsError> {
+    let mut paths = BTreeSet::new();
+    for folder in list::skill_folders(skills_folder)? {
+        let name = file_name(&folder);
+        for file in markdown_files(&folder)? {
+            paths.insert(Path::new(&name).join(file));
         }
     }
-    Ok(names)
+    Ok(paths)
+}
+
+/// [`skill_paths`] of the skills that `rex skills list` finds from `cwd`, and
+/// of the skills in the bundle that `rex init` installs.
+fn skill_paths_outside(cwd: &Path) -> Result<BTreeSet<PathBuf>, SkillsError> {
+    let mut paths = BTreeSet::new();
+    for place in list::places(cwd)? {
+        paths.extend(skill_paths(&place.folder)?);
+    }
+    for (path, _) in crate::bundle::walk() {
+        if let Ok(in_skills_folder) = path.strip_prefix("skills")
+            && in_skills_folder.extension() == Some(OsStr::new("md"))
+        {
+            paths.insert(in_skills_folder.to_path_buf());
+        }
+    }
+    Ok(paths)
 }
 
 /// Check each skill in `paths` and print one `ok` line for each skill that
@@ -180,13 +186,15 @@ pub(super) fn run(cwd: &Path, paths: &[PathBuf]) -> Result<(), SkillsError> {
     for path in paths {
         skills.push(LoadedSkill::load(cwd, path)?);
     }
-    let names_outside = names_outside(cwd)?;
+    let skill_paths_outside = skill_paths_outside(cwd)?;
 
     let mut findings = 0;
     let mut skills_with_findings = 0;
     for loaded in &skills {
         let mut known = loaded.neighbours.clone();
-        known.names.extend(names_outside.iter().cloned());
+        known
+            .skill_paths
+            .extend(skill_paths_outside.iter().cloned());
         let found = check_skill(&loaded.skill, &known);
         if found.is_empty() {
             print_line_to_stdout(&format!("ok {}", loaded.written.display()))?;

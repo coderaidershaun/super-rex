@@ -2,12 +2,10 @@
 //! `rex skills check`, so that `rex init` never installs a broken skill.
 
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use super_rex::bundle::walk;
 use super_rex::commands::skills::{KnownSkills, Rule, Skill, SkillFile, check_skill};
-
-const SKILL_FILE: &str = "SKILL.md";
 
 /// Each skill folder of the bundle with its Markdown files, and the skills
 /// and Markdown files around them. The bundle is Markdown, so a Markdown file
@@ -26,6 +24,7 @@ fn bundle_skills() -> (Vec<Skill>, KnownSkills) {
         let text = String::from_utf8(bytes.to_vec())
             .unwrap_or_else(|_| panic!("{} is not UTF-8", path.display()));
         known.files.insert(in_skills_folder.to_path_buf());
+        known.skill_paths.insert(in_skills_folder.to_path_buf());
 
         let mut parts = in_skills_folder.components();
         let Some(folder) = parts.next() else {
@@ -36,9 +35,6 @@ fn bundle_skills() -> (Vec<Skill>, KnownSkills) {
             continue;
         }
         let folder = folder.as_os_str().to_string_lossy().into_owned();
-        if in_skill == Path::new(SKILL_FILE) {
-            known.names.insert(folder.clone());
-        }
         files_by_folder.entry(folder).or_default().push(SkillFile {
             path: in_skill,
             text,
@@ -76,6 +72,7 @@ fn findings_of(skills: &[Skill], known: &KnownSkills, rules: &[Rule]) -> Vec<Str
 // This test must never be deleted. A skill whose name does not match its
 // folder, whose description is missing, or whose header or text breaks
 // another rule is skipped or cut short by Claude Code, and nothing reports it.
+// A skill over a word limit fills the context of every agent that loads it.
 // It also fails on an empty bundle, which would pass every other check.
 #[test]
 fn every_skill_has_a_name_that_is_its_folder_and_a_description() {
@@ -90,9 +87,11 @@ fn every_skill_has_a_name_that_is_its_folder_and_a_description() {
         Rule::H5,
         Rule::H7,
         Rule::H8,
+        Rule::H9,
         Rule::B1,
         Rule::B2,
         Rule::B4,
+        Rule::B5,
     ];
     let findings = findings_of(&skills, &known, &rules);
     assert!(

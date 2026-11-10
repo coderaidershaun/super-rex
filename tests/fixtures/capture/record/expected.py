@@ -187,15 +187,36 @@ def tool_calls(records):
     return calls
 
 
+SKILL_ROOTS = [(".claude", "skills"), (".rex", "orchestrators")]
+
+
+def skill_of_read(file_path):
+    """The folder name of a SKILL.md; for another .md file, the name of the skill folder in a
+    skills folder or the orchestrator library that holds it, at any depth; else None."""
+    path = Path(file_path)
+    if path.name == "SKILL.md":
+        return path.parent.name or None
+    if path.suffix != ".md":
+        return None
+    parts = path.parts
+    for at in range(len(parts) - 4, -1, -1):
+        name = parts[at + 2]
+        if (parts[at], parts[at + 1]) in SKILL_ROOTS and not name.startswith("."):
+            return name
+    return None
+
+
 def skills_opened(calls):
-    """Names from Skill calls, plus the folder name of each SKILL.md read that did not fail."""
+    """Names from Skill calls, plus the skill of each Markdown file read that did not fail."""
     names = []
     for call in calls:
         if call["name"] == "Skill":
             name = call.get("skill")
-        elif call["name"] == "Read" and not call["failed"] and call.get("file_path", "").endswith("/SKILL.md"):
-            name = Path(call["file_path"]).parent.name
+        elif call["name"] == "Read" and not call["failed"]:
+            name = skill_of_read(call.get("file_path", ""))
         else:
+            continue
+        if name is None:
             continue
         if name not in names:
             names.append(name)

@@ -11,6 +11,10 @@ use serde_json::Value;
 use super::error::CaptureError;
 use super::tokens::TokenCounts;
 
+/// The folders whose sub-folders are skills, as the two last parts of their paths: the
+/// skills folders of Claude Code, and the orchestrator library of rex.
+const SKILL_ROOTS: [(&str, &str); 2] = [(".claude", "skills"), (".rex", "orchestrators")];
+
 /// What one transcript says about its run.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TranscriptFacts {
@@ -237,11 +241,27 @@ fn piece_count(input: &Value, key: &str) -> u64 {
     text_at(input, key).map_or(0, |text| text.split('\n').count() as u64)
 }
 
-/// The skill a file belongs to, when the file is a skill's `SKILL.md`: the name of the
-/// folder that holds it.
+/// The skill a read file belongs to. A `SKILL.md` belongs to the skill that the folder
+/// holding it names. Any other Markdown file belongs to `<name>` when it is at or below
+/// `<root>/<name>/` for one of [`SKILL_ROOTS`], and to no skill when it is anywhere else.
 fn skill_of_path(path: &str) -> Option<&str> {
-    let folder = path.strip_suffix("/SKILL.md")?;
-    folder.rsplit('/').next().filter(|name| !name.is_empty())
+    if let Some(folder) = path.strip_suffix("/SKILL.md") {
+        return folder.rsplit('/').next().filter(|name| !name.is_empty());
+    }
+    if !path.ends_with(".md") {
+        return None;
+    }
+    let parts: Vec<&str> = path.split('/').collect();
+    parts.windows(4).rev().find_map(|window| match *window {
+        [parent, root, name, _]
+            if SKILL_ROOTS.contains(&(parent, root))
+                && !name.is_empty()
+                && !name.starts_with('.') =>
+        {
+            Some(name)
+        }
+        _ => None,
+    })
 }
 
 fn user_text(message: &Value) -> Option<String> {

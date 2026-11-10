@@ -360,6 +360,11 @@ fn bad_skills() -> Vec<BadSkill> {
             "H8",
             good("bad-h8").replacen("---\n", &misspelt_key, 1),
         ),
+        one(
+            "bad-h9",
+            "H9",
+            header("bad-h9", &[DESCRIPTION; 11].join(" "), WHEN_TO_USE),
+        ),
         BadSkill {
             folder: "bad-b1",
             rule: "B1",
@@ -379,7 +384,36 @@ fn bad_skills() -> Vec<BadSkill> {
             "B4",
             good("bad-b4") + "Read `.claude/skills/no-such-skill/SKILL.md`.\n",
         ),
+        BadSkill {
+            folder: "bad-b4-file",
+            rule: "B4",
+            files: vec![
+                ("os/notes.md", "Notes one folder down.\n".to_owned()),
+                ("SKILL.md", good("bad-b4-file") + &paths_to_skill_files()),
+            ],
+        },
+        one("bad-b5", "B5", good("bad-b5") + &"word ".repeat(1500)),
     ]
+}
+
+/// Paths to files of skills that are right: one folder down in this skill, in
+/// another skill of the repo, in a bundled skill that the repo does not hold,
+/// and a template. The one wrong path, at the end of a sentence, names a file
+/// that `clean` does not have.
+fn paths_to_skill_files() -> String {
+    let bundled = super_rex::bundle::walk()
+        .into_iter()
+        .find_map(|(path, _)| {
+            let file = path.strip_prefix("skills").ok()?;
+            let is_sibling = file.extension()? == "md" && file.file_name()? != "SKILL.md";
+            is_sibling.then(|| file.display().to_string())
+        })
+        .expect("a bundled skill has a Markdown file besides SKILL.md");
+    format!(
+        "Read `.claude/skills/bad-b4-file/os/notes.md`, `.claude/skills/clean/reference.md`, \
+         `.claude/skills/{bundled}` and `.claude/skills/<name>/<file>.md`.\n\
+         Then read .claude/skills/clean/gone.md.\n"
+    )
 }
 
 #[test]
@@ -424,10 +458,10 @@ fn skills_check_names_the_rule_each_bad_skill_breaks() {
     let every_path: Vec<&str> = every_path.iter().map(String::as_str).collect();
     let output = fixture.check(&every_path);
 
-    assert_eq!(text_of(&output.stdout).lines().count(), 13);
+    assert_eq!(text_of(&output.stdout).lines().count(), 16);
     assert_eq!(
         text_of(&output.stderr),
-        "error: 12 findings in 12 of 13 skills\n"
+        "error: 15 findings in 15 of 16 skills\n"
     );
     assert_eq!(output.status.code(), Some(1));
 }

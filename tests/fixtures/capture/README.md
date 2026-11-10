@@ -178,11 +178,11 @@ Skills opened are read from the transcript; no hook.
 | --- | --- | --- | --- | --- |
 | main session | (none) | (main, sonnet) | Skill tool `probe-skill`; Read of `.rex/orchestrators/probe-orch/SKILL.md` | `["probe-skill", "probe-orch"]` |
 | s1-skill | `a5360226e437795bf` | `model-low-effort-low` | Skill tool `probe-skill` | `["probe-skill"]` |
-| s2-read | `ae4856bf1b48c7b0b` | `model-low-effort-low` | Read of `.claude/skills/probe-skill/SKILL.md`; also Read `reference.md` and `plain.txt` (these give nothing) | `["probe-skill"]` |
+| s2-read | `ae4856bf1b48c7b0b` | `model-low-effort-low` | Read of `.claude/skills/probe-skill/SKILL.md`; also Read `reference.md` (the same skill again, so it adds nothing) and `plain.txt` (not Markdown) | `["probe-skill"]` |
 
 `skills/expected.json` holds, for the main session and each sub-agent, every tool call as `{name, skill or file_path, failed}` and `skills_opened`. The rule for `skills_opened`:
 - take the `input.skill` of each `Skill` call;
-- add the name of the folder holding the file, for each `Read` whose `file_path` ends in `/SKILL.md` and whose `tool_result` (same `tool_use_id`) is not `is_error: true`;
+- for each `Read` whose `tool_result` (same `tool_use_id`) is not `is_error: true`, add the name of the folder holding the file when the `file_path` ends in `/SKILL.md`, or `<name>` when it is another `.md` file at any depth below `.claude/skills/<name>/` or `.rex/orchestrators/<name>/`. A Markdown file anywhere else, such as `.claude/skills/README.md`, adds nothing;
 - list each name once, in order of first use.
 
 No Read failed in this session, so the "failed" branch has no case here.
