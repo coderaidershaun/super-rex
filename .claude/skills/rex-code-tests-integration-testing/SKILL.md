@@ -1,6 +1,6 @@
 ---
 name: rex-code-tests-integration-testing
-description: Hard rules for Rust integration tests. Real outside world — APIs, exchanges, DBs, WebSockets. Real time, real serialization, real failure modes. Lives in tests/integration/. REAL FUNDS = human-in-the-loop runbook required, no autonomous execution. Use when testing against real APIs or exchanges, end-to-end flows, websocket reconnect, deserialization edge cases, or user asks "test the Coinbase API", "real exchange test", "end-to-end", "run with real funds".
+description: This skill gives hard rules for Rust integration tests. They test the real outside world (APIs, exchanges, DBs, WebSockets) with real time, real serialization, and real failure modes. They live in tests/integration/. A REAL FUNDS test requires a human-in-the-loop runbook, and no autonomous execution. Use it when you test against real APIs or exchanges, end-to-end flows, websocket reconnect, or deserialization edge cases. Use it also when the user asks "test the Coinbase API", "real exchange test", "end-to-end", "run with real funds".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -20,9 +20,9 @@ Sister skills:
 
 **Real outside world. Full path. Anticipate reality.**
 
-Job: prove the binary actually works against the real systems it depends on. APIs, exchanges, DBs, message brokers, file system. Real wire format. Real time. Real failure.
+Job: prove binary works against real systems that it depends on. APIs, exchanges, DBs, message brokers, file system. Real wire format. Real time. Real failure.
 
-If everything is in-process → contract test, not integration.
+IF everything is in-process, THEN contract test, not integration.
 
 ## Where integration tests live
 
@@ -37,11 +37,11 @@ tests/
     └── postgres_roundtrip.rs
 ```
 
-Cargo gotcha: top-level `tests/*.rs` is a crate. Subdir needs entry file.
+Cargo gotcha: top-level `tests/*.rs` is one crate. Subdir needs entry file.
 
 ## In scope — what you MUST test
 
-- **Real API call** — sandbox endpoint preferred for default runs
+- **Real API call** — prefer sandbox endpoint for default runs
 - **Real WebSocket** — subscribe, receive, disconnect, reconnect, resync from snapshot
 - **Real DB** — schema migrations, roundtrip, transactional rollback, concurrent writers
 - **Real time:**
@@ -61,13 +61,13 @@ Cargo gotcha: top-level `tests/*.rs` is a crate. Subdir needs entry file.
   - Unicode in user-supplied fields
 - **Real failure modes:**
   - 5xx + retry semantics
-  - 429 rate limit + Retry-After honoring
+  - 429 rate limit + obey Retry-After
   - Partial fill / partial response
   - Duplicate message (idempotency check)
   - Out-of-order delivery (sequence gap detection)
   - Stale data (last-update-time check)
 
-If you didn't anticipate one of these → integration test incomplete.
+IF you did not anticipate one of these, THEN integration test is incomplete.
 
 ## Sandbox by default. Prod = explicit gate.
 
@@ -77,18 +77,18 @@ If you didn't anticipate one of these → integration test incomplete.
 
 ## REAL FUNDS PROTOCOL — hard rule
 
-**Real-funds integration tests MUST involve a human overseer with explicit runbook. NO autonomous execution.**
+**Real-funds integration tests MUST involve a human overseer with an explicit runbook. An agent must NOT run them autonomously.**
 
 ### Code requirements
 
-1. Test marked `#[ignore]` so default `cargo test` skips:
+1. Mark the test `#[ignore]` so that the default `cargo test` skips it:
    ```rust
    #[test]
    #[ignore = "real funds — requires REX_REAL_FUNDS env var + human runbook"]
    fn places_real_buy_then_cancels() { ... }
    ```
 
-2. Test gated by env var with explicit acknowledgment:
+2. Gate the test with an env var that needs an explicit acknowledgment:
    ```rust
    fn require_real_funds_ack() {
        let ack = std::env::var("REX_REAL_FUNDS").unwrap_or_default();
@@ -106,7 +106,7 @@ If you didn't anticipate one of these → integration test incomplete.
    }
    ```
 
-3. Invocation requires explicit `--ignored` flag + filter:
+3. To run the test, give the explicit `--ignored` flag and a filter:
    ```sh
    REX_REAL_FUNDS=yes-i-acknowledge-the-risk \
      REX_PROD_API=true \
@@ -167,17 +167,17 @@ If order partially filled despite price guard:
 
 ### Agent + human collaboration protocol
 
-When agent encounters a real-funds test:
+When an agent encounters a real-funds test:
 
-1. **Agent does NOT run autonomously.** Stop. Read runbook. Surface to human.
-2. **Agent reads runbook to human:** "I'm about to run X. Preconditions are [list]. Have you confirmed each?"
-3. **Human acknowledges each precondition** before agent proceeds.
-4. **Agent runs dry-run first.** Reports output to human.
-5. **Human gives explicit go-ahead** before real run. Not "ok" — explicit "yes, run the real-funds test now".
-6. **Agent monitors for kill-switch conditions** during run. Stops + asks if anything off.
-7. **Agent reports outcome + verification steps** to human after run.
+1. **The agent does NOT run the test autonomously.** It stops, reads the runbook, and tells the human about the test.
+2. **The agent reads the runbook to the human:** "I'm about to run X. Preconditions are [list]. Have you confirmed each?"
+3. **The human acknowledges each precondition** before the agent proceeds.
+4. **The agent runs the dry-run first.** It reports the output to the human.
+5. **The human gives an explicit go-ahead** before the real run. "ok" is not sufficient. The go-ahead is an explicit "yes, run the real-funds test now".
+6. **The agent monitors for kill-switch conditions** during the run. IF anything is not as expected, THEN the agent stops and asks.
+7. **The agent reports the outcome and the verification steps** to the human after the run.
 
-If at any step human is unclear or unavailable → agent does NOT proceed. Defer.
+IF the human is unclear or not available at any step, THEN the agent does NOT proceed. It defers.
 
 ## End-to-end example (sandbox, not real funds)
 
@@ -239,19 +239,19 @@ async fn handles_unknown_event_type_forward_compat() {
 - [ ] Test lives in `tests/integration/<source>.rs`
 - [ ] Hits real outside world (or sandbox of it)
 - [ ] Anticipates time, serialization, failure modes
-- [ ] Sandbox by default; prod gated by `REX_PROD_API=true`
+- [ ] Sandbox by default. `REX_PROD_API=true` gates prod
 - [ ] Errors carry context (per `rex-code-error-writing`)
-- [ ] No mocks of services we don't own (use sandbox or stub at network layer)
+- [ ] No mocks of services we do not own (use sandbox or stub at network layer)
 
 Real-funds checklist additionally:
 
-- [ ] `#[ignore = "real funds"]` attribute present
-- [ ] `require_real_funds_ack()` call at top of test body
-- [ ] Runbook section in `tests/integration/README.md`
-- [ ] Preconditions listed with checkboxes
-- [ ] Dry-run variant exists + runs first
-- [ ] Kill switch documented
-- [ ] Rollback documented
-- [ ] Agent collaboration protocol followed (agent stops, asks, gets ack, runs dry-run first, monitors, reports)
+- [ ] The `#[ignore = "real funds"]` attribute is present.
+- [ ] The test body starts with a `require_real_funds_ack()` call.
+- [ ] The test has a runbook section in `tests/integration/README.md`.
+- [ ] The runbook lists the preconditions with checkboxes.
+- [ ] A dry-run variant exists and runs first.
+- [ ] The runbook documents the kill switch.
+- [ ] The runbook documents the rollback.
+- [ ] The agent obeys the collaboration protocol: it stops, asks, gets an ack, runs the dry-run first, monitors, and reports.
 
-Fail any → fix before push. Real-funds fail any → DO NOT RUN.
+IF any fail, THEN fix before push. IF any real-funds item fails, THEN DO NOT RUN the test.
