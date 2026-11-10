@@ -1,7 +1,14 @@
 //! Turns the events that `rex hook` logs into the record of sub-agent runs.
 
 mod error;
+#[allow(dead_code)]
+mod event;
+mod log;
+mod main_transcript;
+mod registration;
 mod runs;
+#[allow(dead_code)]
+mod tags;
 mod tokens;
 mod transcript;
 
@@ -11,6 +18,8 @@ use std::time::SystemTime;
 use crate::store::{JobId, Store};
 
 pub use error::CaptureError;
+pub(crate) use log::append_event;
+pub use registration::{HOOK_COMMAND, hook_registration};
 pub use runs::{JobRuns, MainFacts, Run, RunState};
 pub use tokens::{Reading, RunActivity, SETTLE, Step, TokenCounts, TokenTotal, TotalCheck};
 pub use transcript::{TranscriptFacts, read_transcript};
@@ -49,15 +58,16 @@ pub fn job_runs(
 
 /// Reads the main session's transcript: the tokens of the requests in `[from, to)`,
 /// and the model and effort of the `rex job create` call that printed the job.
-/// It does nothing yet, and always returns `None`.
+/// Times are text of the store's form; `to` is `None` while the job is open. Returns
+/// `Ok(None)` when there is no file.
 ///
 /// # Errors
 /// - [`CaptureError::ReadTranscript`] when the file exists and cannot be read.
 pub fn read_main_transcript(
-    _path: &Path,
-    _job: &JobId,
-    _from: &str,
-    _to: Option<&str>,
+    path: &Path,
+    job: &JobId,
+    from: &str,
+    to: Option<&str>,
 ) -> Result<Option<MainFacts>, CaptureError> {
-    Ok(None)
+    main_transcript::read_main_transcript(path, job, from, to)
 }
