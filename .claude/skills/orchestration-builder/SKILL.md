@@ -58,6 +58,7 @@ IF your brief starts with tag block that holds `Rex-Job:`, THEN do "Open job exi
 - Paths: each path in this skill starts at `HOME_DIR`.
 
 Store commands (`rex job …`, `rex recall`) start with `REX_STORE="$HOME_DIR/.rex"`. Then shell in Git worktree or in sibling repo finds store of job.
+Shell keeps no variable between commands. In each command, write real path in place of `$HOME_DIR`.
 
 ## Rules
 
@@ -67,6 +68,7 @@ Store commands (`rex job …`, `rex recall`) start with `REX_STORE="$HOME_DIR/.r
 - [ ] Session has max one open job.
 - [ ] Review and feedback: only IF requester asks. See `## On request`.
 - [ ] Ask user only as `## Questions to user` says.
+- [ ] Read each skill file with Read tool, one file for each call. Shell command cuts long output.
 
 ## Step 1 — Classify
 
