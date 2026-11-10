@@ -44,8 +44,8 @@ pub(super) const SHELL: Syntax = Syntax {
     ..PYTHON
 };
 
-/// The comment must start before this many `before` lines have gone by.
-const LAST_DOC_START_LINE: usize = 5;
+/// How many of the code lines that `before` allows may come before the comment.
+const MAX_LINES_BEFORE: usize = 4;
 
 /// A comment line that starts with one of these is an instruction to a tool.
 const DIRECTIVE_STARTS: &[&str] = &[
@@ -69,7 +69,7 @@ const LICENCE_STARTS: &[&str] = &["copyright", "(c)", "©", "licensed", "this so
 /// The first sentence of the comment that opens a file, if it has one. `head`
 /// is the start of the file.
 pub(super) fn leading_sentence(head: &str, syntax: &Syntax) -> Option<String> {
-    let mut text = String::new();
+    let mut sentence = String::new();
     let mut is_licence = false;
     let mut closer = None;
     let mut lines_before = 0;
@@ -80,31 +80,25 @@ pub(super) fn leading_sentence(head: &str, syntax: &Syntax) -> Option<String> {
         if let Some((body, _)) = part {
             let body = body.trim();
             let words = plain_words(body);
-            let has_started = is_licence || !text.is_empty();
+            let has_started = is_licence || !sentence.is_empty();
 
             if words.is_empty() || (!has_started && starts_with_any(body, DIRECTIVE_STARTS)) {
-                // An empty comment line ends the sentence, as a full stop does.
-                if !text.is_empty() {
+                // An empty comment line after some words ends the sentence, as
+                // a full stop does.
+                if !sentence.is_empty() {
                     break;
                 }
             } else if is_licence || (!has_started && starts_with_any(words, LICENCE_STARTS)) {
                 is_licence = true;
-            } else {
-                if !text.is_empty() {
-                    text.push(' ');
-                }
-                text.push_str(words);
-                if let Some(end) = sentence_end(&text) {
-                    text.truncate(end);
-                    break;
-                }
+            } else if push_words(&mut sentence, words) {
+                break;
             }
         }
 
         if part.is_none_or(|(_, is_last_line)| is_last_line) {
             // The comment has ended. A licence header is passed over, and the
             // search goes on to the comment after it.
-            if !text.is_empty() {
+            if !sentence.is_empty() {
                 break;
             }
             is_licence = false;
@@ -114,13 +108,28 @@ pub(super) fn leading_sentence(head: &str, syntax: &Syntax) -> Option<String> {
             let is_allowed = syntax.before.iter().any(|start| line.starts_with(start));
             lines_before += usize::from(is_allowed);
             let is_blank = line.trim().is_empty();
-            if (!is_allowed && !is_blank) || lines_before >= LAST_DOC_START_LINE {
+            if (!is_allowed && !is_blank) || lines_before > MAX_LINES_BEFORE {
                 break;
             }
         }
     }
 
-    Some(text).filter(|sentence| !sentence.is_empty())
+    (!sentence.is_empty()).then_some(sentence)
+}
+
+/// Adds `words` to the end of `sentence`, cut at its first full stop, and
+/// tells if the sentence is now complete.
+fn push_words(sentence: &mut String, words: &str) -> bool {
+    if !sentence.is_empty() {
+        sentence.push(' ');
+    }
+    sentence.push_str(words);
+
+    let end = sentence_end(sentence);
+    if let Some(end) = end {
+        sentence.truncate(end);
+    }
+    end.is_some()
 }
 
 /// The part of `line` that is inside a comment, if the line starts in one,

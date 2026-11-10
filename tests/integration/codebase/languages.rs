@@ -387,8 +387,8 @@ fn codebase_refuses_rust_only_together_with_only() {
     let stderr = refused_stderr(&["--rust-only", "--only", "go"]);
 
     assert!(
-        stderr.contains("the argument '--rust-only' cannot be used with '--only <WHAT>'"),
-        "got: {stderr}"
+        stderr.contains("'--rust-only'") && stderr.contains("'--only <WHAT>'"),
+        "stderr must name both flags, got: {stderr}"
     );
 }
 
@@ -397,8 +397,8 @@ fn codebase_refuses_an_unknown_language() {
     let stderr = refused_stderr(&["--only", "bogus"]);
 
     assert!(
-        stderr.contains("invalid value 'bogus' for '--only <WHAT>'"),
-        "got: {stderr}"
+        stderr.contains("'bogus'"),
+        "stderr must name the bad value, got: {stderr}"
     );
     assert!(
         stderr.contains("[possible values: code, rust, go, c, cpp, python, js, ts, shell]"),

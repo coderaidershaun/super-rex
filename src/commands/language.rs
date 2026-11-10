@@ -32,8 +32,8 @@ impl Language {
     }
 
     /// Tells if `path` ends in one of this language's extensions, in any
-    /// letter case. macOS and Windows hand the compiler `Main.RS` when it asks
-    /// for `main.rs`, so a file named that way is still source.
+    /// letter case. On macOS and Windows `Main.RS` and `main.rs` name the same
+    /// file, so both are source.
     pub(super) fn has_extension(self, path: &Path) -> bool {
         path.extension().is_some_and(|extension| {
             self.extensions()

@@ -24,8 +24,8 @@ pub(super) fn visible_entries(
 ) -> impl Iterator<Item = Result<DirEntry, RexError>> + use<> {
     let root = cwd.to_path_buf();
 
-    // require_git(false) so the command works in non-git dirs (tests, fresh
-    // checkouts). Without it, `ignore` only honors .gitignore inside a git repo.
+    // Without `require_git(false)`, `.gitignore` files are obeyed only inside
+    // a git repository, and not in a plain folder such as a test's.
     WalkBuilder::new(cwd)
         .hidden(true)
         .git_ignore(true)

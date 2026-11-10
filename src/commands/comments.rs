@@ -133,18 +133,18 @@ fn string_end(source: &[u8], quote: usize) -> usize {
     source.len()
 }
 
-/// Index just past the raw string (`r"…"`, `r#"…"#`, `br"…"`) that starts with
-/// the `r` at `r`, or `None` when no raw string starts there.
-fn raw_string_end(source: &[u8], r: usize) -> Option<usize> {
-    if source[r] != b'r' || !starts_a_token(source, r) {
+/// Index just past the raw string (`r"…"`, `r#"…"#`, `br"…"`) whose `r` is at
+/// `start`, or `None` when no raw string starts there.
+fn raw_string_end(source: &[u8], start: usize) -> Option<usize> {
+    if source[start] != b'r' || !starts_a_token(source, start) {
         return None;
     }
 
-    let hashes = source[r + 1..]
+    let hashes = source[start + 1..]
         .iter()
         .take_while(|&&byte| byte == b'#')
         .count();
-    let quote = r + 1 + hashes;
+    let quote = start + 1 + hashes;
     if source.get(quote) != Some(&b'"') {
         return None;
     }

@@ -1,6 +1,5 @@
 //! Lists every `SMELL` flag comment in the Rust files of the working
-//! directory. A flag marks a known problem that was left in the code, and this
-//! command is how an agent or a person finds them all again.
+//! directory, so the known problems left in the code can all be found again.
 
 use std::fs;
 use std::path::Path;
@@ -31,8 +30,7 @@ pub fn run(cwd: &Path, _options: SmellsOptions) -> Result<(), RexError> {
 }
 
 fn render_report(cwd: &Path) -> Result<String, RexError> {
-    let mut out = String::new();
-    let mut flag_count = 0;
+    let mut flags: Vec<String> = Vec::new();
 
     for entry in visible_entries(cwd) {
         let entry = entry?;
@@ -51,14 +49,12 @@ fn render_report(cwd: &Path) -> Result<String, RexError> {
         };
         let shown_path = path.strip_prefix(cwd).unwrap_or(path).display();
 
-        for line in flag_lines(&source) {
-            out.push_str(&format!("{shown_path}:{line}\n"));
-            flag_count += 1;
-        }
+        let lines = flag_lines(&source).into_iter();
+        flags.extend(lines.map(|line| format!("{shown_path}:{line}\n")));
     }
 
-    out.push_str(&format!("Code smells: {flag_count}\n"));
-    Ok(out)
+    let total = format!("Code smells: {}\n", flags.len());
+    Ok(flags.concat() + &total)
 }
 
 /// The line number of each `SMELL` flag comment in `source`, counted from 1.
