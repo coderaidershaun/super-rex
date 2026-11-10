@@ -3,7 +3,8 @@
 
 pub mod catalog;
 pub mod codebase;
-// The helpers below get their first callers as the commands are built.
+// The private helpers have no callers until the commands that use them are
+// built, so their dead-code warnings are allowed.
 #[allow(dead_code)]
 mod comments;
 pub mod feedback;

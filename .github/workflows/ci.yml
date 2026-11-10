@@ -1,6 +1,6 @@
-# The same checks the pre-commit hooks run, so a pull request from anyone is
-# held to the same bar. CI also runs on each push to a feature branch, so that
-# a branch can be judged green with no pull request.
+# Format, lint and test checks, so that a pull request from anyone is held to
+# the same bar. CI also runs on each push to a feature branch, so that a branch
+# can be judged green with no pull request.
 name: CI
 
 on:
@@ -27,7 +27,8 @@ jobs:
       # Both platforms report, so one failure never hides the other.
       fail-fast: false
       matrix:
-        # The symlink, permission and broken-pipe tests are Unix only.
+        # No Windows runner: tests of symbolic links, file permissions and
+        # broken pipes can only run on Unix.
         os: [ubuntu-latest, macos-latest]
 
     steps:

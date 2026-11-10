@@ -84,7 +84,7 @@ The first line names the top command only (`rex job`, not `rex job create`).
 
 ## 6. How to add an error
 
-Define your own `thiserror` enum in your own module. `run` returns it. `main.rs` accepts any error type, so `src/error.rs` and `src/main.rs` do not change. A new variant never goes into `src/error.rs`. Code carried over from rex-skills keeps the `RexError` variants that exist. To pass on a failure of a shared helper (such as `print_line_to_stdout`, which returns `RexError`), wrap it with `#[error(transparent)]`, as below. The names and the file path are an illustration; contract C1 sets the real ones.
+Define your own `thiserror` enum in your own module. `run` returns it. `main.rs` accepts any error type, so `src/error.rs` and `src/main.rs` do not change. A new variant never goes into `src/error.rs`. Code carried over from rex-skills keeps using the `RexError` variants it already has. To pass on a failure of a shared helper (such as `print_line_to_stdout`, which returns `RexError`), wrap it with `#[error(transparent)]`, as below. The names and the file path are an illustration; contract C1 sets the real ones.
 
 ```rust
 // src/store/mod.rs

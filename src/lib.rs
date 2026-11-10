@@ -1,5 +1,5 @@
-//! Implementation behind the `rex` binary. Command logic lives here in
-//! library form, so tests and other modules can call it directly.
+//! Everything behind the `rex` binary, in library form so that tests can call
+//! it directly instead of running the binary.
 
 pub mod bundle;
 pub mod capture;
