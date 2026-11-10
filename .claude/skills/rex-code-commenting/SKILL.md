@@ -1,6 +1,18 @@
 ---
 name: rex-code-commenting
-description: This skill gives hard rules for code comments. The best comment is no comment, so self-evident code gets none. Comment only on a WHY that is not obvious, and never on WHAT. Every comment that survives is short plain English that anyone can read. It has no jargon, no acronyms, no shorthand, and no references to plans, tasks, or other files. Comments that flag code smells, hazards, or SAFETY invariants are permanent, and a cleanup pass must never delete them. The rules are distilled from "shocking truth about comments" and refine.dev. Use it when you write or review comments, JSDoc, docstrings, or TODO markers, or when you tidy comments. Use it also when the user asks "should I add a comment", "document this", "explain this code", or when someone commits AI-generated code.
+description: >
+  This skill gives hard rules for code comments. The best comment is no comment,
+  so self-evident code gets none. Comment only on a WHY that is not obvious, and
+  never on WHAT. Every comment that survives is short plain English that anyone
+  can read. It has no jargon, no acronyms, no shorthand, and no references to
+  plans, tasks, or other files. Comments that flag code smells, hazards, or
+  SAFETY invariants are permanent, and a cleanup pass must never delete them.
+  The rules are distilled from "shocking truth about comments" and refine.dev.
+when_to_use: >
+  Use when you write or review comments, JSDoc, docstrings, or TODO markers, or
+  when you tidy comments. Use it also when the user asks "should I add a
+  comment", "document this", "explain this code", or when someone commits
+  AI-generated code.
 disable-model-invocation: false
 user-invocable: true
 ---

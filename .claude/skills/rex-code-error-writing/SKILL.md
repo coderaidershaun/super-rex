@@ -1,6 +1,14 @@
 ---
 name: rex-code-error-writing
-description: This skill gives hard rules for Rust error handling. Use thiserror in libs (the default), and anyhow in bins (occasionally). Errors are typed and carry context. There is no Box<dyn Error> and no .unwrap() in prod. Use it when you write error types, design Result<T,E> APIs, choose thiserror vs anyhow, wrap errors, or write error messages. Use it also when the user asks "what error type", "how should I handle this error", "thiserror or anyhow", "error variants".
+description: >
+  This skill gives hard rules for Rust error handling. Use thiserror in libs
+  (the default), and anyhow in bins (occasionally). Errors are typed and carry
+  context. There is no Box<dyn Error> and no .unwrap() in prod.
+when_to_use: >
+  Use when you write error types, design Result<T,E> APIs, choose thiserror vs
+  anyhow, wrap errors, or write error messages. Use it also when the user asks
+  "what error type", "how should I handle this error", "thiserror or anyhow",
+  "error variants".
 disable-model-invocation: false
 user-invocable: true
 ---

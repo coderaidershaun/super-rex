@@ -1,6 +1,16 @@
 ---
 name: rex-code-smells
-description: This skill is a detection playbook for bad naming, code smells, and brittle code in Rust. It has grep sweeps, a smell catalog translated to Rust, brittleness signals, and a format for the findings report. Use it whenever the user says "find code smells", "smell sweep", "audit naming", "what's brittle here", "code quality audit", "review for smells", "is this maintainable", "refactor opportunities in X". Use it also before you refactor unfamiliar code, or when a pipeline orchestrator dispatches a smell or brittleness audit. It only detects problems. The fixes are in sister skills.
+description: >
+  This skill is a detection playbook for bad naming, code smells, and brittle
+  code in Rust. It has grep sweeps, a smell catalog translated to Rust,
+  brittleness signals, and a format for the findings report. It only detects
+  problems. The fixes are in sister skills.
+when_to_use: >
+  Use when you are about to refactor unfamiliar code, or when a pipeline
+  orchestrator dispatches a smell or brittleness audit. Use it also when the
+  user says "find code smells", "smell sweep", "audit naming", "what's brittle
+  here", "code quality audit", "review for smells", "is this maintainable",
+  "refactor opportunities in X".
 disable-model-invocation: false
 user-invocable: true
 ---
