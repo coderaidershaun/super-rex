@@ -1,6 +1,6 @@
 ---
 name: rex-code-commenting
-description: Hard rules for code comments. The best comment is no comment — self-evident code gets none. Comment only WHY non-obvious, never WHAT. Every comment that survives is short plain English anyone can read — no jargon, no acronyms, no shorthand, no references to plans, tasks, or other files. Comments flagging code smells, hazards, or SAFETY invariants are permanent — no cleanup pass may delete them. Distilled from "shocking truth about comments" + refine.dev. Use when writing/reviewing comments, JSDoc, docstrings, TODO markers, cleaning up comments, or when user asks "should I add a comment", "document this", "explain this code", or AI-generated code is being committed.
+description: This skill gives hard rules for code comments. The best comment is no comment, so self-evident code gets none. Comment only on a WHY that is not obvious, and never on WHAT. Every comment that survives is short plain English that anyone can read. It has no jargon, no acronyms, no shorthand, and no references to plans, tasks, or other files. Comments that flag code smells, hazards, or SAFETY invariants are permanent, and a cleanup pass must never delete them. The rules are distilled from "shocking truth about comments" and refine.dev. Use it when you write or review comments, JSDoc, docstrings, or TODO markers, or when you tidy comments. Use it also when the user asks "should I add a comment", "document this", "explain this code", or when someone commits AI-generated code.
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -11,15 +11,15 @@ These rules HARD. No compromise. No "but my case different".
 
 Sister skill: `rex-code-philosophy`. Same complexity-averse, ergonomics-first frame.
 
-## Iron law #1 — the best comment is no comment
+## Iron law #1 — best comment is no comment
 
 Default: **no comment**. Code self-document. Comment = design smell. Try fix design first.
 
-Test before writing anything: *could a competent programmer who has never seen this code work it out from the code alone?* Yes -> **write no comment**. Silence = the goal, not the fallback.
+Test before you write anything: *can competent programmer who never saw this code understand it from code alone?* IF yes, THEN **write no comment**. Silence = goal, not fallback.
 
-Self-evident code gets nothing. No preamble above obvious fn. No summary of block that reads fine. No comment added because the file "looks bare" or because a comment feels expected. Zero comments in a file = healthy file.
+Self-evident code gets nothing. No preamble above obvious fn. No summary of block that reads fine. No comment added because file "looks bare" or because comment feels expected. Zero comments in file = healthy file.
 
-Only when the answer is genuinely no does a comment earn its place — and then only under [Iron law #2](#iron-law-2--comment-only-why-non-obvious-never-what) and [Iron law #3](#iron-law-3--plain-english-anyone-can-read).
+Comment earns its place only IF answer is truly no. Then only under [Iron law #2](#iron-law-2--comment-only-why-non-obvious-never-what) and [Iron law #3](#iron-law-3--plain-english-anyone-can-read).
 
 ## Iron law #2 — comment only WHY non-obvious, NEVER WHAT
 
@@ -29,23 +29,23 @@ Code show what. Name show what. Structure show what. Comment job = capture what 
 - Trap future reader will hit
 - External context (ticket ref, regulatory rule, benchmark result)
 
-If WHY obvious from name + structure -> delete comment.
+IF WHY obvious from name + structure, THEN delete comment.
 
 ## Iron law #3 — plain English anyone can read
 
 **Every comment that survives = short, simple, plain English.**
 
-Write for a competent programmer who joined yesterday, knows nothing about the plan that produced this code, and is reading under pressure at 2am. They read it once and understand.
+Write for competent programmer who joined yesterday. Reader knows nothing about plan that produced this code. Reader reads under pressure at 2am. Reads it once and understands.
 
 - Full, grammatical sentences. Short, but never cryptic.
-- Simple everyday words. If a plainer word exists, use it.
-- One or two sentences. Needs a paragraph -> the code needs a refactor, not an essay.
+- Simple everyday words. IF plainer word exists, THEN use it.
+- One or two sentences. IF comment needs paragraph, THEN code needs refactor, not essay.
 - No telegraphic fragments, no shorthand like "b/c" or "w/", no caveman style.
-- **No jargon.** No internal codenames, no unexplained acronyms, no architecture vocabulary ("seam", "adapter", "deepening", "port") in code comments. That vocabulary is for design discussion. In a comment, say the plain thing instead.
-- **No references to plans, tasks, or working process.** No "as per the plan", no "phase 2", no "step 3 of the refactor", no "TODO from the review". The reader has never seen the plan and never will.
-- **No pointers to other source files.** No "see src/foo.rs", no "moved from bar.rs", no line numbers. Paths rot, and the comment lies within a month. Describe the constraint, not the location.
+- **No jargon.** No internal codenames, no unexplained acronyms, no architecture vocabulary ("seam", "adapter", "deepening", "port") in code comments. That vocabulary is for design discussion. In comment, say plain thing instead.
+- **No references to plans, tasks, or working process.** No "as per the plan", no "phase 2", no "step 3 of the refactor", no "TODO from the review". Reader never saw plan and never will.
+- **No pointers to other source files.** No "see src/foo.rs", no "moved from bar.rs", no line numbers. Paths rot. Comment lies within one month. Describe constraint, not location.
 
-This skill document is written compressed to save tokens. Comments in code are NOT. Write them plain.
+This skill document uses compressed words to save tokens. Comments in code do NOT. Write them plain.
 
 ```rust
 // bad — telegraphic
@@ -71,12 +71,12 @@ This skill document is written compressed to save tokens. Comments in code are N
 - **Commented-out code.** Git remember. Delete. No "backup" blocks. No "old version below".
 - **History comments.** `// 2024-03: added PayPal`. Use `git log` + commit message.
 - **TODO/FIXME drift.** Vague promise = abandoned. File ticket OR fix now. No middle.
-- **Design band-aid.** Comment explain why code weird -> refactor code, not annotate. Exception: refactor genuinely not possible now -> flag it as a code smell (whitelist #7). Flag REQUIRED then, not forbidden.
+- **Design band-aid.** IF comment explain why code weird, THEN refactor code, not annotate. Exception: IF refactor truly not possible now, THEN flag it as code smell (whitelist #7). Flag REQUIRED then, not forbidden.
 - **Section dividers in long fns.** `// --- validation ---`. Function too long. Extract instead.
 - **AI-generated noise.** LLM produce verbose what-comments. Strip ruthlessly on commit.
 - **Redundant docstring.** `@param userId — the user id`. Type say it. Delete.
 - **Plan / process references.** `// per the plan`, `// phase 2`, `// step 3 of the refactor`, `// as agreed in review`. Plan dead once code shipped. Reader never saw it. Delete.
-- **Cross-file pointers.** `// see src/loader/mod.rs`, `// moved from parser.rs`, `// mirrors line 42 in engine.rs`. Paths + line numbers rot fast. Say the constraint plain, or say nothing.
+- **Cross-file pointers.** `// see src/loader/mod.rs`, `// moved from parser.rs`, `// mirrors line 42 in engine.rs`. Paths + line numbers rot fast. Say constraint plain, or say nothing.
 - **Jargon + private shorthand.** Internal codenames, unexplained acronyms, architecture vocabulary ("seam", "adapter", "deepening"). Rewrite plain or delete.
 
 ## Module comment: every file, every language
@@ -87,12 +87,12 @@ Each module starts with comment of 1-2 lines. Comment says why module exists. Pl
 | --- | --- | --- | --- |
 | Rust | `//!` lines, before any item. | Any line. Comment starts by line 5. | `//! Reads the price feed and reconnects when it drops.` |
 | Go | `//` comment above `package`. IF file documents package, THEN comment = package comment and touches `package`. ELSE put blank line between comment and `package`, so Go does not add it to package documentation. | Blank lines, license header, `//go:build` lines. | `// Reads the price feed and reconnects when it drops.` |
-| C, C++ | `//` or `/* */` comment above first `#include`, before or just after include guard. Header + source file each have one. | Blank lines, license header, include guard lines: `#pragma`, `#if…`, `#define`. | `// Declares the feed reader and its errors.` |
+| C, C++ | `//` or `/* */` comment above first `#include`, before or directly after include guard. Header + source file each have one. | Blank lines, license header, include guard lines: `#pragma`, `#if…`, `#define`. | `// Declares the feed reader and its errors.` |
 | Python | `"""` docstring as first statement. | Blank lines, shebang, coding line, license header. | `"""Loads the run config from disk."""` |
 | JavaScript, TypeScript | `//` or `/** */` comment above first `import`. | Blank lines, license header, `"use strict"`, `"use client"`. | `// Draws the order book chart.` |
 | Shell | `#` comment on line after shebang. | Blank lines, shebang, license header. | `# Builds the release archive.` |
 
-Directive lines are also allowed before comment: `#!` shebang, `//go:`, `// +build`, editor lines with `-*-` or `vim:`, `shellcheck`, `eslint-`, `@ts-`, `SPDX-License-Identifier`.
+Directive lines can also come before comment: `#!` shebang, `//go:`, `// +build`, editor lines with `-*-` or `vim:`, `shellcheck`, `eslint-`, `@ts-`, `SPDX-License-Identifier`.
 
 Rules for every language:
 
@@ -101,7 +101,7 @@ Rules for every language:
 - [ ] Nothing else comes before comment. Only lines in column "Allowed before comment" + directive lines.
 - [ ] No tag (example: `@file`, `@brief`) comes before first sentence.
 
-Not (Go): license + comment in one run of `//` lines. Both count as license. Module comment is lost.
+Not (Go): license + comment in one run of `//` lines. Both count as license. Go loses module comment.
 
 ```go
 // Copyright 2026 Example Ltd.
@@ -120,19 +120,19 @@ Yes (file that does not document package):
 package feed
 ```
 
-## Allowed — narrow whitelist
+## Permitted — narrow whitelist
 
 1. **WHY non-obvious.** "Manual sort because the stdlib is O(n²) on near-sorted input; benchmarks show this is 4x faster."
 2. **Warning.** "Do not lower this timeout below 30 seconds — it breaches the vendor SLA."
 3. **Edge case trap.** "The API returns null instead of an empty list when there are no results; handled below."
-4. **Durable external ref.** A permanent record only — ticket ID, ADR number, spec section, vendor doc. "The vendor caps this at 10 requests a second. See ticket PROJ-1234." NOT the working plan, NOT another source file.
+4. **Durable external ref.** Permanent record only — ticket ID, ADR number, spec section, vendor doc. "The vendor caps this at 10 requests a second. See ticket PROJ-1234." NOT working plan, NOT another source file.
 5. **Public API doc.** JSDoc/docstring on exported surface. Generated docs consume it.
 6. **Algorithm conceptual frame.** "Boyer-Moore search — the skip table is built once and reused for every search."
-7. **Code-smell / tech-debt flag.** "SMELL: this reads the viewer's private fields directly, which breaks every time the viewer changes. Needs a proper interface." Known smell that cannot be fixed now MUST be flagged. Same for hazards, known limitations, `SAFETY:` invariants.
+7. **Code-smell / tech-debt flag.** "SMELL: this reads the viewer's private fields directly, which breaks every time the viewer changes. Needs a proper interface." Known smell that you cannot fix now: you MUST flag it. Same for hazards, known limitations, `SAFETY:` invariants.
 
-That's it. Nothing else.
+That is all. Nothing else.
 
-**Whitelist entries 2 and 7 are permanent.** Warnings, code-smell flags, hazard notes, `SAFETY:` blocks, known-limitation notes must ALWAYS be included and kept. No cleanup pass, comment sweep, or AI hygiene pass may delete them — tighten the wording, never remove the flag. Removing one = introducing a silent trap.
+**Whitelist entries 2 and 7 are permanent.** ALWAYS include + keep warnings, code-smell flags, hazard notes, `SAFETY:` blocks, known-limitation notes. Cleanup passes, comment sweeps, and AI hygiene passes must never delete them. Tighten wording. Never remove flag. Removal of one = new silent trap.
 
 ## Self-document first (try in order)
 
@@ -145,7 +145,7 @@ Before write any comment, attempt these. In order:
 5. **Decompose.** Big fn w/ section comments -> small fns. Section = fn name.
 6. **Pattern consistency.** Every controller `validate -> process -> respond`. Pattern = doc.
 
-Still need comment? OK. Now write minimal one.
+IF still need comment, THEN write minimal one.
 
 ## Decision flow
 
@@ -161,7 +161,7 @@ Want add comment?
   └─ Unsure? -> No comment. Reader read code.
 ```
 
-Then reread what you wrote. Jargon, acronym, plan reference, or file path in it? -> rewrite in plain words or delete.
+Then reread what you wrote. IF it has jargon, acronym, plan reference, or file path, THEN rewrite in plain words or delete.
 
 ## Maintenance discipline
 
@@ -169,22 +169,22 @@ Then reread what you wrote. Jargon, acronym, plan reference, or file path in it?
 - **Review comments in PR same as code.** Catch drift early.
 - **AI commit hygiene.** LLM-generated PR -> scan for what-comments. Strip before merge.
 - **Never strip flags.** Code-smell, warning, hazard, `SAFETY:` comments survive every sweep. Tighten wording only.
-- **Rewrite survivors to plain English.** Sweep converts cryptic, telegraphic, or jargon-laden comments into short plain English, and strips plan references + file pointers out of the ones worth keeping.
-- **Comment older than function = suspect.** Re-read. Verify still true. Update or delete.
+- **Rewrite survivors to plain English.** Sweep converts cryptic, telegraphic, or jargon-laden comments into short plain English. Sweep removes plan references + file pointers from comments that stay.
+- **Comment older than function = suspect.** Re-read. Make sure still true. Update or delete.
 
 ## Ergonomics check
 
 Before commit, ask:
 
-- **Would the code be just as clear with this comment deleted?** Yes -> delete it.
-- **Necessary context, or excusing unclear code?** Latter -> refactor instead.
-- **Would a new joiner understand every word, with no project knowledge?** No -> rewrite plain.
-- **Does it mention a plan, a task, a phase, or another file?** Yes -> strip that out.
-- **Will this comment lie in 6 months?** Yes -> delete or pin to constant.
+- **Code as clear with this comment deleted?** IF yes, THEN delete it.
+- **Necessary context, or excuse for unclear code?** IF latter, THEN refactor instead.
+- **New joiner with no project knowledge understands every word?** IF no, THEN rewrite plain.
+- **Mentions plan, task, phase, or another file?** IF yes, THEN remove that part.
+- **Will this comment lie in 6 months?** IF yes, THEN delete or pin to constant.
 - **Reader read code first or comment first?** Code. Comment supplement only.
-- **Could a name carry this?** Yes -> rename.
+- **Can name carry this?** IF yes, THEN rename.
 
-Fail any -> reconsider.
+IF any fail, THEN reconsider.
 
 ## Quotables (carry these)
 

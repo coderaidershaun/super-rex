@@ -1,0 +1,74 @@
+{
+  "session_id": "a0a5f6eb-59bf-4dc8-96aa-38434efdcda0",
+  "agents": [
+    {
+      "agent_id": null,
+      "agent_type": null,
+      "description": "main session",
+      "tool_calls": [
+        {
+          "name": "Skill",
+          "failed": false,
+          "skill": "probe-skill"
+        },
+        {
+          "name": "Read",
+          "failed": false,
+          "file_path": "/home/fixture/work/repo/.rex/orchestrators/probe-orch/SKILL.md"
+        },
+        {
+          "name": "Agent",
+          "failed": false
+        },
+        {
+          "name": "Agent",
+          "failed": false
+        }
+      ],
+      "skills_opened": [
+        "probe-skill",
+        "probe-orch"
+      ]
+    },
+    {
+      "agent_id": "a5360226e437795bf",
+      "agent_type": "model-low-effort-low",
+      "description": "s1-skill",
+      "tool_calls": [
+        {
+          "name": "Skill",
+          "failed": false,
+          "skill": "probe-skill"
+        }
+      ],
+      "skills_opened": [
+        "probe-skill"
+      ]
+    },
+    {
+      "agent_id": "ae4856bf1b48c7b0b",
+      "agent_type": "model-low-effort-low",
+      "description": "s2-read",
+      "tool_calls": [
+        {
+          "name": "Read",
+          "failed": false,
+          "file_path": "/home/fixture/work/repo/.claude/skills/probe-skill/SKILL.md"
+        },
+        {
+          "name": "Read",
+          "failed": false,
+          "file_path": "/home/fixture/work/repo/.claude/skills/probe-skill/reference.md"
+        },
+        {
+          "name": "Read",
+          "failed": false,
+          "file_path": "/home/fixture/work/repo/plain.txt"
+        }
+      ],
+      "skills_opened": [
+        "probe-skill"
+      ]
+    }
+  ]
+}

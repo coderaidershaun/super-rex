@@ -7,4 +7,4 @@ After TDD cycle, look for:
 - **Shallow modules** → Combine or deepen
 - **Feature envy** → Move logic to where data lives
 - **Primitive obsession** → Introduce value objects
-- **Existing code** the new code reveals as problematic
+- **Existing code** that new code reveals as problematic

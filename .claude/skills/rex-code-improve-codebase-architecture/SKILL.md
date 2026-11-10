@@ -237,7 +237,7 @@ Brief is for agents with no context. Write it in full sentences. It must hold:
 - [ ] Hidden behavior, each item named, with rule: "move by cut and paste, never type again".
 - [ ] Proof: path + checks from 4.3, as hard constraints. Builder runs checks after each stage.
 - [ ] Tests that must stay. Tests that must never run.
-- [ ] "Done means" list that a person can check line by line.
+- [ ] "Done means" list that a person can confirm line by line.
 
 Brief must be literal. Builder must be able to compile it in head.
 
@@ -277,7 +277,7 @@ Final report to user. Lead with what user gets. Full sentences, plain words.
 - [ ] Target: tree before + target tree.
 - [ ] What was found: ranked candidates, top 5.
 - [ ] What was chosen + why. Assumptions, under own heading.
-- [ ] Proof: path + checks that builder must run. Say what was not checked.
+- [ ] Proof: path + checks that builder must run. Say what no check covers.
 - [ ] What AUDIT flagged. Each `SMELL:` comment in scope.
 - [ ] Candidates not taken + reason for each.
 - [ ] Public paths that brief changes.
