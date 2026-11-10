@@ -1,8 +1,8 @@
 //! `rex init`: checks that the repo and Claude Code are fit for SuperRex,
 //! then installs the embedded skills and agents into the repo, points agents
 //! at the `rex codebase` and `rex smells` commands through `AGENTS.md`, keeps
-//! the installed files out of git through `.gitignore`, and sets up
-//! pre-commit hooks (gitleaks, trivy, cargo fmt, clippy, test).
+//! the installed files out of git through `.gitignore`, sets up the store,
+//! and sets up pre-commit hooks (gitleaks, trivy, cargo fmt, clippy, test).
 
 mod agents_md;
 mod error;
@@ -17,6 +17,7 @@ use std::io::{self, Write};
 use std::path::Path;
 
 use super::stdout::print_line_to_stdout;
+use crate::store::{Store, StoreError, StorePaths};
 pub use error::InitError;
 use file_change::FileChange;
 use install::{install_bundle, summary};
@@ -37,16 +38,18 @@ pub struct InitOptions {
 /// already present on disk is left untouched and counted, unless it differs
 /// from the bundle and `is_forced` is set, in which case it is overwritten.
 /// Then make sure `cwd/AGENTS.md` has the rex sections, `cwd/.gitignore`
-/// ignores the installed files, and `cwd/.pre-commit-config.yaml` is there,
-/// and run `pre-commit install` when the tool is on PATH. Each file is added
-/// once and an existing file is never replaced, with or without `is_forced`.
+/// ignores the installed files, the store in `cwd/.rex` is set up, and
+/// `cwd/.pre-commit-config.yaml` is there, and run `pre-commit install` when
+/// the tool is on PATH. Each file is added once and an existing file is
+/// never replaced, with or without `is_forced`. The last line names the
+/// project files this run changed, for the person to commit.
 ///
 /// None of these files is written through a symbolic link. One that is a link
 /// is named on stderr and left alone, and the install carries on.
 ///
-/// A failure that leaves the rest of the install possible, such as a failed
-/// `pre-commit install`, does not stop it. Each one is printed on stderr at
-/// the end, in the order they happened.
+/// A failure that leaves the rest of the install possible, such as a store
+/// that cannot be set up or a failed `pre-commit install`, does not stop it.
+/// Each one is printed on stderr at the end, in the order they happened.
 ///
 /// # Errors
 /// A preflight variant of [`InitError`] if a check fails before anything is
@@ -76,19 +79,34 @@ fn install(
     let counts = install_bundle(&cwd.join(".claude"), is_forced)?;
     print_line_to_stdout(&summary(counts))?;
 
-    report_file_change(
-        agents_md::AGENTS_FILENAME,
-        agents_md::ensure_rex_sections(cwd)?,
-    )?;
-    report_file_change(
-        gitignore::GITIGNORE_FILENAME,
-        gitignore::ensure_ignore_block(cwd)?,
-    )?;
+    // The project files this run created or changed, which the person must
+    // commit, in the order they are named.
+    let mut to_commit = Vec::new();
+
+    let agents_md = agents_md::AGENTS_FILENAME;
+    let change = agents_md::ensure_rex_sections(cwd)?;
+    report_file_change(agents_md, change)?;
+    if change != FileChange::Unchanged {
+        to_commit.push(agents_md);
+    }
+
+    let gitignore = gitignore::GITIGNORE_FILENAME;
+    let change = gitignore::ensure_ignore_block(cwd)?;
+    report_file_change(gitignore, change)?;
+    if change != FileChange::Unchanged {
+        to_commit.push(gitignore);
+    }
+
+    match set_up_store(cwd) {
+        Ok(change) => report_file_change(".rex/", change)?,
+        Err(source) => failures.push(InitError::Store { source }),
+    }
 
     let config = pre_commit::CONFIG_FILENAME;
     match pre_commit::ensure_config(cwd)? {
         ConfigWrite::Created => {
             print_line_to_stdout(&format!("rex init: {config} created"))?;
+            to_commit.push(config);
             pre_commit::warn_about_missing_hook_tools();
         }
         ConfigWrite::AlreadyWritten => pre_commit::warn_about_missing_hook_tools(),
@@ -108,7 +126,39 @@ fn install(
         Err(failed @ InitError::PreCommitInstall { .. }) => failures.push(failed),
         Err(stop) => return Err(stop),
     }
+
+    if let Some(line) = commit_line(&to_commit) {
+        print_line_to_stdout(&line)?;
+    }
     Ok(())
+}
+
+/// The reminder to commit `files`, or `None` when there is nothing to
+/// commit. A job works in the main checkout only when it is clean, so these
+/// files must not stay uncommitted.
+fn commit_line(files: &[&str]) -> Option<String> {
+    let named = match files {
+        [] => return None,
+        [one] => (*one).to_string(),
+        [first @ .., last] => format!("{} and {last}", first.join(", ")),
+    };
+    Some(format!(
+        "rex init: commit {named} (git add + git commit); a job works in the main checkout only when it is clean"
+    ))
+}
+
+/// Make the store and its library folder, or open the store when it is
+/// already there. Opening a store of this version changes no file in it, so
+/// a second run leaves `.rex/` as it was.
+fn set_up_store(cwd: &Path) -> Result<FileChange, StoreError> {
+    let paths = StorePaths::locate(cwd)?;
+    let was_there = paths.dir.exists();
+    drop(Store::create(&paths)?);
+    if was_there {
+        Ok(FileChange::Unchanged)
+    } else {
+        Ok(FileChange::Created)
+    }
 }
 
 fn report_file_change(filename: &str, change: FileChange) -> Result<(), InitError> {

@@ -7,6 +7,7 @@ mod install;
 mod links;
 mod pre_commit;
 mod preflight;
+mod store;
 mod support;
 #[cfg(unix)]
 mod unreadable;

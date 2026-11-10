@@ -1,5 +1,6 @@
 //! Adds a block to `.gitignore` so what `rex init` installs (the skills, the
-//! agents, the local settings and the store) is not committed.
+//! agents, the local settings and the store) and Claude Code's worktrees are
+//! not committed.
 
 use std::fs;
 use std::io::ErrorKind;
@@ -17,7 +18,11 @@ pub(super) const GITIGNORE_FILENAME: &str = ".gitignore";
 const IGNORE_MARKER: &str = "# rex:ignore superrex";
 
 /// The whole block, marker line included, ending in a newline.
-const IGNORE_BLOCK: &str = "# rex:ignore superrex\n.claude/skills/\n.claude/agents/\n.claude/settings.local.json\n/.rex/\n";
+///
+/// Claude Code's own worktree isolation puts worktrees in `.claude/worktrees/`.
+/// Untracked, they make the checkout not clean, and a job then refuses to
+/// work in it.
+const IGNORE_BLOCK: &str = "# rex:ignore superrex\n.claude/skills/\n.claude/agents/\n.claude/settings.local.json\n/.rex/\n/.claude/worktrees/\n";
 
 /// Make sure `cwd/.gitignore` has the rex block: create the file if it is
 /// missing, append the block after the existing lines if it is not there yet,

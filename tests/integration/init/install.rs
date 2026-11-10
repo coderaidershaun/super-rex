@@ -1,6 +1,6 @@
 //! A first and a second `rex init`: the bundle files, `AGENTS.md`,
 //! `.gitignore` and the pre-commit config each land once and are never
-//! replaced.
+//! replaced, and the person is told which of them to commit.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -11,8 +11,10 @@ use super::support::{
 };
 
 /// The block `rex init` adds to `.gitignore`, byte for byte.
-const SUPERREX_IGNORE_BLOCK: &[u8] =
-    b"# rex:ignore superrex\n.claude/skills/\n.claude/agents/\n.claude/settings.local.json\n/.rex/\n";
+const SUPERREX_IGNORE_BLOCK: &[u8] = b"# rex:ignore superrex\n.claude/skills/\n.claude/agents/\n.claude/settings.local.json\n/.rex/\n/.claude/worktrees/\n";
+
+/// The last line of a first run, which changes all three project files.
+const COMMIT_ALL: &str = "rex init: commit AGENTS.md, .gitignore and .pre-commit-config.yaml (git add + git commit); a job works in the main checkout only when it is clean\n";
 
 #[test]
 fn fresh_install_writes_every_bundle_file() {
@@ -24,7 +26,7 @@ fn fresh_install_writes_every_bundle_file() {
     assert_eq!(
         printed.stdout,
         format!(
-            "rex init: {n} written, 0 skipped\nrex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n"
+            "rex init: {n} written, 0 skipped\nrex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .rex/ created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}"
         )
     );
 
@@ -74,7 +76,7 @@ fn existing_modified_file_is_never_touched() {
     assert_eq!(
         printed.stdout,
         format!(
-            "rex init: {} written, 1 skipped (1 differs from this version; use --force to overwrite)\nrex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n",
+            "rex init: {} written, 1 skipped (1 differs from this version; use --force to overwrite)\nrex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .rex/ created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}",
             n - 1
         )
     );
@@ -193,18 +195,52 @@ fn existing_gitignore_gets_block_appended_once() {
 }
 
 #[test]
+fn the_commit_line_names_only_the_files_this_run_changed() {
+    let repo = repo();
+    let n = bundle_file_count();
+    rex_init_ok(&repo, &[]);
+
+    fs::write(repo.path().join(".gitignore"), b"/target\n").expect("write .gitignore");
+    let printed = rex_init_ok(&repo, &[]);
+
+    assert_eq!(
+        printed.stdout,
+        format!(
+            "rex init: 0 written, {n} skipped\nrex init: .gitignore updated\nrex init: pre-commit hooks installed\nrex init: commit .gitignore (git add + git commit); a job works in the main checkout only when it is clean\n"
+        )
+    );
+
+    fs::remove_file(repo.path().join("AGENTS.md")).expect("remove AGENTS.md");
+    fs::remove_file(repo.path().join(".gitignore")).expect("remove .gitignore");
+    let printed = rex_init_ok(&repo, &[]);
+
+    assert!(
+        printed.stdout.ends_with(
+            "rex init: commit AGENTS.md and .gitignore (git add + git commit); a job works in the main checkout only when it is clean\n"
+        ),
+        "got: {}",
+        printed.stdout
+    );
+}
+
+#[test]
 fn pre_commit_config_is_created_and_hooks_installed() {
     let repo = repo();
 
     let printed = rex_init_ok(&repo, &[]);
 
-    assert!(printed.stdout.ends_with(
-        "rex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n"
-    ));
+    assert!(printed.stdout.ends_with(&format!(
+        "rex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}"
+    )));
 
     let config = fs::read_to_string(repo.path().join(".pre-commit-config.yaml"))
         .expect("read .pre-commit-config.yaml");
     assert!(config.starts_with("# rex:pre-commit\n"));
+    assert!(
+        config
+            .contains("# Installed by `rex init`. Needs pre-commit, gitleaks and trivy on PATH.\n")
+    );
+    assert!(config.contains("--skip-dirs target,node_modules,.claude,.rex --skip-files"));
     assert!(config.contains("repo: https://github.com/pre-commit/pre-commit-hooks\n"));
     assert!(config.contains("entry: gitleaks git --pre-commit --staged --redact --verbose\n"));
     assert!(
@@ -214,7 +250,10 @@ fn pre_commit_config_is_created_and_hooks_installed() {
 
     let args = fs::read_to_string(repo.bin().join(PRE_COMMIT_ARGS))
         .expect("fake pre-commit must have run");
-    assert_eq!(args, "install --hook-type pre-commit --hook-type pre-push");
+    assert_eq!(
+        args,
+        "install --install-hooks --hook-type pre-commit --hook-type pre-push"
+    );
 }
 
 #[test]
@@ -266,9 +305,9 @@ fn missing_pre_commit_tool_prints_the_install_command() {
 
     let printed = rex_init_ok(&repo, &[]);
 
-    assert!(printed.stdout.ends_with(
-        "rex init: pre-commit hooks skipped (pre-commit not found; install it, then run: pre-commit install --hook-type pre-commit --hook-type pre-push)\n"
-    ));
+    assert!(printed.stdout.ends_with(&format!(
+        "rex init: pre-commit hooks skipped (pre-commit not found; install it, then run: pre-commit install --install-hooks --hook-type pre-commit --hook-type pre-push)\n{COMMIT_ALL}"
+    )));
     assert!(repo.path().join(".pre-commit-config.yaml").is_file());
 }
 

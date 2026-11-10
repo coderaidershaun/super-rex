@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::process::ExitStatus;
 
 use crate::error::{CommandError, RexError};
+use crate::store::StoreError;
 
 /// A failure of `rex init`. None of them is a wrong command line.
 #[derive(thiserror::Error, Debug)]
@@ -43,6 +44,14 @@ pub enum InitError {
         "the Claude Code sandbox cannot start on this machine: {missing} not found on PATH, so Claude Code will refuse to start in this repo until they are installed; install them with sudo apt-get install bubblewrap socat (Ubuntu or Debian), or sudo dnf install bubblewrap socat (Fedora)"
     )]
     SandboxToolsMissing { missing: String },
+
+    /// No fix is given: the store's own error, shown after this text, says
+    /// what went wrong, and no one fix covers every case.
+    #[error("the store could not be set up")]
+    Store {
+        #[source]
+        source: StoreError,
+    },
 
     #[error(
         "`pre-commit install` exited with {status}; fix what it names, then run rex init again"

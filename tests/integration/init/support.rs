@@ -43,6 +43,12 @@ impl Repo {
     /// Put a stand-in `tool` on PATH that runs `body` as a shell script.
     pub fn write_tool(&self, tool: &str, body: &str) {
         let path = self.bin().join(tool);
+        // `rex` is a link to the binary under test, and a write through it
+        // would overwrite that binary.
+        assert!(
+            !path.is_symlink(),
+            "remove the {tool} link before replacing it"
+        );
         fs::write(&path, format!("#!/bin/sh\n{body}\n")).expect("write stand-in tool");
         #[cfg(unix)]
         {
@@ -76,6 +82,11 @@ pub fn repo() -> Repo {
     for tool in ["gitleaks", "trivy", "gh", "bwrap", "socat"] {
         repo.write_tool(tool, "exit 0");
     }
+    // The `rex` on PATH is the binary under test, so `rex init` finds itself
+    // there and has nothing to warn about.
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(env!("CARGO_BIN_EXE_rex"), repo.bin().join("rex"))
+        .expect("link rex onto PATH");
     repo
 }
 
@@ -87,6 +98,9 @@ pub fn rex_init(repo: &Repo, args: &[&str]) -> Output {
         .args(args)
         .current_dir(repo.path())
         .env("PATH", repo.bin())
+        // A store chosen in the developer's shell must not change where the
+        // test's store goes.
+        .env_remove("REX_STORE")
         .output()
         .expect("run rex init")
 }

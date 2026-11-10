@@ -4,7 +4,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use super::support::{Printed, Repo, SKILL_MARKER, installed, repo, rex_init};
+use super::support::{Printed, Repo, SKILL_MARKER, installed, repo, rex_init, rex_init_ok};
 
 /// Run `rex init` in `repo` and check that it exited with 1.
 fn rex_init_failed(repo: &Repo) -> Printed {
@@ -145,6 +145,39 @@ fn gh_missing_is_a_warning() {
         "rex init: warning: gh not found on PATH. Delivery works without pull requests until it is installed.\n"
     );
     assert!(installed(&repo, SKILL_MARKER).is_file());
+}
+
+#[test]
+fn a_rex_on_path_that_is_not_this_one_is_a_warning() {
+    let missing = repo();
+    missing.remove_tool("rex");
+
+    let printed = rex_init_ok(&missing, &[]);
+
+    assert_eq!(
+        printed.stderr,
+        "rex init: warning: rex not found on PATH. The hooks log nothing and the skills cannot run rex until it is.\n"
+    );
+    assert!(installed(&missing, SKILL_MARKER).is_file());
+
+    let other = repo();
+    other.remove_tool("rex");
+    other.write_tool("rex", "exit 0");
+
+    let printed = rex_init_ok(&other, &[]);
+
+    let this = PathBuf::from(env!("CARGO_BIN_EXE_rex"))
+        .canonicalize()
+        .expect("canonical rex path");
+    assert_eq!(
+        printed.stderr,
+        format!(
+            "rex init: warning: the rex on PATH is {}, not this one ({}). The hooks and the skills run that one; put this rex first on PATH.\n",
+            other.bin().join("rex").display(),
+            this.display()
+        )
+    );
+    assert!(installed(&other, SKILL_MARKER).is_file());
 }
 
 #[test]
