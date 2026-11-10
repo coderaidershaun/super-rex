@@ -1,28 +1,31 @@
 ---
 name: rex-code-smells
 description: >
-  This skill is a detection playbook for bad naming, code smells, and brittle
-  code in Rust. It has grep sweeps, a smell catalog translated to Rust,
-  brittleness signals, and a format for the findings report. It only detects
-  problems. The fixes are in sister skills.
+  This skill is a detection playbook for bad naming, code smells, brittle code,
+  and code rot in Rust. It has grep sweeps, a smell catalog translated to Rust,
+  brittleness signals, rot signals with the guard that stops each one, and a
+  format for the findings report. It only detects problems. The fixes are in
+  sister skills.
 when_to_use: >
-  Use when you are about to refactor unfamiliar code, or when a pipeline
-  orchestrator dispatches a smell or brittleness audit. Use it also when the
-  user says "find code smells", "smell sweep", "audit naming", "what's brittle
-  here", "code quality audit", "review for smells", "is this maintainable",
-  "refactor opportunities in X".
+  Use when you are about to refactor unfamiliar code or change code that nobody
+  touched for a long time, or when a pipeline orchestrator dispatches a smell,
+  brittleness, or rot audit. Use it also when the user says "find code smells",
+  "smell sweep", "audit naming", "what's brittle here", "code rot", "bit rot",
+  "stale code", "what has gone stale", "old TODOs", "code quality audit",
+  "review for smells", "is this maintainable", "refactor opportunities in X".
 disable-model-invocation: false
 user-invocable: true
 ---
 
-# Smell + Brittleness Detection
+# Smell, Brittleness + Rot Detection
 
 This skill FINDS problems. Never fixes them. Output = findings report, file:line + evidence.
 Fix rules live in sisters:
 
 - `rex-code-ergonomics` — naming/type/signature law (fix for most Lens 1 findings)
-- `rex-code-commenting` — comment law
+- `rex-code-commenting` — comment law (fix for most Lens 4 comment findings)
 - `rex-code-error-writing` — unwrap/Result law
+- `rex-code-external-libraries` — dependency law (fix for Lens 4 dependency findings)
 - `rex-code-philosophy` — deletion test, complexity budget
 
 ## Method
@@ -97,6 +100,38 @@ Brittle = looks fine, shatters on small perturbation. Signals:
 | wall clock in state transition | `now()`/`Instant::now` decides state, not only stamps time | replay or test gives different result — give time as parameter |
 | brittle tests | assert on `Debug` format, exact multi-line strings, HashMap iteration order, `sleep` | harmless refactor turns suite red → people ignore red |
 
+## Lens 4 — Rot
+
+Rot = code that was right when written and is wrong now. Nobody edited it. World around it moved: callers, deps, compiler, plans.
+
+- [ ] Old ≠ rotten. Stable code untouched for years = fine. Never report age alone.
+- [ ] Rot = MISMATCH. Code disagrees with what it describes, depends on, or promises.
+- [ ] Every rot finding names its GUARD in fix direction. Guard = mechanical check that stops same rot again.
+- [ ] IF no guard is possible, THEN write `guard: none, review only`.
+
+| Signal | Detect | Confirm by | Guard |
+|---|---|---|---|
+| stale comment | comment names fn/type/field → `grep -rn '<name>'` finds no item | read comment against code below it. Says X, code does Y? | edit comment in same commit as code (`rex-code-commenting`). doc links like ``[`Name`]`` + `-D rustdoc::broken_intra_doc_links` |
+| stale file comment | IF `rex` on PATH, THEN `rex codebase --only code --with-context` | sentence still says what file does? No sentence = missing comment | read tree in review of each change |
+| lying SMELL flag | IF `rex` on PATH, THEN `rex smells`. ELSE `grep -rn 'SMELL'` | problem it names still in code? Valid flag = known debt, NOT finding | remove flag in same commit as fix |
+| aged TODO | `grep -rnE '\b(TODO\|FIXME\|XXX\|HACK)\b'` + `git blame -L <n>,<n> --date=short` | still true? still wanted? No reason = nobody knows when it is done | do it, delete it, or make it a SMELL flag with reason |
+| provisional code that stayed | `grep -rniE 'temporary\|for now\|workaround\|remove (after\|once\|when)'` | exit condition already happened? Upstream bug fixed in current dep version? | comment names exit condition that a reader can test |
+| commented-out code | `grep -rnE '^\s*//\s*(let\|fn\|use\|if\|match\|pub\|impl\|return)\b'` | real code, not prose example | delete. Git keeps history |
+| stub that shipped | `grep -rnE '\b(todo\|unimplemented)!\('` outside tests | reachable from prod path? | `-D clippy::todo -D clippy::unimplemented` |
+| suppression outlived cause | `grep -rnE '#!?\[allow\('` | remove attribute, build. No warning = dead weight. Warning = read what it hid | `#[expect(lint, reason = "…")]` — compiler warns when expectation is no longer met. `clippy::allow_attributes` bans bare `allow` |
+| deprecated API | build warnings with `deprecated`, `grep -rn 'allow(deprecated)'` | replacement exists? removal in next major? | `-D deprecated` in hook |
+| test that does not run | `grep -rn '#\[ignore'` | reason still holds? `cargo test -- --ignored` still passes? | `#[ignore = "reason"]`. Ignored test with no reason = finding |
+| half migration | names with `_old`/`_new`/`legacy`/`v2`, two impls of one job | both paths still have callers? | finish or revert. Two live paths = two places for every fix |
+| unused or stale dep | `cargo machete`, `cargo tree -d`, `cargo outdated` IF installed | dep still used? major versions behind? | dep check in pre-push hook (`rex-code-external-libraries`) |
+| dead cfg | `#[cfg(feature = "x")]`, x not in `[features]` | rustc `unexpected_cfgs` warning | keep `unexpected_cfgs` at warn or deny |
+| stale doc example or path | commands, flags, paths in README + doc comments | `cargo test --doc` passes? command in `--help`? each path → `test -e` | doc tests run in hook. Prefer doc test to prose example |
+
+Rot severity:
+
+- [ ] BLOCK: comment or doc states wrong invariant, unit, order, or `SAFETY:` rule. Reader trusts it → bug. Reachable `todo!()`. Ignored test of invariant that now fails.
+- [ ] REFACTOR: half migration, provisional code past its exit, suppression that hides real warning, deprecated API, stale file comment.
+- [ ] NIT: commented-out code, aged TODO, suppression that hides nothing, unused dep.
+
 ## Mechanical sweep block
 
 Copy-paste for module/crate scope (adjust path):
@@ -110,9 +145,27 @@ grep -rnE '\b(mgr|cnt|tmp|usr|obj|proc)\b' $P --include='*.rs'
 grep -rn 'fn get_' $P --include='*.rs'
 grep -rnE 'fn [a-z_]+\(.*bool.*\)' $P --include='*.rs'
 grep -rnE '\)\.[a-z_]+\(\)\.[a-z_]+\(\)\.[a-z_]+\(' $P --include='*.rs'   # 3-hop chains
+# rot
+grep -rnE '\b(TODO|FIXME|XXX|HACK)\b' $P --include='*.rs'
+grep -rniE 'temporary|for now|workaround|remove (after|once|when)' $P --include='*.rs'
+grep -rnE '^\s*//\s*(let|fn|use|if|match|pub|impl|return)\b' $P --include='*.rs'   # commented-out code
+grep -rnE '\b(todo|unimplemented)!\(' $P --include='*.rs'
+grep -rnE '#!?\[allow\(' $P --include='*.rs'
+grep -rn '#\[ignore' $P tests/ --include='*.rs'
+grep -rn 'SMELL' $P --include='*.rs'
 ```
 
-Test files: unwrap/expect are LEGAL there. Exclude `tests/` from Lens 3 unwrap sweep. Include it only for brittle-test signal.
+Rot sweep at crate scope. Run one time per crate, not one time per module:
+
+```bash
+cargo build --all-targets 2>&1 | grep -E 'deprecated|unexpected_cfgs|unfulfilled_lint_expectations'
+cargo test --doc                    # lib crates only
+cargo tree -d                       # duplicate versions of one dep
+cargo machete                       # IF installed. ELSE write it in Not checked
+rex codebase --only code --with-context   # IF rex on PATH
+```
+
+Test files: unwrap/expect are LEGAL there. Exclude `tests/` from Lens 3 unwrap sweep. Include it only for brittle-test signal. Rot applies to tests too: ignored tests, stale TODOs, dead `allow`.
 
 ## Report format
 
@@ -124,6 +177,7 @@ ALWAYS this shape:
 | # | Where | Lens | Smell | Sev | Evidence | Fix direction |
 |---|-------|------|-------|-----|----------|---------------|
 | 1 | src/foo.rs:42 | naming | bool param pair | BLOCK | `copy(a, b, true, false)` at 3 call sites | CopyOpts enum |
+| 2 | src/bar.rs:10 | rot | suppression outlived cause | NIT | `#[allow(dead_code)]` on fn with 2 callers | remove attribute. Guard: `clippy::allow_attributes` |
 
 **Clean:** <what was checked and passed — one line, so a clean verdict is visible work>
 **Not checked:** <anything out of scope, e.g. tests/, generated code>
@@ -136,3 +190,4 @@ Sort BLOCK first. Counts in closing line: `N findings: X BLOCK / Y REFACTOR / Z 
 - One file → read + report inline.
 - One module → sweep block + read hits + report.
 - Whole crate → one subagent per top-level module that runs this skill, merge tables, dedup by file:line.
+- Crate-scope rot sweep → orchestrator runs it one time. Subagents skip it.
