@@ -153,7 +153,7 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
              builder_model=none\nbuilder_effort=none\norchestrator=pipeline\n\
              orchestrator_version=1\nskills=rex-code-philosophy,rex-code-tdd\n\
              created_at={created_at}\nupdated_at={updated_at}\ntokens=none\n\
-             tokens_provisional=yes\nincomplete=no\noutcome=Zero is rejected\n\
+             tokens_provisional=no\nincomplete=no\noutcome=Zero is rejected\n\
              role.engineer=model-medium-effort-high inputs=-LHHHHL demand=model-xhigh-effort-max \
              rules=T1,T2,E1,E2,E4,C1,C2,F1 conflict=budget oms_version=1\n\
              role.reviewer=model-medium-effort-medium inputs=-LMHMMH \
