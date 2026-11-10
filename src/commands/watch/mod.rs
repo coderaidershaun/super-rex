@@ -1,5 +1,8 @@
 //! `rex watch`: a live view of jobs and their agent trees, for people.
 
+pub mod model;
+pub mod view;
+
 use std::path::Path;
 
 use crate::error::RexError;
