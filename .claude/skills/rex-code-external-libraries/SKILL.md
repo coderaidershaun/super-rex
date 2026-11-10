@@ -116,7 +116,7 @@ One version. One feature set. No drift between members.
 
 - **`*` or unbounded version.** Pin caret semver.
 - **Yanked version.** Bump.
-- **Pre-release in main branch.** Spike branch only, w/ ADR.
+- **Pre-release in main branch.** Spike branch only, w/ warning comment that gives reason.
 - **Default features when subset suffices.** Audit + trim.
 - **Two TLS backends linked.** Pick one.
 - **`git = "..."` dep w/o pinned `rev`.** Floating git = surprise breakage. Pin SHA or use crates.io.
