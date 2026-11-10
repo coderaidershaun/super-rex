@@ -6,8 +6,11 @@ description: >
   reads the request, the diff, and the real code at one commit. It reports
   findings with severity, location, and proof, and gives the verdict PASS or
   FIX. The verdict informs the caller. The caller decides what to do. It is
-  not a gate on each merge. It changes nothing. Use this skill when a person
-  or a calling agent asks for a review of a pull request or a branch.
+  not a gate on each merge. It changes nothing.
+when_to_use: >
+  Use when a person or a calling agent asks for a review of a pull request or
+  a branch. Use it also when the user says "review this pull request", "review
+  this branch", or "run the pull request review at the end".
 disable-model-invocation: true
 user-invocable: true
 ---
