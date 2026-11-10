@@ -2,5 +2,39 @@
 name = "super-rex"
 version = "0.1.0"
 edition = "2024"
+# `rusqlite` asks for 1.89, the highest of any package in the build. No lower
+# version would compile it.
+rust-version = "1.89"
+authors = ["Shaun McDonogh"]
+description = "Skills that plan and run a job with Claude Code sub-agents, plus a CLI that sets a repo up, picks a model for each role and records what ran"
+license = "MIT"
+repository = "https://github.com/coderaidershaun/super-rex"
+readme = "README.md"
+keywords = ["agent", "claude", "orchestration", "skills", "cli"]
+categories = ["command-line-utilities", "development-tools"]
+include = [".claude/skills/**/*", ".claude/agents/**/*", "src/**/*", "tests/**/*", "build.rs", "Cargo.toml", "README.md", "LICENSE"]
+
+[[bin]]
+name = "rex"
+path = "src/main.rs"
+
+[lib]
+name = "super_rex"
+path = "src/lib.rs"
 
 [dependencies]
+anyhow = { version = "1.0.104", default-features = false, features = ["std"] }
+clap = { version = "4.6.7", default-features = false, features = ["derive", "error-context", "help", "std", "usage"] }
+ignore = { version = "0.4.34", default-features = false }
+include_dir = { version = "0.7.4", default-features = false }
+ratatui = { version = "0.30.2", default-features = false, features = ["crossterm"] }
+rusqlite = { version = "0.41.1", default-features = false, features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.154", default-features = false, features = ["std", "preserve_order"] }
+thiserror = { version = "2.0.21", default-features = false }
+yaml-rust2 = { version = "0.13.0", default-features = false }
+
+[dev-dependencies]
+assert_cmd = { version = "2.2.2", default-features = false }
+sha2 = { version = "0.11.1", default-features = false }
+tempfile = { version = "3.27.0", default-features = false }
