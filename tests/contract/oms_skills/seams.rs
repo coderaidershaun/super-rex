@@ -1,4 +1,5 @@
-//! Contract tests of `rex oms` and the `rex skills` commands.
+//! Contract tests of what `rex oms` gives to `rex hook` and what `rex skills`
+//! gives to the store.
 
 use std::fs;
 use std::path::Path;

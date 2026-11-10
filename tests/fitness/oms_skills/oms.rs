@@ -1,4 +1,4 @@
-//! Fitness tests of `rex oms` and the `rex skills` commands.
+//! Fitness tests of `rex oms`.
 //!
 //! The selection rules must hold for every one of the 16,384 combinations of
 //! inputs. A wrong agent fails silently: the job still runs, on the wrong
