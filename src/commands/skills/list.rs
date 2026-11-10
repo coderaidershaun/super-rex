@@ -8,10 +8,13 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
-use super::SkillsError;
 use super::header::Header;
+use super::{SKILL_FILE, SkillsError};
 use crate::commands::stdout::{print_line_to_stdout, print_to_stdout};
 use crate::store::StorePaths;
+
+/// Where Claude Code looks for skills, below the repo and below the home folder.
+const SKILLS_FOLDER: &str = ".claude/skills";
 
 /// Where a skill was found. Claude Code runs the user's skill when both
 /// places hold one with the same name.
@@ -45,7 +48,7 @@ pub(super) struct Place {
 pub(super) fn places(cwd: &Path) -> Result<Vec<Place>, SkillsError> {
     let repo = Place {
         source: Source::Repo,
-        folder: repo_root(cwd)?.join(".claude/skills"),
+        folder: repo_root(cwd)?.join(SKILLS_FOLDER),
     };
     let home = std::env::var_os("HOME").filter(|home| !home.is_empty());
     let Some(home) = home else {
@@ -53,7 +56,7 @@ pub(super) fn places(cwd: &Path) -> Result<Vec<Place>, SkillsError> {
     };
     let user = Place {
         source: Source::User,
-        folder: PathBuf::from(home).join(".claude/skills"),
+        folder: PathBuf::from(home).join(SKILLS_FOLDER),
     };
     let same_folder = match (repo.folder.canonicalize(), user.folder.canonicalize()) {
         (Ok(repo), Ok(user)) => repo == user,
@@ -83,7 +86,7 @@ fn repo_root(cwd: &Path) -> Result<PathBuf, SkillsError> {
                 });
             }
         };
-        if metadata.is_dir() || folder.join(".claude/skills").exists() {
+        if metadata.is_dir() || folder.join(SKILLS_FOLDER).exists() {
             return Ok(folder.to_path_buf());
         }
         // A worktree whose main checkout cannot be found still lists its own
@@ -113,7 +116,7 @@ pub(super) fn skill_folders(place: &Path) -> Result<Vec<PathBuf>, SkillsError> {
     let mut folders = Vec::new();
     for entry in entries {
         let folder = entry.map_err(SkillsError::read(place))?.path();
-        if folder.is_dir() && folder.join("SKILL.md").is_file() {
+        if folder.is_dir() && folder.join(SKILL_FILE).is_file() {
             folders.push(folder);
         }
     }
@@ -134,7 +137,7 @@ struct Listed {
 
 impl Listed {
     fn read(folder: &Path, source: Source) -> Listed {
-        let path = folder.join("SKILL.md");
+        let path = folder.join(SKILL_FILE);
         // One skill that cannot be read is listed with empty fields, so that
         // it never stops the list; `rex skills check` names the problem.
         let text = fs::read(&path)

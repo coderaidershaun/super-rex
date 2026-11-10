@@ -5,14 +5,16 @@
 use std::collections::BTreeSet;
 use std::path::{Component, Path, PathBuf};
 
+use super::SKILL_FILE;
 use super::header::{Header, HeaderError, Parts};
 
 /// Claude Code cuts a skill's listing entry, `description - when_to_use`, at
 /// this many characters.
 const LISTING_LIMIT: usize = 1536;
 
-/// The characters Claude Code puts between `description` and `when_to_use`.
-const LISTING_SEPARATOR: usize = 3;
+/// The length of ` - `, which Claude Code puts between `description` and
+/// `when_to_use`.
+const LISTING_SEPARATOR_LENGTH: usize = 3;
 
 const MAX_NAME_LENGTH: usize = 64;
 
@@ -148,7 +150,7 @@ pub struct KnownSkills {
 /// files breaks H1.
 #[must_use]
 pub fn check_skill(skill: &Skill, known: &KnownSkills) -> Vec<Finding> {
-    let skill_md = Path::new("SKILL.md");
+    let skill_md = Path::new(SKILL_FILE);
     let mut findings = Vec::new();
     let mut finding = |file: &Path, rule: Rule, message: String| {
         findings.push(Finding {
@@ -316,7 +318,8 @@ fn shortened_by_yaml(header: &Header, key: &str) -> Option<String> {
 fn listing_too_long(header: &Header) -> Option<String> {
     let description = header.text("description").unwrap_or_default();
     let when_to_use = header.text("when_to_use").unwrap_or_default();
-    let length = description.chars().count() + LISTING_SEPARATOR + when_to_use.chars().count();
+    let length =
+        description.chars().count() + LISTING_SEPARATOR_LENGTH + when_to_use.chars().count();
     (length > LISTING_LIMIT).then(|| {
         format!(
             "description and when_to_use make a listing entry of {length} characters; Claude Code cuts it at {LISTING_LIMIT}"

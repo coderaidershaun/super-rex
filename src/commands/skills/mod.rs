@@ -13,6 +13,9 @@ use std::path::{Path, PathBuf};
 
 use crate::error::{CommandError, RexError};
 
+/// The file that makes a folder a skill.
+const SKILL_FILE: &str = "SKILL.md";
+
 /// Arguments of `rex skills`.
 #[derive(clap::Args)]
 pub struct SkillsOptions {

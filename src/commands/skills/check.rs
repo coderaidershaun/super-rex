@@ -8,12 +8,10 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use super::SkillsError;
 use super::list;
 use super::rules::{KnownSkills, Skill, SkillFile, check_skill};
+use super::{SKILL_FILE, SkillsError};
 use crate::commands::stdout::print_line_to_stdout;
-
-const SKILL_FILE: &str = "SKILL.md";
 
 /// One skill read from disk, with the paths to print it by.
 struct LoadedSkill {

@@ -124,7 +124,7 @@ fn select_with(inputs: Inputs, supported: &SupportedEfforts) -> Selection {
 }
 
 /// The higher of reliability and consequence. `None` sorts below every
-/// level, so a `None` rating is left out, and two give `None`.
+/// level, so one `None` rating is ignored, and two `None` ratings give `None`.
 fn stakes(inputs: Inputs) -> Option<Level> {
     inputs.reliability.max(inputs.consequence)
 }
@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn the_cases_of_the_specification() {
-        // Cases 1 to 42 of the specification: inputs code, agent, rules, conflict.
+        // Each case: inputs code, expected agent, rules, conflict.
         let cases = [
             ("-------", "medium / medium", "T0,E0", "none"),
             ("--M----", "medium / medium", "T1,E0", "none"),
