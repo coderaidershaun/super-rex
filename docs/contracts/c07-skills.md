@@ -1,8 +1,8 @@
-Status: DRAFT
+Status: FROZEN (10 November 2026, by Lane 1 at gate G1, on top of commit 8fb6b9c). A change to this file goes through Lane 1.
 
 # C7. Skills: the header, `rex skills list` and `rex skills check`
 
-Written by Lane 6. Read by Lanes 4, 8, 9 and 10. Lanes 8, 9 and 10 write their skills to this contract. Lane 4 builds the bundle and the installer around it. This file is complete on its own: a reader needs no other file.
+Written by Lane 6. Read by Lanes 4, 8, 9 and 10. Lanes 8, 9 and 10 write their skills to this contract. Lane 4 builds the bundle and the installer around it. This file is complete on its own: a reader needs no other file, except the parts of C1 and C11 that it names.
 
 Words used here:
 
@@ -16,7 +16,7 @@ Words used here:
 
 ## 1. Open points
 
-### OP7 — proposed: there is no `INDEX.md`
+### OP7 — settled: there is no `INDEX.md`
 
 SuperRex ships no `.claude/skills/INDEX.md`. `rex skills list` does the job the index did.
 
@@ -35,7 +35,7 @@ What changes in other lanes:
 | 4 | The installer tests stop using `skills/INDEX.md` as their marker file. Use `skills/rex-skill-language/SKILL.md`, which is in the repo today. The bundle test keeps its purpose (no stray file such as a local settings file is embedded) and stops asserting that `skills/INDEX.md` exists. |
 | 6 | The rex-skills test `the_index_lists_every_skill_and_only_skills_that_exist` is retired with the file. Its other job, that every skill path named in the bundle exists, moves to rule B4 (section 4). |
 
-### OP1 — proposed: the "use when" text goes in its own header key, `when_to_use`
+### OP1 — settled: the "use when" text goes in its own header key, `when_to_use`
 
 `when_to_use` is a key Claude Code itself reads. It is not a key SuperRex invents.
 
@@ -117,7 +117,7 @@ Prints each skill in the two places Claude Code loads skills from at the start o
 
 ### 3.1 Where it looks
 
-1. **`repo`**: `<repo>/.claude/skills/`. `<repo>` is the nearest folder, from the current folder up, that holds a `.git` folder or a `.git` file (a worktree has a file). IF there is none, THEN `<repo>` is the current folder.
+1. **`repo`**: `<repo>/.claude/skills/`. `<repo>` is the nearest folder, from the current folder up, that holds a `.git` folder or a `.git` file. IF `<repo>` is a linked worktree (`.git` is a file) AND has no `.claude/skills/`, THEN `<repo>` is its main checkout, found as C1 section 3.1 finds it. Claude Code does the same from v2.1.277. IF there is no `.git`, THEN `<repo>` is the current folder.
 2. **`user`**: `$HOME/.claude/skills/`. IF `HOME` is not set, THEN this place is skipped.
 
 - A skill is each entry in one of these folders that is a folder, or a symbolic link to a folder, and holds a `SKILL.md`. Other entries are skipped.
@@ -170,8 +170,8 @@ path=/home/user/.claude/skills/rust-review-notes/SKILL.md
 | Code | When |
 | --- | --- |
 | 0 | The list was printed. |
-| 1 | A place exists but cannot be read. The cause goes to standard error. |
-| 2 | Usage error, such as an unknown flag. |
+| 1 | A place exists but cannot be read. Standard error gets one `error:` line that names the place. |
+| 2 | Usage error, such as an unknown flag (clap). |
 
 ---
 
@@ -187,8 +187,9 @@ Checks one or more skills against the rules below. Builder stage 1 runs it on ea
 
 - Each `<path>` is a `SKILL.md` file or a skill folder. For a folder, `rex` checks `<folder>/SKILL.md`.
 - The skill folder is the folder that holds that `SKILL.md`. The skills folder is the folder above it.
-- The rules for the header (H) apply to `SKILL.md`. Rules B1 and B2 apply to `SKILL.md`. Rules B3 to B5 apply to every skill file of the skill: `SKILL.md` and every other `.md` file in the skill folder and its sub-folders.
-- **Known skills**: the folders in the same skills folder that hold a `SKILL.md`, together with the skills in `rex`'s own bundle.
+- The rules for the header (H) apply to `SKILL.md`. Rules B1 and B2 apply to `SKILL.md`. Rules B3 and B4 apply to every skill file of the skill: `SKILL.md` and every other `.md` file in the skill folder and its sub-folders.
+- **Known skills**: the folders in the same skills folder that hold a `SKILL.md`, the skills that `rex skills list` finds (section 3.1), and the skills in `rex`'s own bundle.
+- An orchestrator or lead skill in `.rex/orchestrators/<name>/` (C1 section 2) is checked the same way (`rex skills check .rex/orchestrators/<name>`), with the header of section 2.
 
 ### 4.2 The rules
 
@@ -199,7 +200,7 @@ Rule IDs are permanent. One is never used again for a different meaning.
 | H1 | Line 1 of `SKILL.md` is exactly `---`, and a later line that is exactly `---` closes the header. | Claude Code reads a header only when `---` is the first line. |
 | H2 | The header is valid YAML, and it is a mapping. | Claude Code loads a skill with a broken header with no fields set, and says nothing. |
 | H3 | `name` is a string equal to the folder name, made of lowercase letters and digits in groups joined by single hyphens, at most 64 characters. | A name that is not the folder name is hard to find, and the bundle tests and `rex init` work by folder. |
-| H4 | `description` is a string, not empty, and holds none of `Use when`, `Use this skill when`, `Use it when`, `Use it also when`. | Claude Code chooses skills by this text. The "use when" text belongs in `when_to_use`, not twice. |
+| H4 | `description` is a string, not empty, and holds none of `Use when`, `Use this skill when`, `Use it when`, `Use it also when`, `Use whenever` (case-sensitive). | Claude Code chooses skills by this text. The "use when" text belongs in `when_to_use`, not twice. |
 | H5 | `when_to_use` is a string, not empty, and its text starts with `Use when`. | Builder stage 1 chooses skills by this line (§5.3, §5.14). |
 | H6 | When `description` or `when_to_use` is a plain value on its key's own line (it does not start with `>`, `\|`, `'` or `"`), YAML gives back exactly the written text. | In a plain YAML value, ` #` starts a comment. `Inline #[cfg(test)]` would cut the text short, and the skill stops loading when a person asks for it. |
 | H7 | The text of `description`, plus 3, plus the text of `when_to_use` is at most 1,536 characters. The 3 is the ` - ` that Claude Code puts between them. | Claude Code cuts the listing entry at 1,536 characters. |
@@ -207,55 +208,44 @@ Rule IDs are permanent. One is never used again for a different meaning.
 | B1 | `SKILL.md` has text after the header. | An empty skill gives the agent nothing. |
 | B2 | `SKILL.md` has at most 500 lines. | Claude Code's advice: a loaded skill stays in context, so long material goes into reference files. It also matches the crate's 500-line rule. |
 | B3 | Each Markdown link `](<target>)` whose target, without its `#` part, ends in `.md` and holds no `://`, points to a file that exists inside the skills folder. The target is read relative to the folder of the file that holds the link. | A link that goes nowhere, or out of the skills folder, breaks once the skill is installed in another repo. |
-| B4 | Each text `.claude/skills/<name>/SKILL.md` names a known skill. `<name>` is the lowercase letters and hyphens after `.claude/skills/`. | An agent told to read a skill that is not there goes on without it. |
-| B5 | Each `rex-…` word is a known skill, a name pattern, or one of the other names (section 4.3). | It finds a skill named but not shipped, such as a utility left out, or a misspelt name. |
+| B4 | Each text `.claude/skills/<name>/SKILL.md` names a known skill. `<name>` is the run of lowercase letters, digits and hyphens after `.claude/skills/`. The rule applies only when `<name>` is not empty and `/SKILL.md` follows it at once. So a placeholder such as `.claude/skills/<name>/SKILL.md` is not checked. | An agent told to read a skill that is not there goes on without it. |
 
-### 4.3 The `rex-…` word rule (B5)
+### 4.3 The `rex-…` word rule is not carried
 
-The rex-skills bundle test failed on any `rex-…` word that was not a shipped skill. Skills from Lanes 8, 9 and 10 must name things that are not skills: the predecessor `rex-skills`, and the Rex 2.0 skills that SuperRex does not ship. The rule stays, with two changes.
-
-**A word.** `rex-` and the lowercase letters after it, where a hyphen is part of the word only when a lowercase letter follows it. The character before `rex-` is not a letter, a digit, `-` or `_`. So `the rex-code-tdd skill` gives `rex-code-tdd`, and `.rex/` and `Rex-Job:` give no word.
-
-**It passes when one of these holds:**
-
-1. It is a known skill.
-2. It is a name pattern: the word is followed at once by `-*`, as in `rex-code-*`, and at least one known skill starts with the word and a hyphen.
-3. It is one of the other names. Version 1 has three:
-
-| Word | What it names |
-| --- | --- |
-| `rex-skills` | The Rex 2.0 tool and its repo, which SuperRex supersedes. |
-| `rex-code-lead` | A Rex 2.0 skill. Not shipped (§5.14). |
-| `rex-code-orchestrator` | A Rex 2.0 skill. Not shipped (§5.14). |
-
-A word in this list may appear in text. A path to it, such as `.claude/skills/rex-code-lead/SKILL.md`, still fails rule B4, because the skill is not there. A new word in the list is a change to this contract.
+The `rex-…` word rule of rex-skills is not carried. A skill may name a skill that is not shipped yet (the owner's rulebooks do), and a name in prose does not tell an agent to open a file. Rule B4 still checks every path to a skill. IF a wrong skill name costs a job, THEN `rex-feedback` can bring the rule back. So a word such as `Rex-Job:` or `.rex/` is never a finding.
 
 ### 4.4 Output and exit codes
 
 - For each skill with no finding: one line `ok <path>`.
 - For each finding: one line `<path>: <rule>: <what is wrong>`. `<path>` is the file the finding is in: the skill folder as the user wrote it, then the file's path inside that folder.
-- Findings for one skill come in rule order (H1 to H8, then B1 to B5), then in the order they appear in the file.
+- Findings for one skill come in rule order (H1 to H8, then B1 to B4), then in the order they appear in the file.
 - IF rule H1 or H2 fails, THEN rules H3 to H8 are not run for that skill.
-- All output goes to standard output, except usage errors.
+- `ok` lines and findings go to standard output. IF there is at least one finding, THEN standard error gets one line `error: <n> findings in <m> of <k> skills`, and the exit code is 1.
+- Before any check, `rex` makes sure each `<path>` is a `SKILL.md` file or a folder that holds one. IF one is not, THEN nothing is checked, standard output gets nothing, and standard error gets one `error:` line that names the path.
 
 ```
 $ rex skills check .claude/skills/rex-code-tdd .claude/skills/rex-deliver/SKILL.md
 ok .claude/skills/rex-code-tdd
 .claude/skills/rex-deliver/SKILL.md: H5: when_to_use is missing
-.claude/skills/rex-deliver/SKILL.md: B5: `rex-pr-lessons` is not a known skill or another known name
+.claude/skills/rex-deliver/SKILL.md: B4: .claude/skills/rex-pr-lessons/SKILL.md is not a known skill
+error: 2 findings in 1 of 2 skills
 ```
 
 | Code | When |
 | --- | --- |
 | 0 | Every skill passed. |
-| 1 | At least one finding. |
-| 2 | Usage error: no path, a path that does not exist or cannot be read, or a file that is not named `SKILL.md`. The cause goes to standard error. |
+| 1 | At least one finding. Or a path that does not exist, cannot be read, or is a folder with no `SKILL.md`. |
+| 2 | Usage error: no path or an unknown flag (clap), or a file not named `SKILL.md` (the error's `is_usage()` is true, C11 part 4). |
+
+`main` writes the `error: ` prefix (C11 part 5); the command's error text does not hold it.
 
 The exact words of each finding are not part of this contract. The rule ID is.
 
 ---
 
 ## 5. The bundle tests
+
+Lane 4 gives `super_rex::bundle::walk() -> Vec<(PathBuf, &'static [u8])>`: every embedded file with its path, `skills/<skill>/<file>` or `agents/<file>`. Lane 6's checker is one public function in `super_rex::commands::skills`. It takes one skill's files (path and text) and the set of known names, and returns the findings. `rex skills check` and the bundle tests both use it.
 
 These run in `cargo test`, over the skills embedded in the binary, with the same checker as `rex skills check`. Known skills here are the bundle's skills. Each rex-skills test is kept or retired as follows.
 
@@ -264,7 +254,7 @@ These run in `cargo test`, over the skills embedded in the binary, with the same
 | `every_skill_has_a_name_that_is_its_folder_and_a_description` (must never be deleted) | Kept. It now runs every rule of section 4.2 on every bundled skill, and still fails on an empty bundle. |
 | `a_plain_description_is_not_shortened_by_yaml` (must never be deleted) | Kept, as rule H6. It now covers `when_to_use` too. |
 | `the_index_lists_every_skill_and_only_skills_that_exist` | Retired with `INDEX.md` (OP7). Its path check becomes rule B4. |
-| `every_skill_name_used_in_the_bundle_is_a_skill_that_exists` | Kept, as rule B5, with the changes of section 4.3. |
+| `every_skill_name_used_in_the_bundle_is_a_skill_that_exists` | Retired. Rule not carried. A path to a skill is still checked by B4. |
 | `every_markdown_link_to_a_file_in_the_bundle_resolves` | Kept, as rule B3. |
 
 One more test, after Lanes 2 and 9 have merged: **the builder lists exactly the classification values that `rex job create` accepts.** For Lane 9, the form is three lines, each once, in any skill file of `orchestration-builder`:
@@ -276,7 +266,8 @@ Consequence values: `low`, ...
 ```
 
 - Each line starts with its label. A list mark (`- `) before the label is allowed.
-- The test takes the words in backticks on each line and compares them, as a set, with the values that Lane 2's argument parser accepts for `--type`, `--size` and `--consequence`. A value missing from either side fails the test.
+- The test takes the words in backticks on each line and compares them, as a set, with the values of `super_rex::store::class::{WorkType, Size, Consequence}` (C1 section 7.5), read with `ValueEnum::value_variants()`. A value missing from either side fails the test.
+- The test lives in Lane 6's module of `tests/contract/` (`tests/contract/oms_skills.rs`, or a file in the folder `tests/contract/oms_skills/`). It lands after Lanes 2 and 9 merge.
 - The values above are examples. The real ones are Lane 2's.
 
 ---
@@ -286,7 +277,7 @@ Consequence values: `low`, ...
 | Lane | What |
 | --- | --- |
 | 4 | Embed the skills folder without `INDEX.md`. Change the installer's marker file and the bundle test as in OP7. Nothing that `rex init` writes, such as the `AGENTS.md` sections, mentions `INDEX.md`. |
-| 8 | Do not carry `INDEX.md`. In each rulebook header, move the "Use …" sentences from `description` into `when_to_use`, written to start with `Use when` (8.5). Remove ties to `INDEX.md`. Every rulebook passes `rex skills check`. |
+| 8 | Do not carry `INDEX.md`. In each rulebook header, move the "Use …" sentences from `description` into `when_to_use`, written to start with `Use when` (8.5). Remove ties to `INDEX.md`. Every rulebook passes `rex skills check`. The four rulebooks the owner added (`rex-code-design-sketch`, `rex-code-failure-policy`, `rex-code-priorities`, `rex-code-spike`) get the same header change. Change the header only; the body stays as given. |
 | 9 | Write the four builder skills in the form of section 2. Stage 1 lists skills with `rex skills list` and checks each new skill with `rex skills check`. The skill that stage 1 writes uses the same header. Add the three value lines of section 5 to `orchestration-builder`. |
 | 10 | Write the three delivery skills in the form of section 2. They pass `rex skills check`. |
 
