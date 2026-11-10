@@ -31,6 +31,8 @@ pub fn run(cwd: &Path, options: RecallOptions) -> Result<(), E>
 
 `E` is any error type that is `std::error::Error + Send + Sync + 'static`. `main.rs` passes `cwd` as `.`. Add flags and arguments to your options struct; `main.rs` does not change. `rex job` and `rex skills` hold their subcommands in the options struct: `JobOptions { #[command(subcommand)] pub command: JobCommand }`, with the `clap::Subcommand` enum in the same file. One exception: `catalog::run(cli: &clap::Command, options: CommandsOptions)` also takes the clap command tree, because it prints it. Part 6 shows a full handler.
 
+**Help text.** The one-line description of each command is the `///` line on its variant in `src/main.rs`. It replaces any `about` or `long_about` that your options struct sets, so a new description is a request to Lane 1. Help that you add in your options struct with `#[command(after_help = "...")]` is kept.
+
 **Stubs.** Every stub `run` returns `RexError::NotBuilt` until its lane replaces it. The stub of `rex hook` returns `Ok(())` instead.
 
 **One file becomes several.** Move `<name>.rs` to `<name>/mod.rs` and declare the children there with `mod`. This works the same in `src/` and in `tests/`. Do not keep both forms.

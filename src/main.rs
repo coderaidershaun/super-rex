@@ -21,6 +21,9 @@ struct Cli {
     command: Command,
 }
 
+// SMELL: the `///` line on each variant is that command's help text, and clap
+// lets it replace any description that the command's own options struct sets.
+// So a command's description can only change with an edit to this file.
 #[derive(Subcommand)]
 enum Command {
     /// Set SuperRex up in a repo. Safe to run twice.

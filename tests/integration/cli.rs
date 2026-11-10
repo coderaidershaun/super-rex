@@ -17,6 +17,8 @@ fn command_names_in_help(arguments: &[&str]) -> BTreeSet<String> {
 
     // Each command starts a line indented by two spaces. A wrapped
     // description is indented further, so it is not read as a command.
+    // The `help` command comes from clap, not from the design, and a command
+    // group may turn it off, so it is left out.
     stdout
         .lines()
         .skip_while(|line| *line != "Commands:")
@@ -24,6 +26,7 @@ fn command_names_in_help(arguments: &[&str]) -> BTreeSet<String> {
         .take_while(|line| !line.is_empty())
         .filter(|line| line.starts_with("  ") && !line.starts_with("   "))
         .filter_map(|line| line.split_whitespace().next())
+        .filter(|name| *name != "help")
         .map(str::to_owned)
         .collect()
 }
@@ -36,10 +39,10 @@ fn names(expected: &[&str]) -> BTreeSet<String> {
 fn help_lists_every_command_of_the_design_and_no_other() {
     let top = names(&[
         "init", "job", "hook", "status", "oms", "skills", "recall", "jobs", "watch", "feedback",
-        "codebase", "smells", "commands", "help",
+        "codebase", "smells", "commands",
     ]);
-    let job = names(&["create", "plan", "close", "show", "help"]);
-    let skills = names(&["list", "check", "help"]);
+    let job = names(&["create", "plan", "close", "show"]);
+    let skills = names(&["list", "check"]);
 
     assert_eq!(command_names_in_help(&[]), top);
     assert_eq!(command_names_in_help(&["job"]), job);
