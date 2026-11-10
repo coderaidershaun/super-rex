@@ -10,26 +10,12 @@ use serde_json::{Map, Value, json};
 use super::error::InitError;
 use super::file_change::FileChange;
 use super::print_line_to_stderr;
+use crate::capture::{HOOK_COMMAND, hook_registration};
 use crate::commands::links::is_symlink;
 use crate::error::RexError;
 
 /// The settings file, as every message names it.
 pub(super) const SETTINGS_FILENAME: &str = ".claude/settings.local.json";
-
-/// The command every rex hook runs. A hook with exactly this command is rex's
-/// own, even when the person changed the rest of its entry.
-const HOOK_COMMAND: &str = "rex hook >/dev/null 2>&1 || true";
-
-/// The value of the `hooks` key: one entry for each event that tells rex a
-/// sub-agent started, stopped, or was called.
-fn hook_registration() -> Value {
-    let hook = json!([{ "type": "command", "command": HOOK_COMMAND, "timeout": 10 }]);
-    json!({
-        "SubagentStart": [{ "hooks": hook }],
-        "SubagentStop": [{ "hooks": hook }],
-        "PostToolUse": [{ "matcher": "Agent|Task", "hooks": hook }],
-    })
-}
 
 /// Where trivy keeps its vulnerability database. Without write access to it,
 /// each push fails once the database is older than about a day.
