@@ -21,6 +21,9 @@ const MAX_ORCHESTRATORS: usize = 3;
 
 /// Arguments of `rex recall`.
 #[derive(clap::Args)]
+#[command(
+    after_help = "Writes what it prints into the job's record while the job is created (recorded=yes); in any other status it writes nothing (recorded=no). It also indexes the orchestrators in .rex/orchestrators."
+)]
 pub struct RecallOptions {
     /// The job to recall experience for
     #[arg(value_name = "JOB", value_parser = clap::value_parser!(JobId))]

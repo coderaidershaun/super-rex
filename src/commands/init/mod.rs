@@ -23,6 +23,9 @@ use pre_commit::{ConfigWrite, HookInstall};
 
 /// What `rex init` installs and whether it replaces files it wrote before.
 #[derive(clap::Args, Clone, Copy, Debug)]
+#[command(
+    after_help = "Run it from your own shell, in the root of the main checkout (the folder that holds .git). It never replaces a file or setting of yours; a kept value that weakens a safety setting is reported, and the run exits 1."
+)]
 pub struct InitOptions {
     /// Overwrite installed skill and agent files that differ from this version of rex.
     #[arg(long = "force")]

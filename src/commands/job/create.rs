@@ -24,6 +24,9 @@ const ID_TRIES: u32 = 5;
 
 /// Arguments of `rex job create`.
 #[derive(clap::Args)]
+#[command(
+    after_help = "Prints job=<id> first, then status= and existing=. A job ID is 10 lower-case letters and digits, such as 0g4cbf7k2q. In a session that already has an open job, no job is opened: that job is printed with existing=yes, and the exit code is 0."
+)]
 pub struct CreateOptions {
     /// File with the request text, or - for standard input.
     #[arg(long, value_name = "PATH")]

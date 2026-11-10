@@ -6,11 +6,16 @@ use serde_json::{Value, json};
 /// The command of each of SuperRex's hook entries. An entry is SuperRex's own when
 /// its command is exactly this text. The suffix gives exit code 0 and no output
 /// whatever program named `rex` is found first on `PATH`, because a hook that exits
-/// with code 2 stops the agent.
+/// with code 2 stops the agent. It finds `rex` by `PATH`, as the skills do, so
+/// the hook and the skills run the same binary, and the entry does not go stale
+/// when rex is installed in another place.
 pub const HOOK_COMMAND: &str = "rex hook >/dev/null 2>&1 || true";
 
 /// The value of the `hooks` key of the settings file: sub-agent start and stop for
-/// every sub-agent, and the end of each call of the sub-agent tool.
+/// every sub-agent, and the end of each call of the sub-agent tool. No entry is
+/// `async`, because an async hook still running when the session ends is killed
+/// and its event lost. A failed call is not heard: one that fails before its run
+/// starts leaves no run to record.
 pub fn hook_registration() -> Value {
     let hooks = || json!([{ "type": "command", "command": HOOK_COMMAND, "timeout": 10 }]);
     json!({

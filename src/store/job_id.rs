@@ -25,6 +25,8 @@ static COUNTER: AtomicU64 = AtomicU64::new(0);
 static SEED: OnceLock<u64> = OnceLock::new();
 
 /// A checked job ID: 10 characters of `0-9` and `a-z`, such as `0g4cbf7k2q`.
+/// It holds no `-`, so a skill reads it back from a job branch name: cut the
+/// name at the first `--`, then take the text after the last `-`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct JobId(String);
 

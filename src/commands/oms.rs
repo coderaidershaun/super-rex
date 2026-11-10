@@ -11,6 +11,9 @@ use crate::oms::{Inputs, Level, Selection, VERSION, select};
 
 /// Arguments of `rex oms`. A rating left out is the same as `none`.
 #[derive(clap::Args)]
+#[command(
+    after_help = "Prints agent=<grid agent> first, then the demand before caps, the rules that fired and any conflict. A rating left out counts as none."
+)]
 pub struct OmsOptions {
     /// How long the job may take. `fast` means low and `long` means high.
     #[arg(long, value_enum, value_name = "LEVEL")]

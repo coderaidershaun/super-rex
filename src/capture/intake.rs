@@ -213,7 +213,9 @@ struct Tie {
 
 /// The best estimate of when a run started, from the first line seen for it. A
 /// start line or a launch fires at the start; other lines come from the end of the
-/// run, which may be after its job closed.
+/// run, which may be after its job closed. Known limit: with the start line lost and
+/// no duration or transcript to go back from, the line's own time is used, and that
+/// can tie the run to a later job.
 fn tie_time(kind: &EventKind, at_ms: u64) -> TieTime {
     match kind {
         EventKind::Call(Call {

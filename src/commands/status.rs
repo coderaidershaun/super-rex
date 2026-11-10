@@ -18,6 +18,9 @@ use crate::store::{JobId, Store, StoreError, StorePaths};
 
 /// Arguments of `rex status`.
 #[derive(clap::Args)]
+#[command(
+    after_help = "Exits 0 also when no job is open, with the line `no open job`. A `~` after a token count means it can still grow."
+)]
 pub struct StatusOptions {
     /// The job to show. Without it, every job that is created or planned.
     pub job: Option<JobId>,
@@ -271,7 +274,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn durations_and_counts_take_the_forms_of_the_contract() {
+    fn durations_and_counts_print_in_their_short_forms() {
         assert_eq!(duration_text(41_900), "41s");
         assert_eq!(duration_text(125_000), "2m05s");
         assert_eq!(duration_text(3_720_000), "1h02m");

@@ -1,10 +1,13 @@
-//! Errors for every command, and the trait that lets `main` choose the exit
-//! code. A failure that involves a file carries its path, so the user learns
-//! where it happened, not just what went wrong.
+//! The error of the helpers that commands share, and the trait that every
+//! command's error implements so that `main` can choose the exit code. A
+//! failure that involves a file carries its path, so the user learns where it
+//! happened, not just what went wrong.
 
 use std::path::PathBuf;
 
-/// Failure from any `rex` command. File failures carry the path where they happened.
+/// Failure of a helper that several commands share, such as printing to
+/// stdout. A command's own failures go in its own error type, not here; it
+/// passes this one on with `#[error(transparent)]`.
 #[derive(thiserror::Error, Debug)]
 pub enum RexError {
     #[error("io error at {}", path.display())]
@@ -35,14 +38,20 @@ pub enum RexError {
         #[source]
         source: std::io::Error,
     },
-
-    #[error("`rex {command}` is not built yet")]
-    NotBuilt { command: &'static str },
 }
 
 /// What `main` asks of the error a command returns, to choose the exit code.
+/// Each command has its own `thiserror` enum with `impl CommandError for
+/// TheError {}`.
+///
+/// `main` prints the error, then each of its sources, on one line after
+/// `error: `. So a text starts lower-case (unless it starts with a name such as
+/// `SQLite`), has no full stop and no `error:` of its own, says what failed with
+/// the value and path seen, then the fix when it is known, and leaves the
+/// underlying error to `#[source]`.
 pub trait CommandError: std::error::Error + Send + Sync + 'static {
-    /// True when the command line is at fault and not the work.
+    /// True when the command line is at fault and not the work: exit 2, not 1.
+    /// Clap's own errors never get here, because clap exits with 2 itself.
     fn is_usage(&self) -> bool {
         false
     }

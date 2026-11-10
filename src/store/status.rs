@@ -16,6 +16,10 @@ use super::job_id::JobId;
 pub enum Status {
     Created,
     Planned,
+    /// Closed, and waiting on something outside the session, such as a
+    /// person's approval. It is not an open job, and no status leads back to
+    /// one, so a question to the user in the same conversation leaves the job
+    /// open instead: a close ends the time in which new sub-agents join it.
     Blocked,
     Failed,
     Delivered,
@@ -92,6 +96,9 @@ pub struct StatusError {
 /// - [`StoreError::Sqlite`] if a read or write fails.
 ///
 /// A refused event writes nothing.
+///
+/// `rex job close --status delivered` while a delivery is blocked is refused by
+/// that command, not here, because the check reads the deliveries.
 pub fn apply(tx: &Transaction<'_>, job: &JobId, event: Event) -> Result<Change, StoreError> {
     let previous = stored_status(tx, job)?;
     let steps = steps(job, previous, event)?;
@@ -133,6 +140,8 @@ fn steps(job: &JobId, previous: Status, event: Event) -> Result<Vec<Status>, Sto
         accepts,
     };
     match event {
+        // A job is planned once, so a nested builder that plans by mistake fails
+        // instead of replacing its parent's plan.
         Event::Plan => match previous {
             Created => Ok(vec![Planned]),
             _ => Err(refused("rex job plan", Accepts::CreatedJob)),
@@ -161,6 +170,8 @@ fn steps(job: &JobId, previous: Status, event: Event) -> Result<Vec<Status>, Sto
             (Rejected, _, _) => Err(StoreError::AnalysisDue {
                 job: job.to_string(),
             }),
+            // Feedback cannot move a blocked job, so its later close still
+            // records the rest; the other three already say how the work ended.
             (Blocked | Failed | Cancelled | Analyzed, _, _) => Ok(vec![]),
         },
     }

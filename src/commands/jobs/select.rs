@@ -69,7 +69,8 @@ fn is_date(text: &str) -> bool {
 
 impl JobFilter {
     /// The SELECT for this filter and its parameters, in order. Newest job first;
-    /// the ID breaks a tie so the order is stable.
+    /// the ID breaks a tie so the order is stable. There is no limit, because a
+    /// script that reads the list expects it to be complete.
     pub fn sql(&self) -> (String, Vec<String>) {
         let mut sql = String::from(
             "SELECT id, created_at, updated_at, status, request, asked_by, class_version, \

@@ -18,6 +18,9 @@ use crate::store::{JobId, Store, StoreError, StorePaths};
 
 /// Arguments of `rex job close`.
 #[derive(clap::Args)]
+#[command(
+    after_help = "--status delivered is refused while any delivery of the job is blocked, also one kept from an earlier close. A later close of a blocked job updates the repositories it names and keeps the others."
+)]
 pub struct CloseOptions {
     /// The job to close.
     job: JobId,
@@ -61,12 +64,18 @@ struct Entry {
     note: Option<String>,
 }
 
+/// How one repository's work ended.
 #[derive(Deserialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 enum Outcome {
+    /// One squash commit is on main.
     Merged,
+    /// No merge was agreed, and the pull request waits for a person.
     PrOpen,
+    /// No merge was agreed, and no pull request is possible, so the branch is kept.
     KeptLocal,
+    /// A merge was agreed but could not be completed; the note says what the
+    /// user must do.
     Blocked,
 }
 
@@ -158,6 +167,8 @@ fn record(
         upsert_delivery(tx, job, delivery, &now)?;
     }
 
+    // Rows kept from an earlier close count too: a blocked repository keeps the
+    // job from being delivered until a close records its new outcome.
     if matches!(options.status, CloseStatus::Delivered) {
         let blocked: Option<String> = tx
             .query_row(

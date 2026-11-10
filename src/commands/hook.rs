@@ -23,7 +23,9 @@ pub struct HookOptions {
 
 /// Append the event on standard input to the event log of the store found from
 /// `cwd`. Nothing is written when the input is empty or no store is found, and no
-/// folder is ever made.
+/// folder is ever made. It opens no database, because a write lock that another
+/// `rex` holds would make the agent wait. It appends any event without looking
+/// at its name, so a new registration needs no change here.
 ///
 /// # Errors
 /// None. Every failure, a panic included, ends in silence with success, because a

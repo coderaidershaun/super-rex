@@ -22,6 +22,9 @@ pub use summary::{JobSummary, TokenSummary};
 
 /// Arguments of `rex jobs`.
 #[derive(clap::Args)]
+#[command(
+    after_help = "Newest first, with no limit. Each plain line: id, status, type, size, consequence, languages, created_at, then the start of the request."
+)]
 pub struct JobsOptions {
     /// Print one JSON document instead of one line per job
     #[arg(long)]

@@ -80,7 +80,9 @@ pub(super) fn check(cwd: &Path) -> Result<Vec<InitError>, InitError> {
 }
 
 /// rex looks at `.git` itself and runs no `git` command, so it does not
-/// need `git` on PATH.
+/// need `git` on PATH. Only the root of the main checkout passes: the store,
+/// the settings and the skills belong there, and a worktree is removed after
+/// its job with whatever was written in it.
 fn check_repo_root(cwd: &Path) -> Result<(), InitError> {
     let git = cwd.join(".git");
     if git.is_dir() {

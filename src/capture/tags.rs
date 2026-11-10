@@ -4,7 +4,9 @@
 /// The known tags of one brief. Each is `None` when the brief has no such tag.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct Tags {
-    /// From `Rex-Job`.
+    /// From `Rex-Job`. A cross-check only: it never moves a run to another job,
+    /// because a lead may copy a wrong block. The tie comes from the session and
+    /// the times, which Claude Code gives.
     pub(crate) job: Option<String>,
     /// From `Rex-Role`.
     pub(crate) role: Option<String>,

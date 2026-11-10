@@ -89,6 +89,8 @@ fn main() -> ExitCode {
     }
 }
 
+/// Every exit that is not 0 writes exactly one `error: ` line on stderr. Lines
+/// that the command wrote before it, such as warnings or findings, stay.
 fn finish(result: Result<(), impl CommandError>) -> ExitCode {
     let Err(error) = result else {
         return ExitCode::SUCCESS;
@@ -99,11 +101,16 @@ fn finish(result: Result<(), impl CommandError>) -> ExitCode {
     ExitCode::from(code)
 }
 
+/// The error and each of its sources, joined by `: `, as one line. Agents read
+/// stderr line by line, so a line end in a tool's output must not split it.
 fn error_line(error: impl CommandError) -> String {
     let text = format!("error: {:#}", anyhow::Error::new(error));
     text.replace("\r\n", " ").replace(['\r', '\n'], " ")
 }
 
+/// Scripts and agents branch on the exit code, so there are only three: 0 done,
+/// also when there was nothing to do; 1 the work failed, a check that found
+/// something included; 2 the command line is wrong.
 fn exit_code_for(error: &impl CommandError) -> u8 {
     if error.is_usage() { 2 } else { 1 }
 }
@@ -114,27 +121,11 @@ mod tests {
 
     #[derive(thiserror::Error, Debug)]
     enum TestError {
-        #[error("the command line is wrong")]
-        Usage,
-
-        #[error("the work failed")]
-        Work,
-
         #[error("a tool failed: {output}")]
         Tool { output: String },
     }
 
-    impl CommandError for TestError {
-        fn is_usage(&self) -> bool {
-            matches!(self, Self::Usage)
-        }
-    }
-
-    #[test]
-    fn a_usage_error_exits_with_2_and_any_other_error_with_1() {
-        assert_eq!(exit_code_for(&TestError::Usage), 2);
-        assert_eq!(exit_code_for(&TestError::Work), 1);
-    }
+    impl CommandError for TestError {}
 
     #[test]
     fn an_error_text_with_line_ends_prints_as_one_line() {

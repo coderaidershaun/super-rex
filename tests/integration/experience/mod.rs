@@ -247,7 +247,7 @@ fn jobs_json_keeps_the_c9_shape() {
     let document: serde_json::Value = serde_json::from_str(&run.stdout).unwrap();
     assert_eq!(document["schema"], 1);
 
-    // Newest first; the keys of one job object in the order of C9 5.2.
+    // Newest first; the keys of one job object in their fixed order.
     let jobs = document["jobs"].as_array().unwrap();
     let ids: Vec<_> = jobs.iter().map(|job| job["id"].as_str().unwrap()).collect();
     assert_eq!(ids, [JOB_B, JOB_A]);
