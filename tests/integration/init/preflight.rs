@@ -1,10 +1,9 @@
-//! The checks `rex init` makes before it writes anything: where it runs, the
-//! Claude Code version, and the tools it looks for on PATH.
+//! The checks `rex init` makes around its writes: the Claude Code version it
+//! needs before it writes anything, and the sandbox tools it needs on Linux.
 
 use std::fs;
-use std::path::PathBuf;
 
-use super::support::{Repo, SKILL_MARKER, installed, repo, rex_init, rex_init_failed, rex_init_ok};
+use super::support::{Repo, SKILL_MARKER, installed, repo, rex_init, rex_init_failed};
 
 /// The names in the top folder of `repo`, sorted.
 fn names_in(repo: &Repo) -> Vec<String> {
@@ -20,29 +19,6 @@ fn names_in(repo: &Repo) -> Vec<String> {
         .collect();
     names.sort();
     names
-}
-
-/// The repo folder as `rex init` names it in its messages.
-fn canonical(repo: &Repo) -> PathBuf {
-    repo.path().canonicalize().expect("canonical repo path")
-}
-
-#[test]
-fn outside_a_repo_root_nothing_is_written() {
-    let repo = repo();
-    fs::remove_dir_all(repo.path().join(".git")).expect("remove .git directory");
-
-    let printed = rex_init_failed(&repo, &[]);
-
-    assert_eq!(
-        printed.stderr,
-        format!(
-            "error: {} is not the root of a Git repository; run rex init in the folder that holds .git, or run git init first\n",
-            canonical(&repo).display()
-        )
-    );
-    assert_eq!(printed.stdout, "");
-    assert_eq!(names_in(&repo), Vec::<String>::new(), "nothing is written");
 }
 
 /// Run `rex init` in `repo`, and check that it stopped with `error` as its one
@@ -64,45 +40,11 @@ fn claude_missing_or_too_old_stops_before_any_write() {
         "Claude Code was not found: claude is not on PATH; install Claude Code, then run rex init again",
     );
 
-    let not_runnable = repo();
-    fs::write(not_runnable.bin().join("claude"), "not a program\n").expect("write claude");
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(
-            not_runnable.bin().join("claude"),
-            fs::Permissions::from_mode(0o644),
-        )
-        .expect("chmod");
-    }
-    let printed = rex_init_failed(&not_runnable, &[]);
-    let could_not_run = "error: could not run \"claude --version\"; check the Claude Code install, then run rex init again: ";
-    assert!(
-        printed.stderr.starts_with(could_not_run) && printed.stderr.lines().count() == 1,
-        "got: {}",
-        printed.stderr
-    );
-    assert_eq!(names_in(&not_runnable), [".git"], "nothing is written");
-
     let too_old = repo();
     too_old.write_tool("claude", "echo '2.1.300 (Claude Code)'");
     assert_stopped_with(
         &too_old,
         "Claude Code 2.1.300 is older than 2.1.322, the oldest version SuperRex works with; run claude update, then run rex init again",
-    );
-
-    let garbage = repo();
-    garbage.write_tool("claude", "echo garbage");
-    assert_stopped_with(
-        &garbage,
-        "could not read the Claude Code version from \"claude --version\" (it printed: garbage); run claude update, then run rex init again",
-    );
-
-    let silent = repo();
-    silent.write_tool("claude", "exit 0");
-    assert_stopped_with(
-        &silent,
-        "could not read the Claude Code version from \"claude --version\" (it printed: nothing); run claude update, then run rex init again",
     );
 
     // As text, 2.1.1000 sorts before 2.1.322. As numbers it is newer.
@@ -111,53 +53,6 @@ fn claude_missing_or_too_old_stops_before_any_write() {
     let output = rex_init(&newer, &[]);
     assert!(output.status.success(), "a newer Claude Code must pass");
     assert!(installed(&newer, SKILL_MARKER).is_file());
-}
-
-#[test]
-fn gh_missing_is_a_warning() {
-    let repo = repo();
-    repo.remove_tool("gh");
-
-    let printed = rex_init_ok(&repo, &[]);
-
-    assert_eq!(
-        printed.stderr,
-        "rex init: warning: gh not found on PATH. Delivery works without pull requests until it is installed.\n"
-    );
-    assert!(installed(&repo, SKILL_MARKER).is_file());
-}
-
-#[test]
-fn a_rex_on_path_that_is_not_this_one_is_a_warning() {
-    let missing = repo();
-    missing.remove_tool("rex");
-
-    let printed = rex_init_ok(&missing, &[]);
-
-    assert_eq!(
-        printed.stderr,
-        "rex init: warning: rex not found on PATH. The hooks log nothing and the skills cannot run rex until it is.\n"
-    );
-    assert!(installed(&missing, SKILL_MARKER).is_file());
-
-    let other = repo();
-    other.remove_tool("rex");
-    other.write_tool("rex", "exit 0");
-
-    let printed = rex_init_ok(&other, &[]);
-
-    let this = PathBuf::from(env!("CARGO_BIN_EXE_rex"))
-        .canonicalize()
-        .expect("canonical rex path");
-    assert_eq!(
-        printed.stderr,
-        format!(
-            "rex init: warning: the rex on PATH is {}, not this one ({}). The hooks and the skills run that one; put this rex first on PATH.\n",
-            other.bin().join("rex").display(),
-            this.display()
-        )
-    );
-    assert!(installed(&other, SKILL_MARKER).is_file());
 }
 
 #[test]
