@@ -1,3 +1,8 @@
+# This repo has no CI service: these hooks are its checks. `pre-commit install`
+# sets up both git hooks. The Rust checks run at push, so a commit stays fast.
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -18,3 +23,34 @@ repos:
         entry: trivy fs --timeout 15m --quiet --skip-version-check --scanners secret,vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 --skip-dirs target,node_modules --skip-files .env .
         language: system
         pass_filenames: false
+
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all -- --check
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: cargo clippy --locked --workspace --all-targets -- -D warnings
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: cargo-test
+        name: cargo test
+        entry: cargo test --locked --workspace
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: check-msrv
+        name: cargo check on the oldest Rust that Cargo.toml claims
+        entry: bash scripts/check-msrv.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: check-package
+        name: cargo package, then the tests from inside the package
+        entry: bash scripts/check-package.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

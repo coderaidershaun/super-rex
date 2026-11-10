@@ -472,7 +472,7 @@ when_to_use: Use when you write release notes, or when the user says "release no
 
 Build with `cargo build` and test with `cargo test`. The tests live in three folders: `tests/integration/` (the binary end to end), `tests/contract/` (the seams between modules), and `tests/fitness/` (rules of the whole crate, such as what the binary embeds). `tests/fixtures/` holds recorded Claude Code sessions, so no test needs a live Claude Code.
 
-CI runs on every pull request and on pushes to `main` and `feature/**`: `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` on Ubuntu and macOS; `cargo check` with the oldest Rust that `Cargo.toml` claims; and `cargo package`, with the tests run again from inside the package.
+This repo has no CI service. Its checks are git hooks in `.pre-commit-config.yaml`; run `pre-commit install` once to set up both hooks. At commit: the file checks and trivy. At push: `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo check` with the oldest Rust that `Cargo.toml` claims (the hook installs that Rust when it is missing), and `cargo package`, with the tests run again from inside the package. The push checks run on the work tree, not on the commits being pushed, so push from the branch that is checked out.
 
 Two rules hold for every source file: at most 500 lines, and a module comment of one or two lines at the top that says what the file is for (`rex codebase --only code --with-context` shows them). The skills and agents in `.claude/` are source in this repo and are committed; the build embeds them in the binary, and `rex init` installs them from there.
 
