@@ -1,4 +1,5 @@
-//! Integration tests of `rex oms` and the `rex skills` commands.
+//! Integration tests of `rex oms`: the specification example, its JSON form,
+//! the duration words and a bad value.
 
 use assert_cmd::Command;
 
