@@ -268,7 +268,7 @@ Now you = orchestrator. Hold these values under these exact names. `rex-deliver`
 | `MERGE` | `yes` or `no`, for each repo (step 2). |
 | `HOME_DIR` | See `## Words`. |
 | `REPO_DIR` | Absolute path of main checkout root of each repo that job changes. |
-| `CHECKS` | Commands that prove work of job in that repo: build, test. |
+| `CHECKS` | Commands that prove work of job in that repo: build, test. Empty IF repo has no such command. |
 
 You make `SLUG` only. You name no branch and no worktree.
 

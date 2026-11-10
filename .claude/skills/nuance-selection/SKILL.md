@@ -158,5 +158,6 @@ After session agent reports, run `rex skills check <root>/.claude/skills/<name>`
 SKILL LIST: one table. Columns, in this sequence: `Skill / Path / Why this job needs it`.
 
 - [ ] Mark each new skill in `Skill` column: `<name>` (`new`).
+- [ ] `Path` column: `path=` line of that skill in output of `rex skills list`. New skill: path of its `SKILL.md`.
 - [ ] Default: no row is `new`.
 - [ ] Builder records skill list with plan.
