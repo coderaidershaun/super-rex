@@ -13,8 +13,18 @@ use std::path::{Path, PathBuf};
 
 use crate::error::{CommandError, RexError};
 
+use header::Header;
+
 /// The file that makes a folder a skill.
 const SKILL_FILE: &str = "SKILL.md";
+
+/// The `description` of the `SKILL.md` at `skill_file`, as one line (the text
+/// `rex skills list` prints). `None` when the file cannot be read, has no
+/// header, the header is not valid YAML, or `description` is missing or not a
+/// string. Fits the `describe` argument of `store::orchestrator::index_all`.
+pub fn describe(skill_file: &Path) -> Option<String> {
+    Header::of_skill_path(skill_file)?.text("description")
+}
 
 /// Arguments of `rex skills`.
 #[derive(clap::Args)]

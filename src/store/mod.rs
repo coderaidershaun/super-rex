@@ -1,17 +1,21 @@
 //! The record of jobs, roles, sub-agent runs and feedback, kept in one SQLite
 //! file for each repo.
 
+pub mod class;
 mod error;
 mod job_id;
+pub mod orchestrator;
 mod paths;
+pub mod status;
 
-pub use error::{Place, Reason, StoreError, Tried};
-pub use job_id::JobId;
+pub use error::{Accepts, Place, Reason, StoreError, Tried};
+pub use job_id::{JobId, JobIdError};
 pub use paths::StorePaths;
 
 use std::fs;
 use std::time::Duration;
 
+use rusqlite::types::Type;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction, TransactionBehavior};
 
 const SCHEMA: &str = include_str!("schema.sql");
@@ -140,8 +144,8 @@ impl Store {
     /// The open job of `session_id` (status `created` or `planned`), if any.
     ///
     /// # Errors
-    /// [`StoreError::Sqlite`] if the read fails, or [`StoreError::InvalidInput`]
-    /// if the stored ID is not a valid job ID.
+    /// [`StoreError::Sqlite`] if the read fails, or if the stored ID is not a
+    /// job ID.
     pub fn open_job_for_session(&self, session_id: &str) -> Result<Option<JobId>, StoreError> {
         let id: Option<String> = self
             .conn
@@ -152,7 +156,8 @@ impl Store {
             )
             .optional()
             .map_err(StoreError::sqlite(&self.paths.db))?;
-        id.map(|id| id.parse()).transpose()
+        id.map(|id| id.parse().map_err(stored_id_error(&self.paths)))
+            .transpose()
     }
 }
 
@@ -163,6 +168,16 @@ fn configure(conn: &Connection, paths: &StorePaths) -> Result<(), StoreError> {
         .map_err(StoreError::sqlite(&paths.db))?;
     conn.execute_batch("PRAGMA foreign_keys = ON; PRAGMA recursive_triggers = ON;")
         .map_err(StoreError::sqlite(&paths.db))
+}
+
+/// A job ID in the store that is not of the job ID form, reported as SQLite's
+/// own failure to convert a stored value.
+fn stored_id_error(paths: &StorePaths) -> impl FnOnce(JobIdError) -> StoreError {
+    let db = paths.db.clone();
+    move |error| {
+        let source = rusqlite::Error::FromSqlConversionFailure(0, Type::Text, Box::new(error));
+        StoreError::sqlite(&db)(source)
+    }
 }
 
 fn schema_version(conn: &Connection, paths: &StorePaths) -> Result<i64, StoreError> {
