@@ -23,6 +23,8 @@ use crate::store::Store;
 /// log exists and cannot be read.
 pub(super) fn take_in(store: &mut Store) -> Result<(), CaptureError> {
     let log_path = store.paths().event_log.clone();
+    // SMELL: an unfinished last line keeps the log longer than the offset, so every
+    // intake takes the write lock, and finds nothing, until that line is finished.
     if log_size(&log_path)? == rows::offset(store.conn())? {
         return Ok(());
     }
@@ -107,9 +109,14 @@ impl Intake<'_> {
             started_estimate: tie.started_estimate.as_ref(),
             derived_transcript: derived.as_deref(),
         };
-        match &event.kind {
+        self.upsert(&line, &event.kind)
+    }
+
+    /// Writes the columns that `kind` gives to the run that `line` names.
+    fn upsert(&self, line: &RunLine<'_>, kind: &EventKind) -> rusqlite::Result<()> {
+        match kind {
             EventKind::Start(start) => {
-                rows::upsert_start(self.conn, &line, start.agent_type.as_deref())
+                rows::upsert_start(self.conn, line, start.agent_type.as_deref())
             }
             EventKind::Stop(stop) => {
                 let columns = StopColumns {
@@ -118,7 +125,7 @@ impl Intake<'_> {
                     final_message: stop.last_message.as_deref(),
                     transcript_path: stop.agent_transcript_path.as_deref(),
                 };
-                rows::upsert_stop(self.conn, &line, &columns)
+                rows::upsert_stop(self.conn, line, &columns)
             }
             EventKind::Call(call) => {
                 let tags = call
@@ -126,7 +133,7 @@ impl Intake<'_> {
                     .as_deref()
                     .map(Tags::of_brief)
                     .unwrap_or_default();
-                rows::upsert_call(self.conn, &line, &call_columns(call, &tags, at_ms))
+                rows::upsert_call(self.conn, line, &call_columns(call, &tags, line.at_ms))
             }
             EventKind::Other => Ok(()),
         }
@@ -220,7 +227,10 @@ fn tie_time(kind: &EventKind, at_ms: u64) -> TieTime {
         EventKind::Stop(Stop {
             agent_transcript_path: Some(path),
             ..
-        }) => first_record_at(Path::new(path)).map_or(TieTime::Ms(at_ms), TieTime::Text),
+        }) => first_record_at(Path::new(path))
+            .ok()
+            .flatten()
+            .map_or(TieTime::Ms(at_ms), TieTime::Text),
         _ => TieTime::Ms(at_ms),
     }
 }

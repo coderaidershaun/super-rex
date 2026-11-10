@@ -30,18 +30,35 @@ pub(super) struct Metadata {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(super) struct Recovery {
     pub(super) added: usize,
-    pub(super) is_folder_unreadable: bool,
+    /// The folder, or a transcript in it, exists and could not be read.
+    pub(super) has_unreadable_file: bool,
+}
+
+/// A run that left no line: its metadata file has no row.
+struct Unrecorded {
+    job_id: String,
+    agent_id: String,
+    transcript: String,
+    first_at: String,
 }
 
 /// The `timestamp` of the first record of the transcript at `path`. Only one line is
-/// read. `None` when the file is absent, cannot be read, or its first record has no time.
-pub(super) fn first_record_at(path: &Path) -> Option<String> {
+/// read. `Ok(None)` when the file is absent, or its first record has no time.
+///
+/// # Errors
+/// The file exists and cannot be read.
+pub(super) fn first_record_at(path: &Path) -> io::Result<Option<String>> {
+    let file = match File::open(path) {
+        Ok(file) => file,
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error),
+    };
     let mut first = String::new();
-    BufReader::new(File::open(path).ok()?)
-        .read_line(&mut first)
-        .ok()?;
-    let record: Value = serde_json::from_str(&first).ok()?;
-    text_at(&record, "timestamp").map(str::to_owned)
+    BufReader::new(file).read_line(&mut first)?;
+    let Ok(record) = serde_json::from_str::<Value>(&first) else {
+        return Ok(None);
+    };
+    Ok(text_at(&record, "timestamp").map(str::to_owned))
 }
 
 /// The metadata file at `path`. `Ok(None)` when there is no file.
@@ -81,8 +98,8 @@ pub(super) fn read_metadata(path: &Path) -> io::Result<Option<Metadata>> {
 /// session that logged a line is searched, in the folder beside its main transcript.
 ///
 /// # Errors
-/// [`CaptureError::Store`] when the store fails. A folder that cannot be listed is
-/// reported in [`Recovery::is_folder_unreadable`], not as an error.
+/// [`CaptureError::Store`] when the store fails. A folder or transcript that cannot
+/// be read is reported in [`Recovery::has_unreadable_file`], not as an error.
 pub(super) fn recover(store: &mut Store, session_id: &str) -> Result<Recovery, CaptureError> {
     let mut recovery = Recovery::default();
     let Some(main) = rows::session_transcript(store.conn(), session_id)? else {
@@ -94,57 +111,19 @@ pub(super) fn recover(store: &mut Store, session_id: &str) -> Result<Recovery, C
     else {
         return Ok(recovery);
     };
-    let entries = match fs::read_dir(&folder) {
-        Ok(entries) => entries,
-        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(recovery),
-        Err(_) => {
-            recovery.is_folder_unreadable = true;
-            return Ok(recovery);
-        }
-    };
-    let known: HashSet<String> = rows::session_agents(store.conn(), session_id)?
-        .into_iter()
-        .collect();
-    let mut found = Vec::new();
-    for entry in entries {
-        let Ok(entry) = entry else {
-            recovery.is_folder_unreadable = true;
-            continue;
-        };
-        let name = entry.file_name();
-        let Some(agent) = name
-            .to_str()
-            .and_then(|name| name.strip_prefix("agent-"))
-            .and_then(|name| name.strip_suffix(".meta.json"))
-        else {
-            continue;
-        };
-        if known.contains(agent) {
-            continue;
-        }
-        let transcript = folder.join(format!("agent-{agent}.jsonl"));
-        let (Some(first_at), Some(transcript)) =
-            (first_record_at(&transcript), transcript.to_str())
-        else {
-            continue;
-        };
-        let tie = TieTime::Text(first_at.clone());
-        if let Some(job) = rows::job_open_at(store.conn(), session_id, &tie)? {
-            found.push((job, agent.to_owned(), transcript.to_owned(), first_at));
-        }
-    }
+    let found = unrecorded_runs(store, session_id, &folder, &mut recovery)?;
     if found.is_empty() {
         return Ok(recovery);
     }
     store.write(|tx| {
         let seen_at = rows::now_text(tx)?;
-        for (job, agent, transcript, first_at) in &found {
+        for run in &found {
             let run = RecoveredRun {
-                job_id: job,
+                job_id: &run.job_id,
                 session_id,
-                agent_id: agent,
-                transcript,
-                first_at,
+                agent_id: &run.agent_id,
+                transcript: &run.transcript,
+                first_at: &run.first_at,
                 seen_at: &seen_at,
             };
             rows::upsert_recovered(tx, &run)?;
@@ -153,4 +132,65 @@ pub(super) fn recover(store: &mut Store, session_id: &str) -> Result<Recovery, C
     })?;
     recovery.added = found.len();
     Ok(recovery)
+}
+
+/// The runs in `folder` that have a metadata file and no row, each with the job of
+/// the session that was open at its transcript's first record. A run with no such
+/// job is left out.
+// SMELL: a run that started while no job was open never gets a row, so every read of
+// the session's jobs opens its transcript again to find that out.
+fn unrecorded_runs(
+    store: &Store,
+    session_id: &str,
+    folder: &Path,
+    recovery: &mut Recovery,
+) -> Result<Vec<Unrecorded>, CaptureError> {
+    let entries = match fs::read_dir(folder) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(_) => {
+            recovery.has_unreadable_file = true;
+            return Ok(Vec::new());
+        }
+    };
+    let known: HashSet<String> = rows::session_agents(store.conn(), session_id)?
+        .into_iter()
+        .collect();
+    let mut found = Vec::new();
+    for entry in entries {
+        let Ok(entry) = entry else {
+            recovery.has_unreadable_file = true;
+            continue;
+        };
+        let name = entry.file_name();
+        let Some(agent) = name.to_str().and_then(metadata_agent) else {
+            continue;
+        };
+        if known.contains(agent) {
+            continue;
+        }
+        let transcript = folder.join(format!("agent-{agent}.jsonl"));
+        let first_at = first_record_at(&transcript).unwrap_or_else(|_| {
+            recovery.has_unreadable_file = true;
+            None
+        });
+        let (Some(first_at), Some(transcript)) = (first_at, transcript.to_str()) else {
+            continue;
+        };
+        let tie = TieTime::Text(first_at.clone());
+        if let Some(job_id) = rows::job_open_at(store.conn(), session_id, &tie)? {
+            found.push(Unrecorded {
+                job_id,
+                agent_id: agent.to_owned(),
+                transcript: transcript.to_owned(),
+                first_at,
+            });
+        }
+    }
+    Ok(found)
+}
+
+/// The agent ID in the name of a metadata file, `agent-<id>.meta.json`.
+fn metadata_agent(name: &str) -> Option<&str> {
+    name.strip_prefix("agent-")?.strip_suffix(".meta.json")
 }

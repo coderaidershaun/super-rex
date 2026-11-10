@@ -142,7 +142,9 @@ impl Read<'_> {
             let mut fill = seen.metadata_fill(derived_depth);
             let step = self.token_step(&seen);
             let is_parse_due = step == Step::ReadAgain || seen.needs_stop_time();
-            if step == Step::Final {
+            // A final total is never read again, so a stop time that only the
+            // transcript gives must be taken first.
+            if step == Step::Final && !seen.needs_stop_time() {
                 let judged = run.total.judged();
                 changes
                     .settled
@@ -275,7 +277,8 @@ impl StoredRun {
 }
 
 /// For a run with no depth from its metadata file: one more than its parent's, when
-/// the parent is a run of the job whose depth is known.
+/// the parent is a run of the job whose depth is known, and 1 for a run that the main
+/// session started.
 fn derived_depths(runs: &[StoredRun], files: &[RunFiles]) -> Vec<Option<u32>> {
     let mut depths: HashMap<&str, u32> = runs
         .iter()
@@ -294,11 +297,14 @@ fn derived_depths(runs: &[StoredRun], files: &[RunFiles]) -> Vec<Option<u32>> {
             if depths.contains_key(run.agent_id.as_str()) {
                 continue;
             }
-            let parent_depth = run
-                .parent_agent_id
-                .as_deref()
-                .and_then(|parent| depths.get(parent));
-            if let Some(depth) = parent_depth.map(|depth| depth + 1) {
+            let parent_depth = match run.parent_agent_id.as_deref() {
+                Some(parent) => depths.get(parent).copied(),
+                // No parent means the main session only once the call that started the
+                // run was seen, and that call is what sets `background`.
+                None if run.background.is_some() => Some(0),
+                None => None,
+            };
+            if let Some(depth) = parent_depth.and_then(|depth| depth.checked_add(1)) {
                 depths.insert(&run.agent_id, depth);
                 *slot = Some(depth);
                 is_changed = true;

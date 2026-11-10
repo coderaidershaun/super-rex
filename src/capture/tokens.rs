@@ -13,12 +13,14 @@ pub struct TokenCounts {
     pub cache_creation: u64,
 }
 
+/// The counts come from files that anyone can write, so a sum stops at the largest
+/// count instead of overflowing.
 impl AddAssign for TokenCounts {
     fn add_assign(&mut self, other: Self) {
-        self.input += other.input;
-        self.output += other.output;
-        self.cache_read += other.cache_read;
-        self.cache_creation += other.cache_creation;
+        self.input = self.input.saturating_add(other.input);
+        self.output = self.output.saturating_add(other.output);
+        self.cache_read = self.cache_read.saturating_add(other.cache_read);
+        self.cache_creation = self.cache_creation.saturating_add(other.cache_creation);
     }
 }
 

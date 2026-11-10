@@ -1,5 +1,7 @@
 //! Turns the events that `rex hook` logs into the record of sub-agent runs.
 
+// SMELL: this folder holds 14 modules, more than the 12 that one folder may hold. The
+// two transcript readers, and the hook's log with its registration, could each be grouped.
 mod error;
 mod event;
 mod intake;

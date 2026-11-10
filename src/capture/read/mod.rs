@@ -46,7 +46,7 @@ pub(super) fn job_runs(
     }
 
     let recovery = recovery::recover(store, &stored_job.session_id)?;
-    read.is_file_unreadable |= recovery.is_folder_unreadable;
+    read.is_file_unreadable |= recovery.has_unreadable_file;
     if recovery.added > 0 {
         runs = rows::runs(store.conn(), job)?;
     }
@@ -64,6 +64,9 @@ pub(super) fn job_runs(
 /// The last activity of each run of `job`, by agent ID, in milliseconds since the
 /// epoch: the newest of the run's start and its transcript's modification time, and
 /// of the same for each run below it. Reads no log and writes nothing.
+// SMELL: this reads every run's files a second time, after `job_runs` read them, and
+// takes the clock only to fill a field it does not use. The read of `job_runs` should
+// hand back the activity it already found.
 pub(crate) fn last_activity_ms(
     store: &Store,
     job: &JobId,

@@ -109,18 +109,6 @@ fn job_lines(
     stored: Status,
     runs: &JobRuns,
 ) -> Result<Vec<String>, StatusError> {
-    let mut header = format!("job {job}  {stored}");
-    if Shown::of(stored, runs.open) == Shown::Running {
-        header.push_str(" (running)");
-    }
-    header.push_str(&format!(
-        "  {} open  {} finished  {} unconfirmed",
-        runs.open, runs.finished, runs.unconfirmed
-    ));
-    if runs.incomplete {
-        header.push_str("  incomplete");
-    }
-
     let role_width = column_width(runs, |run| role_text(run));
     let type_width = column_width(runs, |run| agent_type_text(run));
     let last_activity = if runs.unconfirmed > 0 {
@@ -129,7 +117,7 @@ fn job_lines(
         HashMap::new()
     };
     let now_ms = millis(now);
-    let mut lines = vec![header];
+    let mut lines = vec![header(job, stored, runs)];
     for (state, name) in [
         (RunState::Open, "open"),
         (RunState::Finished, "finished"),
@@ -160,6 +148,23 @@ fn job_lines(
         }
     }
     Ok(lines)
+}
+
+/// The job's ID and stored status, `(running)` when it applies, the three counts,
+/// and `incomplete` when the flag is set.
+fn header(job: &JobId, stored: Status, runs: &JobRuns) -> String {
+    let mut header = format!("job {job}  {stored}");
+    if Shown::of(stored, runs.open) == Shown::Running {
+        header.push_str(" (running)");
+    }
+    header.push_str(&format!(
+        "  {} open  {} finished  {} unconfirmed",
+        runs.open, runs.finished, runs.unconfirmed
+    ));
+    if runs.incomplete {
+        header.push_str("  incomplete");
+    }
+    header
 }
 
 fn column_width(runs: &JobRuns, text: impl Fn(&Run) -> &str) -> usize {

@@ -67,7 +67,13 @@ impl Read<'_> {
         {
             return Ok(Some(SessionChange::Settle(judged)));
         }
-        Ok(Some(SessionChange::Store {
+        Ok(Some(self.store_change(facts)))
+    }
+
+    /// The new reading, and the builder's model and effort where the job has none yet.
+    fn store_change(&self, facts: MainFacts) -> SessionChange {
+        let job = self.stored_job;
+        SessionChange::Store {
             reading: Reading {
                 tokens: facts.tokens,
                 bytes: facts.bytes,
@@ -81,7 +87,7 @@ impl Read<'_> {
                     .filter(|_| job.builder_effort.is_none()),
                 now_ms: self.now_ms,
             },
-        }))
+        }
     }
 
     /// The one step more: after the close the transcript grew, but the requests inside
