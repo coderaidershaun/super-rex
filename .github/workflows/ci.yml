@@ -1,0 +1,98 @@
+# The same checks the pre-commit hooks run, so a pull request from anyone is
+# held to the same bar. CI also runs on each push to a feature branch, so that
+# a branch can be judged green with no pull request.
+name: CI
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+
+# A newer push to the same branch replaces the run of the older one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  gate:
+    name: fmt, clippy and tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Both platforms report, so one failure never hides the other.
+      fail-fast: false
+      matrix:
+        # The symlink, permission and broken-pipe tests are Unix only.
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the stable toolchain
+        run: |
+          rustup update --no-self-update stable
+          rustup default stable
+          rustup component add rustfmt clippy
+
+      - name: Report the toolchain
+        run: cargo --version && cargo clippy --version && cargo fmt --version
+
+      - run: cargo fmt --all -- --check
+
+      # --locked holds the build to the committed Cargo.lock.
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+
+      - run: cargo test --locked --workspace
+
+  msrv:
+    name: build on the oldest Rust the crate claims
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Cargo.toml is the only place the version is written, so this job
+      # cannot drift from what the crate promises.
+      - name: Install the version Cargo.toml declares
+        run: |
+          msrv="$(cargo metadata --format-version 1 --no-deps | jq -r '.packages[0].rust_version')"
+          echo "Cargo.toml declares rust-version $msrv"
+          rustup toolchain install --no-self-update --profile minimal "$msrv"
+          rustup default "$msrv"
+
+      - name: Report the toolchain
+        run: cargo --version
+
+      - run: cargo check --locked --workspace --all-targets
+
+  package:
+    name: check the crate as it would be published
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the stable toolchain
+        run: |
+          rustup update --no-self-update stable
+          rustup default stable
+
+      # `include` in Cargo.toml decides what ships, and a target whose source
+      # it leaves out is only a warning, so the warning has to be the failure.
+      - name: Package the crate
+        run: |
+          cargo package --locked 2>&1 | tee package.log
+          if grep -q '^warning' package.log; then
+            echo "::error::cargo package warned; the published crate would not hold what the repo does"
+            exit 1
+          fi
+
+      # The tests run from inside the package, so that the package is proved
+      # to hold everything the tests need.
+      - name: Run the tests from inside the package
+        run: cd target/package/super-rex-*/ && cargo test --locked --workspace
