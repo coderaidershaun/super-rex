@@ -13,6 +13,9 @@ use super::support::{
 /// The block `rex init` adds to `.gitignore`, byte for byte.
 const SUPERREX_IGNORE_BLOCK: &[u8] = b"# rex:ignore superrex\n.claude/skills/\n.claude/agents/\n.claude/settings.local.json\n/.rex/\n/.claude/worktrees/\n";
 
+/// The first line of a first run.
+const SETTINGS_CREATED: &str = "rex init: .claude/settings.local.json created\n";
+
 /// The last line of a first run, which changes all three project files.
 const COMMIT_ALL: &str = "rex init: commit AGENTS.md, .gitignore and .pre-commit-config.yaml (git add + git commit); a job works in the main checkout only when it is clean\n";
 
@@ -26,7 +29,7 @@ fn fresh_install_writes_every_bundle_file() {
     assert_eq!(
         printed.stdout,
         format!(
-            "rex init: {n} written, 0 skipped\nrex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .rex/ created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}"
+            "{SETTINGS_CREATED}rex init: {n} written, 0 skipped\nrex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .rex/ created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}"
         )
     );
 
@@ -76,7 +79,7 @@ fn existing_modified_file_is_never_touched() {
     assert_eq!(
         printed.stdout,
         format!(
-            "rex init: {} written, 1 skipped (1 differs from this version; use --force to overwrite)\nrex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .rex/ created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}",
+            "{SETTINGS_CREATED}rex init: {} written, 1 skipped (1 differs from this version; use --force to overwrite)\nrex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .rex/ created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}",
             n - 1
         )
     );

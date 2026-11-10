@@ -1,5 +1,6 @@
 //! `rex init`: checks that the repo and Claude Code are fit for SuperRex,
-//! then installs the embedded skills and agents into the repo, points agents
+//! then merges the sandbox settings and the sub-agent hooks into the repo's
+//! Claude Code settings, installs the embedded skills and agents, points agents
 //! at the `rex codebase` and `rex smells` commands through `AGENTS.md`, keeps
 //! the installed files out of git through `.gitignore`, sets up the store,
 //! and sets up pre-commit hooks (gitleaks, trivy, cargo fmt, clippy, test).
@@ -12,6 +13,7 @@ mod install;
 mod on_path;
 mod pre_commit;
 mod preflight;
+mod settings;
 
 use std::io::{self, Write};
 use std::path::Path;
@@ -29,10 +31,20 @@ pub struct InitOptions {
     /// Overwrite installed skill and agent files that differ from this version of rex.
     #[arg(long = "force")]
     pub is_forced: bool,
+
+    /// Leave out the hooks that record sub-agent runs (no telemetry).
+    #[arg(long = "no-hooks")]
+    pub is_without_hooks: bool,
 }
 
 /// Check that `cwd` is the root of a Git repository and that a recent
 /// enough Claude Code is on PATH. Nothing is written when a check fails.
+///
+/// Then merge the safety settings and, unless `is_without_hooks` is set, the
+/// hooks that record sub-agent runs into `cwd/.claude/settings.local.json`.
+/// This comes first, so a later step that stops the install never leaves the
+/// skills and agents in place without the sandbox. Every value of the
+/// person's is kept; one that weakens a safety setting fails the run.
 ///
 /// Then write every file from the embedded bundle into `cwd/.claude`. A file
 /// already present on disk is left untouched and counted, unless it differs
@@ -47,8 +59,9 @@ pub struct InitOptions {
 /// None of these files is written through a symbolic link. One that is a link
 /// is named on stderr and left alone, and the install carries on.
 ///
-/// A failure that leaves the rest of the install possible, such as a store
-/// that cannot be set up or a failed `pre-commit install`, does not stop it.
+/// A failure that leaves the rest of the install possible, such as a settings
+/// file rex cannot merge, a store that cannot be set up or a failed
+/// `pre-commit install`, does not stop it.
 /// Each one is printed on stderr at the end, in the order they happened.
 ///
 /// # Errors
@@ -74,7 +87,13 @@ fn install(
     options: InitOptions,
     failures: &mut Vec<InitError>,
 ) -> Result<(), InitError> {
-    let InitOptions { is_forced } = options;
+    let InitOptions {
+        is_forced,
+        is_without_hooks,
+    } = options;
+
+    let change = settings::ensure_settings(cwd, is_without_hooks, failures)?;
+    report_file_change(settings::SETTINGS_FILENAME, change)?;
 
     let counts = install_bundle(&cwd.join(".claude"), is_forced)?;
     print_line_to_stdout(&summary(counts))?;
