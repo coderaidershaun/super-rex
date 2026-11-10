@@ -1,5 +1,5 @@
 ---
-name: work-breakdown
+name: orchestration-work-breakdown
 description: >
   This is stage 2 of the orchestration builder. It divides a request into
   tasks and finds what depends on what. It finds which tasks can run in

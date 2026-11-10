@@ -1,5 +1,5 @@
 ---
-name: nuance-selection
+name: orchestration-nuance-selection
 description: >
   This is stage 1 of the orchestration builder. It lists the skills that are
   available and selects the skills that a job uses. It writes a new skill only

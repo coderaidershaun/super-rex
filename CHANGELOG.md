@@ -2,6 +2,13 @@
 
 This file lists the changes to SuperRex that a user can see, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the version numbers follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- The builder's stage skills now carry the `orchestration-` prefix: `nuance-selection` is `orchestration-nuance-selection` and `work-breakdown` is `orchestration-work-breakdown`. A repo set up by an earlier `rex init` gets the new folders on its next run; delete the two old folders from `.claude/skills/` by hand.
+- `rex watch` has a colour theme: coloured statuses and states with symbols, rounded panels, a top bar with counts, a details panel above the run tree, and tree lines.
+
 ## 0.1.0 - 2026-11-10
 
 The first version. SuperRex supersedes rex-skills (Rex 2.0).

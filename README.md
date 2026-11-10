@@ -133,8 +133,8 @@ Start Claude Code in the main checkout and give it a request with `/orchestratio
 3. **Opens the job** with `rex job create`, which prints the job ID.
 4. **Recalls** lessons from similar jobs and the orchestrators they used (`rex recall`).
 5. **Lists the skills** in the repo and in your own skills folder (`rex skills list`).
-6. **Stage 1, `nuance-selection`:** chooses the skills for the job. It writes a new skill only when a three-part test passes.
-7. **Stage 2, `work-breakdown`:** splits the request into tasks and finds what can run in parallel.
+6. **Stage 1, `orchestration-nuance-selection`:** chooses the skills for the job. It writes a new skill only when a three-part test passes.
+7. **Stage 2, `orchestration-work-breakdown`:** splits the request into tasks and finds what can run in parallel.
 8. **Stage 3, `orchestration-selection`:** reuses an orchestrator from `.rex/orchestrators/` or writes a new one, defines the roles, and rates the inputs that pick each role's model.
 9. **Records the plan** with `rex job plan`. `rex` picks the grid agent for each role.
 10. **Runs** the orchestrator on a job branch, never on main. Leads and workers are Claude Code sub-agents; the hooks record each one.
@@ -241,12 +241,12 @@ version=1
 
 ```console
 $ rex skills list
-name=nuance-selection
+name=orchestration-nuance-selection
 description=This is stage 1 of the orchestration builder. It lists the skills that are available and selects the skills that a job uses. It writes a new skill only when a three-part test passes. The usual result is no new skill.
 when_to_use=Use when `orchestration-builder` reaches stage 1, or when an agent must select skills for a piece of work.
 source=repo
 shadowed=no
-path=/home/ana/code/shop/.claude/skills/nuance-selection/SKILL.md
+path=/home/ana/code/shop/.claude/skills/orchestration-nuance-selection/SKILL.md
 ...
 ```
 
@@ -443,7 +443,7 @@ when_to_use: Use when you write release notes, or when the user says "release no
 
 `rex init` installs 28 skills:
 
-- **The builder:** `orchestration-builder` (the entry skill) and its three stages `nuance-selection`, `work-breakdown` and `orchestration-selection`.
+- **The builder:** `orchestration-builder` (the entry skill) and its three stages `orchestration-nuance-selection`, `orchestration-work-breakdown` and `orchestration-selection`.
 - **Delivery:** `rex-deliver`, `rex-pr-review` and `rex-feedback`.
 - **Rulebooks:** 18 `rex-code-*` skills for writing code, mostly Rust: philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four kinds of test, design sketch, spike, validation plan and priorities. Two utilities go with them: `rex-grill-me` and `rex-mermaid-diagrams`. Run `rex skills list` to see each one's description and when to use it.
 - **`rex-skill-language`:** the language every skill and agent instruction is written in.
