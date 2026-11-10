@@ -1,10 +1,10 @@
 # Advanced Mermaid Features
 
-Advanced configuration, styling, theming, and other powerful features for creating professional diagrams.
+Advanced configuration, styling, theming, and other powerful features for professional diagrams.
 
 ## Frontmatter Configuration
 
-Add YAML configuration at the top of diagrams:
+Add YAML configuration at top of diagrams:
 
 ```mermaid
 ---
@@ -420,7 +420,7 @@ Use CSS to make diagrams responsive:
 
 ## SVG Export Options
 
-When exporting to SVG:
+When you export to SVG:
 
 ```bash
 # Export with custom dimensions
@@ -436,12 +436,12 @@ mmdc -i diagram.mmd -o output.svg -b "transparent"
 ## Best Practices for Advanced Features
 
 1. **Use themes consistently** - Pick one theme for related diagrams
-2. **Don't over-style** - Too many colors can reduce clarity
+2. **Do not over-style** - Too many colors can reduce clarity
 3. **Test hand-drawn look** - Some diagrams work better with classic look
 4. **Use ELK for complex layouts** - When dagre creates crossed lines
 5. **Comment complex configurations** - Explain non-obvious styling choices
-6. **Keep it accessible** - Ensure sufficient color contrast
-7. **Test exports** - Verify diagrams render correctly in target format
+6. **Keep it accessible** - Make sure color contrast is sufficient
+7. **Test exports** - Make sure diagrams render correctly in target format
 8. **Version control configs** - Track theme changes in your repository
 
 ## Accessibility Considerations
@@ -465,7 +465,7 @@ flowchart TD
 
 **Accessibility tips:**
 - Use high contrast color combinations
-- Don't rely solely on color to convey meaning
+- Do not rely only on color to convey meaning
 - Include descriptive text labels
 - Test with color blindness simulators
 - Consider dark mode alternatives
@@ -488,9 +488,9 @@ flowchart TD
 
 **Performance tips:**
 - Use ELK layout for diagrams with >20 nodes
-- Enable edge merging for simplified connections
+- Activate edge merging for simplified connections
 - Split very large diagrams into multiple focused views
-- Consider using subgraphs to organize complexity
+- Consider subgraphs to organize complexity
 - Limit styling to essential elements
 
 ## Integration Examples

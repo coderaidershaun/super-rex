@@ -1,17 +1,17 @@
 # C4 Model Diagrams
 
-The C4 model provides a hierarchical way to visualize software architecture at different levels of abstraction: Context, Containers, Components, and Code.
+C4 model gives hierarchical way to visualize software architecture at different levels of abstraction: Context, Containers, Components, and Code.
 
 ## C4 Model Levels
 
-1. **System Context** - Shows the system and its users/external systems
-2. **Container** - Shows applications, databases, and services within the system
+1. **System Context** - Shows system and its users/external systems
+2. **Container** - Shows applications, databases, and services within system
 3. **Component** - Shows internal structure of containers
-4. **Code** - Class diagrams showing implementation details (use regular class diagrams)
+4. **Code** - Class diagrams that show implementation details (use regular class diagrams)
 
 ## C4 Context Diagram
 
-Shows the big picture: your system and its relationships with users and external systems.
+Shows big picture: your system and its relationships with users and external systems.
 
 ### Basic Syntax
 
@@ -89,7 +89,7 @@ C4Context
 
 ## C4 Container Diagram
 
-Zooms into the system to show containers (applications, databases, services).
+Zooms into system to show containers (applications, databases, services).
 
 ### Basic Syntax
 
@@ -187,7 +187,7 @@ C4Container
 
 ## C4 Component Diagram
 
-Zooms into a container to show its internal components.
+Zooms into container to show its internal components.
 
 ### Basic Syntax
 
@@ -329,14 +329,14 @@ C4Container
 
 1. **Use appropriate level** - Context for stakeholders, Container for architects, Component for developers
 2. **Keep it focused** - One system per Context diagram, one container per Component diagram
-3. **Show key relationships** - Don't clutter with every possible connection
+3. **Show key relationships** - Do not clutter with every possible connection
 4. **Use consistent naming** - Same names across all diagram levels
 5. **Add technology details** - Specify frameworks, languages, protocols at Container/Component level
 6. **Update regularly** - Keep diagrams in sync with architecture
 7. **Use boundaries** - Group related containers/components logically
 8. **Document protocols** - Show communication methods (REST, gRPC, messaging)
 9. **Highlight external systems** - Use *_Ext variants for clarity
-10. **Start simple** - Begin with Context, drill down as needed
+10. **Start simple** - Start with Context. Drill down as needed
 
 ## Common Architecture Patterns
 

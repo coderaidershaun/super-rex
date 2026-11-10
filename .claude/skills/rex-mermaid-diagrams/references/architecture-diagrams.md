@@ -1,6 +1,6 @@
 # Architecture Diagrams Reference
 
-Architecture diagrams visualize cloud services, CI/CD deployments, and infrastructure relationships. Introduced in Mermaid v11.1.0.
+Architecture diagrams visualize cloud services, CI/CD deployments, and infrastructure relationships. Mermaid v11.1.0 introduced them.
 
 ## Basic Syntax
 
@@ -99,16 +99,16 @@ architecture-beta
     service storage(aws:s3)[Storage]
 ```
 
-### Using @iconify-json Icon Packs
+### @iconify-json Icon Packs
 
-Use npm icon packs with Mermaid CLI for a wide variety of technology logos:
+Use npm icon packs with Mermaid CLI for wide variety of technology logos:
 
 ```bash
 npm install @iconify-json/logos @mermaid-js/mermaid-cli
 mmdc --iconPacks @iconify-json/logos -i ./diagram.mmd -o ./output.svg
 ```
 
-Use icons with the `logos:` prefix:
+Use icons with `logos:` prefix:
 
 ```mermaid
 architecture-beta
@@ -165,7 +165,7 @@ architecture-beta
 
 ## Group Edges
 
-Connect groups using the `{group}` modifier:
+Connect groups with `{group}` modifier:
 
 ```mermaid
 architecture-beta
@@ -184,7 +184,7 @@ architecture-beta
 2. Use consistent icons for service types
 3. Label edges with protocols (HTTPS, TCP, etc.)
 4. Use junctions for fan-out patterns
-5. Keep diagrams focused; split complex architectures into multiple views
+5. Keep diagrams focused. Split complex architectures into multiple views
 
 ## Reference
 

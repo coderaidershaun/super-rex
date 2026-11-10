@@ -9,7 +9,7 @@ classDiagram
     ClassName
 ```
 
-## Defining Classes with Members
+## Define Classes with Members
 
 ```mermaid
 classDiagram
@@ -44,7 +44,7 @@ classDiagram
 ```
 
 ### Composition (`*--`)
-Strong ownership - child cannot exist without parent. When parent is deleted, children are deleted.
+Strong ownership - child cannot exist without parent. Deletion of parent deletes children.
 
 ```mermaid
 classDiagram
@@ -80,7 +80,7 @@ classDiagram
 ```
 
 ### Dependency (`<..`)
-One class depends on another, often as a parameter or local variable.
+One class depends on another, often as parameter or local variable.
 
 ```mermaid
 classDiagram
@@ -102,7 +102,7 @@ classDiagram
 
 ## Multiplicity
 
-Show how many instances participate in a relationship:
+Show how many instances participate in relationship:
 
 ```mermaid
 classDiagram

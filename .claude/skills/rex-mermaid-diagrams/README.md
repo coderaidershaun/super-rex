@@ -1,14 +1,14 @@
 # Mermaid Diagrams Skill
 
-A comprehensive guide for creating professional software diagrams using Mermaid's text-based syntax. This skill enables you to visualize system architecture, document code structure, model databases, and communicate technical concepts through diagrams.
+This skill is a comprehensive guide to professional software diagrams in Mermaid's text-based syntax. With this skill, you can visualize system architecture, document code structure, model databases, and communicate technical concepts through diagrams.
 
 ## Purpose
 
-Transform complex technical concepts into clear, maintainable diagrams that can be version-controlled alongside your code. Mermaid diagrams are rendered from simple text definitions, making them easy to update, review in pull requests, and maintain over time.
+Transform complex technical concepts into clear, maintainable diagrams that you can keep in version control alongside your code. Mermaid renders diagrams from simple text definitions. Thus the diagrams are easy to update, review in pull requests, and maintain over time.
 
 ## When to Use This Skill
 
-Use this skill when you need to:
+Use this skill to:
 
 - **Document architecture** - Visualize system context, containers, components, and deployment
 - **Model domains** - Create domain models with entities, relationships, and behaviors
@@ -33,7 +33,7 @@ The skill activates when you mention:
 4. **Refine incrementally** - add details, styling, notes
 5. **Export or embed** - use in documentation, PRs, wikis
 
-Mermaid syntax is intuitive and follows a consistent pattern across all diagram types:
+Mermaid syntax is intuitive and uses a consistent pattern across all diagram types:
 
 ```mermaid
 diagramType
@@ -42,7 +42,7 @@ diagramType
 
 ## Key Features
 
-### 9 Diagram Types Supported
+### 9 Supported Diagram Types
 
 1. **Class Diagrams** - Domain models, OOP design, entity relationships
 2. **Sequence Diagrams** - API flows, user interactions, temporal sequences
@@ -75,7 +75,7 @@ diagramType
 
 ### Example 1: Document a Domain Model
 
-**When:** You're designing a video streaming platform and need to model core entities.
+**When:** You design a video streaming platform and must model core entities.
 
 ```mermaid
 classDiagram
@@ -98,7 +98,7 @@ classDiagram
 
 ### Example 2: Explain an API Authentication Flow
 
-**When:** You need to document how login works for frontend developers.
+**When:** You must document how login works for frontend developers.
 
 ```mermaid
 sequenceDiagram
@@ -118,7 +118,7 @@ sequenceDiagram
 
 ### Example 3: Map a User Journey
 
-**When:** You're planning a feature and need to visualize the user flow.
+**When:** You plan a feature and must visualize the user flow.
 
 ```mermaid
 flowchart TD
@@ -134,7 +134,7 @@ flowchart TD
 
 ### Example 4: Design a Database Schema
 
-**When:** You're planning table relationships for a new feature.
+**When:** You plan table relationships for a new feature.
 
 ```mermaid
 erDiagram
@@ -159,7 +159,7 @@ erDiagram
 
 ### Example 5: Visualize System Architecture (C4)
 
-**When:** You need to show how systems and external services interact.
+**When:** You must show how systems and external services interact.
 
 ```mermaid
 C4Context
@@ -175,9 +175,9 @@ C4Context
     Rel(webApp, email, "Sends notifications", "SMTP")
 ```
 
-## Getting Started
+## First Steps
 
-1. **Identify what you need to communicate** - Architecture? Flow? Data model?
+1. **Identify what you must communicate** - Architecture? Flow? Data model?
 2. **Choose the appropriate diagram type** - See "Diagram Type Selection Guide" in SKILL.md
 3. **Start simple** - Add core entities/components first
 4. **Add relationships** - Connect elements with appropriate connectors
@@ -200,14 +200,14 @@ For comprehensive syntax and advanced features, see:
 
 ## Best Practices
 
-1. **Start simple, iterate** - Begin with core elements, add complexity gradually
+1. **Start simple, iterate** - Start with core elements, and add complexity gradually
 2. **One diagram, one concept** - Keep diagrams focused and split large views
 3. **Use meaningful names** - Clear labels make diagrams self-documenting
 4. **Comment liberally** - Use `%%` to explain non-obvious relationships
 5. **Version control** - Store `.mmd` files with code, update as system evolves
-6. **Add context** - Include titles and notes explaining diagram purpose
-7. **Validate syntax** - Test in Mermaid Live before committing
-8. **Keep it readable** - Don't overcrowd; split into multiple diagrams if needed
+6. **Add context** - Include titles and notes that explain the diagram purpose
+7. **Validate syntax** - Test in Mermaid Live before you commit
+8. **Keep it readable** - Do not overcrowd a diagram. IF necessary, THEN split it into multiple diagrams
 
 ## Common Use Cases
 

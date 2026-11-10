@@ -1,17 +1,17 @@
 ---
 name: rex-mermaid-diagrams
-description: Comprehensive guide for creating software diagrams using Mermaid syntax. Use when users need to create, visualize, or document software through diagrams including class diagrams (domain modeling, object-oriented design), sequence diagrams (application flows, API interactions, code execution), flowcharts (processes, algorithms, user journeys), entity relationship diagrams (database schemas), C4 architecture diagrams (system context, containers, components), state diagrams, git graphs, pie charts, gantt charts, or any other diagram type. Triggers include requests to "diagram", "visualize", "model", "map out", "show the flow", or when explaining system architecture, database design, code structure, or user/application flows.
+description: This skill is a comprehensive guide to software diagrams in Mermaid syntax. Use it when users must create, visualize, or document software with diagrams. The diagram types include class diagrams (domain modeling, object-oriented design), sequence diagrams (application flows, API interactions, code execution), flowcharts (processes, algorithms, user journeys), entity relationship diagrams (database schemas), C4 architecture diagrams (system context, containers, components), state diagrams, git graphs, pie charts, gantt charts, and any other diagram type. Use it also for requests to "diagram", "visualize", "model", "map out", "show the flow", or when you explain system architecture, database design, code structure, or user/application flows.
 disable-model-invocation: false
 user-invocable: true
 ---
 
 # Mermaid Diagramming
 
-Create professional software diagrams using Mermaid's text-based syntax. Mermaid renders diagrams from simple text definitions, making diagrams version-controllable, easy to update, and maintainable alongside code.
+Create professional software diagrams with Mermaid's text-based syntax. Mermaid renders diagrams from simple text definitions. So diagrams are version-controllable, easy to update, and maintainable alongside code.
 
 ## Core Syntax Structure
 
-All Mermaid diagrams follow this pattern:
+All Mermaid diagrams use this pattern:
 
 ```mermaid
 diagramType
@@ -22,12 +22,12 @@ diagramType
 
 - First line declares diagram type (e.g., `classDiagram`, `sequenceDiagram`, `flowchart`)
 - Use `%%` for comments
-- Line breaks and indentation improve readability but aren't required
-- Unknown words break diagrams; parameters fail silently
+- Line breaks and indentation improve readability, but Mermaid does not require them
+- Unknown words break diagrams. Parameters fail silently
 
 ## Diagram Type Selection Guide
 
-**Choose the right diagram type:**
+**Choose right diagram type:**
 
 1. **Class Diagrams** - Domain modeling, OOP design, entity relationships
    - Domain-driven design documentation
@@ -154,17 +154,17 @@ For in-depth guidance on specific diagram types, see:
 
 ## Best Practices
 
-1. **Start Simple** - Begin with core entities/components, add details incrementally
+1. **Start Simple** - Start with core entities/components. Add details incrementally
 2. **Use Meaningful Names** - Clear labels make diagrams self-documenting
 3. **Comment Extensively** - Use `%%` comments to explain complex relationships
-4. **Keep Focused** - One diagram per concept; split large diagrams into multiple focused views
+4. **Keep Focused** - One diagram per concept. Split large diagrams into multiple focused views
 5. **Version Control** - Store `.mmd` files alongside code for easy updates
 6. **Add Context** - Include titles and notes to explain diagram purpose
 7. **Iterate** - Refine diagrams as understanding evolves
 
 ## Configuration and Theming
 
-Configure diagrams using frontmatter:
+Configure diagrams with frontmatter:
 
 ```mermaid
 ---
@@ -205,8 +205,8 @@ flowchart LR
 
 ## Common Pitfalls
 
-- **Breaking characters** - Avoid `{}` in comments, use proper escape sequences for special characters
-- **Syntax errors** - Misspellings break diagrams; validate syntax in Mermaid Live
+- **Breaking characters** - Avoid `{}` in comments. Use proper escape sequences for special characters
+- **Syntax errors** - Misspellings break diagrams. Validate syntax in Mermaid Live
 - **Overcomplexity** - Split complex diagrams into multiple focused views
 - **Missing relationships** - Document all important connections between entities
 
@@ -214,17 +214,17 @@ flowchart LR
 
 **Always diagram when:**
 
-- Starting new projects or features
-- Documenting complex systems
-- Explaining architecture decisions
-- Designing database schemas
-- Planning refactoring efforts
-- Onboarding new team members
+- You start new projects or features
+- You document complex systems
+- You explain architecture decisions
+- You design database schemas
+- You plan refactoring efforts
+- You onboard new team members
 
 **Use diagrams to:**
 
 - Align stakeholders on technical decisions
 - Document domain models collaboratively
 - Visualize data flows and system interactions
-- Plan before coding
+- Plan before you code
 - Create living documentation that evolves with code

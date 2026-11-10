@@ -1,6 +1,6 @@
 # Flowcharts
 
-Flowcharts visualize processes, algorithms, decision trees, and user journeys. They show step-by-step progression through a system or workflow.
+Flowcharts visualize processes, algorithms, decision trees, and user journeys. They show step-by-step progression through system or workflow.
 
 ## Basic Syntax
 
@@ -401,7 +401,7 @@ flowchart TD
 
 ## Best Practices
 
-1. **Use meaningful labels** - Node text should be clear and action-oriented
+1. **Use meaningful labels** - Node text must be clear and action-oriented
 2. **Consistent node shapes** - Same shapes for same types of actions
 3. **Decision nodes as diamonds** - Standard convention for yes/no decisions
 4. **Flow top-to-bottom or left-to-right** - Natural reading direction

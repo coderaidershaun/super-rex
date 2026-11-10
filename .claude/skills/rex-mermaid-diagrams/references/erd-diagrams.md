@@ -1,6 +1,6 @@
 # Entity Relationship Diagrams (ERD)
 
-ERDs model database schemas, showing tables (entities), their columns (attributes), and relationships between tables. Essential for database design and documentation.
+ERDs model database schemas. They show tables (entities), their columns (attributes), and relationships between tables. Essential for database design and documentation.
 
 ## Basic Syntax
 
@@ -9,7 +9,7 @@ erDiagram
     CUSTOMER ||--o{ ORDER : places
 ```
 
-## Defining Entities
+## Define Entities
 
 ```mermaid
 erDiagram
