@@ -1,16 +1,12 @@
 ---
 name: rex-code-priorities
 description: >
-  Hard rules for the priority block of a repo: ranked qualities plus things the
-  system must never do, written as the crate-level `//!` comment in `lib.rs` or
-  `main.rs`. The orchestrator asks the user for it one time, up front. Each
-  agent that designs or reviews reads it and uses it to break ties. No
-  CONTEXT.md, no docs folder, no ADR.
+  Hard rules for a repo's priority block: ranked qualities and Never lines in
+  the crate-root `//!` comment. Agents use it to break ties.
 when_to_use: >
-  Use when an orchestrator starts work on a repo, when a plan or architecture
-  decision has a tie, when the priority block is missing, or when the user says
-  "repo priorities", "what matters most here", "rank the priorities", or
-  "constitution".
+  Use when an orchestrator starts work on a repo, a plan or architecture decision has
+  a tie, the priority block is missing, or the user says "repo priorities",
+  "what matters most here", "rank the priorities", "constitution".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -61,18 +57,8 @@ Sister skills:
 
 ## WRITE: orchestrator only
 
-Ask user these questions one time, with other up-front questions. Give recommended answer for each, from task + code.
-
-1. Rank these for this repo: correctness, time to ship, extensibility, performance, cost. Which 2 to 4 are important, in which order?
-2. What will there be more of later? (Example: exchanges, file formats, tenants, payment providers.)
-3. What must this system never do, even one time?
-4. For each quality below first: what is good enough?
-
-Then:
-
-- [ ] Write priority block in crate root.
-- [ ] Read it back to user in report.
 - [ ] IF repo already has priority block, THEN ask nothing. Use it.
+- [ ] ELSE IF you are orchestrator, THEN read `.claude/skills/rex-code-priorities/write.md`. It gives questions for user + steps to write block.
 
 CAUTION: Do not change a priority block without an instruction from the user. A changed ranking changes each later design decision, and no test reports it.
 
@@ -111,6 +97,6 @@ IF ranking does not divide options, THEN pick simpler option.
 - [ ] Priority block in crate root, max 8 lines
 - [ ] `Priorities, in order:` with 2 to 4 ranked qualities, no ties
 - [ ] Each Never line is testable
-- [ ] No CONTEXT.md, no ADR made for this
+- [ ] No CONTEXT.md, no docs folder, no ADR made for this
 - [ ] Missing block + ranking decision → asked caller, did not guess
 - [ ] Plan names quality that decided each trade-off

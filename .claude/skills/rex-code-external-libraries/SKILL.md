@@ -1,14 +1,13 @@
 ---
 name: rex-code-external-libraries
 description: >
-  This skill gives hard rules for adding external Rust crates. Find the latest
-  stable version on crates.io before you add a crate. Activate only the features
-  that the code needs (default-features = false). When a crate is unfamiliar,
-  make sure of its syntax on docs.rs.
+  Hard rules for adding external Rust crates: latest stable version from
+  crates.io, only needed features (default-features = false), and docs.rs for
+  an unfamiliar crate.
 when_to_use: >
-  Use when you add or upgrade a crate, choose features, or pick a version. Use
-  it also when the user asks "add crate X", "what version", "which features",
-  "is this crate idiomatic".
+  Use when you add or upgrade a crate, choose features, or pick a version, or
+  the user asks "add crate X", "what version", "which features", "is this crate
+  idiomatic".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -19,7 +18,7 @@ These rules HARD. No compromise. Apply every time crate enter `Cargo.toml`.
 
 Sister skills:
 - `rex-code-philosophy` — complexity-averse. Crate = imported complexity
-- `rex-code-ergonomics` — wrap external types in newtypes at boundary
+- `rex-code-ergonomics` — newtypes around domain primitives
 - `rex-code-error-writing` — `#[from]` external errors via thiserror
 
 ## Iron rule

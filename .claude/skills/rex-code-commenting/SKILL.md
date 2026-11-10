@@ -1,18 +1,13 @@
 ---
 name: rex-code-commenting
 description: >
-  This skill gives hard rules for code comments. The best comment is no comment,
-  so self-evident code gets none. Comment only on a WHY that is not obvious, and
-  never on WHAT. Every comment that survives is short plain English that anyone
-  can read. It has no jargon, no acronyms, no shorthand, and no references to
-  plans, tasks, or other files. Comments that flag code smells, hazards, or
-  SAFETY invariants are permanent, and a cleanup pass must never delete them.
-  The rules are distilled from "shocking truth about comments" and refine.dev.
+  Hard rules for code comments. Best comment is no comment. Comment only a
+  non-obvious WHY, in short plain English. Flags for smells, hazards, and
+  SAFETY invariants are permanent.
 when_to_use: >
-  Use when you write or review comments, JSDoc, docstrings, or TODO markers, or
-  when you tidy comments. Use it also when the user asks "should I add a
-  comment", "document this", "explain this code", or when someone commits
-  AI-generated code.
+  Use when you write, review, or tidy comments, JSDoc, docstrings, or TODO
+  markers, or commit AI-generated code, or the user asks "should I add a
+  comment", "document this", "explain this code".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -22,6 +17,15 @@ user-invocable: true
 These rules HARD. No compromise. No "but my case different".
 
 Sister skill: `rex-code-philosophy`. Same complexity-averse, ergonomics-first frame.
+
+Sources: "shocking truth about comments", refine.dev.
+
+## Files of this skill
+
+| Read | When |
+| --- | --- |
+| `.claude/skills/rex-code-commenting/module-comments.md` | IF you write or check comment at top of file. Place for each language. |
+| `.claude/skills/rex-code-commenting/examples.md` | IF you want bad + good comments, or quotables. |
 
 ## Iron law #1 — best comment is no comment
 
@@ -57,24 +61,7 @@ Write for competent programmer who joined yesterday. Reader knows nothing about 
 - **No references to plans, tasks, or working process.** No "as per the plan", no "phase 2", no "step 3 of the refactor", no "TODO from the review". Reader never saw plan and never will.
 - **No pointers to other source files.** No "see src/foo.rs", no "moved from bar.rs", no line numbers. Paths rot. Comment lies within one month. Describe constraint, not location.
 
-This skill document uses compressed words to save tokens. Comments in code do NOT. Write them plain.
-
-```rust
-// bad — telegraphic
-// mnl sort: stdlib O(n²) near-sorted. 4x per bench.
-
-// bad — jargon
-// Adapter at the ingest seam; deepens the module by hiding the transport.
-
-// bad — plan reference
-// Phase 2 of the refactor plan: temporary until the loader lands. See src/loader/mod.rs.
-
-// good — short plain English
-// Manual sort because the stdlib is O(n²) on near-sorted input; benchmarks show this is 4x faster.
-
-// good — short plain English
-// The exchange sends prices as strings, so parse before comparing.
-```
+This skill document uses compressed words to save tokens. Comments in code do NOT. Write them plain. Bad + good: `.claude/skills/rex-code-commenting/examples.md`.
 
 ## Forbidden — delete on sight
 
@@ -95,42 +82,14 @@ This skill document uses compressed words to save tokens. Comments in code do NO
 
 Each module starts with comment of 1-2 lines. Comment says why module exists. Plain English, why not what.
 
-| Language | Top of file | Allowed before comment | Example |
-| --- | --- | --- | --- |
-| Rust | `//!` lines, before any item. | Any line. Comment starts by line 5. | `//! Reads the price feed and reconnects when it drops.` |
-| Go | `//` comment above `package`. IF file documents package, THEN comment = package comment and touches `package`. ELSE put blank line between comment and `package`, so Go does not add it to package documentation. | Blank lines, license header, `//go:build` lines. | `// Reads the price feed and reconnects when it drops.` |
-| C, C++ | `//` or `/* */` comment above first `#include`, before or directly after include guard. Header + source file each have one. | Blank lines, license header, include guard lines: `#pragma`, `#if…`, `#define`. | `// Declares the feed reader and its errors.` |
-| Python | `"""` docstring as first statement. | Blank lines, shebang, coding line, license header. | `"""Loads the run config from disk."""` |
-| JavaScript, TypeScript | `//` or `/** */` comment above first `import`. | Blank lines, license header, `"use strict"`, `"use client"`. | `// Draws the order book chart.` |
-| Shell | `#` comment on line after shebang. | Blank lines, shebang, license header. | `# Builds the release archive.` |
-
-Directive lines can also come before comment: `#!` shebang, `//go:`, `// +build`, editor lines with `-*-` or `vim:`, `shellcheck`, `eslint-`, `@ts-`, `SPDX-License-Identifier`.
+Place for each language: `.claude/skills/rex-code-commenting/module-comments.md`.
 
 Rules for every language:
 
 - [ ] First sentence stands alone, ends with full stop, says why file exists. It does not restate file name.
 - [ ] IF file has license header, THEN write license first, then blank line, then module comment.
-- [ ] Nothing else comes before comment. Only lines in column "Allowed before comment" + directive lines.
+- [ ] Nothing else comes before comment. Only lines in column "Allowed before comment" of `module-comments.md` + directive lines.
 - [ ] No tag (example: `@file`, `@brief`) comes before first sentence.
-
-Not (Go): license + comment in one run of `//` lines. Both count as license. Go loses module comment.
-
-```go
-// Copyright 2026 Example Ltd.
-// Reads the price feed and reconnects when it drops.
-
-package feed
-```
-
-Yes (file that does not document package):
-
-```go
-// Copyright 2026 Example Ltd.
-
-// Reads the price feed and reconnects when it drops.
-
-package feed
-```
 
 ## Permitted — narrow whitelist
 
@@ -197,12 +156,3 @@ Before commit, ask:
 - **Can name carry this?** IF yes, THEN rename.
 
 IF any fail, THEN reconsider.
-
-## Quotables (carry these)
-
-- "The best comment is the one you didn't need to write."
-- "Comments rot faster than code."
-- "Most comments don't improve quality. They create illusion of clarity."
-- "Comment = duct tape for poor design."
-- "Write code as if comments didn't exist. Then add the few that must exist."
-- "Stale comment > silence in damage. Wrong worse than missing."

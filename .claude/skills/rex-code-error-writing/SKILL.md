@@ -1,14 +1,13 @@
 ---
 name: rex-code-error-writing
 description: >
-  This skill gives hard rules for Rust error handling. Use thiserror in libs
-  (the default), and anyhow in bins (occasionally). Errors are typed and carry
-  context. There is no Box<dyn Error> and no .unwrap() in prod.
+  Hard rules for Rust error handling: thiserror in libs (default), anyhow in
+  bins. Errors are typed and carry context. No Box<dyn Error>, no .unwrap() in
+  prod.
 when_to_use: >
-  Use when you write error types, design Result<T,E> APIs, choose thiserror vs
-  anyhow, wrap errors, or write error messages. Use it also when the user asks
-  "what error type", "how should I handle this error", "thiserror or anyhow",
-  "error variants".
+  Use when you write error types, design Result<T,E> APIs, wrap errors, or
+  write error messages, or the user asks "what error type", "how should I
+  handle this error", "thiserror or anyhow", "error variants".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -17,7 +16,9 @@ user-invocable: true
 
 These rules HARD. No compromise. Every Rust error in this repo obey them.
 
-Sister skills: `rex-code-philosophy` (errors carry context = habitability), `rex-code-ergonomics` (Result patterns), `rex-code-commenting` (doc errors on pub fn).
+Sister skills: `rex-code-philosophy` (errors carry context = habitability), `rex-code-ergonomics` (Result patterns), `rex-code-commenting` (doc errors on pub fn), `rex-code-failure-policy` (what system does after error).
+
+IF you write error enum, `main`, error message, or error mapping, THEN read `.claude/skills/rex-code-error-writing/examples.md`. It has code for each section, under same heading.
 
 ## Iron rule
 
@@ -32,37 +33,7 @@ Wrong default = `Box<dyn Error>` in lib API. Forbidden. Caller cannot match. Can
 
 ## thiserror — default
 
-### Pattern: enum per module/concept
-
-```rust
-#[derive(thiserror::Error, Debug)]
-pub enum ConfigError {
-    #[error("config file not found: {path}")]
-    NotFound { path: PathBuf },
-
-    #[error("config file unreadable at {path}")]
-    Read {
-        path: PathBuf,
-        #[source]
-        source: std::io::Error,
-    },
-
-    #[error("config parse failed at {path} line {line}")]
-    Parse {
-        path: PathBuf,
-        line: usize,
-        #[source]
-        source: serde_json::Error,
-    },
-
-    #[error("config invalid: {field} = {value:?}, expected {expected}")]
-    Invalid {
-        field: &'static str,
-        value: String,
-        expected: &'static str,
-    },
-}
-```
+Pattern: one enum per module/concept. Example `ConfigError`: `.claude/skills/rex-code-error-writing/examples.md`.
 
 ### Rules
 
@@ -75,35 +46,13 @@ pub enum ConfigError {
 
 ### Free `?` via thiserror From
 
-```rust
-#[derive(thiserror::Error, Debug)]
-pub enum FetchError {
-    #[error("network request failed")]
-    Network(#[from] reqwest::Error),  // ? from reqwest auto-wraps
-
-    #[error("invalid utf8 in response")]
-    Encoding(#[from] std::str::Utf8Error),
-}
-```
-
 `#[from]` = derive `From<inner>`. `?` operator works. No manual `.map_err`.
 
 **Caveat:** `#[from]` works only IF variant has *exactly one* unnamed field. IF multiple, THEN use `#[source]` + manual `.map_err(...)?`.
 
 ### Transparent wrap
 
-```rust
-#[derive(thiserror::Error, Debug)]
-pub enum DbError {
-    #[error(transparent)]
-    Sqlx(#[from] sqlx::Error),  // forward Display + source
-
-    #[error("migration failed: {name}")]
-    Migration { name: String, #[source] source: sqlx::migrate::MigrateError },
-}
-```
-
-`transparent` = pass through to inner. Use when you wrap w/o new info.
+`#[error(transparent)]`: `transparent` = pass through to inner. Use when you wrap w/o new info.
 
 ## anyhow — bins + scripts only
 
@@ -114,24 +63,6 @@ pub enum DbError {
 - Test helpers
 - Migration scripts
 - Glue code where caller will only print + exit
-
-### Pattern
-
-```rust
-use anyhow::{Context, Result, bail};
-
-fn main() -> Result<()> {
-    let cfg = load_config("./config.toml")
-        .context("failed to load config at startup")?;
-
-    if cfg.workers == 0 {
-        bail!("workers must be > 0, got 0");
-    }
-
-    run(cfg).context("worker pool exited with error")?;
-    Ok(())
-}
-```
 
 ### Rules
 
@@ -154,15 +85,7 @@ Per `rex-code-philosophy`: errors carry context. Reader 2am, paged, must fix.
 - **No trailing period.** Display chain re-format. Period collide.
 - **Lowercase first letter.** Composes in chains. Per Rust API guidelines.
 
-```rust
-// bad
-#[error("Error: Failed to do thing.")]
-Whatever,
-
-// good
-#[error("failed to bind tcp listener on {addr}")]
-Bind { addr: SocketAddr },
-```
+Bad: `#[error("Error: Failed to do thing.")]`. Good: `#[error("failed to bind tcp listener on {addr}")]`.
 
 ### Error chain reads top-down
 
@@ -200,40 +123,7 @@ Each layer add specific context. Do not repeat parent.
 
 ## Common patterns
 
-### Map external error to your variant
-
-```rust
-fs::read_to_string(&path)
-    .map_err(|source| ConfigError::Read { path: path.clone(), source })?;
-```
-
-### Multi-source error (no `#[from]`)
-
-```rust
-serde_json::from_str(&s)
-    .map_err(|source| ConfigError::Parse {
-        path: path.clone(),
-        line: 0,  // serde doesn't expose, document
-        source,
-    })?;
-```
-
-### Option → Result
-
-```rust
-let port = cfg.port.ok_or(ConfigError::Invalid {
-    field: "port",
-    value: "<missing>".into(),
-    expected: "u16",
-})?;
-```
-
-### Collect Results
-
-```rust
-let parsed: Result<Vec<_>, _> = lines.iter().map(parse_line).collect();
-let parsed = parsed?;  // first err short-circuits
-```
+IF you map external error to your variant, build multi-source error with no `#[from]`, turn `Option` into `Result`, or collect Results, THEN read `.claude/skills/rex-code-error-writing/examples.md`, section "Common patterns".
 
 ## Migration: anyhow → thiserror
 
@@ -249,17 +139,7 @@ Do not migrate `main.rs` itself. anyhow stays there.
 
 ## Doc comments on errors
 
-Per `rex-code-commenting`:
-
-```rust
-/// Load and parse config from disk.
-///
-/// # Errors
-/// - [`ConfigError::NotFound`] if `path` does not exist
-/// - [`ConfigError::Read`] for IO errors during read
-/// - [`ConfigError::Parse`] for malformed TOML/JSON
-pub fn load(path: &Path) -> Result<Config, ConfigError>
-```
+Per `rex-code-commenting`. Example: `.claude/skills/rex-code-error-writing/examples.md`, section "Doc comments on errors".
 
 `# Errors` section = required on pub fns that return Result. Lints catch missing.
 

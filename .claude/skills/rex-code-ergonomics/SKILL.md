@@ -1,14 +1,13 @@
 ---
 name: rex-code-ergonomics
 description: >
-  This skill gives hard rules for ergonomic Rust code. It covers naming, types,
-  traits, iterators, lifetimes, panics, and fn signatures, with bad and good
-  examples throughout.
+  Hard rules for ergonomic Rust: naming, types, traits, iterators, lifetimes,
+  panics, and fn signatures.
 when_to_use: >
-  Use when you write or review Rust, design public APIs, or name types and fns.
-  Use it also when you choose String vs &str, Result vs panic, generic vs dyn,
-  or builder vs struct literal. Use it also when the user asks "is this
-  idiomatic Rust", "ergonomic API", "make this nicer".
+  Use when you write or review Rust, design public APIs, name types and fns,
+  choose String vs &str, Result vs panic, generic vs dyn, or builder vs struct
+  literal, or the user asks "is this idiomatic Rust", "ergonomic API", "make
+  this nicer".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -26,6 +25,8 @@ This skill = Rust-specific applications. Error rules: see error-writing skill.
 
 Default: **caller's life > author's cleverness**. Public API = your gift to future self.
 
+IF you want bad + good code for a section, THEN read `.claude/skills/rex-code-ergonomics/examples.md`. It has same headings.
+
 ## Names
 
 - **snake_case fns/vars. PascalCase types. SCREAMING_SNAKE consts.** Non-negotiable.
@@ -34,44 +35,13 @@ Default: **caller's life > author's cleverness**. Public API = your gift to futu
 - **Type name carry meaning.** `UserId` not `Id`. `OrderTotal` not `Amount`.
 - **Verb on fn. Noun on type.** `parse_url` + `Url`. Not `url_parser` + `parse`.
 
-```rust
-// bad
-fn proc(d: &Vec<u8>, f: bool) -> Result<Vec<u8>, Box<dyn Error>>
-
-// good
-fn decompress_payload(data: &[u8], strict: bool) -> Result<Vec<u8>, DecompressError>
-```
-
 ## Types — newtype the domain
 
 Primitive obsession = bug factory. Wrap domain primitives.
 
-```rust
-// bad — mix UserId + OrderId silently
-fn ban(user_id: u64, reason: String)
-fn refund(order_id: u64)
-ban(order_id, refund_reason); // compiles. wrong.
-
-// good — type system catch swap
-struct UserId(u64);
-struct OrderId(u64);
-fn ban(user: UserId, reason: BanReason)
-ban(OrderId(42), reason); // compile error. saved.
-```
-
 - **Newtype = ~free.** IF perf paranoid, THEN `#[repr(transparent)]`.
 - **`NonZeroU32`, `NonEmpty<T>`** when invariant exist. Push to type, drop runtime check.
 - **No `bool` flags in public fn.** Two bools = 4 states = caller confusion. Use enum.
-
-```rust
-// bad
-fn copy(src: &Path, dst: &Path, overwrite: bool, follow_symlinks: bool)
-copy(&a, &b, true, false); // what mean true false?
-
-// good
-fn copy(src: &Path, dst: &Path, opts: CopyOpts)
-copy(&a, &b, CopyOpts { overwrite: Yes, symlinks: Follow });
-```
 
 ## String types — pick right one
 
@@ -86,15 +56,10 @@ copy(&a, &b, CopyOpts { overwrite: Yes, symlinks: Follow });
 - **IF you create it, THEN return `String`.** Do not fight lifetimes for fun.
 - **`Box<str>` over `String` for stored-once data.** Skip capacity field.
 
-## Errors
+## Errors + panics
 
-**See `rex-code-error-writing` for full rules.** Summary:
-
-- **Lib: `thiserror`. Bin: `anyhow`.** Never `Box<dyn Error>` in lib pub API.
-- **`?` everywhere.** `.unwrap()` = test only. IF must, THEN `.expect("WHY")` at boundary.
-- **Panic = bug only.** Bad input → `Result`. Invariant violated → `panic!`.
-
-For variant design, `#[from]`/`#[source]`, error messages, `anyhow::Context`, panic-vs-Result decision table → load `rex-code-error-writing`.
+**Lib: `thiserror`. Bin: `anyhow`.** Panic on bug, `Result` on bad input.
+All error + panic rules (`?`, `.unwrap()`, panic-vs-Result table): `.claude/skills/rex-code-error-writing/SKILL.md`.
 
 ## Function signatures
 
@@ -103,17 +68,6 @@ For variant design, `#[from]`/`#[source]`, error messages, `anyhow::Context`, pa
 - **`impl Trait` in return for hide-the-iterator.** `-> impl Iterator<Item = User>`.
 - **Generic in arg, concrete in return.** `fn read(r: impl Read) -> Vec<u8>`.
 - **More than 3 args -> struct.** IF many optional, THEN builder.
-
-```rust
-// bad
-fn render(w: u32, h: u32, fmt: u8, q: u8, alpha: bool, gamma: f32) -> Vec<u8>
-
-// good
-struct RenderOpts { width: u32, height: u32, format: Format, quality: u8, alpha: bool, gamma: f32 }
-fn render(opts: RenderOpts) -> Vec<u8>
-// or builder if half optional
-let img = Render::new(800, 600).quality(90).alpha().build();
-```
 
 ## Methods on types (locality)
 
@@ -140,34 +94,11 @@ user.activate();  // IDE autocomplete win
 - **Avoid `.iter().map().collect().iter().filter()...`** Allocate once.
 - **`.unwrap()` in iter chain = sin.** Use `try_fold` / `collect::<Result<_,_>>()`.
 
-```rust
-// bad — alloc twice, panic on miss
-let names: Vec<String> = users.iter().map(|u| u.name.clone()).collect();
-let active: Vec<String> = names.into_iter().filter(|n| !n.is_empty()).collect();
-
-// good — single pass, owned strings only when kept
-let active: Vec<String> = users.iter()
-    .filter(|u| !u.name.is_empty())
-    .map(|u| u.name.clone())
-    .collect();
-```
-
 ## Option / Result combinators
 
 - **`?` first.** Combinators second. Match last resort.
 - **`.unwrap_or_default()`, `.unwrap_or_else(|| ...)`, `.ok_or(err)`** > match.
 - **`if let Some(x) = ...` for one branch.** `match` for two+ variants.
-
-```rust
-// bad
-let name = match user.name {
-    Some(n) => n,
-    None => String::from("anon"),
-};
-
-// good
-let name = user.name.unwrap_or_else(|| "anon".into());
-```
 
 ## Lifetimes — minimize
 
@@ -176,14 +107,6 @@ let name = user.name.unwrap_or_else(|| "anon".into());
 - **`'static` bound only when necessary.** Spreads.
 - **`Cow` when sometimes-borrowed-sometimes-owned.**
 
-```rust
-// bad — every caller fight lifetime
-struct Parser<'a> { input: &'a str, cursor: usize }
-
-// good if perf allow — owned, no lifetime virus
-struct Parser { input: String, cursor: usize }
-```
-
 ## Traits
 
 - **Small trait. Single purpose.** `Read`, `Write`, `Display`. Not `EverythingDoer`.
@@ -191,30 +114,16 @@ struct Parser { input: String, cursor: usize }
 - **IF heterogeneous collection, THEN `dyn Trait`.** IF known at compile, THEN `impl Trait`.
 - **`From`/`Into` for conversion.** IF can fail, THEN `TryFrom`/`TryInto`. Free `?` integration.
 
-```rust
-// good — From give caller ergonomics
-impl From<&str> for UserId {
-    fn from(s: &str) -> Self { UserId(s.parse().unwrap()) }
-}
-let id: UserId = "42".into();
-```
-
 ## Derive everything safe
 
 `#[derive(Debug, Clone, PartialEq, Eq, Hash)]` on data types. Default. No reason not.
 
 IF all fields default-able, THEN `#[derive(Default)]`. ELSE manual `impl Default`.
 
-## Panic discipline
-
-See `rex-code-error-writing` for full panic-vs-Result table. Short version: panic on bug, Result on bad input.
-
 ## Module organization
 
-- **`mod foo;` per concept, not per type.** `auth/` not `auth_user.rs` + `auth_token.rs` + `auth_session.rs`.
-- **`pub use` for clean facade.** Re-export at crate root.
-- **`pub(crate)`** > `pub` when only internal. Shrink API surface.
-- **Tests in same file.** `#[cfg(test)] mod tests { ... }`. Locality.
+**`pub(crate)` > `pub` when only internal.** Shrink API surface.
+All module, file, and visibility rules: `.claude/skills/rex-code-folder-management/SKILL.md`.
 
 ## Async traps
 
@@ -231,17 +140,6 @@ Per `rex-code-commenting`: default no comment. Rust-specific:
 - **`///` doc comment on pub item.** Lint (`missing_docs`) requires it. Write WHY, example, panics, errors.
 - **`//` inline comment only when WHY non-obvious.** Lifetime quirk, perf hack, vendor bug.
 
-```rust
-// bad
-/// Gets the user by id
-fn get_user(id: UserId) -> Option<User>
-
-// good
-/// Look up user by id. Returns `None` if user soft-deleted or never existed.
-/// Hot path — uses cached lookup. See [`User::reload`] to force fresh.
-fn get_user(id: UserId) -> Option<User>
-```
-
 ## Checklist before commit
 
 - [ ] No `bool` flag in public fn (use enum)
@@ -250,9 +148,8 @@ fn get_user(id: UserId) -> Option<User>
 - [ ] Methods on types, not free fns in `_utils` modules
 - [ ] No lifetime annotation in struct unless necessary
 - [ ] `///` docs on every `pub` item
-- [ ] No comment restating what code do
 - [ ] More than 3 args -> struct or builder
 - [ ] Error rules → `rex-code-error-writing` checklist
-- [ ] Comment rules → `rex-code-commenting` checklist
+- [ ] Comment rules → `rex-code-commenting` ergonomics check
 
 IF any fail, THEN fix before push.

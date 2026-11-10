@@ -1,17 +1,13 @@
 ---
 name: rex-code-failure-policy
 description: >
-  Hard rules for what a system does after an error: each error variant gets one
-  failure class (HALT, RESET, RETRY, REJECT), the class lives in code on the
-  error type, and one place at the top of the system acts on it. Silent wrong
-  state always halts. Retries are bounded and safe to repeat. Sister to
-  rex-code-error-writing, which says how errors are written. This skill says
-  what happens next.
+  Hard rules for what a system does after an error: each variant gets one
+  failure class (HALT, RESET, RETRY, REJECT).
 when_to_use: >
-  Use when code has outside inputs, long-running state, retries, reconnects, or
-  a main loop. Use it also when the user says "what happens when this fails",
-  "should this stop the system", "retry or fail", "fatal error", "kill switch",
-  "halt", or "make error handling consistent".
+  Use when code has outside inputs, long-running state, retries, reconnects,
+  a main loop, or the user says "what happens when this fails", "should this
+  stop the system", "retry or fail", "fatal error", "kill switch", "halt",
+  "make error handling consistent".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -28,6 +24,13 @@ Sister skills:
 - `rex-code-priorities` — Never lines. Each one = HALT.
 - `rex-code-tests-fitness-functions` — guard for each HALT that protects state.
 - `rex-code-validation-plan` — expected trace for each failure scenario.
+
+## Files of this skill
+
+| Read | When |
+| --- | --- |
+| `.claude/skills/rex-code-failure-policy/failure-table.md` | IF you write or review plan for feature with outside input or long-lived state, THEN read it. Failure table in plan. |
+| `.claude/skills/rex-code-failure-policy/audit.md` | IF you audit code for failure handling, THEN read it. Grep sweep. |
 
 ## Words
 
@@ -126,33 +129,6 @@ CAUTION: Do not retry an action that moves funds or sends a message to a person 
 - [ ] Return typed error to caller with values seen.
 - [ ] No state change from rejected input. Check before first write.
 - [ ] Count rejects by source. Many rejects from one source in short time = RESET or HALT of that source. Limit in config.
-
-## In plan
-
-Lead adds failure table to `plan.md` for each feature with outside input or long-lived state.
-
-| Error variant | Class | Supervisor action | Guard |
-| --- | --- | --- | --- |
-| `SyncError::ChecksumMismatch` | HALT | stop intake, keep state, alert | fitness: rebuilt state = source |
-| `SyncError::SequenceGap` | RESET | drop cache, fetch fresh snapshot | contract test |
-| `SyncError::Timeout` | RETRY | max 5, delay 200 ms to 10 s | integration test |
-| `SyncError::Malformed` | REJECT | drop message, count by source | unit, then delete |
-
-- [ ] Each HALT row has fitness function or reason why not.
-- [ ] Each row with RESET, RETRY, or HALT has scenario in `rex-code-validation-plan`.
-- [ ] Advisor reads table before code. Missing variant = finding.
-
-## Audit sweep
-
-```bash
-grep -rn 'let _ = ' src/                       # swallowed Result?
-grep -rnE '_ => *FailureClass' src/            # catch-all class
-grep -rn 'process::exit' src/                  # exit outside main
-grep -rnE '^\s*loop \{' -A6 src/ | grep -E 'retry|send|connect|fetch'   # retry with no limit?
-grep -rnE 'error!\(|warn!\(' -A2 src/ | grep -E 'continue|Ok\(\(\)\)'  # log + continue
-```
-
-Each hit = candidate. Read it before you report it.
 
 ## Checklist
 

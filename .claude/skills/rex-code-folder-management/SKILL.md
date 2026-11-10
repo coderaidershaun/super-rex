@@ -2,15 +2,12 @@
 name: rex-code-folder-management
 description: >
   Hard rules for folders, files, and module layout in a Rust crate. The tree
-  must tell how the crate works before a reader opens a file. The skill covers
-  top modules, where a module lives, `mod.rs`, the minimum of two children for
-  each folder, the 500-line limit, import direction, visibility, and how to move
-  files with no behavior change. The rex-code-improve-codebase-architecture
-  skill loads this skill in every run.
+  tells how the crate works. Covers placement, `mod.rs`, 500-line limit,
+  imports, safe moves.
 when_to_use: >
-  Use when you create a module or a folder, split or move a file, or review a
-  tree. Use it also when the user says "tidy the modules", "group modules",
-  "folder structure", "where does this file go", "subfolders", or "mod.rs".
+  Use when you create, split, or move a module, file, or folder, review a tree,
+  or the user says "tidy the modules", "group modules", "folder structure",
+  "where does this file go", "subfolders", "mod.rs".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -22,10 +19,17 @@ Tree must tell: jobs of crate, order of work, home of each concept.
 
 Sister skills:
 
-- `rex-code-improve-codebase-architecture` — finds what to move. This skill tells where it goes.
+- `rex-code-improve-codebase-architecture` — finds what to move. This skill tells where it goes. Holds deletion test.
 - `rex-code-smells` — finds smells inside files.
 - `rex-code-commenting` — law for `//!` lines.
-- `rex-code-philosophy` — deletion test, complexity budget.
+- `rex-code-philosophy` — complexity rules.
+
+## Files of this skill
+
+| Read | When |
+| --- | --- |
+| `.claude/skills/rex-code-folder-management/audit.md` | IF you review a tree or report defects, THEN read it. AUDIT block + report format. |
+| `.claude/skills/rex-code-folder-management/move.md` | IF you move files or plan a move, THEN read it before first move. Hidden behavior, procedure, proof, scope. |
 
 ## Words
 
@@ -78,6 +82,7 @@ Sister skills:
 ## RULES: names
 
 - [ ] File name = one domain word for concept that file holds.
+- [ ] `mod foo;` per concept, not per type. `auth/`, not `auth_user.rs` + `auth_token.rs` + `auth_session.rs`.
 - [ ] Take word from code: type name, function name, error name. Do not invent new word.
 - [ ] One concept = one name in whole tree.
 - [ ] Types file = noun (`reply`). Calls file = verb (`transcribe`).
@@ -122,101 +127,6 @@ File near limit. Joints, best first:
 
 - [ ] Inline test moves with code that it tests. Same name, same body.
 - [ ] IF file has no joint, THEN problem = design, not size. Use `rex-code-improve-codebase-architecture`.
-
-## AUDIT
-
-Run from crate folder. Each hit = candidate. Read hit before you report it.
-
-```bash
-# size: files near 500-line limit
-find src tests -name '*.rs' | xargs wc -l | sort -rn | head -8
-
-# children: folder must hold mod.rs + min 2 children (asset folders are skipped)
-for d in $(find src -mindepth 1 -type d); do
-  find "$d" -name '*.rs' | grep -q . || continue
-  files=$(find "$d" -maxdepth 1 -name '*.rs' ! -name mod.rs | wc -l)
-  dirs=$(find "$d" -mindepth 1 -maxdepth 1 -type d -exec test -e {}/mod.rs \; -print | wc -l)
-  echo "$((files + dirs)) children  $(test -e "$d/mod.rs" && echo mod.rs || echo NO-mod.rs)  $d"
-done
-
-# name.rs beside name/ : forbidden
-for d in $(find src -mindepth 1 -type d); do test -e "$d.rs" && echo "FORBIDDEN $d.rs + $d/"; done
-
-# module graph: who imports who
-grep -rnE '^\s*(pub(\([a-z]+\))? )?mod |^\s*(pub(\([a-z]+\))? )?use (crate|super)' src | sort
-
-# forbidden names
-find src -name 'utils*' -o -name 'helpers*' -o -name 'common*' -o -name 'misc*' -o -name 'shared*'
-
-# pub item that no code outside crate can reach (0 = good)
-cargo rustc --lib -- -W unreachable_pub 2>&1 | grep -c unreachable
-```
-
-From module graph, find:
-
-- [ ] Cycle between siblings.
-- [ ] Shared data module that imports job module.
-- [ ] Code that names child of other folder.
-- [ ] Module with one user that lives outside folder of that user.
-- [ ] `crate::` path where `super::` is correct, or reverse.
-
-## MOVE
-
-CAUTION: Do not type code again during a move. Cut and paste the exact text. A changed attribute or doc comment can change behavior, and the compiler does not report it.
-
-CAUTION: Find hidden behavior before the first move. A move that breaks hidden behavior passes the build and the tests.
-
-Hidden behavior to find:
-
-| Item | Why move can break it |
-| --- | --- |
-| `include_str!`, `include_bytes!` | Path is relative to file that holds macro. |
-| `env!("CARGO_MANIFEST_DIR")` joins | Path names folder. |
-| `///` on type with derive macro (`JsonSchema`, `Parser`) | Macro reads doc comment as data. |
-| `#[path]`, `build.rs`, `mod` in macro | Path names file. |
-| Module path in string | Test filter, log target, `module_path!`, `type_name`. |
-| Path in docs, hooks, CI config | Text goes stale. |
-
-Procedure:
-
-1. Record baseline: `git rev-parse HEAD`, `git status --short`, build, clippy, fmt, doc, tests.
-2. Snapshot each output that must not change. Example: generated schema, prompt file, saved file.
-3. Write move map. One row for each file: old path, new path, what changes inside.
-4. Write closed list: each edit that is not move. Kinds: visibility, body, deleted, added.
-5. Write public path table: path before, path after. Each public item stays public.
-6. Order steps so build is green after each step.
-7. Each step includes `mod`, `use`, and test-import edits that it forces.
-8. Use `git mv` for each file, so that history stays with the file.
-9. `git mv` stages the change. Use `git diff HEAD -M` to see the work. Do not commit unless the user asks.
-10. DO build + test UNTIL green, after each step. IF 3 rounds fail, THEN stop + report.
-
-Proof of no behavior change. All must hold:
-
-- [ ] Snapshots = byte-identical to baseline.
-- [ ] Code with comments removed differs only by closed list + `mod` lines + `use` lines.
-- [ ] Each warning comment + `SMELL:` comment is present, word for word.
-- [ ] Tests: same names, same bodies. Only import lines differ.
-- [ ] Build, clippy, fmt, doc, tests = green. Zero new warnings.
-- [ ] AUDIT block gives zero defects.
-
-Scope:
-
-- [ ] One run = one kind of change. Move OR redesign. Never both.
-- [ ] IF move shows design smell, THEN add `SMELL:` comment + report it. Do not correct it in move run.
-- [ ] Parallel agents: one file group for each agent. No formatter until all agents are done.
-
-CAUTION: Do not let a parallel agent run `git stash`, `git checkout`, `git restore`, or `git reset`. These commands delete the work of the other agents.
-
-## Report
-
-| Where | Rule broken | Evidence | Fix |
-| --- | --- | --- | --- |
-| `src/figure/` | 1 child | holds only `refine.rs` | extract second joint `sheet` |
-
-- [ ] Give tree before + tree after.
-- [ ] Give count of children for each folder.
-- [ ] Give largest file + its line count.
-- [ ] "No defects" = valid result. Do not invent defects.
 
 ## Ergonomics check
 

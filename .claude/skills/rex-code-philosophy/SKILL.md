@@ -1,13 +1,11 @@
 ---
 name: rex-code-philosophy
 description: >
-  This skill gives hard programming rules distilled from grugbrain.dev and
-  Richard Gabriel's Worse-is-Better essays (Rise of Worse is Better, Worse is
-  Better is Worse, Is Worse Really Better?). It is a code philosophy that is
-  complexity-averse, ergonomics-first, and habitability-aware.
+  Hard programming rules from grugbrain.dev and Gabriel's Worse-is-Better
+  essays: complexity-averse, ergonomics-first, habitability-aware.
 when_to_use: >
-  Use when you write, review, refactor, or design code, or when the user asks
-  "how should I write this", "what's right approach", "is this over-engineered",
+  Use when you write, review, refactor, or design code, or the user asks "how
+  should I write this", "what's right approach", "is this over-engineered",
   "should I abstract this", "ship simple or do it right", "MVP vs proper".
 disable-model-invocation: false
 user-invocable: true
@@ -82,6 +80,8 @@ People read code 100x more than they write it. Optimize reader, not writer.
 - **No silver bullet.** Anyone who sells one = shaman. Skeptic.
 
 ## Testing
+
+Rules for each kind of test: `rex-code-tdd` + `rex-code-tests-*` skills.
 
 - **Integration test = sweet spot.** High enough = correctness. Low enough = see what break.
 - **Few e2e.** Curated. Hard debug.
