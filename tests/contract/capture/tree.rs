@@ -122,6 +122,21 @@ fn lines_twice_or_in_any_order_change_nothing() {
         recorded,
         "reversed"
     );
+
+    let mut named_task = Fixture::new();
+    named_task.open_job(JOB_A, BEFORE_SESSION).unwrap();
+    let lines: Vec<String> = named_task
+        .lines
+        .iter()
+        .map(|line| line.replace(r#""tool_name":"Agent""#, r#""tool_name":"Task""#))
+        .collect();
+    assert_ne!(lines, named_task.lines, "no tool name changed");
+    named_task.append(&lines);
+    assert_eq!(
+        named_task.read(JOB_A, AFTER_SESSION).runs,
+        recorded,
+        "sub-agent tool named Task"
+    );
 }
 
 /// Makes the next intake read the whole log again, as if the offset were lost.
