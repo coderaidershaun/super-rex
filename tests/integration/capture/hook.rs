@@ -78,8 +78,8 @@ fn now_ms() -> u64 {
     u64::try_from(since_epoch.as_millis()).unwrap()
 }
 
-/// The one line of `log_text` after `before`, checked to be the C3 form of `event`
-/// with a time between `earliest` and `latest`.
+/// The one line of `log_text` after `before`, checked to be the line that `rex hook`
+/// writes for `event`, with a time between `earliest` and `latest`.
 fn assert_one_line_of(log_text: &str, before: &str, event: &Value, earliest: u64, latest: u64) {
     let added = log_text
         .strip_prefix(before)

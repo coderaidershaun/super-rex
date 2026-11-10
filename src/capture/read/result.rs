@@ -35,7 +35,7 @@ impl Read<'_> {
             run.state == RunState::Unconfirmed
                 || (run.state != RunState::Open && run.tokens == TokenTotal::Unknown)
         });
-        let incomplete = self.is_file_unreadable
+        let incomplete = self.has_unreadable_file
             || has_damaged_transcript
             || has_unsure_run
             || (!runs.is_empty() && session_tokens == TokenTotal::Unknown);

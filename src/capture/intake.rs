@@ -10,7 +10,7 @@ use rusqlite::Connection;
 use super::error::CaptureError;
 use super::event::{Call, CallOutcome, Completion, Event, EventKind, Stop};
 use super::log::{self, LogLine};
-use super::recovery::first_record_at;
+use super::recovery::{first_record_at, subagents_folder, transcript_name};
 use super::rows::{self, CallColumns, RunLine, StopColumns, TieTime};
 use super::tags::Tags;
 use crate::store::Store;
@@ -23,6 +23,8 @@ use crate::store::Store;
 /// log exists and cannot be read.
 pub(super) fn take_in(store: &mut Store) -> Result<(), CaptureError> {
     let log_path = store.paths().event_log.clone();
+    // SMELL: an unfinished last line keeps the log longer than the offset, so every
+    // intake takes the write lock, and finds nothing, until that line is finished.
     if log_size(&log_path)? == rows::offset(store.conn())? {
         return Ok(());
     }
@@ -107,9 +109,14 @@ impl Intake<'_> {
             started_estimate: tie.started_estimate.as_ref(),
             derived_transcript: derived.as_deref(),
         };
-        match &event.kind {
+        self.upsert(&line, &event.kind)
+    }
+
+    /// Writes the columns that `kind` gives to the run that `line` names.
+    fn upsert(&self, line: &RunLine<'_>, kind: &EventKind) -> rusqlite::Result<()> {
+        match kind {
             EventKind::Start(start) => {
-                rows::upsert_start(self.conn, &line, start.agent_type.as_deref())
+                rows::upsert_start(self.conn, line, start.agent_type.as_deref())
             }
             EventKind::Stop(stop) => {
                 let columns = StopColumns {
@@ -118,7 +125,7 @@ impl Intake<'_> {
                     final_message: stop.last_message.as_deref(),
                     transcript_path: stop.agent_transcript_path.as_deref(),
                 };
-                rows::upsert_stop(self.conn, &line, &columns)
+                rows::upsert_stop(self.conn, line, &columns)
             }
             EventKind::Call(call) => {
                 let tags = call
@@ -126,7 +133,7 @@ impl Intake<'_> {
                     .as_deref()
                     .map(Tags::of_brief)
                     .unwrap_or_default();
-                rows::upsert_call(self.conn, &line, &call_columns(call, &tags, at_ms))
+                rows::upsert_call(self.conn, line, &call_columns(call, &tags, line.at_ms))
             }
             EventKind::Other => Ok(()),
         }
@@ -220,18 +227,17 @@ fn tie_time(kind: &EventKind, at_ms: u64) -> TieTime {
         EventKind::Stop(Stop {
             agent_transcript_path: Some(path),
             ..
-        }) => first_record_at(Path::new(path)).map_or(TieTime::Ms(at_ms), TieTime::Text),
+        }) => first_record_at(Path::new(path))
+            .ok()
+            .flatten()
+            .map_or(TieTime::Ms(at_ms), TieTime::Text),
         _ => TieTime::Ms(at_ms),
     }
 }
 
-/// Where Claude Code writes a sub-agent's transcript before its stop line names it:
-/// beside the main transcript, in `<session>/subagents/`.
+/// Where Claude Code writes a sub-agent's transcript, known before its stop line
+/// names it.
 fn derived_transcript(main: &str, session_id: &str, agent_id: &str) -> Option<String> {
-    let folder = Path::new(main).parent()?;
-    let path = folder
-        .join(session_id)
-        .join("subagents")
-        .join(format!("agent-{agent_id}.jsonl"));
+    let path = subagents_folder(Path::new(main), session_id)?.join(transcript_name(agent_id));
     path.to_str().map(str::to_owned)
 }

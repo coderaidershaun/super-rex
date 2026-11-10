@@ -61,6 +61,8 @@ pub(crate) fn session_has_job(conn: &Connection, session_id: &str) -> rusqlite::
 /// The job of the session that was open at `at`: created at or before it, and not
 /// closed at or before it. A job's close time is its first transition to a status
 /// that is not `created` or `planned`.
+// SMELL: the rule for a job's close time is written in two statements of this folder,
+// here and in the read of one job; a change to the open statuses must change both.
 pub(crate) fn job_open_at(
     conn: &Connection,
     session_id: &str,

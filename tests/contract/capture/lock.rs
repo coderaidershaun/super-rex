@@ -7,7 +7,9 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use assert_cmd::Command;
 use rusqlite::ErrorCode;
+use serde_json::Value;
 use super_rex::capture::{CaptureError, RunState};
 use super_rex::store::{Store, StoreError};
 
@@ -36,10 +38,31 @@ fn held_writer_lock_loses_nothing() {
     });
     is_locked.recv().unwrap();
 
-    // PLAIN finishes now. The hook only appends to the log, so the lock never stops it.
-    fixture.append(&[&last]);
+    // PLAIN finishes now. `rex hook` opens no database, so the held lock never makes
+    // it wait; a hook that waited would take the store's 10 seconds.
+    let event = event_of(&last);
+    let started = Instant::now();
+    Command::cargo_bin("rex")
+        .unwrap()
+        .arg("hook")
+        .current_dir(&fixture.store.paths().root)
+        .env_remove("REX_STORE")
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .write_stdin(format!("{event}\n"))
+        .assert()
+        .success()
+        .stdout("")
+        .stderr("");
+    assert!(
+        started.elapsed() < Duration::from_secs(5),
+        "the hook waited"
+    );
     let log = fs::read_to_string(&fixture.store.paths().event_log).unwrap();
-    assert!(log.ends_with(&format!("{last}\n")));
+    let logged: Value = serde_json::from_str(log.lines().last().unwrap()).unwrap();
+    assert_eq!(
+        logged["event"], event,
+        "the hook's line is the last in the log"
+    );
 
     // A read that cannot get the lock in time fails and writes nothing. The store
     // waits 10 seconds; this connection is set to wait only a moment.

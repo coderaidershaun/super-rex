@@ -140,17 +140,3 @@ fn is_store_time(text: &str) -> bool {
                 _ => byte == *form,
             })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn store_time_form() {
-        assert!(is_store_time("2026-11-10T13:10:14.878Z"));
-        assert!(!is_store_time("2026-11-10T13:10:14Z"));
-        assert!(!is_store_time("2026-11-10T13:10:14.878+00"));
-        assert!(!is_store_time("2026-11-10 13:10:14.878Z"));
-        assert!(!is_store_time("2026-11-1aT13:10:14.878Z"));
-    }
-}

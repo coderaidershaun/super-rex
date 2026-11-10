@@ -1,4 +1,5 @@
-//! The values that capture hands to its callers: the runs of one job and the facts read from a main-session transcript.
+//! The values that capture hands to its callers: the runs of one job, and the facts
+//! read from a main session's transcript.
 
 use super::{TokenCounts, TokenTotal};
 

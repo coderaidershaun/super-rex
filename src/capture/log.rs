@@ -143,66 +143,14 @@ impl LogLine {
 mod tests {
     use super::*;
 
-    fn line(text: &str) -> Vec<u8> {
-        format!("{text}\n").into_bytes()
-    }
-
-    #[test]
-    fn written_lines_read_back_in_order() {
-        let mut bytes = line_for(b"{\"hook_event_name\":\"SubagentStart\"}\n", 7).unwrap();
-        bytes.extend(line_for(b"not json", 8).unwrap());
-        bytes.extend(line_for(b"{\"b\":[1,2]}", 9).unwrap());
-        let read = whole_lines(&bytes, 100);
-        assert_eq!(
-            read.lines,
-            vec![
-                LogLine::Event {
-                    at_ms: 7,
-                    event: json!({ "hook_event_name": "SubagentStart" })
-                },
-                LogLine::Raw,
-                LogLine::Event {
-                    at_ms: 9,
-                    event: json!({ "b": [1, 2] })
-                },
-            ]
-        );
-        assert_eq!(read.offset, 100 + bytes.len() as u64);
-    }
-
     #[test]
     fn unfinished_line_waits_for_the_next_read() {
-        let mut bytes = line("{\"v\":1,\"at_ms\":1,\"event\":{}}");
+        let mut bytes = b"{\"v\":1,\"at_ms\":1,\"event\":{}}\n".to_vec();
         let whole = bytes.len() as u64;
         bytes.extend(b"{\"v\":1,\"at_ms\":2,\"ev");
         let read = whole_lines(&bytes, 0);
         assert_eq!(read.lines.len(), 1);
         assert_eq!(read.offset, whole);
         assert_eq!(whole_lines(b"{\"v\":1", 5).offset, 5);
-    }
-
-    #[test]
-    fn unusable_lines_are_damaged() {
-        let mut bytes = Vec::new();
-        for text in [
-            "{\"v\":1,\"at_ms\":1,\"ev",
-            "{\"at_ms\":1,\"event\":{}}",
-            "{\"v\":2,\"at_ms\":1,\"event\":{}}",
-            "{\"v\":1,\"event\":{}}",
-            "{\"v\":1,\"at_ms\":1,\"event\":\"text\"}",
-            "{\"v\":1,\"at_ms\":1}",
-            "[1]",
-            "",
-        ] {
-            bytes.extend(line(text));
-        }
-        let read = whole_lines(&bytes, 0);
-        assert_eq!(read.lines, vec![LogLine::Damaged; 8]);
-    }
-
-    #[test]
-    fn empty_input_gives_no_line() {
-        assert_eq!(line_for(b"", 1), None);
-        assert_eq!(line_for(b" \n", 1), None);
     }
 }

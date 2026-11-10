@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use super::changes::Changes;
 use super::{Read, millis};
-use crate::capture::recovery::{Metadata, read_metadata};
+use crate::capture::recovery::{Metadata, metadata_name, read_metadata};
 use crate::capture::rows::{Fill, Reading, RunReading, StoredRun};
 use crate::capture::runs::RunState;
 use crate::capture::state::{self, Activity};
@@ -36,6 +36,18 @@ pub(super) struct RunFiles {
     metadata: Option<Metadata>,
 }
 
+fn activities<'a>(runs: &'a [StoredRun], files: &[RunFiles]) -> Vec<Activity<'a>> {
+    runs.iter()
+        .zip(files)
+        .map(|(run, files)| Activity {
+            agent_id: &run.agent_id,
+            parent_agent_id: run.parent_agent_id.as_deref(),
+            is_finished: run.stopped_at.is_some() || files.says_finished(),
+            last_active_ms: run.started_ms.max(files.modified_ms),
+        })
+        .collect()
+}
+
 /// One run as this read sees it.
 struct Seen<'a> {
     run: &'a StoredRun,
@@ -53,9 +65,9 @@ impl Read<'_> {
                     .map_or((None, None), |path| self.size_and_time(path));
                 let metadata = match &transcript {
                     Some(path) if need == Need::LaterSources && run.needs_metadata() => {
-                        let path = path.with_file_name(format!("agent-{}.meta.json", run.agent_id));
+                        let path = path.with_file_name(metadata_name(&run.agent_id));
                         read_metadata(&path).unwrap_or_else(|_| {
-                            self.is_file_unreadable = true;
+                            self.has_unreadable_file = true;
                             None
                         })
                     }
@@ -80,7 +92,7 @@ impl Read<'_> {
             }
             Err(error) if error.kind() == ErrorKind::NotFound => (None, None),
             Err(_) => {
-                self.is_file_unreadable = true;
+                self.has_unreadable_file = true;
                 (None, None)
             }
         }
@@ -91,21 +103,21 @@ impl Read<'_> {
         runs: &[StoredRun],
         files: &[RunFiles],
     ) -> HashMap<String, RunState> {
-        let activities: Vec<Activity<'_>> = runs
-            .iter()
-            .zip(files)
-            .map(|(run, files)| Activity {
-                agent_id: &run.agent_id,
-                parent_agent_id: run.parent_agent_id.as_deref(),
-                is_finished: run.stopped_at.is_some() || files.says_finished(),
-                last_active_ms: run.started_ms.max(files.modified_ms),
-            })
-            .collect();
+        let activities = activities(runs, files);
         let states = state::states(&activities, self.now_ms);
         runs.iter()
             .map(|run| run.agent_id.clone())
             .zip(states)
             .collect()
+    }
+
+    /// The last activity of each run, in milliseconds since the epoch.
+    pub(super) fn last_activities(
+        &self,
+        runs: &[StoredRun],
+        files: &[RunFiles],
+    ) -> HashMap<String, u64> {
+        state::last_activities(&activities(runs, files))
     }
 
     /// For each run whose total is not final: the token step, and the columns its
@@ -130,7 +142,9 @@ impl Read<'_> {
             let mut fill = seen.metadata_fill(derived_depth);
             let step = self.token_step(&seen);
             let is_parse_due = step == Step::ReadAgain || seen.needs_stop_time();
-            if step == Step::Final {
+            // A final total is never read again, so a stop time that only the
+            // transcript gives must be taken first.
+            if step == Step::Final && !seen.needs_stop_time() {
                 let judged = run.total.judged();
                 changes
                     .settled
@@ -166,7 +180,7 @@ impl Read<'_> {
     /// A transcript that cannot be read counts as absent for this read.
     fn parse(&mut self, path: &Path) -> Option<TranscriptFacts> {
         read_transcript(path).unwrap_or_else(|_| {
-            self.is_file_unreadable = true;
+            self.has_unreadable_file = true;
             None
         })
     }
@@ -263,7 +277,8 @@ impl StoredRun {
 }
 
 /// For a run with no depth from its metadata file: one more than its parent's, when
-/// the parent is a run of the job whose depth is known.
+/// the parent is a run of the job whose depth is known, and 1 for a run that the main
+/// session started.
 fn derived_depths(runs: &[StoredRun], files: &[RunFiles]) -> Vec<Option<u32>> {
     let mut depths: HashMap<&str, u32> = runs
         .iter()
@@ -282,11 +297,14 @@ fn derived_depths(runs: &[StoredRun], files: &[RunFiles]) -> Vec<Option<u32>> {
             if depths.contains_key(run.agent_id.as_str()) {
                 continue;
             }
-            let parent_depth = run
-                .parent_agent_id
-                .as_deref()
-                .and_then(|parent| depths.get(parent));
-            if let Some(depth) = parent_depth.map(|depth| depth + 1) {
+            let parent_depth = match run.parent_agent_id.as_deref() {
+                Some(parent) => depths.get(parent).copied(),
+                // A run with no parent was started by the main session only if the call
+                // that started it was seen, and that call is what sets `background`.
+                None if run.background.is_some() => Some(0),
+                None => None,
+            };
+            if let Some(depth) = parent_depth.and_then(|depth| depth.checked_add(1)) {
                 depths.insert(&run.agent_id, depth);
                 *slot = Some(depth);
                 is_changed = true;

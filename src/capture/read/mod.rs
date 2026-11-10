@@ -7,6 +7,7 @@ mod files;
 mod result;
 mod session;
 
+use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
 
 use super::error::CaptureError;
@@ -32,7 +33,7 @@ pub(super) fn job_runs(
         stored_job: &stored_job,
         now,
         now_ms: millis(now),
-        is_file_unreadable: false,
+        has_unreadable_file: false,
     };
     let mut runs = rows::runs(store.conn(), job)?;
     let session = rows::session_total(store.conn(), job)?;
@@ -45,7 +46,7 @@ pub(super) fn job_runs(
     }
 
     let recovery = recovery::recover(store, &stored_job.session_id)?;
-    read.is_file_unreadable |= recovery.is_folder_unreadable;
+    read.has_unreadable_file |= recovery.has_unreadable_file;
     if recovery.added > 0 {
         runs = rows::runs(store.conn(), job)?;
     }
@@ -60,6 +61,32 @@ pub(super) fn job_runs(
     read.result(store.conn(), &runs, &states)
 }
 
+/// The last activity of each run of `job`, by agent ID, in milliseconds since the
+/// epoch: the newest of the run's start and its transcript's modification time, and
+/// of the same for each run below it. Reads no log and writes nothing.
+// SMELL: this reads every run's files a second time, after `job_runs` read them, and
+// takes the clock only to fill a field it does not use. The read of `job_runs` should
+// hand back the activity it already found.
+pub(crate) fn last_activity_ms(
+    store: &Store,
+    job: &JobId,
+) -> Result<HashMap<String, u64>, CaptureError> {
+    let Some(stored_job) = rows::job(store.conn(), job)? else {
+        return Ok(HashMap::new());
+    };
+    let now = SystemTime::now();
+    let mut read = Read {
+        job,
+        stored_job: &stored_job,
+        now,
+        now_ms: millis(now),
+        has_unreadable_file: false,
+    };
+    let runs = rows::runs(store.conn(), job)?;
+    let files = read.observe(&runs, Need::State);
+    Ok(read.last_activities(&runs, &files))
+}
+
 /// One call of `job_runs`: the job, the moment of the read, and whether a file of
 /// the job could not be read at this read.
 struct Read<'a> {
@@ -67,7 +94,7 @@ struct Read<'a> {
     stored_job: &'a StoredJob,
     now: SystemTime,
     now_ms: u64,
-    is_file_unreadable: bool,
+    has_unreadable_file: bool,
 }
 
 impl Read<'_> {

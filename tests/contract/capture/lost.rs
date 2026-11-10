@@ -26,7 +26,8 @@ fn session_that_ends_at_once_is_marked() {
     // REVIEWER was still working: its metadata file has no `finished` yet, and its
     // transcript was last written at its last record.
     let metadata = fixture.metadata(REVIEWER);
-    let mut meta: Value = serde_json::from_str(&fs::read_to_string(&metadata).unwrap()).unwrap();
+    let finished_meta = fs::read_to_string(&metadata).unwrap();
+    let mut meta: Value = serde_json::from_str(&finished_meta).unwrap();
     meta.as_object_mut().unwrap().remove("finished");
     fs::write(&metadata, meta.to_string()).unwrap();
     let last_written = fixture.time("2026-11-10T13:10:39.890Z");
@@ -49,6 +50,22 @@ fn session_that_ends_at_once_is_marked() {
     );
     assert!(!inside_quiet.incomplete);
 
+    // A transcript that cannot be read counts as absent for that read, and marks it.
+    let lead_transcript = fixture.transcript(LEAD);
+    let lead_text = fs::read(&lead_transcript).unwrap();
+    fs::remove_file(&lead_transcript).unwrap();
+    fs::create_dir(&lead_transcript).unwrap();
+    let unreadable = fixture.read(JOB_A, "2026-11-10T13:15:00.000Z");
+    assert_eq!(run(&unreadable, LEAD).tokens, lead.tokens);
+    let counts = &unreadable;
+    assert_eq!(
+        (counts.open, counts.finished, counts.unconfirmed),
+        (1, 5, 0)
+    );
+    assert!(unreadable.incomplete);
+    fs::remove_dir(&lead_transcript).unwrap();
+    fs::write(&lead_transcript, lead_text).unwrap();
+
     let past_quiet = fixture.read(JOB_A, "2026-11-10T13:26:00.000Z");
     assert_eq!(run(&past_quiet, REVIEWER).state, RunState::Unconfirmed);
     let counts = &past_quiet;
@@ -57,6 +74,21 @@ fn session_that_ends_at_once_is_marked() {
         (0, 5, 1)
     );
     assert!(past_quiet.incomplete);
+
+    // The job closes while REVIEWER is quiet, and later its metadata file says it
+    // finished. Its stop time is then taken from its transcript before its total is
+    // final, because a final total is never read again.
+    fixture.close_job(JOB_A, "2026-11-10T13:27:00.000Z");
+    let after_close = fixture.read(JOB_A, "2026-11-10T13:28:00.000Z");
+    assert_eq!(run(&after_close, REVIEWER).state, RunState::Unconfirmed);
+    fs::write(&metadata, finished_meta).unwrap();
+    let finished = fixture.read(JOB_A, "2026-11-10T13:29:00.000Z");
+    let reviewer = run(&finished, REVIEWER);
+    assert_eq!(reviewer.state, RunState::Finished);
+    assert_eq!(
+        reviewer.stopped_at.as_deref(),
+        Some("2026-11-10T13:10:39.890Z")
+    );
 }
 
 #[test]
@@ -112,6 +144,26 @@ fn lost_lines_give_the_same_tree() {
         others.runs.retain(|run| run.agent_id != LEAD);
         assert_eq!(runs.runs, others.runs, "lines {lost:?} lost");
     }
+
+    // The metadata files of LEAD and WORKER lost: each depth is one more than the
+    // parent's, and the main session counts as depth 0.
+    let mut fixture = fixture_without(&[]);
+    for agent in [LEAD, WORKER] {
+        fs::remove_file(fixture.metadata(agent)).unwrap();
+    }
+    let runs = fixture.read(JOB_A, AFTER_SESSION);
+    assert!(!runs.incomplete, "metadata files lost");
+    assert_eq!(runs.runs, recorded.runs, "metadata files lost");
+
+    // All three lines lost, and the transcript that would recover the run cannot be
+    // read: the run is not found, and the history is marked.
+    let mut fixture = fixture_without(&[start, stop, call]);
+    let transcript = fixture.transcript(LEAD);
+    fs::remove_file(&transcript).unwrap();
+    fs::create_dir(&transcript).unwrap();
+    let runs = fixture.read(JOB_A, AFTER_SESSION);
+    assert!(!agent_ids(&runs).contains(&LEAD), "{:?}", agent_ids(&runs));
+    assert!(runs.incomplete, "unreadable transcript");
 }
 
 #[test]
@@ -165,10 +217,14 @@ fn late_transcript_record_is_counted_before_final() {
     assert!(!settled.incomplete);
 }
 
-/// The runs of the recorded session read after it, with LEAD's lines at `lost`
-/// (0 = start, 1 = stop, 2 = completed call) cut short, as a short write on a full
-/// disk leaves them.
+/// The runs of the recorded session read after it, with LEAD's lines at `lost` cut short.
 fn runs_without(lost: &[usize]) -> JobRuns {
+    fixture_without(lost).read(JOB_A, AFTER_SESSION)
+}
+
+/// The recorded session in the log, with LEAD's lines at `lost` (0 = start, 1 = stop,
+/// 2 = completed call) cut short, as a short write on a full disk leaves them.
+fn fixture_without(lost: &[usize]) -> Fixture {
     let mut fixture = Fixture::new();
     fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
     let lead_lines = fixture.lines_of(LEAD);
@@ -185,5 +241,5 @@ fn runs_without(lost: &[usize]) -> JobRuns {
         })
         .collect();
     fixture.append(&logged);
-    fixture.read(JOB_A, AFTER_SESSION)
+    fixture
 }
