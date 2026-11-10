@@ -1,6 +1,18 @@
 ---
 name: rex-mermaid-diagrams
-description: This skill is a comprehensive guide to software diagrams in Mermaid syntax. Use it when users must create, visualize, or document software with diagrams. The diagram types include class diagrams (domain modeling, object-oriented design), sequence diagrams (application flows, API interactions, code execution), flowcharts (processes, algorithms, user journeys), entity relationship diagrams (database schemas), C4 architecture diagrams (system context, containers, components), state diagrams, git graphs, pie charts, gantt charts, and any other diagram type. Use it also for requests to "diagram", "visualize", "model", "map out", "show the flow", or when you explain system architecture, database design, code structure, or user/application flows.
+description: >
+  This skill is a comprehensive guide to software diagrams in Mermaid syntax.
+  The diagram types include class diagrams (domain modeling, object-oriented
+  design), sequence diagrams (application flows, API interactions, code
+  execution), flowcharts (processes, algorithms, user journeys), entity
+  relationship diagrams (database schemas), C4 architecture diagrams (system
+  context, containers, components), state diagrams, git graphs, pie charts,
+  gantt charts, and any other diagram type.
+when_to_use: >
+  Use when users must create, visualize, or document software with diagrams. Use
+  it also for requests to "diagram", "visualize", "model", "map out", "show the
+  flow", or when you explain system architecture, database design, code
+  structure, or user/application flows.
 disable-model-invocation: false
 user-invocable: true
 ---

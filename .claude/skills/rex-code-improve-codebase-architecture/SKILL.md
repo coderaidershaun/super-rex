@@ -2,15 +2,15 @@
 name: rex-code-improve-codebase-architecture
 description: >
   Finds architecture friction in a codebase, ranks the candidates, and designs
-  the best one. It makes shallow modules deep and makes the folder tree tell
-  how the code works. It uses the domain language in CONTEXT.md, the decisions
-  in docs/adr/, and the tree rules in rex-code-folder-management. It runs with
-  no questions to the user: it picks the target, builds nothing, and ends with
-  a design brief that tells the builder how to prove that behavior did not
-  change. Use this skill when
-  the user wants to improve architecture, find refactor candidates, group or
-  tidy modules, join coupled modules, or make code easier to test and to
-  navigate. Use it also when the user says "improve architecture", "refactor
+  the best one. It makes shallow modules deep and makes the folder tree tell how
+  the code works. It uses the domain language in CONTEXT.md, the decisions in
+  docs/adr/, and the tree rules in rex-code-folder-management. It runs with no
+  questions to the user: it picks the target, builds nothing, and ends with a
+  design brief that tells the builder how to prove that behavior did not change.
+when_to_use: >
+  Use when the user wants to improve architecture, find refactor candidates,
+  group or tidy modules, join coupled modules, or make code easier to test and
+  to navigate. Use it also when the user says "improve architecture", "refactor
   opportunities", "deepen modules", "tidy up modules", or "get ready for the
   next feature".
 disable-model-invocation: false
@@ -234,6 +234,7 @@ Brief is for agents with no context. Write it in full sentences. It must hold:
 - [ ] Files in scope. Current friction.
 - [ ] Target tree + target interface. Seam placement. Dependency category.
 - [ ] Hard constraints, numbered. Include each rule from `rex-code-folder-management` that applies.
+- [ ] Parallel builders: each builder gets one file group. No file is in two groups. CAUTION: No builder runs `git stash`, `git checkout`, `git restore`, or `git reset`. These commands delete the work of other builders.
 - [ ] Hidden behavior, each item named, with rule: "move by cut and paste, never type again".
 - [ ] Proof: path + checks from 4.3, as hard constraints. Builder runs checks after each stage.
 - [ ] Tests that must stay. Tests that must never run.
@@ -258,8 +259,6 @@ Put these checks in brief. Builder runs Proof after each stage.
 
 IF check fails, THEN stage is not done.
 
-CAUTION: Do not commit or push unless the user asks. The `CONTEXT.md` and ADR edits stay in the working tree.
-
 ### 4.4 Stop conditions
 
 Stop before brief only IF:
@@ -268,6 +267,8 @@ Stop before brief only IF:
 - [ ] Chosen candidate conflicts with ADR that is not worth opening again.
 
 Then report + leave code as it was.
+
+CAUTION: Do not commit or push unless the user asks. The `CONTEXT.md` and ADR edits stay in the working tree.
 
 ## Report
 

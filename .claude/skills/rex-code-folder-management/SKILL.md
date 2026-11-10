@@ -4,12 +4,13 @@ description: >
   Hard rules for folders, files, and module layout in a Rust crate. The tree
   must tell how the crate works before a reader opens a file. The skill covers
   top modules, where a module lives, `mod.rs`, the minimum of two children for
-  each folder, the 500-line limit, import direction, visibility, and how to
-  move files with no behavior change. Use this skill when you create a module
-  or a folder, split or move a file, or review a tree. Use it also when the
-  user says "tidy the modules", "group modules", "folder structure", "where
-  does this file go", "subfolders", or "mod.rs". The
-  rex-code-improve-codebase-architecture skill loads this skill in every run.
+  each folder, the 500-line limit, import direction, visibility, and how to move
+  files with no behavior change. The rex-code-improve-codebase-architecture
+  skill loads this skill in every run.
+when_to_use: >
+  Use when you create a module or a folder, split or move a file, or review a
+  tree. Use it also when the user says "tidy the modules", "group modules",
+  "folder structure", "where does this file go", "subfolders", or "mod.rs".
 disable-model-invocation: false
 user-invocable: true
 ---

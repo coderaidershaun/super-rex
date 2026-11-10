@@ -1,6 +1,14 @@
 ---
 name: rex-code-ergonomics
-description: This skill gives hard rules for ergonomic Rust code. It covers naming, types, traits, iterators, lifetimes, panics, and fn signatures, with bad and good examples throughout. Use it when you write or review Rust, design public APIs, or name types and fns. Use it also when you choose String vs &str, Result vs panic, generic vs dyn, or builder vs struct literal. Use it also when the user asks "is this idiomatic Rust", "ergonomic API", "make this nicer".
+description: >
+  This skill gives hard rules for ergonomic Rust code. It covers naming, types,
+  traits, iterators, lifetimes, panics, and fn signatures, with bad and good
+  examples throughout.
+when_to_use: >
+  Use when you write or review Rust, design public APIs, or name types and fns.
+  Use it also when you choose String vs &str, Result vs panic, generic vs dyn,
+  or builder vs struct literal. Use it also when the user asks "is this
+  idiomatic Rust", "ergonomic API", "make this nicer".
 disable-model-invocation: false
 user-invocable: true
 ---

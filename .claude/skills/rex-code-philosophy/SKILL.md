@@ -1,6 +1,14 @@
 ---
 name: rex-code-philosophy
-description: This skill gives hard programming rules distilled from grugbrain.dev and Richard Gabriel's Worse-is-Better essays (Rise of Worse is Better, Worse is Better is Worse, Is Worse Really Better?). It is a code philosophy that is complexity-averse, ergonomics-first, and habitability-aware. Use it when you write, review, refactor, or design code, or when the user asks "how should I write this", "what's right approach", "is this over-engineered", "should I abstract this", "ship simple or do it right", "MVP vs proper".
+description: >
+  This skill gives hard programming rules distilled from grugbrain.dev and
+  Richard Gabriel's Worse-is-Better essays (Rise of Worse is Better, Worse is
+  Better is Worse, Is Worse Really Better?). It is a code philosophy that is
+  complexity-averse, ergonomics-first, and habitability-aware.
+when_to_use: >
+  Use when you write, review, refactor, or design code, or when the user asks
+  "how should I write this", "what's right approach", "is this over-engineered",
+  "should I abstract this", "ship simple or do it right", "MVP vs proper".
 disable-model-invocation: false
 user-invocable: true
 ---
