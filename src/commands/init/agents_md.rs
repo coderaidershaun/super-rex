@@ -1,6 +1,5 @@
-//! Puts the rex sections (codebase map, code smells) on top of `AGENTS.md`
-//! so agents run `rex codebase` and `rex smells` instead of walking the tree
-//! by hand.
+//! Puts the rex sections on top of `AGENTS.md`, so agents run `rex codebase`
+//! and `rex smells` instead of walking the tree by hand.
 
 use std::fs;
 use std::io::ErrorKind;

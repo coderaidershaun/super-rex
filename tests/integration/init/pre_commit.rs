@@ -5,10 +5,100 @@ use std::fs;
 
 use yaml_rust2::YamlLoader;
 
-use super::support::{Repo, SKILL_MARKER, installed, repo, rex_init, rex_init_ok};
+use super::support::{
+    COMMIT_ALL, PRE_COMMIT_ARGS, Repo, SKILL_MARKER, installed, repo, rex_init, rex_init_ok,
+};
 
 fn stderr_of_install(repo: &Repo) -> String {
     rex_init_ok(repo, &[]).stderr
+}
+
+#[test]
+fn pre_commit_config_is_created_and_hooks_installed() {
+    let repo = repo();
+
+    let printed = rex_init_ok(&repo, &[]);
+
+    assert!(printed.stdout.ends_with(&format!(
+        "rex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}"
+    )));
+
+    let config = fs::read_to_string(repo.path().join(".pre-commit-config.yaml"))
+        .expect("read .pre-commit-config.yaml");
+    assert!(config.starts_with("# rex:pre-commit\n"));
+    assert!(
+        config
+            .contains("# Installed by `rex init`. Needs pre-commit, gitleaks and trivy on PATH.\n")
+    );
+    assert!(config.contains("--skip-dirs target,node_modules,.claude,.rex --skip-files"));
+    assert!(config.contains("repo: https://github.com/pre-commit/pre-commit-hooks\n"));
+    assert!(config.contains("entry: gitleaks git --pre-commit --staged --redact --verbose\n"));
+    assert!(
+        config.contains("--scanners secret,vuln,misconfig --severity HIGH,CRITICAL --exit-code 1")
+    );
+    assert!(config.contains("stages: [pre-push]\n"));
+
+    let args = fs::read_to_string(repo.bin().join(PRE_COMMIT_ARGS))
+        .expect("fake pre-commit must have run");
+    assert_eq!(
+        args,
+        "install --install-hooks --hook-type pre-commit --hook-type pre-push"
+    );
+}
+
+#[test]
+fn existing_pre_commit_config_is_never_touched() {
+    let repo = repo();
+    fs::write(
+        repo.path().join(".pre-commit-config.yaml"),
+        b"sentinel content",
+    )
+    .expect("write sentinel config");
+
+    let printed = rex_init_ok(&repo, &[]);
+
+    assert!(
+        printed
+            .stdout
+            .contains("rex init: .pre-commit-config.yaml skipped (already exists)\n")
+    );
+
+    let config = fs::read(repo.path().join(".pre-commit-config.yaml")).expect("read config");
+    assert_eq!(config, b"sentinel content");
+}
+
+#[test]
+fn second_run_leaves_pre_commit_config_alone() {
+    let repo = repo();
+
+    rex_init_ok(&repo, &[]);
+
+    let before = fs::read(repo.path().join(".pre-commit-config.yaml")).expect("read config");
+
+    let second = rex_init_ok(&repo, &[]);
+
+    assert!(!second.stdout.contains(".pre-commit-config.yaml"));
+    assert!(
+        second
+            .stdout
+            .ends_with("rex init: pre-commit hooks installed\n")
+    );
+
+    let after = fs::read(repo.path().join(".pre-commit-config.yaml")).expect("read config");
+    assert_eq!(before, after);
+}
+
+#[test]
+fn missing_pre_commit_tool_prints_the_install_command() {
+    let repo = repo();
+    repo.remove_tool("pre-commit");
+
+    let printed = rex_init_ok(&repo, &[]);
+
+    assert!(printed.stdout.ends_with(&format!(
+        "rex init: pre-commit hooks skipped (pre-commit not found; install it, then run: pre-commit install --install-hooks --hook-type pre-commit --hook-type pre-push)\n{COMMIT_ALL}"
+    )));
+    assert!(repo.path().join(".pre-commit-config.yaml").is_file());
 }
 
 #[test]

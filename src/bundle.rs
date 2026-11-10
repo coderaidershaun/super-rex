@@ -63,6 +63,8 @@ mod tests {
     ];
     static ROOT: Dir<'static> = Dir::new("", &ROOT_ENTRIES);
 
+    // The real bundle holds no hidden file, so this is the only test that
+    // fails if the walk stops skipping them.
     #[test]
     fn walk_skips_hidden_files_and_folders_at_any_depth() {
         let mut entries = Vec::new();

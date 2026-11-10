@@ -18,6 +18,12 @@ pub const AGENT_MARKER: &str = "agents/model-medium-effort-medium.md";
 /// of the stand-in tools.
 pub const PRE_COMMIT_ARGS: &str = "pre-commit-args";
 
+/// The last line of a first run, which changes all three project files.
+pub const COMMIT_ALL: &str = "rex init: commit AGENTS.md, .gitignore and .pre-commit-config.yaml (git add + git commit); a job works in the main checkout only when it is clean\n";
+
+/// The end of every run that failed one step.
+pub const ONE_STEP_FAILED: &str = "error: rex init did not finish 1 step(s); each is named above\n";
+
 /// A fresh Git repo plus a folder of stand-in tools that is the only folder
 /// on PATH when `rex init` runs. The tools live outside the repo, so they
 /// never show up in its tree.
@@ -43,6 +49,12 @@ impl Repo {
     /// Put a stand-in `tool` on PATH that runs `body` as a shell script.
     pub fn write_tool(&self, tool: &str, body: &str) {
         let path = self.bin().join(tool);
+        // `rex` is a link to the binary under test, and a write through it
+        // would overwrite that binary.
+        assert!(
+            !path.is_symlink(),
+            "remove the {tool} link before replacing it"
+        );
         fs::write(&path, format!("#!/bin/sh\n{body}\n")).expect("write stand-in tool");
         #[cfg(unix)]
         {
@@ -76,19 +88,32 @@ pub fn repo() -> Repo {
     for tool in ["gitleaks", "trivy", "gh", "bwrap", "socat"] {
         repo.write_tool(tool, "exit 0");
     }
+    // The `rex` on PATH is the binary under test, so `rex init` finds itself
+    // there and has nothing to warn about.
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(env!("CARGO_BIN_EXE_rex"), repo.bin().join("rex"))
+        .expect("link rex onto PATH");
     repo
 }
 
-/// Run `rex init` with `args` in `repo`, with only the stand-in tools on PATH.
-pub fn rex_init(repo: &Repo, args: &[&str]) -> Output {
-    assert_cmd::Command::cargo_bin("rex")
-        .expect("find rex binary")
+/// The command that runs `rex init` with `args` in `repo`, with only the
+/// stand-in tools on PATH, for a test that sets more of its environment.
+pub fn rex_init_command(repo: &Repo, args: &[&str]) -> assert_cmd::Command {
+    let mut command = assert_cmd::Command::cargo_bin("rex").expect("find rex binary");
+    command
         .arg("init")
         .args(args)
         .current_dir(repo.path())
         .env("PATH", repo.bin())
-        .output()
-        .expect("run rex init")
+        // A store chosen in the developer's shell must not change where the
+        // test's store goes.
+        .env_remove("REX_STORE");
+    command
+}
+
+/// Run `rex init` with `args` in `repo`, with only the stand-in tools on PATH.
+pub fn rex_init(repo: &Repo, args: &[&str]) -> Output {
+    rex_init_command(repo, args).output().expect("run rex init")
 }
 
 /// What a run of `rex init` printed.
@@ -97,19 +122,43 @@ pub struct Printed {
     pub stderr: String,
 }
 
+impl Printed {
+    fn from_output(output: &Output) -> Self {
+        Self {
+            stdout: String::from_utf8(output.stdout.clone()).expect("utf8 stdout"),
+            stderr: String::from_utf8(output.stderr.clone()).expect("utf8 stderr"),
+        }
+    }
+}
+
 /// Run `rex init` as [`rex_init`] does and check that it succeeded.
 pub fn rex_init_ok(repo: &Repo, args: &[&str]) -> Printed {
     let output = rex_init(repo, args);
-    let printed = Printed {
-        stdout: String::from_utf8(output.stdout).expect("utf8 stdout"),
-        stderr: String::from_utf8(output.stderr).expect("utf8 stderr"),
-    };
+    let printed = Printed::from_output(&output);
     assert!(
         output.status.success(),
         "rex init failed: {}",
         printed.stderr
     );
     printed
+}
+
+/// Run `rex init` as [`rex_init`] does and check that it exited with 1.
+pub fn rex_init_failed(repo: &Repo, args: &[&str]) -> Printed {
+    let output = rex_init(repo, args);
+    let printed = Printed::from_output(&output);
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "rex init must exit with 1; stderr: {}",
+        printed.stderr
+    );
+    printed
+}
+
+/// The file in `repo` that `rex init` merges its settings into.
+pub fn settings_path(repo: &Repo) -> PathBuf {
+    repo.path().join(".claude").join("settings.local.json")
 }
 
 pub fn bundle_file_count() -> usize {
