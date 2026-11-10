@@ -24,7 +24,7 @@ IF your brief starts with tag block that holds `Rex-Job:`, THEN do "Open job exi
 1. Classify request.
 2. Settle merge agreement with requester.
 3. Open job. IF output gives `existing=yes`, THEN do "Open job exists".
-4. Recall.
+4. Recall + list skills: run `rex recall` and `rex skills list`.
 5. Stages, in sequence: nuance-selection, then work-breakdown, then orchestration-selection.
 6. Record plan.
 7. Run: you = orchestrator. Obey orchestrator skill on job branch.
@@ -58,7 +58,8 @@ IF your brief starts with tag block that holds `Rex-Job:`, THEN do "Open job exi
 - Paths: each path in this skill starts at `HOME_DIR`.
 
 Store commands (`rex job …`, `rex recall`) start with `REX_STORE="$HOME_DIR/.rex"`. Then shell in Git worktree or in sibling repo finds store of job.
-Shell keeps no variable between commands. In each command, write real path in place of `$HOME_DIR`.
+Shell keeps no variable between commands. In each command, write absolute path of home repo in place of `$HOME_DIR`.
+Never write `$PWD` there: in job worktree or in sibling repo, `$PWD` gives wrong store.
 
 ## Rules
 
@@ -189,7 +190,14 @@ REX_STORE="$HOME_DIR/.rex" rex job close <job-id> --status cancelled --outcome "
 
 ## Step 4 — Recall
 
-Run `REX_STORE="$HOME_DIR/.rex" rex recall <job-id>`. Output:
+Run both commands:
+
+```sh
+REX_STORE="$HOME_DIR/.rex" rex recall <job-id>
+rex skills list
+```
+
+Output of `rex recall`:
 
 ```
 job=<job ID>
@@ -207,6 +215,9 @@ unused name=<name> version=<v> path=<path> description=<text>
 - [ ] `unused` lines: orchestrator skills whose newest version never ran.
 - [ ] Give `orchestrator` lines and `unused` lines to stage 3.
 - [ ] `rex recall` records recalled experience on job itself, while job status = `created`.
+- [ ] `rex skills list` prints each skill of repo and of user skill folder, with its `when_to_use` line and its `path`.
+- [ ] Give its output to stage 1.
+- [ ] Never list skills with `ls`: it gives no `when_to_use` line and no skill of user skill folder.
 
 ## Step 5 — Stages
 
@@ -214,7 +225,7 @@ Three stages, in sequence. For each stage: read its file IN FULL, do it, keep it
 
 | Stage | File | Input | Output |
 | --- | --- | --- | --- |
-| 1 | `.claude/skills/nuance-selection/SKILL.md` | Request, classification, recall output, job ID | Skill list |
+| 1 | `.claude/skills/nuance-selection/SKILL.md` | Request, classification, recall output, output of `rex skills list`, job ID | Skill list |
 | 2 | `.claude/skills/work-breakdown/SKILL.md` | Request, classification, recall output, skill list | Work breakdown |
 | 3 | `.claude/skills/orchestration-selection/SKILL.md` | Work breakdown, skill list, classification, preferences, recall output | Orchestrator skill (name, path, `new` or `reused`) + role table |
 
