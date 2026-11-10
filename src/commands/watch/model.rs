@@ -321,7 +321,7 @@ mod tests {
         let rows = with_runs.view(0).tree;
         let shape: Vec<_> = rows.iter().map(|row| row.depth).collect();
         assert_eq!(shape, [0, 1, 2, 1, 0]);
-        assert_eq!(rows[0].tokens, "61.0k tokens~");
+        assert_eq!(rows[0].tokens, "61.0k~");
         assert_eq!(rows[0].duration, "41s");
         assert_eq!(rows[4].tag_job.as_deref(), Some("0g4cbf7k2q"));
     }

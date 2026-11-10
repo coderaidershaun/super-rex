@@ -18,7 +18,7 @@ use select::{has_feedback, select_deliveries, select_job_rows};
 use summary::jobs_json;
 
 pub use select::JobFilter;
-pub use summary::{JobSummary, TokenSummary};
+pub use summary::{JobSummary, RunCounts, TokenSummary};
 
 /// Arguments of `rex jobs`.
 #[derive(clap::Args)]

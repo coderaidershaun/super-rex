@@ -18,6 +18,23 @@ pub const AGENT_MARKER: &str = "agents/model-medium-effort-medium.md";
 /// of the stand-in tools.
 pub const PRE_COMMIT_ARGS: &str = "pre-commit-args";
 
+/// Git sets these when it runs a hook, such as the pre-push hook that runs
+/// these tests. Left in place, they point `git init` and `rex init` at the
+/// repo being pushed instead of the test's own repo, and `git init` makes it bare.
+const GIT_LOCATION_VARIABLES: [&str; 4] = [
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_COMMON_DIR",
+    "GIT_INDEX_FILE",
+];
+
+fn without_git_location(command: &mut Command) -> &mut Command {
+    for variable in GIT_LOCATION_VARIABLES {
+        command.env_remove(variable);
+    }
+    command
+}
+
 /// The last line of a first run, which changes all three project files.
 pub const COMMIT_ALL: &str = "rex init: commit AGENTS.md, .gitignore and .pre-commit-config.yaml (git add + git commit); a job works in the main checkout only when it is clean\n";
 
@@ -72,7 +89,7 @@ pub fn repo() -> Repo {
         dir: tempdir().expect("create repo tempdir"),
         bin: tempdir().expect("create tools tempdir"),
     };
-    let git = Command::new("git")
+    let git = without_git_location(&mut Command::new("git"))
         .args(["init", "-q"])
         .current_dir(repo.path())
         .status()
@@ -108,6 +125,9 @@ pub fn rex_init_command(repo: &Repo, args: &[&str]) -> assert_cmd::Command {
         // A store chosen in the developer's shell must not change where the
         // test's store goes.
         .env_remove("REX_STORE");
+    for variable in GIT_LOCATION_VARIABLES {
+        command.env_remove(variable);
+    }
     command
 }
 

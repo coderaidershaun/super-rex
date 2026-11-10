@@ -2,6 +2,7 @@
 //! data comes from the function `rex jobs` uses, so the screen and the list agree.
 
 mod model;
+mod theme;
 mod view;
 
 use std::io::{self, IsTerminal};
