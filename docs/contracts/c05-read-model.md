@@ -1,9 +1,9 @@
-Status: DRAFT
+Status: FROZEN (10 November 2026, by Lane 1 at gate G1, on top of commit fe951b3). A change to this file goes through Lane 1.
 
 # C5. The read model: runs, their state and tokens, and `rex status`
 
 - Written by: Lane 3 (Capture).
-- Read by: Lane 2 (`rex job plan`, `rex job close`, `rex job show`, and C1), Lane 7 (`rex jobs`, `rex watch`, `rex feedback`), Lane 10.
+- Read by: Lane 2 (`rex job plan`, `rex job close`, `rex job show`, and C1), Lane 7 (`rex jobs`, `rex watch`), Lane 10.
 - Version: draft 1, 10 November 2026.
 - Tested on: Claude Code 2.1.322, macOS.
 
@@ -21,32 +21,40 @@ Words used here:
 - **Incomplete**: the job's history may miss facts; one flag on the result.
 - **Metadata file**: `agent-<id>.meta.json`, which Claude Code writes beside each sub-agent transcript.
 
-Marks: "tested" = seen on Claude Code 2.1.322 by a live probe or in Lane 3's recorded fixtures; "proposed" = a decision of this contract. `Store` and `JobId` are C1's (`super_rex::store`). `CaptureError` is capture's error type; it converts from C1's `StoreError`, and its form follows C11. Field names are C1's column names on purpose.
+Marks: "tested" = seen on Claude Code 2.1.322 by a live probe or in Lane 3's recorded fixtures; "settled" = a decision of this contract. `Store` and `JobId` are C1's (`super_rex::store`). `CaptureError` is capture's error type (section 1); it converts from C1's `StoreError` and from `rusqlite::Error`, and its form follows C11. Field names are C1's column names on purpose.
 
 ## 1. The interface
 
 In `src/capture/mod.rs`:
 
 ```rust
-/// Takes the new lines of the event log into the store. Cheap. Reads no transcript, except the
-/// first record of one for a run whose start line was lost (the tie time, section 3).
+/// Takes the new lines of the event log into the store. It replaces the stub
+/// `take_in_events` of C11 2. Reads no transcript, except the first record of one
+/// for a run whose start line was lost (the tie time, section 3).
 pub fn take_in(store: &mut Store) -> Result<(), CaptureError>;
 
 /// Calls `take_in`, finds runs that left no event, reads transcripts, stores totals,
 /// and returns the runs of one job as they stand at `now`.
+/// Fails with `CaptureError::Store(StoreError::JobNotFound)` for a job not in the store.
 pub fn job_runs(store: &mut Store, job: &JobId, now: SystemTime) -> Result<JobRuns, CaptureError>;
 
-/// Reads one transcript file. Knows nothing about the store or about jobs.
-pub fn read_transcript(path: &Path) -> Result<TranscriptFacts, CaptureError>;
+/// Reads one transcript file. `Ok(None)` = no file there. Knows nothing about the store or jobs.
+pub fn read_transcript(path: &Path) -> Result<Option<TranscriptFacts>, CaptureError>;
+
+/// Reads the main session's transcript: the tokens of the requests in [from, to)
+/// (times as the store holds them; `to` = None while the job is open), and the
+/// model and effort of the `rex job create` call that printed `job=<job>` (section 4).
+pub fn read_main_transcript(path: &Path, job: &JobId, from: &str, to: Option<&str>)
+    -> Result<Option<MainFacts>, CaptureError>;
 
 pub struct JobRuns {
-    pub runs: Vec<Run>,             // ordered by start time; the tree is in `parent_agent_id`
+    pub runs: Vec<Run>,             // by `started_at`, then `agent_id`; the tree is in `parent_agent_id`
     pub open: u32,
     pub finished: u32,
     pub unconfirmed: u32,
-    pub tokens: TokenTotal,         // all runs plus the main session
+    pub tokens: TokenTotal,         // every run plus the main session
     pub session_tokens: TokenTotal, // the main session alone, inside the job's time
-    pub incomplete: bool,           // a run is unconfirmed, or a run's tokens are unknown
+    pub incomplete: bool,           // section 7
     pub damaged_log_lines: u64,
 }
 pub struct Run {
@@ -62,13 +70,13 @@ pub struct Run {
     pub state: RunState,
     pub started_at: Option<String>,      // text, `YYYY-MM-DDTHH:MM:SS.sssZ`
     pub stopped_at: Option<String>,
-    pub duration_ms: Option<u64>,
+    pub duration_ms: Option<u64>,        // the completed call, else stop minus start (section 2)
     pub tool_uses: Option<u64>,
     pub lines_added: Option<u64>,
     pub lines_removed: Option<u64>,
     pub brief: Option<String>,
     pub final_message: Option<String>,
-    pub skills_opened: Option<Vec<String>>, // sorted; None = no transcript was read for this run
+    pub skills_opened: Vec<String>,      // sorted; empty = none seen, or no transcript read (NULL in the store)
     pub tokens: TokenTotal,
 }
 pub enum RunState { Open, Finished, Unconfirmed }
@@ -81,40 +89,69 @@ pub struct TranscriptFacts {
     pub tool_uses: u64,
     pub lines_added: u64,
     pub lines_removed: u64,
-    pub first_at: Option<String>,        // first and last record that carry a timestamp
+    pub first_at: Option<String>,        // `timestamp` of the first and last record that has one, as written
     pub last_at: Option<String>,
     pub first_user_text: Option<String>, // the brief, for a sub-agent transcript
     pub last_assistant_text: Option<String>,
     pub model: Option<String>,           // of the last assistant record
     pub effort: Option<String>,
     pub skills_opened: Vec<String>,      // sorted, each name one time
+    pub damaged_lines: u64,              // lines that are not valid JSON, a cut last line included
+    pub bytes: u64,                      // size of the file that was read
 }
+pub struct MainFacts {
+    pub tokens: TokenCounts,             // the requests inside the window
+    pub damaged_lines: u64,              // with records whose `timestamp` is not of the store's form
+    pub bytes: u64,
+    pub builder_model: Option<String>,
+    pub builder_effort: Option<String>,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum CaptureError {
+    #[error("failed to read transcript {}", path.display())]
+    ReadTranscript { path: PathBuf, #[source] source: std::io::Error },
+    #[error("failed to read the event log {}", path.display())]
+    ReadLog { path: PathBuf, #[source] source: std::io::Error },
+    #[error(transparent)]
+    Store(#[from] StoreError),
+}
+impl From<rusqlite::Error> for CaptureError { /* CaptureError::Store(StoreError::from(e)) */ }
+impl CommandError for CaptureError {} // never a usage error: exit 1
 ```
+
+- `TotalCheck`, `Reading`, `RunActivity`, `Step` and `SETTLE` are capture's own. No other lane uses them.
+- **JSON form of a total** (C2 6.3, C9 5.2): `TokenTotal::Unknown` is `null`; otherwise `{"input":n,"output":n,"cache_read":n,"cache_creation":n,"provisional":bool}`. In plain text a total is the sum of the four counts, or `none`.
 
 Who calls what:
 
 | Command | Calls |
 | --- | --- |
 | `rex job plan` | `take_in` |
-| `rex job close`, `rex job show`, `rex status`, `rex jobs`, `rex watch`, `rex feedback` | `job_runs` |
-| `rex job create`, `rex hook`, all others | nothing |
+| `rex job close`, `rex job show`, `rex status`, `rex jobs`, `rex watch` | `job_runs` |
+| `rex job create`, `rex hook`, `rex recall`, `rex feedback`, all others | nothing |
 
 - `job_runs` takes in the log itself, so no caller needs a separate step before it.
 - `rex job close` keeps C2's order: it calls `job_runs` first, then writes the close. So the read inside `close` is before the close time and can never make a total final (section 8). The next read after the close stores the totals again, and one more read at least `SETTLE` later makes them final.
-- The shown status: callers use C1's `Shown::of(stored, runs.open)`. `running` = stored status `planned` and `open` > 0.
+- The shown status: callers use C1's `Shown::of(stored, open_runs)` (C1 7.3), with `open_runs` = `JobRuns.open`. `running` = stored status `planned` and `open` > 0. The store imports nothing from capture.
 - With the hooks absent the log is empty: `job_runs` returns no runs, `open` is 0, and `running` is never shown.
 
 Cost: `take_in` reads the log from the saved offset to its end, and the first record of a transcript only for a stop line with nothing before it. `job_runs` also reads, for each run of the job whose total is not final, the size of its transcript, and parses the transcript only when the size changed or a read after the close is due (section 8); the main session's transcript, IF the job's session figure is not final; and the `subagents/` folder of the job's session, for recovery (section 5). IF every total of the job is final, THEN `job_runs` reads no transcript and does no recovery for that job. This bounds the cost of `rex jobs` and `rex watch`.
 
+**Failures.** `take_in` and `job_runs` return `Err` only when the store fails (`CaptureError::Store`) or the event log exists and cannot be read (`CaptureError::ReadLog`). A transcript, metadata file or `subagents/` folder that exists but cannot be read is treated as absent for that read, and sets `incomplete` (section 7). So a hidden or removed file never stops `rex job close`, `rex job show`, `rex status` or a view.
+
 ## 2. Intake
 
-- Intake opens the store with `Store::open` only, and writes inside one `Store::write` (a `BEGIN IMMEDIATE` transaction) that is begun BEFORE it reads the saved offset. It reads the log from that byte offset to the last `\n`, applies each line, saves the new offset and commits. So two commands at the same moment never take in, or count, one line two times.
-- Saved values, in C1's table `meta`: `intake.offset` (bytes) and `intake.damaged_lines` (a count).
+- The store: `rex hook` and every `rex` command find it with the same `StorePaths::discover(cwd)` (C1, OP13): `REX_STORE`, then `CLAUDE_PROJECT_DIR`, then the working folder. So the lines of the hook and the jobs of a session are in one store. Intake reads the log at the store's `event_log` path.
+- `take_in` first reads `intake.offset` with a plain SELECT and compares it with the size of the log. IF they are equal, THEN it returns and takes no lock. ELSE it begins one `Store::write` (a `BEGIN IMMEDIATE` transaction), reads `intake.offset` again inside it, reads the log from that byte offset to the last `\n`, applies each line, saves the new offset and commits. So two commands at the same moment never take in, or count, one line two times, and a read with nothing new writes nothing.
+- Saved values, in C1's table `meta`: `intake.offset` (bytes), `intake.damaged_lines` (a count) and `intake.transcript.<session_id>` (the main session's transcript path, section 8).
 - A line that is not valid JSON, has no `v`, or has a `v` that is not `1`, is counted as damaged and skipped. Bytes after the last `\n` wait for the next intake. IF the file is shorter than the offset, THEN intake starts again at 0.
 - A `PostToolUse` line counts only when `tool_name` is exactly `Agent` or `Task`.
-- Each line becomes an upsert on one run, in C1's form: `INSERT … ON CONFLICT(session_id, agent_id) DO UPDATE SET …`. Never `INSERT OR REPLACE`. Never `job_id` or `first_seen_at` in the update list. An upsert sets fields; it never adds to a counter. So a line taken in twice changes nothing.
-- A field already set from an event is not overwritten by a weaker source (the second sources in section 4).
-- Times: the log carries `at_ms`; the store holds every time as text `YYYY-MM-DDTHH:MM:SS.sssZ`. Intake converts in SQL: `strftime('%Y-%m-%dT%H:%M:%fZ', :at_ms / 1000.0, 'unixepoch')`. Transcript `timestamp` text is already that form. Comparisons with job times are text comparisons in SQL.
+- Each line becomes an upsert on one run, in C1's form: `INSERT … ON CONFLICT(session_id, agent_id) DO UPDATE SET …`. Never `INSERT OR REPLACE`. Never `job_id` or `first_seen_at` in the update list. An upsert sets fields; it never adds to a counter.
+- The order of sources is fixed for each column, as section 4 gives it, so that the stored run is the same whatever order its lines come in, and a line taken in twice changes nothing. A line of the column's first source writes it (`x = COALESCE(excluded.x, x)`). A line of a later source writes it only while it is NULL (`x = COALESCE(x, excluded.x)`). Examples: `final_message` is the stop line's `last_assistant_message`, also when the completed call comes after it; `stopped_at` is the stop line's `at_ms`, also when the completed call comes after it.
+- `duration_ms` is stored only from a completed call. With no completed call it stays NULL, and `Run.duration_ms` is `stopped_at` minus `started_at`, worked out at the read.
+- Second sources from `job_runs` (transcript, metadata file) write only while the column is NULL, with three exceptions: `tool_uses`, `lines_added` and `lines_removed` are written at each parse while `duration_ms` is NULL (a background run, or a lost completed call); `skills_opened` and the tokens are written at each parse; `final_message` from the transcript is written only once the run is finished.
+- Times: the store holds every time as text `YYYY-MM-DDTHH:MM:SS.sssZ` (C1 5.1). Intake converts `at_ms` in SQL: `strftime('%Y-%m-%dT%H:%M:%fZ', :at_ms / 1000.0, 'unixepoch')`. A transcript `timestamp` is stored through `strftime('%Y-%m-%dT%H:%M:%fZ', :text)`, and a NULL result is not stored. A Rust time (`now`, a file's modification time) goes into SQL as milliseconds since the epoch, and a stored time comes back to Rust the same way (C1 5.1). Rust does no calendar arithmetic. Stored times are compared as text in SQL. The one comparison in Rust is the main-session window (section 8): a record whose `timestamp` is not exactly 24 bytes of the form `YYYY-MM-DDTHH:MM:SS.sssZ` counts as a damaged line there.
 
 What each line sets on the run (C1 column names):
 
@@ -133,7 +170,7 @@ The tags are the two lines at the start of a brief: `Rex-Job: <job ID>` and `Rex
 
 ## 3. The tie
 
-**When a job is open.** From `job.created_at` until the `at` of its first `job_transition` row whose `to_status` is not `created` or `planned`. That `at` is the job's close time. A job never goes back to an open status (C2 7).
+**When a job is open.** From `job.created_at` until the `at` of its first `job_transition` row whose `to_status` is not `created` or `planned`. That `at` is the job's close time. A job never goes back to an open status (C2 7). `blocked` (closed, waiting on something outside the session) ends the window: a `blocked` job is not an open job. A question to the user in the same conversation leaves the job `created` or `planned` (C2 7, OP10).
 
 **Rule 1 (first seen).** When a line names a run that has no row, its job = the job of that `session_id` that was open at the run's tie time. A session has at most one open job (C1's unique index), so the rule finds at most one.
 
@@ -149,7 +186,7 @@ For a run found by recovery: the time of the first record of its transcript. Rea
 
 **Rule 2 (kept).** The tie is written once. A later line for that run never changes it, also after the job closed and another opened. C1's trigger aborts any change of `job_id`.
 
-**A run with no job is NOT stored.** C1's `sub_agent_run.job_id` is required. For a line that names a run with no row: IF its session has no job at all, THEN the line is skipped. ELSE intake works out the tie time and looks for the job of that session that was open then; none = the line is skipped. Skipped lines are not damaged. This still obeys "a run keeps the job it was first seen under": the tie time is the run's START, so every later line for that run gives the same answer, and a run first seen with no open job stays with no job, with no row. This is C5's answer to the open seam of C1 section 13.
+**A run with no job is NOT stored.** C1's `sub_agent_run.job_id` is required. For a line that names a run with no row: IF its session has no job at all, THEN the line is skipped. ELSE intake works out the tie time and looks for the job of that session that was open then; none = the line is skipped. Skipped lines are not damaged. This still obeys "a run keeps the job it was first seen under": the tie time is the run's START, so every later line for that run gives the same answer, and a run first seen with no open job stays with no job, with no row. This is C5's answer to the seam of C1 section 13, which C1 now holds as settled (section 11).
 
 Limit: source 5 (the line's own time) can tie a run to a later job when the start line was lost AND no duration and no transcript are there.
 
@@ -194,14 +231,16 @@ Facts behind the second sources (tested):
 
 **Models.** A run can name more than one model (tested, one session: a request was stopped by a safety classifier and the run went on with another model). Its tokens are then the sum over both models. `model_ran` is `resolvedModel` when a completed-call event gave it, else the model of the transcript's last assistant record.
 
-**`builder_model`.** When `job_runs` reads the main session's transcript and `job.builder_model` is NULL, it writes the `message.model` of the first assistant record inside the job's time, and `builder_effort` from that record's `effort` when that is NULL too, and sets `job.updated_at` (C2 OP15).
+**`builder_model` and `builder_effort`.** When `job_runs` reads the main session's transcript, `read_main_transcript` finds the `Bash` call whose result's first line is `job=<this job's ID>` and that has no `existing=yes` line: the `rex job create` that opened the job. `job_runs` writes `message.model` of the assistant record that holds that call into `job.builder_model`, and that record's `effort` into `job.builder_effort`. Each column has its own statement and is written only while it is NULL: `UPDATE job SET builder_model = :model, updated_at = :now WHERE id = :job AND builder_model IS NULL` (the same for effort). IF the main transcript holds no such call (the builder ran in a sub-agent), THEN both stay NULL. The flags of `rex job create` come first (`--builder-model`; `--builder-effort`, else the environment variable `CLAUDE_EFFORT`; C2 OP15); this fills only what they left NULL.
+
+**The tree.** A run whose `parent_agent_id` names no run of the same job (its parent started before the job, so it was not stored) is a root of the job's tree, like a run that the main session started. `parent_agent_id` keeps the ID. `rex status` prints its `<id`, and C9's tree shows it at the top level.
 
 ## 5. Recovery
 
 Recovery finds runs that left no event. It runs inside `job_runs`.
 
-- It runs only for a session that has one or more lines in the log. A session with no line is never searched: with the hooks off there are no runs and no `running`.
-- The session's folder = the folder of `transcript_path` from such a line. Its sub-agents are in `<that folder>/<session_id>/subagents/`, as `agent-<id>.jsonl` (transcript) and `agent-<id>.meta.json` (metadata).
+- It runs only for a session that has the key `intake.transcript.<session_id>` (section 8): a session that logged at least one line. A session with no line is never searched: with the hooks off there are no runs and no `running`.
+- Its sub-agents are in `<folder of that transcript>/<session_id>/subagents/`, as `agent-<id>.jsonl` (transcript) and `agent-<id>.meta.json` (metadata).
 - Each metadata file with no run row gives one, by the same upsert, IF a job of the session was open at its tie time (the first record of its transcript). Else it is skipped.
 - Limit: a session that lost every one of its events is not recovered.
 
@@ -219,31 +258,36 @@ Capture never changes a job's stored status. A sub-agent that starts before the 
 
 ## 7. Incomplete
 
-`incomplete` is `true` when a run is unconfirmed, or a run's tokens are `Unknown`. `damaged_log_lines` is the value of `intake.damaged_lines`, beside it.
+`incomplete` is `true` when any of these holds: a run is unconfirmed; a run that is not open has tokens `Unknown`; a read of a transcript of the job (a run's or the main session's) found damaged lines; a file of the job could not be read at this read (section 1, Failures); the job has runs and `session_tokens` is `Unknown`. An open run whose transcript is not written yet does not set it. `damaged_log_lines` is the value of `intake.damaged_lines`, beside it. It counts the whole log, not one job, so it does not set the flag.
 
 ## 8. Tokens
 
 - A total = four counts: `input` (`input_tokens`), `output` (`output_tokens`), `cache_read` (`cache_read_input_tokens`), `cache_creation` (`cache_creation_input_tokens`). All models added up.
 - Reader rule: over the `assistant` records of one transcript, take ONE record for each `message.id`, add up. Each request is split over several records that repeat the same ID and usage (tested). In the recorded fixture session (three models), these sums per model over the main transcript and every sub-agent transcript equal Claude Code's own `modelUsage` exactly; they are lower when a request was stopped (section 13).
-- Totals are added up in `job_runs`, never in the hook, and stored with the read: on the run, C1's `tokens_input`, `tokens_output`, `tokens_cache_read`, `tokens_cache_creation`, `tokens_provisional`, `transcript_bytes`, and `tokens_read_at` (asked of C1).
+- Totals are added up in `job_runs`, never in the hook, and stored with the read: on the run, C1's `tokens_input`, `tokens_output`, `tokens_cache_read`, `tokens_cache_creation`, `tokens_provisional`, `transcript_bytes`, `transcript_damaged_lines` and `tokens_read_at`. `tokens_read_at` is the `now` of that `job_runs` call.
 
-**Provisional rule for a run.** Its total becomes final (`tokens_provisional` = 0) at a read where all hold:
+**Provisional rule for a run.** At each read, `job_runs` takes the size of the run's transcript and takes the first step that applies (`TotalCheck::next_step`):
 
-1. the job is closed;
-2. the run is not open;
-3. `tokens_read_at` is at or after the job's close time;
-4. `now` is at least `SETTLE` = 10 seconds after `tokens_read_at`;
-5. the transcript's size equals `transcript_bytes`.
+1. No file now: the stored total stays as it is. Nothing stored = `Unknown`.
+2. Nothing stored, or the size differs from `transcript_bytes`: parse the file and store the totals, `transcript_bytes`, `transcript_damaged_lines` and `tokens_read_at`. The total is provisional.
+3. The job is open, or the run is open: keep, provisional.
+4. `tokens_read_at` is before the job's close time: parse again and store, as in step 2.
+5. `transcript_damaged_lines` > 0: keep, provisional. A damaged transcript never gives a final total.
+6. `now` is at least `SETTLE` = 10 seconds after `tokens_read_at`: final (`tokens_provisional` = 0). Else keep.
 
-- IF the size differs, OR `tokens_read_at` is before the close, THEN the transcript is read again, and the totals, `transcript_bytes` and `tokens_read_at` are written.
-- IF the size is equal and the total is not final, THEN the file is not parsed again.
-- A total stored before the close never makes a total final. Reason: the transcript is written a little behind the agent (tested: for two of three agents the last request was missing when the stop event fired).
-- A final total is not read again.
-- Transcript absent: the stored total stays as it is (a provisional one stays provisional). Nothing stored and no transcript = `Unknown`.
+A total stored before the close never makes a total final. Reason: the transcript is written a little behind the agent (tested: for two of three agents the last request was missing when the stop event fired). A final total is never read again.
 
-**The main session's figure** (`session_tokens`; OP12): the requests of the main session's transcript whose `timestamp` is from `job.created_at` to the close time (or to `now` while open). Stored in a table `session_tokens` asked of C1: one row for each job, with the four counts, `tokens_provisional` and `tokens_read_at`, written only by Lane 3. The same rule applies without conditions 2 and 5: its "unchanged" test is equal totals, because the main transcript goes on growing after the job.
+**The main session's figure** (`session_tokens`; OP12).
+
+- Where it is: `take_in` stores the `transcript_path` of a session's lines in `meta` under `intake.transcript.<session_id>` the first time it sees a line of that session, also a line it skips. Recovery (section 5) uses the same key.
+- What it counts: `read_main_transcript` (section 1) over that file, from `job.created_at` to the job's close time (no end while open): each message ID once, counted when its first record's `timestamp` is inside the window.
+- Stored in table `session_tokens`, one row for each job, written only by `job_runs`: the four counts, `tokens_provisional`, `transcript_bytes`, `transcript_damaged_lines`, `tokens_read_at`.
+- Steps 1 to 6 of the run rule apply, with the session checked as not open (`RunActivity::NotOpen`). One step differs, because the main transcript goes on growing after the job: at a read after the close where step 2 finds the size changed, `job_runs` parses the file again. IF the new figure equals the stored one, AND the stored `tokens_read_at` is at or after the close, AND `now` is at least `SETTLE` after it, AND no damaged line was found, THEN the stored figure becomes final. ELSE the new reading is stored. So the figure becomes final at the second read after the close, and is never parsed again.
+- No `intake.transcript.<session_id>` key: `session_tokens` is `Unknown` and no row is written.
 
 `JobRuns.tokens` = the sum of every run's total and `session_tokens`. It is `Final` only when all of them are final, `Unknown` only when all are unknown, else `Provisional`.
+
+- `job_runs` parses transcripts and reads metadata files outside any transaction. Then it stores what changed in one `Store::write`, and begins no write when nothing changed. A reading is stored with `UPDATE … WHERE id = :id AND tokens_provisional = 1`. The step to final is `UPDATE sub_agent_run SET tokens_provisional = 0 WHERE id = :id AND tokens_provisional = 1 AND transcript_bytes = :bytes AND tokens_read_at = :read_at` (the same on `session_tokens`, by `job_id`). So the writer lock is held for milliseconds, never while a file is parsed. A reading from a second `rex` at the same moment never undoes a final total, and a step to final that a newer reading has passed changes nothing.
 
 ## 9. `rex status [job]`
 
@@ -269,62 +313,64 @@ unconfirmed
 - Tokens are printed on every run line whose total is not `Unknown`, also for open and unconfirmed runs (an open run's total is always provisional). The number is the sum of the four counts: below 1000 the number itself (`950`), below one million thousands with one decimal (`61.0k`), else millions with one decimal (`1.2M`). The word `tokens` follows, and `~` comes right after the word when the total is provisional.
 - No job given: every job that is `created` or `planned`. None = the one line `no open job`.
 - A last line `event log: N damaged lines`, only when N > 0.
-- Exit code and error text for an unknown job: as C11 says.
+- Handler (C11 2): `pub fn run(cwd: &Path, options: StatusOptions) -> Result<(), StatusError>`, with `StatusOptions { job: Option<JobId> }`, positional, parsed by `JobId::from_str` as clap's value parser. `StatusError` lives in `src/commands/status.rs`, with the `#[error(transparent)]` variants `Store(#[from] StoreError)`, `Capture(#[from] CaptureError)` and `Rex(#[from] RexError)`. No variant is a usage error.
+- Exit 0: the output above, also `no open job`. Exit 2: `<job>` is not of the job ID form (clap's message). Exit 1: no store (C1 `NotFound`); no such job (C1 `JobNotFound`, with the text of C2 6.4); a store or event-log failure. Each exit that is not 0 writes one `error: ` line (C11 4).
 
 ## 10. Open points
 
-### OP12 — proposed: the main session's tokens, and storing totals
+### OP12 — settled
 
-**(1) The main session's tokens are recorded**, as one figure on the job (`session_tokens`), not as a run: the requests in the main session's transcript whose time is inside the job's time. Reasons: the orchestrator's use is part of what a job costs, often the larger part, and "how an orchestrator performed" is wrong without it; the acceptance gate compares against Claude Code's own totals, which include the main session (tested: the sums matched only with the main transcript added); the cost is one more file through the same reader. Limit: when one session runs several jobs, the split between them is by time.
+**(1) The main session's tokens are recorded**, as one figure for each job (`session_tokens`), not as a run: the requests of the main session's transcript, each message ID counted once, whose `timestamp` is at or after `job.created_at` and before the job's close time (no end while the job is open). Requests before `rex job create`, and between two jobs, count for no job. `JobRuns.tokens` = every run of the job plus this figure.
 
-**(2) A total is stored before and after it becomes final.** Every read that parses a transcript stores what it found, and the final value stays in the store. Reason: Claude Code removes old transcripts on its own schedule, and recall and feedback must still see what a job cost.
+**(2) Every read that parses a transcript stores what it found**, provisional or final. A final total is never read again, and it stays in the store after Claude Code removes the transcript.
 
-C1's draft already has the four counts, `tokens_provisional` and `transcript_bytes` on `sub_agent_run`. C5 asks C1 to add `sub_agent_run.tokens_read_at TEXT` and the table `session_tokens` (section 8).
+Table `session_tokens` (C1): one row for each job, written only by `job_runs`: `job_id`, the four counts, `tokens_provisional`, `transcript_bytes`, `transcript_damaged_lines`, `tokens_read_at`.
 
-Alternatives not chosen: (1) tokens on sub-agent runs only. Then a job's cost misses the orchestrator, and the totals can never match Claude Code's own. (2) Reading totals from transcripts only, or storing only the final value. Then a job whose transcripts were removed, or were removed before a final read, has no cost at all.
+Limits: (a) when one session runs several jobs, its main-session tokens are split by time; (b) the figure is known only for a session that logged at least one event line, so a job with no sub-agent, or a session started in a `git worktree add` folder, has `session_tokens` `Unknown`; (c) a request that Claude Code bills but does not write to any transcript (seen: one stopped by a safety classifier) is not counted, so a sum can be lower than Claude Code's `modelUsage`.
 
-## 11. Where C5 differs from the C1, C2 and C9 drafts
+Alternatives not chosen: tokens on sub-agent runs only (a job's cost then misses the orchestrator, and no total can be checked against `modelUsage`); storing only the final value (a job whose transcripts were removed before a final read then has no cost at all).
 
-| Their draft now | C5 | Why |
-| --- | --- | --- |
-| C1 13: what intake does with a run first seen while its session has no open job is open. | Settled: such a run is not stored (section 3). `job_id` stays required. | The tie time is the run's start, so later lines give the same answer; no nullable `job_id` and no change of the trigger is needed. |
-| C1 7.3: `status::shown(conn, job)` reads the open-run count from C5. | Callers use `Shown::of(stored, runs.open)`. C5 asks C1 to drop `status::shown`, or give it the count as an argument. | Import direction is commands -> capture -> store. `store` must never import `capture`. |
-| C1 5.9 has no `tag_job` or `tokens_read_at`, and no place for the main session's tokens. | Asks `sub_agent_run.tag_job TEXT`, `sub_agent_run.tokens_read_at TEXT`, and the table `session_tokens`. | `Run.tag_job`; the provisional rule (section 8); OP12. |
-| C1 5.9 gives no source for `skills_opened`, `started_at`, `duration_ms`; `agent_type` reads "grid agent chosen". | `skills_opened` is filled from the transcript (section 4); `started_at` = the start line, else the tie-time estimate; `duration_ms` = the completed call, else stop minus start; `agent_type` = the agent type that ran, a grid agent or a built-in one. | So that C1's meanings say what intake writes. |
-| C2 2.6: `rex job show` and `rex job close` "take in" the log. | They call `job_runs`, which takes in the log itself. `rex job plan` calls `take_in`. | One entry point for reads; same effect as C2 asks. |
-| C2 6.3: the `runs` objects of `rex job show --json` have no `brief`, `skills_opened`, `final_message`, `background`, `depth`. | `Run` has them. C5 asks C2 to add them to the `runs` objects (`null` when empty). | Lane 10's `rex-feedback` reads brief, skills opened and final message for each run. |
-| C9 7: an intake entry point as the first step of `rex jobs` and `rex watch`. | `take_in` is that entry point; `job_runs` calls it itself, so those commands need only `job_runs`. | No second step to forget. |
+## 11. What C1, C2 and C9 hold for C5
+
+Settled at gate G1. Each point where C5 differed from the C1, C2 and C9 drafts is now held there:
+
+- C1 7.3: `Shown::of(stored, open_runs)` is the one shown-status rule, with `open_runs` = `JobRuns.open`. There is no `status::shown`. `store` imports nothing from `capture` or `commands`.
+- C1 13: a run first seen while its session has no open job is not stored (section 3). `sub_agent_run.job_id` stays NOT NULL, and both triggers stay as they are.
+- C1 5.9 and 5.13: `sub_agent_run.tag_job TEXT` (after `role`), `sub_agent_run.transcript_damaged_lines INTEGER` and `sub_agent_run.tokens_read_at TEXT` (after `transcript_bytes`); table `session_tokens`, one row for each job: `job_id`, the four counts, `tokens_provisional`, `transcript_bytes`, `transcript_damaged_lines`, `tokens_read_at`. The meanings of `depth`, `agent_type`, `skills_opened` and `started_at` are those of section 4. `duration_ms` is from the completed call only, NULL when none was taken in (section 2). `skills_opened` NULL = none seen, or no transcript read.
+- C1 5.12, the writers: `meta` keys `intake.offset`, `intake.damaged_lines`, `intake.transcript.<session_id>`: Lane 3, `capture::take_in`. `session_tokens`: Lane 3, `capture::job_runs`. `job.builder_model` and `job.builder_effort`, only while NULL: Lane 3, `capture::job_runs` (section 4).
+- C1 5.1: one time for one write, and Rust times into and out of SQL as milliseconds since the epoch (section 2).
+- C2 2.6 and 6.5: `rex job plan` calls `take_in`; `rex job close` (before its write) and `rex job show` call `job_runs`; `rex job create` calls neither.
+- C2 6.2 and 6.3: `rex job show` gives, for each run, `agent_id`, `state`, `parent_agent_id`, `depth`, `background`, `role`, `tag_job`, `agent_type`, `model_ran`, `effort_ran`, `started_at`, `stopped_at`, `duration_ms`, `tool_uses`, `lines_added`, `lines_removed`, `brief`, `skills_opened`, `final_message`, `tokens`; at the top level `tokens`, `session_tokens`, `incomplete`, `damaged_log_lines`. Totals in the JSON form of section 1. Runs in `JobRuns.runs` order (by `started_at`, then `agent_id`), not by `first_seen_at`.
+- C9 2: `rex jobs` and `rex watch` call `capture::job_runs` for each job they show, and write nothing except what `job_runs` stores. `rex recall` and `rex feedback` call nothing of capture.
+- C9 5.2: `tokens` is `JobRuns.tokens` (every run plus the main session) in the JSON form of section 1, `null` when unknown; `incomplete` is `JobRuns.incomplete`.
+- C9 6 and 7: a run whose parent is not a run of the job is shown at the top level (section 4); `~` after a provisional total; the tag job beside a run when `tag_job` is set; the shown status by `Shown::of`.
 
 ## 12. What each other lane must do
 
 **Lane 2 (store and jobs).**
 
-- `rex job plan` calls `take_in`. `rex job close` (in C2's order, before its write) and `rex job show` call `job_runs`. Shown status by `Shown::of(stored, runs.open)`.
+- `rex job plan` calls `take_in`. `rex job close` (in C2's order, before its write) and `rex job show` call `job_runs`. Shown status by `Shown::of(stored, open_runs)`, with `open_runs` = `JobRuns.open`.
 - `rex job create` keeps a session to one open job (C1's unique index already does).
 
-What C1's draft already gives capture: `StorePaths::discover` and `event_log`; `Store::open`, `Store::write`, `Store::conn`; `Shown::of`; the upsert form of C1 6.1 with its two triggers; table `sub_agent_run` with every column C5 uses (`job_id`, `session_id`, `agent_id`, `parent_agent_id`, `depth`, `role`, `agent_type`, `model_ran`, `effort_ran`, `brief`, `skills_opened`, `background`, `first_seen_at`, `started_at`, `stopped_at`, `duration_ms`, `tool_uses`, `lines_added`, `lines_removed`, `final_message`, `transcript_path`, the four `tokens_*` counts, `tokens_provisional`, `transcript_bytes`); `job.id`, `job.session_id`, `job.created_at`, `job.builder_model`, `job.builder_effort`, `job.updated_at`; `job_transition.job_id`, `to_status`, `at`; table `meta` with the prefix `intake.`.
+What C1 gives capture: `StorePaths::discover` and `event_log`; `Store::open`, `Store::write`, `Store::conn`; `Shown::of`; the upsert form of C1 6.1 with its two triggers; table `sub_agent_run` with every column C5 uses (`job_id`, `session_id`, `agent_id`, `parent_agent_id`, `depth`, `role`, `tag_job`, `agent_type`, `model_ran`, `effort_ran`, `brief`, `skills_opened`, `background`, `first_seen_at`, `started_at`, `stopped_at`, `duration_ms`, `tool_uses`, `lines_added`, `lines_removed`, `final_message`, `transcript_path`, the four `tokens_*` counts, `tokens_provisional`, `transcript_bytes`, `transcript_damaged_lines`, `tokens_read_at`); table `session_tokens`; `job.id`, `job.session_id`, `job.created_at`, `job.builder_model`, `job.builder_effort`, `job.updated_at`; `job_transition.job_id`, `to_status`, `at`; table `meta` with the prefix `intake.`. What C5 asked of C1 and C2 is settled (section 11).
 
-Asked of C1 before the freeze:
+**Lane 7 (views).** `rex jobs` and `rex watch` call `job_runs(&mut store, &job, now)` for each job they show. It takes in the log itself, and a read with nothing new takes no lock (section 2). `rex recall` and `rex feedback` call nothing of capture. From `JobRuns`: the counts `open`, `finished`, `unconfirmed`; `tokens` (every run plus the main session) and `session_tokens`, each `null` in JSON when `Unknown` (section 1); `incomplete`; `damaged_log_lines`; the tree by `parent_agent_id` (section 4, "The tree"). Shown status by `Shown::of(stored, open_runs)`, with `open_runs` = `JobRuns.open`. `rex watch` shows `~` for `Provisional`, nothing for `Unknown`, and `tag_job` beside a run when it is set.
 
-- [ ] Column `sub_agent_run.tag_job TEXT`.
-- [ ] Column `sub_agent_run.tokens_read_at TEXT`.
-- [ ] Table `session_tokens`: one row for each job (`job_id`), the four counts, `tokens_provisional`, `tokens_read_at`; written only by Lane 3.
-- [ ] Meanings in 5.9: `skills_opened` filled from the transcript; `started_at` = the start line, else the tie-time estimate; `duration_ms` = the completed call, else stop minus start; `agent_type` = the agent type that ran.
-- [ ] Drop `status::shown(conn, job)`, or give it the open-run count as an argument.
-
-Asked of C2 before the freeze:
-
-- [ ] `rex job show --json` `runs` objects also give `brief`, `skills_opened`, `final_message`, `background`, `depth`. The plain `run.` line can stay short.
-
-**Lane 7 (views).** `take_in` is the intake entry point C9 7 asks for; `rex jobs`, `rex watch` and `rex feedback` call `job_runs`, which calls it. `JobRuns` gives the counts (`open`, `finished`, `unconfirmed`), the totals with the provisional mark (`tokens`, `session_tokens`), the tree (`parent_agent_id`) and the incomplete flag. Shown status by `Shown::of`. Show `~` for `Provisional`, nothing for `Unknown`, and the tag job beside a run when `tag_job` is set.
-
-**Lane 10 (delivery skills).** `rex-feedback` reads, for each run, the role, the brief, the model and effort that ran, the skills opened and the final message. C5 gives all five on `Run` (`role`, `brief`, `model_ran`, `effort_ran`, `skills_opened`, `final_message`). They reach the skill through `rex job show --json` once C2 adds `brief`, `skills_opened` and `final_message` to its `runs` objects (asked of Lane 2). An empty field is `null`. A skill that needs to know how a job is going tells the agent to run `rex status <job>` (section 9).
+**Lane 10 (delivery skills).** `rex-feedback` reads, for each run, the role, the brief, the model and effort that ran, the skills opened and the final message. C5 gives all five on `Run` (`role`, `brief`, `model_ran`, `effort_ran`, `skills_opened`, `final_message`). They reach the skill through the `runs` objects of `rex job show <job> --json` (C2 6.3, section 11). An empty field is `null`. A skill that needs to know how a job is going tells the agent to run `rex status <job>` (section 9).
 
 ## 13. What was tested and what was not
 
 Tested on Claude Code 2.1.322, macOS, in recorded headless sessions: the fields each event carries; `finished: true` in the metadata file for 5 of 5 runs; the metadata keys above; the reader rule (one record per message ID), over the main transcript and every sub-agent transcript, equals Claude Code's `modelUsage` for each model in the fixture session (three models); a run that names two models after a stopped request; the lines-changed rule on three runs; the transcript lags the stop event; a background run's completed-call event carries launch data only; transcripts hold each `Skill` call with its name and each `Read` call with its path and result, in the main session and in sub-agents.
 
-Proposed, not yet built: intake, the tie, recovery, state, the provisional rule, `rex status`. Lane 3's tests prove them on the recorded fixtures, with lost start lines, lost stop lines, a last transcript record that arrives after the close, and a held writer lock.
+Settled, not yet built: intake, the tie, recovery, state, the provisional rule, `rex status`. Lane 3's tests prove them on the recorded fixtures, one test for each case of plan 3.12, each with its result:
+
+1. A sub-agent of a session with open job A runs `rex job create`: it gets A with `existing=yes` (C2), and the runs it starts are tied to A. No second job exists.
+2. Run R starts in job A; A closes; B opens; then R's stop line and completed call are taken in: R stays in A, and B has no R. The same with R's start line lost (tie time = completed call minus `totalDurationMs`).
+3. A sub-agent starts after `rex job create` and before `rex job plan`: it is tied to the job, and the shown status stays `created`.
+4. The session ends at once (stop lines lost): runs whose metadata file says `finished` are finished. The others are open until `QUIET`, then unconfirmed, and `incomplete` is true.
+5. Each of the three lines of a run is lost in turn: the same tree and fields. All three lost: the run is recovered from its metadata file.
+6. A transcript's last record is appended after the close: the total is provisional at the read inside `rex job close`, and after two reads at least `SETTLE` apart it is final and includes that record.
+7. A second connection holds the writer lock while an agent finishes: `rex hook` still appends at once, and the line is in the log. A `job_runs` that waits past `busy_timeout` fails with exit 1 and writes nothing. The next read gives the full history.
 
 Not tested: a run that is killed or interrupted (does `finished` still appear?); `replace_all`, `MultiEdit` and `NotebookEdit` in the lines-changed rule; a skill read by a shell command; Linux.
 
@@ -340,4 +386,9 @@ Not tested: a run that is killed or interrupted (does `finished` still appear?);
 - The event log grows by about three lines for each sub-agent; it is not truncated in version 1.
 - A sub-agent resumed after its totals became final: the new requests are not counted.
 - When one session runs several jobs, its main-session tokens are split by time.
-- Requests that Claude Code bills but does not write to the transcript (seen: requests stopped by a safety classifier) are not counted. The stored total is then lower than Claude Code's own `modelUsage` for that model.
+- Requests that Claude Code bills but does not write to the transcript (seen one time: a request stopped by a safety classifier) are not counted. A sum can then be lower than Claude Code's own `modelUsage` for that model.
+- A session started in a folder made with `git worktree add` has no `.claude/settings.local.json`, so no hook fires there (C3 7) and the safety settings do not apply: start a session in the main checkout. Its jobs have no runs, and `session_tokens` is `Unknown`. `incomplete` stays false, because nothing tells this case apart from a job that started no sub-agent.
+- A job whose session logged no line (no sub-agent, or the hooks off) has `session_tokens` `Unknown`: its main-session cost is not recorded.
+- Requests of the main session before `rex job create`, or between two jobs, count for no job.
+- A run that started before its session's job was created is not stored, also when the builder runs inside it. Its children are roots of the job's tree (section 4).
+- A deleted and regrown event log is not detected: IF a person deletes the log and it grows past the saved offset before the next intake, THEN its first lines are skipped with no sign.
