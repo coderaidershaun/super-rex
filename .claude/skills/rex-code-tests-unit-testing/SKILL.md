@@ -91,7 +91,7 @@ fn balance_after_credit() {
 
 ## TDD workflow
 
-- Red → green → refactor loop: obey `.claude/skills/rex-code-tdd/SKILL.md`.
+- Red → green → refactor loop: obey only steps 2 Tracer Bullet, 3 Incremental Loop, and 4 Refactor of `.claude/skills/rex-code-tdd/SKILL.md`.
 - Then **Decide** — keep inline, promote to fitness, or delete. This step = discipline. You delete most tests.
 
 ## Removal criteria — delete when ALL true

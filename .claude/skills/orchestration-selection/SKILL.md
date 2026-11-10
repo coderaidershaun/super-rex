@@ -5,8 +5,7 @@ description: >
   skill for the work breakdown, gives each task a role, defines the roles, and
   rates the seven inputs that select a model for each role.
 when_to_use: >
-  Use when the decision agent of `orchestration-builder` reaches stage 3, or
-  when an agent selects orchestration and models for roles.
+  Use when the decision agent of `orchestration-builder` reaches stage 3.
 disable-model-invocation: true
 user-invocable: false
 ---

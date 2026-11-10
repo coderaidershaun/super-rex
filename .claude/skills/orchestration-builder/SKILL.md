@@ -85,6 +85,7 @@ Never write `$PWD` there: in job worktree or in sibling repo, `$PWD` gives wrong
 - [ ] Plan job: adversarial review of plan is required before plan is final. See `.claude/skills/orchestration-builder/plan-jobs.md`.
 - [ ] Ask user only as `## Questions to user` says.
 - [ ] Read each skill file with Read tool, one file for each call. Shell command cuts long output.
+- [ ] CAUTION: Never run a command outside the sandbox because the sandbox refused a write. A command outside the sandbox can write to every folder of the user.
 
 ## Step 1 — Classify
 

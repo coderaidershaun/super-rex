@@ -45,5 +45,5 @@ git -C "$REPO_DIR" worktree add -b "$BRANCH" "$JOB_DIR" "$BASE"   # step 6
 - [ ] Writer commits only on its own branch: job branch, or its unit branch.
 - [ ] Sequential writers get no branch. They work on job branch, one after another.
 - [ ] Push names its branch, with no upstream: `git -C "$JOB_DIR" push origin "$BRANCH"`.
-- [ ] IF push prints `could not lock config file .git/config`, THEN push is complete. Make sure: `git -C "$JOB_DIR" ls-remote origin "$BRANCH"` prints same hash as `git -C "$JOB_DIR" rev-parse "$BRANCH"`.
+- [ ] IF push prints `could not lock config file .git/config`, THEN obey its rule in `## Rules` of `.claude/skills/rex-deliver/SKILL.md`.
 - [ ] Push when a loss of work can hurt. Always push before End 1. Mode `local`: no push.

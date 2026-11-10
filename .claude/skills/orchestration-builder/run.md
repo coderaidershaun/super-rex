@@ -40,7 +40,7 @@ Shell command runs in sandbox. Sandbox gives network only through its proxy.
 
 IF command fails for this cause, THEN run that one command again with `dangerouslyDisableSandbox: true` in Bash tool.
 
-CAUTION: A command outside the sandbox can write to every folder of the user. Run outside the sandbox only the one command that cannot reach the network. Never run a command outside the sandbox because the sandbox refused a write.
+CAUTION: Run outside the sandbox only the one command that cannot reach the network. The CAUTION in `## Rules` of `.claude/skills/orchestration-builder/SKILL.md` applies also.
 
 - [ ] Next command runs in sandbox again.
 - [ ] Report names each command that ran outside sandbox.

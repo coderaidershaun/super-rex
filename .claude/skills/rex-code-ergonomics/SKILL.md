@@ -124,6 +124,7 @@ IF all fields default-able, THEN `#[derive(Default)]`. ELSE manual `impl Default
 
 **`pub(crate)` > `pub` when only internal.** Shrink API surface.
 All module, file, and visibility rules: `.claude/skills/rex-code-folder-management/SKILL.md`.
+Unit tests inline in `#[cfg(test)] mod tests`: `.claude/skills/rex-code-tests-unit-testing/SKILL.md`.
 
 ## Async traps
 

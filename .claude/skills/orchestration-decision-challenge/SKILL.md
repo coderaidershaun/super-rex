@@ -6,8 +6,8 @@ description: >
   looks most for important skills that a task or role does not get. It
   changes nothing.
 when_to_use: >
-  Use when the decision of `orchestration-builder` is ready for its check, or
-  when an agent is that challenger.
+  Use when the challenger of the `orchestration-builder` decision starts its
+  check, or when the decision agent gets the findings.
 disable-model-invocation: true
 user-invocable: false
 ---

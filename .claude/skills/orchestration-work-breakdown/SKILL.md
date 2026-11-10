@@ -5,8 +5,7 @@ description: >
   each task its skills, and finds which tasks run in parallel and which in
   sequence. Its output goes into the plan and the briefs.
 when_to_use: >
-  Use when the decision agent of `orchestration-builder` reaches stage 2, or
-  when an agent must find what work can run in parallel.
+  Use when the decision agent of `orchestration-builder` reaches stage 2.
 disable-model-invocation: true
 user-invocable: false
 ---

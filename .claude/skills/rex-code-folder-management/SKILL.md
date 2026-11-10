@@ -115,6 +115,7 @@ ELSE move child up as sibling of parent. Parent = one file.
 
 - [ ] Never invent child with no joint to obey rule.
 - [ ] Apply deletion test to new child. IF complexity vanishes, THEN child is pass-through. Merge it.
+- [ ] Merge, extract, or move up = move. Before you start, read `.claude/skills/rex-code-folder-management/move.md`.
 
 ## SPLIT
 
@@ -127,6 +128,7 @@ File near limit. Joints, best first:
 
 - [ ] Inline test moves with code that it tests. Same name, same body.
 - [ ] IF file has no joint, THEN problem = design, not size. Use `rex-code-improve-codebase-architecture`.
+- [ ] Split = move. Before you start, read `.claude/skills/rex-code-folder-management/move.md`.
 
 ## Ergonomics check
 

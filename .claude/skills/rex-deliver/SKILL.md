@@ -61,6 +61,7 @@ Other files. Read one only when a step sends you there:
 - [ ] Never work on main. Work goes on job branch or unit branch.
 - [ ] IF agent other than session must change a repo with no job branch, THEN it writes nothing there. It reports that repo to agent that started it. Session runs Start for that repo first.
 - [ ] Never use `git push -u` or `--set-upstream`. Each push names its branch.
+- [ ] IF push prints `could not lock config file .git/config`, THEN push is complete. Make sure: `git -C "$JOB_DIR" ls-remote origin "$BRANCH"` prints same hash as `git -C "$JOB_DIR" rev-parse "$BRANCH"`.
 - [ ] CAUTION: Never use `git push --force`, `git rebase`, or `git commit --amend` on a pushed commit. These commands rewrite history and can destroy remote work.
 - [ ] Never use `gh pr merge --admin` or `--auto`. Never go around a protected main.
 - [ ] CAUTION: Never run `git stash`, `git reset --hard`, or `git clean` in the main checkout. These commands destroy the user's own uncommitted work.

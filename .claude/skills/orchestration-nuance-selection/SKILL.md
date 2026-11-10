@@ -5,8 +5,7 @@ description: >
   selects the skills that a job uses. It asks for a new skill only when a
   three-part test passes. Usual result: no new skill.
 when_to_use: >
-  Use when the decision agent of `orchestration-builder` reaches stage 1, or
-  when an agent must select skills for a piece of work.
+  Use when the decision agent of `orchestration-builder` reaches stage 1.
 disable-model-invocation: true
 user-invocable: false
 ---

@@ -115,4 +115,4 @@ Real-funds checklist, in addition to the checklist in `SKILL.md`:
 - [ ] The runbook documents the rollback.
 - [ ] The agent obeys the collaboration protocol: it stops, asks, gets an ack, runs the dry-run first, monitors, and reports.
 
-IF any real-funds item fails, THEN DO NOT RUN the test.
+IF any real-funds item fails, THEN fix it before you push, and DO NOT RUN the test.
