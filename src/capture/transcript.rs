@@ -48,27 +48,38 @@ pub struct TranscriptFacts {
 /// # Errors
 /// [`CaptureError::ReadTranscript`] if the file exists and cannot be read.
 pub fn read_transcript(path: &Path) -> Result<Option<TranscriptFacts>, CaptureError> {
-    let contents = match fs::read(path) {
-        Ok(contents) => contents,
-        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(None),
-        Err(source) => {
-            return Err(CaptureError::ReadTranscript {
-                path: path.to_path_buf(),
-                source,
-            });
-        }
+    let Some(contents) = read_file(path)? else {
+        return Ok(None);
     };
     let mut tally = Tally::default();
-    for line in contents.split(|byte| *byte == b'\n') {
-        if line.trim_ascii().is_empty() {
-            continue;
-        }
-        match serde_json::from_slice::<Value>(line) {
-            Ok(record) => tally.add(&record),
-            Err(_) => tally.facts.damaged_lines += 1,
+    for record in records(&contents) {
+        match record {
+            Some(record) => tally.add(&record),
+            None => tally.facts.damaged_lines += 1,
         }
     }
     Ok(Some(tally.finish(contents.len() as u64)))
+}
+
+/// The bytes of the transcript at `path`, or `None` when there is no file there.
+pub(super) fn read_file(path: &Path) -> Result<Option<Vec<u8>>, CaptureError> {
+    match fs::read(path) {
+        Ok(contents) => Ok(Some(contents)),
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
+        Err(source) => Err(CaptureError::ReadTranscript {
+            path: path.to_path_buf(),
+            source,
+        }),
+    }
+}
+
+/// Each record of a transcript, in order. `None` is a line that is not valid JSON,
+/// a cut last line included. Blank lines are not records.
+pub(super) fn records(contents: &[u8]) -> impl Iterator<Item = Option<Value>> {
+    contents
+        .split(|byte| *byte == b'\n')
+        .filter(|line| !line.trim_ascii().is_empty())
+        .map(|line| serde_json::from_slice::<Value>(line).ok())
 }
 
 /// Facts gathered one record at a time. Some depend on later records: a request is
@@ -193,11 +204,11 @@ impl Tally {
     }
 }
 
-fn text_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
+pub(super) fn text_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
 }
 
-fn blocks_of(message: &Value) -> &[Value] {
+pub(super) fn blocks_of(message: &Value) -> &[Value] {
     message
         .get("content")
         .and_then(Value::as_array)
@@ -205,7 +216,7 @@ fn blocks_of(message: &Value) -> &[Value] {
         .unwrap_or_default()
 }
 
-fn usage_of(message: &Value) -> TokenCounts {
+pub(super) fn usage_of(message: &Value) -> TokenCounts {
     let count = |key: &str| {
         message
             .get("usage")
@@ -233,9 +244,14 @@ fn skill_of_path(path: &str) -> Option<&str> {
     folder.rsplit('/').next().filter(|name| !name.is_empty())
 }
 
-/// A user message is plain text, or a list of blocks of which some are text.
 fn user_text(message: &Value) -> Option<String> {
-    match message.get("content")? {
+    content_text(message.get("content")?)
+}
+
+/// The text of a message's or a tool result's `content`: plain text, or a list of
+/// blocks of which some are text.
+pub(super) fn content_text(content: &Value) -> Option<String> {
+    match content {
         Value::String(text) => Some(text.clone()),
         Value::Array(blocks) => {
             let texts: Vec<&str> = blocks
