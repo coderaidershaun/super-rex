@@ -137,7 +137,7 @@ package feed
 1. **WHY non-obvious.** "Manual sort because the stdlib is O(n²) on near-sorted input; benchmarks show this is 4x faster."
 2. **Warning.** "Do not lower this timeout below 30 seconds — it breaches the vendor SLA."
 3. **Edge case trap.** "The API returns null instead of an empty list when there are no results; handled below."
-4. **Durable external ref.** Permanent record only — ticket ID, ADR number, spec section, vendor doc. "The vendor caps this at 10 requests a second. See ticket PROJ-1234." NOT working plan, NOT another source file.
+4. **Durable external ref.** Permanent record only — ticket ID, spec section, vendor doc. "The vendor caps this at 10 requests a second. See ticket PROJ-1234." NOT working plan, NOT another source file.
 5. **Public API doc.** JSDoc/docstring on exported surface. Generated docs consume it.
 6. **Algorithm conceptual frame.** "Boyer-Moore search — the skip table is built once and reused for every search."
 7. **Code-smell / tech-debt flag.** "SMELL: this reads the viewer's private fields directly, which breaks every time the viewer changes. Needs a proper interface." Known smell that you cannot fix now: you MUST flag it. Same for hazards, known limitations, `SAFETY:` invariants.

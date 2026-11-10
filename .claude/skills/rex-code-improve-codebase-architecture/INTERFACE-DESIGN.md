@@ -27,7 +27,7 @@ Prompt each w/ separate technical brief (file paths, coupling details, dep categ
 - Agent 3: "Optimise for most common caller — default case trivial."
 - Agent 4 (only IF applicable): "Design around ports & adapters for cross-seam deps."
 
-Include both [LANGUAGE.md](LANGUAGE.md) vocab + CONTEXT.md vocab in brief. Purpose: each sub-agent names things consistent w/ arch language + project domain language.
+Include both [LANGUAGE.md](LANGUAGE.md) vocab + domain words from code in brief. Purpose: each sub-agent names things consistent w/ arch language + project domain language.
 
 Each sub-agent outputs:
 

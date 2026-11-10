@@ -70,13 +70,14 @@ Session holds these values under these names:
 | `MERGE` | `yes` or `no`: merge to main agreed. One value per repo. | Start |
 | `HOME_DIR` | Absolute path of main checkout root of home repo. | Start |
 | `REPO_DIR` | Absolute path of main checkout root. One per repo. Never a linked worktree: parent of `git rev-parse --path-format=absolute --git-common-dir`. | Start |
-| `CHECKS` | Commands that prove job work in repo (build, test). | FAN-OUT, END |
+| `CHECKS` | Commands that prove job work in repo (build, test). IF repo has no build or test command, THEN empty. | FAN-OUT, END |
 | `TITLE` | `<type>: <what works now>` | END |
 | `BODY` | Request, what changed, commands run + results, what was left out. Last line: `Rex-Job: <JOB>`. | END |
 
 Branch type from `WORK_TYPE`: `feature`, `fix`, `refactor`, `chore` stay. `research` + `other` give `chore`.
 - [ ] MERGE guard: never decide `MERGE`. Builder settles it with requester before work starts.
 - [ ] IF `MERGE` is not known for a repo, THEN stop. Session gets answer from requester. Never assume `yes`.
+- [ ] IF `CHECKS` is empty, THEN each step that runs `CHECKS` runs no local check, counts as pass, and goes on. Write `no build or test command in this repo` in `BODY` under how it was checked. Still wait for checks of pull request (End 2 step 2).
 
 IF context is lost, THEN read values again from `JOB`:
 1. `HOME_DIR`: main checkout root of folder where session started. Then `REX_STORE="$HOME_DIR/.rex" rex job show "$JOB"`: keys `type` (work type), `merge_agreed` (`yes` or `no`, merge answer of job), `request` (request text).
@@ -126,6 +127,7 @@ git -C "$REPO_DIR" worktree add -b "$BRANCH" "$JOB_DIR" "$BASE"   # step 6
    Start each branch from a commit hash. A remote-tracking start point makes Git write `.git/config`, and sandbox blocks that.
 7. IF mode ≠ `local`, THEN `git -C "$JOB_DIR" push origin "$BRANCH"`.
 8. IF job works in job worktree, THEN put `JOB_DIR` in brief of each writer. Writer uses absolute paths under `JOB_DIR` in each shell command and each file tool.
+9. Before first write, state these values: mode, `REPO`, `MAIN`, `BASE`, `BRANCH`, `JOB_DIR`. IF a value did not come from steps 1 to 6, THEN you skipped a step: do it now. Mode decides whether job gets a pull request.
 
 ## Work — commit + push
 
@@ -139,7 +141,7 @@ git -C "$REPO_DIR" worktree add -b "$BRANCH" "$JOB_DIR" "$BASE"   # step 6
 ## Parallel writers
 
 Read this section when you start parallel writers in a repo. You = agent that starts them: session or lead. Whoever fans out, fans in.
-- `JOB`: job ID. `REPO_DIR`: absolute path of repo root. `CHECKS`: commands that prove work (build, test).
+- `JOB`: job ID. `REPO_DIR`: absolute path of repo root. `CHECKS`: commands that prove work (build, test). IF empty, THEN run no check.
 - `PARENT`: your own branch. `PARENT_DIR`: absolute path where `PARENT` is checked out. A lead gets all five in its brief.
 - Unit: one piece of work for one parallel writer. Name: 1 to 3 lower-case words joined by single hyphens, `a-z 0-9 -`. Unique in job. `root` + `review` are reserved.
 - Unit branch: `$PARENT--<unit>` (two hyphens). Never a slash: Git cannot hold `a/b` and `a/b/c` together.
@@ -194,7 +196,7 @@ Done condition. IF one is false, THEN it is not END yet.
 gh pr create --repo "$REPO" --base "$MAIN" --head "$BRANCH" --title "$TITLE" --body-file - <<'EOF'
 - Request: <the request, in one or two sentences>
 - What changed: <the changes, in full sentences>
-- How it was checked: <each command and its result>
+- How it was checked: <each command and its result, or "no build or test command in this repo">
 - What was left out: <what this pull request does not do, or "Nothing.">
 
 Rex-Job: <JOB>
