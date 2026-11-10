@@ -1,6 +1,14 @@
 ---
 name: rex-code-tests-unit-testing
-description: 'This skill gives hard rules for Rust unit tests. A unit test is inline, in a #[cfg(test)] mod tests next to the code. It is only a TDD scaffold. Delete it when contract or integration coverage is green. Promote critical invariants to fitness functions. Use it when you write unit tests, do TDD, or decide whether to keep or delete a unit test. Use it also when the user asks "should I unit test this", "TDD this fn", "should I delete this test", "promote to fitness".'
+description: >
+  This skill gives hard rules for Rust unit tests. A unit test is inline, in a
+  #[cfg(test)] mod tests next to the code. It is only a TDD scaffold. Delete it
+  when contract or integration coverage is green. Promote critical invariants to
+  fitness functions.
+when_to_use: >
+  Use when you write unit tests, do TDD, or decide whether to keep or delete a
+  unit test. Use it also when the user asks "should I unit test this", "TDD this
+  fn", "should I delete this test", "promote to fitness".
 disable-model-invocation: false
 user-invocable: true
 ---

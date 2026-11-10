@@ -2,15 +2,15 @@
 name: rex-code-improve-codebase-architecture
 description: >
   Finds architecture friction in a codebase, ranks the candidates, and designs
-  the best one. It makes shallow modules deep and makes the folder tree tell
-  how the code works. It uses the domain language in CONTEXT.md, the decisions
-  in docs/adr/, and the tree rules in rex-code-folder-management. It runs with
-  no questions to the user: it picks the target, builds nothing, and ends with
-  a design brief that tells the builder how to prove that behavior did not
-  change. Use this skill when
-  the user wants to improve architecture, find refactor candidates, group or
-  tidy modules, join coupled modules, or make code easier to test and to
-  navigate. Use it also when the user says "improve architecture", "refactor
+  the best one. It makes shallow modules deep and makes the folder tree tell how
+  the code works. It uses the domain language in CONTEXT.md, the decisions in
+  docs/adr/, and the tree rules in rex-code-folder-management. It runs with no
+  questions to the user: it picks the target, builds nothing, and ends with a
+  design brief that tells the builder how to prove that behavior did not change.
+when_to_use: >
+  Use when the user wants to improve architecture, find refactor candidates,
+  group or tidy modules, join coupled modules, or make code easier to test and
+  to navigate. Use it also when the user says "improve architecture", "refactor
   opportunities", "deepen modules", "tidy up modules", or "get ready for the
   next feature".
 disable-model-invocation: false

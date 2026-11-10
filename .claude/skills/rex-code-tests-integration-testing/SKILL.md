@@ -1,6 +1,14 @@
 ---
 name: rex-code-tests-integration-testing
-description: This skill gives hard rules for Rust integration tests. They test the real outside world (APIs, exchanges, DBs, WebSockets) with real time, real serialization, and real failure modes. They live in tests/integration/. A REAL FUNDS test requires a human-in-the-loop runbook, and no autonomous execution. Use it when you test against real APIs or exchanges, end-to-end flows, websocket reconnect, or deserialization edge cases. Use it also when the user asks "test the Coinbase API", "real exchange test", "end-to-end", "run with real funds".
+description: >
+  This skill gives hard rules for Rust integration tests. They test the real
+  outside world (APIs, exchanges, DBs, WebSockets) with real time, real
+  serialization, and real failure modes. They live in tests/integration/. A REAL
+  FUNDS test requires a human-in-the-loop runbook, and no autonomous execution.
+when_to_use: >
+  Use when you test against real APIs or exchanges, end-to-end flows, websocket
+  reconnect, or deserialization edge cases. Use it also when the user asks "test
+  the Coinbase API", "real exchange test", "end-to-end", "run with real funds".
 disable-model-invocation: false
 user-invocable: true
 ---
