@@ -1,6 +1,4 @@
-Status: DRAFT
-
-Reviewed at gate G1 and settled by Lane 1, 10 November 2026. Not frozen yet. It waits for: C2 (2.4 the job ID form; 2.7 and C1 3.2 where `rex` finds the store; 5.1 and 5.2 the input of `rex job close`; 6.2 what `rex job show` prints; OP4 `existing=yes`; OP10 and section 7 the job status from deliveries), C1 (5.7 the delivery columns) and C4 (the tag block at the start of a brief). Every other part is stable: OP11, the branch and worktree names, the nine steps and the guarded clean-up.
+Status: FROZEN (10 November 2026, by Lane 1 at gate G1, on top of commit 136720b). A change to this file goes through Lane 1.
 
 # C12. Hand-off between `orchestration-builder` and `rex-deliver`
 
@@ -84,7 +82,7 @@ The session reads `rex-deliver` itself, so "passes" means that it holds these va
 
 **Where `rex` runs.** Every `rex` command of this hand-off runs as `REX_STORE="$HOME_DIR/.rex" rex …`. A shell that is in a sibling repo or a worktree then still finds the job's store. That variable never falls through to another place (C1 3.2, C2 2.7).
 
-**Recovery after lost context**, starting from `JOB`. `rex job show "$JOB"` gives the work type, the job's merge answer and the request text. For repos, look for a branch of the job in the home repo and in each repo in its parent folder (the edit scope of §4, so the search has a limit); the branch name gives the slug. `gh pr list` for that branch gives the pull request. For `MERGE` in a job with more than one repo, read the request text for a per-repo answer: IF it is not clear, THEN stop and ask the requester (the guard above). `CHECKS` is read again from the plan or the repo. Then run again the parts of START that only read (mode, `MAIN`, `REPO`). They change nothing. `JOB_DIR` = the path that `git -C "$REPO_DIR" worktree list --porcelain` gives for `refs/heads/$BRANCH`. `BASE` = `git -C "$REPO_DIR" merge-base "$BRANCH" "origin/$MAIN"` (mode `local`: `"$MAIN"`). `PR_HEAD` is set again by the next round of section 7.
+**Recovery after lost context**, starting from `JOB`. `rex job show "$JOB"` gives the work type (`type`), the job's merge answer (`merge_agreed`, `yes` or `no`) and the request text (`request`) (C2 6.2). For repos, look for a branch of the job in the home repo and in each repo in its parent folder (the edit scope of §4, so the search has a limit); the branch name gives the slug. `gh pr list` for that branch gives the pull request. For `MERGE` in a job with more than one repo, read the request text for a per-repo answer: IF it is not clear, THEN stop and ask the requester (the guard above). `CHECKS` is read again from the plan or the repo. Then run again the parts of START that only read (mode, `MAIN`, `REPO`). They change nothing. `JOB_DIR` = the path that `git -C "$REPO_DIR" worktree list --porcelain` gives for `refs/heads/$BRANCH`. `BASE` = `git -C "$REPO_DIR" merge-base "$BRANCH" "origin/$MAIN"` (mode `local`: `"$MAIN"`). `PR_HEAD` is set again by the next round of section 7.
 
 ```sh
 git -C "$REPO_DIR" branch --list "*-$JOB"
@@ -109,9 +107,10 @@ A slash cannot be used in a unit branch name: Git cannot hold `a/b` and `a/b/c` 
 **The `<unit>` rule.** 1 to 3 lower-case words joined by single hyphens, characters `a-z 0-9 -`, unique in the job. `root` and `review` are reserved.
 
 **Where the job works** (Task C §1.3, made simpler). IF the main checkout is clean (`git status --porcelain` prints nothing) AND it is on main, THEN the job branch is checked out in the main checkout. ELSE the job works in the job worktree, and the main checkout is not touched at all.
+After `rex init`, the checkout is clean only when the user has committed `AGENTS.md`, `.gitignore` and `.pre-commit-config.yaml` (C6 section 9 tells the user to).
 Reason: no "branch the main checkout was on" has to be recorded, and a second job or the user's own branch always sends the job to a worktree.
 
-**Who fans out, fans in** (Task C §1.4). The agent that starts parallel writers creates each unit branch and worktree from the current head of its own branch. It puts the absolute worktree path and the unit branch name in each writer's brief. The brief starts with the tag block of C4 (`Rex-Job: <JOB>`, `Rex-Role: <role>`). It merges each unit branch back with `git merge --no-ff --no-edit "$UNIT_BRANCH"`, never with a rebase, and resolves conflicts. After the last merge, it tests the combined branch again with `CHECKS`. The session does the last integration, on the job branch. Sequential writers get no branch: they work on the job branch, one after another.
+**Who fans out, fans in** (Task C §1.4). The agent that starts parallel writers creates each unit branch and worktree from the current head of its own branch. It puts the absolute worktree path and the unit branch name in each writer's brief. The brief starts with the tag block of C4: `Rex-Job: <JOB>`, `Rex-Role: <role>`, then a blank line, first in the brief. It merges each unit branch back with `git merge --no-ff --no-edit "$UNIT_BRANCH"`, never with a rebase, and resolves conflicts. After the last merge, it tests the combined branch again with `CHECKS`. The session does the last integration, on the job branch. Sequential writers get no branch: they work on the job branch, one after another.
 
 A writer in a unit worktree is a normal sub-agent. Its shell starts in the session's folder. Its brief tells it to use the absolute worktree path in every command (`git -C <path>`, `cd <path> && …`) and to commit only on its unit branch.
 
@@ -126,7 +125,7 @@ git worktree add -b "$BRANCH" "$DIR" "$BASE"
 
 **Clean-up finds things by name only.** It takes local and remote branches whose name ends with `-<job-id>` or contains `-<job-id>--`, and worktrees under `.rex/worktrees/<job-id>/`. There is no register.
 
-**Reading the job ID from a branch name** (C9 4.6, `rex-feedback`). Cut the name at the first `--`. The job ID is the text after the last `-` of what is left. This works because a slug holds no `--` and does not end with `-`, a unit name holds no `--`, and a job ID holds no `-` (C2 2.4).
+**Reading the job ID from a branch name** (C9 4.6, `rex-feedback`). Cut the name at the first `--`. The job ID is the text after the last `-` of what is left. Use it only if it is 10 characters of `[0-9a-z]` (C2 2.4). This works because a slug holds no `--` and does not end with `-`, a unit name holds no `--`, and a job ID holds no `-` (C2 2.4).
 
 **Sibling repos.** A sibling repo can have no SuperRex ignore block. Before the first worktree there: IF `git -C "$REPO_DIR" check-ignore -q .rex` fails, THEN append `.rex/` to `$REPO_DIR/.git/info/exclude`. That is a local file and is not committed.
 
@@ -138,7 +137,7 @@ At the end of END, the session holds one delivery result for each repo that has 
 
 | Field | Value |
 | --- | --- |
-| `repo` | The absolute path of the repo root |
+| `repo` | The absolute path of the repo's main checkout root (`REPO_DIR`, C1 5.7) |
 | `branch` | The job branch |
 | `pr` | The pull request URL, or `null` |
 | `merge_agreed` | `true` or `false` |
@@ -153,9 +152,9 @@ At the end of END, the session holds one delivery result for each repo that has 
 | `kept-local` | No merge was agreed, and no pull request is possible (no remote, or no `gh`). The job branch is kept, and pushed if there is a remote. | Nothing | Branch <b> is kept and is not merged. |
 | `blocked` | A merge was agreed, but it could not be completed. The job branch and the pull request are kept. | Nothing | What the user must do. |
 
-`pr-open` and `kept-local` mean no merge was agreed (`merge_agreed` false). `blocked` means a merge was agreed (`merge_agreed` true) and could not be completed. `pr-open` needs `pr`.
+`merged` means a merge was agreed (`merge_agreed` true) and needs `merge_commit`. `pr-open` and `kept-local` mean no merge was agreed (`merge_agreed` false). `blocked` means a merge was agreed (`merge_agreed` true) and could not be completed. `pr-open` needs `pr`.
 
-The session holds one JSON object per repo, exactly the entry of C2 5.2: `{"repo": "<absolute path>", "branch": "<job branch>", "pr": "<url>" or null, "merge_agreed": true or false, "merge_commit": "<full hash>" or null, "outcome": "merged" | "pr-open" | "kept-local" | "blocked", "note": "<one line>" or null}`. A value that is not there is `null`, never the word `none`. At close, the builder puts the objects of all repos in one JSON array and runs `rex job close "$JOB" --status <status> --outcome "<one line>" --deliveries-file -` (C2 5). With no delivery, it gives no file.
+`rex-deliver` gives one JSON object per repo, exactly the entry of C2 5.2: `{"repo": "<absolute path>", "branch": "<job branch>", "pr": "<url>" or null, "merge_agreed": true or false, "merge_commit": "<full hash>" or null, "outcome": "merged" | "pr-open" | "kept-local" | "blocked", "note": "<one line>" or null}`. A value that is not there is `null`, never the word `none`. The session that runs the builder runs `rex job close` (C2 1). The builder puts the objects of all repos in one JSON array, picks `--status` and `--outcome`, and runs `rex job close "$JOB" --status <status> --outcome "<one line>" --deliveries-file -` (C2 5). With no delivery, it gives no file.
 
 **Job status from deliveries** (C2 OP10). IF any delivery is `blocked`, THEN the job closes `blocked`. ELSE (every delivery is `merged`, `pr-open` or `kept-local`, or there is no delivery) it closes `delivered`. `rex job close` refuses `delivered` while any delivery of the job is `blocked`. Every delivery is recorded. The rest of a blocked job is recorded later by another `rex job close` on that job. That call names only the repos that changed; rows it does not name are kept.
 
@@ -202,7 +201,7 @@ This rule is C12's own. It does not rest on a deny rule in the settings (C6).
 - [ ] IF the job works in a job worktree, THEN put `JOB_DIR` in each writer's brief. The writer uses absolute paths under it, in every shell command and every file tool.
 - [ ] Use no `isolation: "worktree"` for writers.
 - [ ] Read END for each repo before `rex job close`.
-- [ ] Pass the JSON array of section 6 to `rex job close` with `--deliveries-file`, and pick the job status as section 6 says.
+- [ ] Run `rex job close` in the session that runs the builder: put the delivery objects that `rex-deliver` gave, one for each repo, in one JSON array, pass it with `--deliveries-file`, and pick `--status` and `--outcome` as section 6 says.
 - [ ] Under an already-open job, deliver nothing (section 2).
 
 ## 9. What `rex job close` must accept (Lane 2)
@@ -210,11 +209,13 @@ This rule is C12's own. It does not rest on a deny rule in the settings (C6).
 - [ ] 0 to n deliveries per job, each with the seven fields of section 6 and their values.
 - [ ] A `note` for every outcome except `merged`.
 - [ ] The job statuses `delivered` and `blocked` as section 6 sets them (C2 OP10).
-- [ ] The job record keeps the merge answer, and `rex job show` prints it with the work type and the request text (section 4, recovery).
+- [ ] The job record keeps the merge answer, and `rex job show` prints it with the work type and the request text: `merge_agreed`, `type` and `request` (C2 6.2; section 4, recovery).
 
 ## 10. Not tested
 
 No live check ran for this draft. Not tested: (1) what `gh` reports for a pull request with no checks; (2) `git worktree add` under `.rex/worktrees/` inside the sandbox; (3) a write to `.git/info/exclude` of a sibling repo inside the sandbox; (4) `ssh -G` inside the sandbox (the `github` mode test for an SSH host alias). Gates P2.1, P2.9 and P2.11 cover the first three.
+
+A session started in a `git worktree add` folder has no `.claude/settings.local.json`: no hook fires there and the safety settings do not apply. The session starts in the main checkout; its sub-agents work in the job worktrees.
 
 ## 11. Decisions made here that the G1 review can change
 

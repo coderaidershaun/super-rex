@@ -1,6 +1,4 @@
-Status: DRAFT
-
-Reviewed at gate G1 and settled by Lane 1, 10 November 2026. Not frozen yet. It waits for: C1 (section 5: `StorePaths::locate`, `Store::create`, the text of a `StoreError`) and C3 (section 4: the `hooks` value, rule 3a and section 4.6: the hook command string). Every other part is stable: Lane 4 can build 4.3, 4.4, 4.8, 4.9, 4.10 and the settings merge of 4.5 without the hook group now.
+Status: FROZEN (10 November 2026, by Lane 1 at gate G1, on top of commit 136720b). A change to this file goes through Lane 1.
 
 # C6. What `rex init` writes
 
@@ -8,7 +6,7 @@ Owner: Lane 4. Readers: Lanes 1 and 8, and Lanes 2, 3, 9 and 10. Date: 10 Novemb
 
 ## 0. Status and sources
 
-This contract is a draft for the G1 review. Each point marked "Proposed" is for G1 to settle. Where a text is given in a fenced block, the code uses that text exactly.
+This contract is a draft for the G1 review. Every point of this contract was settled at gate G1. Where a text is given in a fenced block, the code uses that text exactly.
 
 Sources: the build request (§2.1, §4, §5.6, §5.7, §5.10, §5.11, §5.12, §5.16), the build plan (section 4.1 open points OP5, OP6 and OP14; Lane 4 items 4.1 to 4.11; P0.1, P0.7), challenge 1, checks 11 to 14, Task D §8 and §9, and the rex-skills installer at commit `d926ad7`. Section 13 maps each source to the section of C6 that covers it.
 
@@ -27,6 +25,8 @@ rex init [--force] [--no-hooks]
 
 `rex init` sets SuperRex up in a repo once. It is safe to run twice, and it never replaces what the user has. It runs in the current folder only.
 
+A person runs `rex init` and `rex init --force` from the person's own shell, not an agent in a session. Reason: inside a session the sandbox refuses each shell write below `.claude/skills/` (live check, Claude Code 2.1.322), and the pre-commit hook store cannot be filled there (section 8).
+
 | Option | Field in `InitOptions` | Effect |
 | --- | --- | --- |
 | `--force` | `is_forced: bool` | Overwrite installed skill and agent files that differ from this version of rex. It never touches a project file (`.claude/settings.local.json`, `AGENTS.md`, `.gitignore`, `.pre-commit-config.yaml`). |
@@ -34,7 +34,7 @@ rex init [--force] [--no-hooks]
 
 There is no `--vendor` option (§4 Vendors). `rex init` installs for Claude Code only.
 
-`rex init` does not use the network, does not run `git`, does not edit the user-level Claude Code settings, does not write `CLAUDE.md`, and removes nothing.
+`rex init` itself does not use the network and does not run `git`; the `pre-commit install` it runs (section 8) does both. `rex init` does not edit the user-level Claude Code settings, does not write `CLAUDE.md`, and removes nothing.
 
 ## 2. Preflight
 
@@ -57,6 +57,11 @@ The preflight runs before anything is written. Its checks run in this order.
    `rex init: warning: gh not found on PATH. Delivery works without pull requests until it is installed.`
 6. **Sandbox dependencies, Linux only.** IF `bwrap` (package `bubblewrap`) or `socat` is not on PATH THEN a reported failure. The install runs in full, and the message is given at the end (section 9). One message names each missing tool:
    `the Claude Code sandbox cannot start on this machine: <bwrap | socat | bwrap and socat> not found on PATH, so Claude Code will refuse to start in this repo until they are installed; install them with sudo apt-get install bubblewrap socat (Ubuntu or Debian), or sudo dnf install bubblewrap socat (Fedora)`
+7. **This `rex` on PATH.** rex looks for `rex` in the folders of PATH, in order, as for `gh`: a look, not a run. It compares the first one found, made canonical, with `std::env::current_exe()` made canonical. IF either path cannot be found or made canonical, THEN the check is skipped, with no warning. Reason: the hook command finds `rex` by PATH (C3 section 1), and a missing or other `rex` logs nothing. The result is a warning on stderr only, and the install goes on. The check runs also under `--no-hooks`, because the skills call `rex` by PATH too. It sees the PATH of the shell that runs `rex init`, not the PATH of Claude Code.
+   - IF none is found THEN:
+     `rex init: warning: rex not found on PATH. The hooks log nothing and the skills cannot run rex until it is.`
+   - IF another one is found THEN:
+     `rex init: warning: the rex on PATH is <path>, not this one (<current exe>). The hooks and the skills run that one; put this rex first on PATH.`
 
 The seccomp filter of the sandbox is optional, so rex does not check it. `claude --version` is the one command the preflight runs. Every other tool the preflight looks for is found by a look at the folders on PATH, and it is not run.
 
@@ -89,9 +94,21 @@ File: `<repo>/.claude/settings.local.json`. The folder `.claude/` is created if 
 
 What rex adds (R) is the safety settings of section 4.1, then the key `hooks` with the C3 hook registration as its value. With `--no-hooks`, R has no `hooks` key.
 
+The `hooks` value, as C3 section 1 gives it: three registrations, each with the command `rex hook >/dev/null 2>&1 || true` and `timeout` 10.
+
+```json
+{
+  "hooks": {
+    "SubagentStart": [{ "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }],
+    "SubagentStop":  [{ "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }],
+    "PostToolUse":   [{ "matcher": "Agent|Task", "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }]
+  }
+}
+```
+
 ### 4.1 The safety settings
 
-As §5.7, with `<parent>` from section 4.7:
+As §5.7, with `<parent>` from section 4.7 and `<trivy cache>` below:
 
 ```json
 {
@@ -101,7 +118,7 @@ As §5.7, with `<parent>` from section 4.7:
     "allowUnsandboxedCommands": false,
     "enableWeakerNetworkIsolation": true,
     "filesystem": {
-      "allowWrite": ["~/.cargo/registry", "~/.cargo/git", "~/.cargo/.package-cache", "~/.cargo/.package-cache-mutate", "~/.cargo/.global-cache"],
+      "allowWrite": ["~/.cargo/registry", "~/.cargo/git", "~/.cargo/.package-cache", "~/.cargo/.package-cache-mutate", "~/.cargo/.global-cache", "~/.cache/pre-commit/patch*", "<trivy cache>"],
       "denyRead": ["~/.aws"]
     }
   },
@@ -113,11 +130,13 @@ As §5.7, with `<parent>` from section 4.7:
 }
 ```
 
-The `~/` entries are written as `~/...`, not expanded. `<parent>` is an absolute path. This is Proposed (section 11).
+The `~/` entries are written as `~/...`, not expanded. `<parent>` is an absolute path. Settled at G1 (section 11).
+
+`~/.cache/pre-commit/patch*`: a commit with unstaged tracked changes writes its patch there. `<trivy cache>` is `~/Library/Caches/trivy` on macOS and `~/.cache/trivy` on Linux (the Linux path is not tested). Reason: else each push fails when the trivy database is older than about one day. Both are from the live checks of Lane 9 (Claude Code 2.1.322, sandbox on).
 
 The deny rule `Bash(gh pr merge*--admin*)` keeps a protected main from being bypassed (§4).
 
-`rex init` writes no `env` key. From a sibling repo, a `rex` command sets `REX_STORE` itself (C2 2.7, C1 3.2). IF a live check shows that `env` in the settings file reaches the Bash tool and the hooks, THEN a change request to Lane 1 can add `env.REX_STORE`.
+`rex init` writes no `env` key. From a sibling repo, a `rex` command sets `REX_STORE` itself (C2 2.7, C1 3.2).
 
 ### 4.2 The merge rule
 
@@ -127,7 +146,7 @@ One rule over the whole JSON tree. U is the user's file, R is what rex adds.
 2. An object in R: for each key, IF the key is absent in U THEN it is added after U's keys, in R's order. ELSE the two values are merged by these rules.
 3. An array in R: each element of R that has no deep-equal element in U is appended. U's elements and their order stay first. This covers `allowWrite`, `denyRead`, `additionalDirectories` and `deny`. Each `hooks.<Event>` array of matcher groups follows rule 3a.
 
-   3a. For `hooks.<Event>`: IF any hook in any group of U's `hooks.<Event>` array has the C3 command string, THEN nothing is added for that event. ELSE R's group is appended. A rex group already in the file is never changed or removed.
+   3a. For `hooks.<Event>`: IF any hook in any group of U's `hooks.<Event>` array has the `command` `rex hook >/dev/null 2>&1 || true` (C3 section 1, rule 2), THEN nothing is added for that event. ELSE R's group is appended. A rex group already in the file is never changed or removed.
 4. A scalar in R, and the key in U with the same value: nothing.
 5. A scalar in R and the key in U with a different value, or a value in U of another type (object, array, scalar): U's value is kept, with the warning of section 4.3.
 6. IF nothing is to be added THEN the file is not written at all, and it is not reformatted. Output: nothing. This is the second-run guarantee.
@@ -182,7 +201,9 @@ The file after:
         "~/.cargo/git",
         "~/.cargo/.package-cache",
         "~/.cargo/.package-cache-mutate",
-        "~/.cargo/.global-cache"
+        "~/.cargo/.global-cache",
+        "~/.cache/pre-commit/patch*",
+        "~/Library/Caches/trivy"
       ],
       "denyRead": [
         "~/.aws"
@@ -193,7 +214,7 @@ The file after:
 }
 ```
 
-`Bash(sudo *)` is not added twice. `sandbox.enabled` keeps `false`, with the warning below. stdout gets `rex init: .claude/settings.local.json updated`. Without `--no-hooks`, a `hooks` key would be added after `model`.
+`Bash(sudo *)` is not added twice. `sandbox.enabled` keeps `false`, and the run ends as a reported failure (section 4.3). stdout gets `rex init: .claude/settings.local.json updated`. Without `--no-hooks`, a `hooks` key would be added after `model`.
 
 ### 4.3 Conflicts
 
@@ -201,15 +222,13 @@ When rule 5 keeps a value of the user's, stderr gets (values as compact JSON):
 
 `rex init: warning: kept <dotted.key> = <U value> in .claude/settings.local.json; SuperRex sets <R value>.`
 
-For a safety key (`sandbox` or any key below it, and `permissions.blockWritesOutsideWorkingDirectories`), the same line goes on:
+For a safety key (`sandbox` or any key below it, and `permissions.blockWritesOutsideWorkingDirectories`) the value is kept too, but the case is a reported failure (section 9), not a warning, so `rex init` exits 1. Its text names the key, the value found, the value SuperRex needs, and the fix:
 
-` The protection this key gives is off until you change it.`
+`kept <dotted.key> = <U value> in .claude/settings.local.json, so the protection it gives is off; set it to <R value> to turn it on`
 
-Example: `rex init: warning: kept sandbox.enabled = false in .claude/settings.local.json; SuperRex sets true. The protection this key gives is off until you change it.`
+Example, on stderr: `rex init: failed: kept sandbox.enabled = false in .claude/settings.local.json, so the protection it gives is off; set it to true to turn it on`, then the one line `error: rex init did not finish 1 step(s); each is named above`.
 
-This is Proposed (section 11).
-
-FOR THE OWNER: the reviewer proposes a reported failure (exit 1) for this case. The warning stays until the owner decides.
+Reason: a safety net that is weaker with no failure is the worse case (challenge 1, §5.11). The user's value is never replaced. Keys that are not safety keys stay a warning with exit 0. Decided by the orchestrator at G1 as an assumption. The owner can reverse this to a warning with exit 0.
 
 ### 4.4 A file rex cannot merge
 
@@ -247,11 +266,11 @@ IF nothing is to be added THEN the link is fine, and there is no message. A user
   `rex init: warning: the parent folder <parent> holds your home folder, so it was not added as a working directory. Agents can write only inside this repo. Move the repo into a folder of its own to let agents edit sibling repos.`
 - Known limit: when the repo is moved, the next run adds the new parent (rule 3). The old entry stays.
 
-This is Proposed (section 11).
+Settled at G1 (section 11).
 
 ## 5. Store and library
 
-- `rex init` calls `StorePaths::locate(cwd)`, then `Store::create(&paths)` (C1 sections 3.1 and 7.2). C1 owns `.rex/`, its file names, the schema and the version check.
+- `rex init` calls `StorePaths::locate(&cwd)`, then `Store::create(&paths)`, as frozen C1 gives them (C1 sections 3.1, 7.1 and 7.2): `locate(start: &Path) -> Result<StorePaths, StoreError>` and `create(paths: &StorePaths) -> Result<Store, StoreError>`. C1 owns `.rex/`, its file names, the schema and the version check.
 - `create` makes `.rex/` and `.rex/orchestrators/` (the library folder of §5.5 and §5.12) if they are absent; `rex init` makes neither itself.
 - rex checks for `.rex` before the call, and IF it was absent THEN stdout gets `rex init: .rex/ created`.
 - A `StoreError` is a reported failure, with C1's text as its source.
@@ -267,6 +286,7 @@ rex makes sure `.gitignore` holds this block. The file is created if it is absen
 .claude/agents/
 .claude/settings.local.json
 /.rex/
+/.claude/worktrees/
 ```
 
 - Absent file: created with the block. Output `created`.
@@ -276,7 +296,8 @@ rex makes sure `.gitignore` holds this block. The file is created if it is absen
 - The rex-skills block (`# rex:ignore claude`) is a different marker. It is left as it is, and the new block is still added. A line in both blocks does no harm in `.gitignore`.
 - Whole folders are ignored, not each installed path. A user's own untracked skill or agent in those folders is hidden too. A file that is already tracked stays tracked. To keep a new one in Git, run `git add -f <path>`, or add `!.claude/skills/<name>/` after the block.
 - Not ignored: `AGENTS.md`, `.gitignore`, `.pre-commit-config.yaml` (OP6, settled), and `CODEBASE.md` (no evidence yet).
-- C12 section 5 puts job worktrees under `.rex/worktrees/`, which `/.rex/` covers, and uses no `isolation: "worktree"`. `.claude/worktrees/` stays out of the block.
+- C12 section 5 puts job worktrees under `.rex/worktrees/`, which `/.rex/` covers, and uses no `isolation: "worktree"`. `/.claude/worktrees/` is in the block all the same. Reason: Claude Code's own worktree isolation puts worktrees there, and an untracked folder makes the checkout not clean, so a job does not work in the main checkout (C12 sections 3 and 5).
+- A repo with the older rex-skills block gets the new block, `/.claude/worktrees/` included, by the marker rule above.
 
 ## 7. `AGENTS.md` sections
 
@@ -321,7 +342,7 @@ File: `.pre-commit-config.yaml`. Marker: the first line, `# rex:pre-commit`.
 
 - Written only IF the file is absent. An existing file, with or without the marker, is never replaced, with or without `--force`.
 - Link: left alone, with the warning `rex init: skipped <path>: it is a symbolic link` on stderr.
-- On each run, IF `pre-commit` is on PATH THEN rex runs `pre-commit install --hook-type pre-commit --hook-type pre-push`. Its output is not shown.
+- On each run, IF `pre-commit` is on PATH THEN rex runs `pre-commit install --install-hooks --hook-type pre-commit --hook-type pre-push`. Its output is not shown. Reason for `--install-hooks`: the hook store must be filled outside the sandbox, by the user's own run of `rex init`; a cold store cannot be filled inside the sandbox (live checks of Lane 9, Claude Code 2.1.322, sandbox on).
 
 The text is rex-skills `CONFIG` with two changes: the header says `rex init` in place of `rex skills`, and trivy's `--skip-dirs` is `target,node_modules,.claude,.rex` in place of `target,node_modules,.claude,.codex,.agents`. Reason: there are no vendor folders (§4 Vendors), and the store is not source to scan.
 
@@ -375,6 +396,8 @@ repos:
         stages: [pre-push]
 ```
 
+A hook with no `stages` key runs at commit and again at push.
+
 When the config was created on this run, or holds the marker, rex warns on stderr for each hook tool not on PATH:
 
 - `` rex init: warning: `gitleaks` not found on PATH. Its hook in .pre-commit-config.yaml fails every commit until it is installed ``
@@ -386,14 +409,15 @@ An existing config of the user's (no marker) gets no tool warnings.
 
 The order of the work is the order of the lines. Each line starts with `rex init:`. stdout:
 
-1. The preflight (section 2). It prints nothing on stdout. A blocking failure stops here. A preflight warning (`gh`) goes to stderr at once, when its check runs. Reported failures go to stderr at the end, after the last stdout line, in the order they happened.
+1. The preflight (section 2). It prints nothing on stdout. A blocking failure stops here. A preflight warning (`gh`, `rex`) goes to stderr at once, when its check runs. Reported failures go to stderr at the end, after the last stdout line, in the order they happened.
 2. `rex init: .claude/settings.local.json created`, or `... updated`, or nothing IF unchanged. This comes first, straight after the preflight.
 3. One line for skills and agents together: `rex init: <w> written, <s> skipped`, or `rex init: <w> written, <o> overwritten, <s> skipped` IF any file was overwritten. IF any file differs and was left alone, the line goes on: ` (1 differs from this version; use --force to overwrite)`, or ` (<d> differ from this version; use --force to overwrite)`.
 4. `rex init: AGENTS.md created`, or `... updated`, or nothing.
 5. `rex init: .gitignore created`, or `... updated`, or nothing.
 6. `rex init: .rex/ created`, the first time only.
 7. The config line: `rex init: .pre-commit-config.yaml created`, or `rex init: .pre-commit-config.yaml skipped (already exists)` for a user's own config, or nothing when it holds the marker or is a link.
-8. The hooks line: `rex init: pre-commit hooks installed`, or `rex init: pre-commit hooks skipped (pre-commit not found; install it, then run: pre-commit install --hook-type pre-commit --hook-type pre-push)`.
+8. The hooks line: `rex init: pre-commit hooks installed`, or `rex init: pre-commit hooks skipped (pre-commit not found; install it, then run: pre-commit install --install-hooks --hook-type pre-commit --hook-type pre-push)`.
+9. The commit line, IF this run created or updated `AGENTS.md`, `.gitignore` or `.pre-commit-config.yaml`: `rex init: commit AGENTS.md, .gitignore and .pre-commit-config.yaml (git add + git commit); a job works in the main checkout only when it is clean`. It names only the files this run changed, in this order: two are joined by ` and `, one stands alone (`rex init: commit .gitignore (git add + git commit); ...`). A run that changes none of them prints no such line.
 
 The rex-skills line `pre-commit hooks skipped (no .git directory)` cannot occur, because the preflight requires a `.git` directory. A closed stdout does not stop the install (carried).
 
@@ -407,6 +431,7 @@ rex init: .gitignore created
 rex init: .rex/ created
 rex init: .pre-commit-config.yaml created
 rex init: pre-commit hooks installed
+rex init: commit AGENTS.md, .gitignore and .pre-commit-config.yaml (git add + git commit); a job works in the main checkout only when it is clean
 ```
 
 Second run in the same repo:
@@ -422,7 +447,7 @@ Exit codes are those of C11 part 4. Every failure of `rex init` exits 1. No `Ini
 Each failure text in this contract is the `Display` of an `InitError` variant, written by C11 part 5: lower-case first letter, no `rex init:` prefix, no full stop at the end, the fix after `; `, and the io, serde or C1 error as `#[source]`.
 
 - **Blocking** (section 2, checks 1 to 4): `run` returns the variant at once. Nothing is written. stderr gets `error: <text>[: <source>]`.
-- **Reported** (2.6, 4.4, 4.5, a C1 error, a failed `pre-commit install`, and a stop of this section): the install goes on. Each failure is kept in order. At the end, `run` prints each one on stderr as `rex init: failed: <text>[: <source>]`, then returns `InitError::Incomplete { count }`. Its text is `rex init did not finish <count> step(s); each is named above`.
+- **Reported** (2.6, a kept safety value of 4.3, 4.4, 4.5, a C1 error, a failed `pre-commit install`, and a stop of this section): the install goes on. Each failure is kept in order. At the end, `run` prints each one on stderr as `rex init: failed: <text>[: <source>]`, then returns `InitError::Incomplete { count }`. Its text is `rex init did not finish <count> step(s); each is named above`.
 - **Warning**: stderr only, `rex init: warning: …`. Exit 0.
 
 The `pre-commit install` failure text (its stderr, as one line, is the source): `` `pre-commit install` exited with <status>; fix what it names, then run rex init again ``.
@@ -455,19 +480,25 @@ Answer: a blocking error, with the message of section 2, check 2. There is no op
 
 Reason: the version check is a safety check (OP5). Without `claude`, rex cannot know that the safety settings will be honoured. The fix is one install. Item 4.2 already assumes this: the tests put a stub `claude` on PATH because §5.11 makes it a requirement.
 
-## 11. Other proposed decisions
+## 11. Other decisions, settled at G1
 
-- **Repo root only (section 2, check 1). Proposed.** Reason: the store, the settings and the skills belong to the main checkout (§5.12). A worktree is removed after a job (§5.16), with whatever was written in it. One rule with no search up the tree is predictable, and rex needs no `git` on PATH.
-- **Linux sandbox tools missing is reported, not blocking (section 2, check 6). Proposed.** Reason: P0.7 needs both "rex init reports it" and "Claude Code refuses to start". Claude Code refuses only IF `failIfUnavailable: true` is written. A blocking check would leave the repo with no sandbox settings, so a session would start unsandboxed in bypass mode (challenge 1). That is the worst case.
-- **A conflicting user value is kept, with a warning (section 4.3). Proposed.** Reason: the lane outcome "never replaces what the user has", and §5.7 "must merge into ... not replace". The warning makes a weaker setting visible.
-- **`~/` paths are written as `~/...` (section 4.1). Proposed.** Item 4.5 and §5.7 say "absolute". Reason: `~` is the form checks 11 and 12 tested, and it does not depend on the launch folder. The problem of check 13 is with `..` and plain relative paths. `<parent>` is absolute.
-- **A parent that holds the home folder is not added (section 4.7). Proposed.** Reason: §5.7 opens the parent so that agents can edit sibling repos. A repo directly in `~`, or the home folder itself, would make the whole home folder writable (`~/.ssh`, `~/.cargo/bin`, shell profiles). The owner asked for hard rules against catastrophic actions such as removing the user directory (§A.3). This case is inferred; the sources do not name it.
-- **`--no-hooks` removes nothing (section 4.6). Proposed.** Reason: least code, and a removal is a delete in a file the user owns. §4 "Telemetry on or off" says only whether the hooks are installed.
+- **Repo root only (section 2, check 1). Settled at G1.** Reason: the store, the settings and the skills belong to the main checkout (§5.12). A worktree is removed after a job (§5.16), with whatever was written in it. One rule with no search up the tree is predictable, and rex needs no `git` on PATH.
+- **Linux sandbox tools missing is reported, not blocking (section 2, check 6). Settled at G1.** Reason: P0.7 needs both "rex init reports it" and "Claude Code refuses to start". Claude Code refuses only IF `failIfUnavailable: true` is written. A blocking check would leave the repo with no sandbox settings, so a session would start unsandboxed in bypass mode (challenge 1). That is the worst case.
+- **A conflicting user value is kept (section 4.3). Settled at G1.** Reason: the lane outcome "never replaces what the user has", and §5.7 "must merge into ... not replace". For a key that is not a safety key, a warning makes it visible. For a safety key, the run is a reported failure with exit 1, so that a weaker setting cannot go unseen.
+- **`~/` paths are written as `~/...` (section 4.1). Settled at G1.** Item 4.5 and §5.7 say "absolute". Reason: `~` is the form checks 11 and 12 tested, and it does not depend on the launch folder. The problem of check 13 is with `..` and plain relative paths. `<parent>` is absolute.
+- **A parent that holds the home folder is not added (section 4.7). Settled at G1.** Reason: §5.7 opens the parent so that agents can edit sibling repos. A repo directly in `~`, or the home folder itself, would make the whole home folder writable (`~/.ssh`, `~/.cargo/bin`, shell profiles). The owner asked for hard rules against catastrophic actions such as removing the user directory (§A.3). This case is inferred; the sources do not name it.
+- **`--no-hooks` removes nothing (section 4.6). Settled at G1.** Reason: least code, and a removal is a delete in a file the user owns. §4 "Telemetry on or off" says only whether the hooks are installed.
 - **`AGENTS.md`, `.gitignore` and the pre-commit config stay in Git (section 6). Settled (OP6).** This departs from the letter of §4 ("Nothing SuperRex adds"). Reason: see OP6.
-- **Opening an existing store changes no file (section 5). Proposed.** Reason: without it, the second run changes files in `.rex/`, and P0.1 fails.
-- **The settings come first (section 9). Proposed.** Reason: every later step can fail with an error. A stop before the settings would leave the grid installed with no sandbox settings: the fail-open of challenge 1.
+- **Opening an existing store changes no file (section 5). Settled at G1.** Reason: without it, the second run changes files in `.rex/`, and P0.1 fails.
+- **The settings come first (section 9). Settled at G1.** Reason: every later step can fail with an error. A stop before the settings would leave the grid installed with no sandbox settings: the fail-open of challenge 1.
 
 Not tested: `~/` entries in a session started from a subfolder; an absolute `additionalDirectories` entry; `failIfUnavailable`; a deny rule with `*` in the middle. P0.5 starts one session from a subfolder.
+
+Not tested: the trivy cache path on Linux.
+
+A session started in a `git worktree add` folder has no `.claude/settings.local.json`. So none of these settings apply there and no hook fires. Reasoned, not tested. Start a session in the main checkout.
+
+An agent writes below `.claude/skills/` only with the Write and Edit tools. A shell write there is refused by a built-in rule of the sandbox (`Operation not permitted`), not by a setting of this contract. So a `rex` command that an agent runs cannot write a skill. `.rex/orchestrators/` is writable both ways. (Live check, Claude Code 2.1.322.)
 
 P2 adds one case: `gh pr merge <n> --squash --admin` is refused in bypass mode.
 
@@ -476,11 +507,12 @@ P2 adds one case: `gh pr merge <n> --squash --admin` is refused in bypass mode.
 - **Lane 2 (C1).** Met by C1 4.3. The second-run test compares `.rex/` byte for byte and opens the store only through `rex`.
 - **Lanes 2 and 9.** The orchestrator library folder is `.rex/orchestrators/`, made by `Store::create` when `rex init` runs. Use this one path.
 - **Lane 3 (C3).** C3 gives the registration as one `serde_json::Value` and the command string as a constant.
-- **Lane 10 (C12).** C12 section 5 puts job worktrees under `.rex/worktrees/`, which `/.rex/` covers, and uses no `isolation: "worktree"`. `.claude/worktrees/` stays out of the block.
+- **Lane 10 (C12).** C12 section 5 puts job worktrees under `.rex/worktrees/`, which `/.rex/` covers, and uses no `isolation: "worktree"`. `/.claude/worktrees/` is in the block all the same (section 6).
 - **Lane 1.**
   - `Cargo.toml` `include` lists `.claude/skills/**/*` and `.claude/agents/**/*` in place of `.claude/**/*`. `build.rs` needs no change: `rerun-if-changed=.claude` covers both folders.
   - `serde_json` with the feature `preserve_order`, so that the merge keeps the user's key order. The feature applies to the whole crate: every lane's JSON output then keeps insertion order in place of sorted keys (for example `rex jobs --json` and `rex job show`). Granted (C11 part 7).
   - `rex init` routes to `commands::init::run(&cwd, options)` with `InitOptions { is_forced, is_without_hooks }`. `rex skills` is Lane 6's group. It is no longer an alias of `rex init`.
+  - The gates commit `AGENTS.md`, `.gitignore` and `.pre-commit-config.yaml` in their set-up (section 9, the commit line).
 - **Lanes 6 and 8 (C7).** The bundle ships whatever is in `.claude/skills/` and the 20 files in `.claude/agents/`. There is no `INDEX.md` (C7, OP7 settled).
 
 ## 13. Source map

@@ -245,7 +245,7 @@ The exact words of each finding are not part of this contract. The rule ID is.
 
 ## 5. The bundle tests
 
-Lane 4 gives `super_rex::bundle::walk() -> Vec<(PathBuf, &'static [u8])>`: every embedded file with its path, `skills/<skill>/<file>` or `agents/<file>`. Lane 6's checker is one public function in `super_rex::commands::skills`. It takes one skill's files (path and text) and the set of known names, and returns the findings. `rex skills check` and the bundle tests both use it.
+Lane 4 gives `super_rex::bundle::walk() -> Vec<(PathBuf, &'static [u8])>`: every embedded file with its path, `skills/<skill>/<file>` or `agents/<file>`. Lane 6's checker is one public function in `super_rex::commands::skills`. It takes one skill's files (path and text) and the known skills (their names and the paths of their `.md` files, which rule B3 needs), and returns the findings. `rex skills check` and the bundle tests both use it.
 
 These run in `cargo test`, over the skills embedded in the binary, with the same checker as `rex skills check`. Known skills here are the bundle's skills. Each rex-skills test is kept or retired as follows.
 
