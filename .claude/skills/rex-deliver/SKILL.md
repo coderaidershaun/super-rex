@@ -18,7 +18,7 @@ user-invocable: false
 # Deliver
 
 Carry work of one job from branch to merge. Once per repo. Same steps every time.
-This file tells how to deliver. It tells nothing about how to do the work, who corrects what, or how often to commit.
+This file tells how to deliver. It tells nothing about how to do work, who corrects what, or how often to commit.
 1. START, before first write in a repo: Inputs, Start, Work.
 2. FAN-OUT, each time an agent starts parallel writers: `## Parallel writers` only.
 3. END, when work is done: End 1 to Result.
@@ -26,7 +26,7 @@ This file tells how to deliver. It tells nothing about how to do the work, who c
 
 ## Words
 
-- Session: agent that ran `rex job create` for job. Only session runs Start, End 1 to End 3, Result.
+- Session: agent that ran `rex job create` for job. Only session runs Start, End 1 to End 3, Result. Exception: a later session runs `## Stopped or blocked job`, End 3 included.
 - Requester: agent or person that made request.
 - Builder: skill `orchestration-builder`. Session runs it. It settles `MERGE` and runs `rex job close`.
 - Home repo: repo that holds job store.
@@ -117,7 +117,7 @@ BASE=$(git -C "$REPO_DIR" rev-parse "origin/$MAIN")   # mode local: "$MAIN" for 
 BRANCH="<type>/$SLUG-$JOB"                            # for example feature/csv-export-0g4cbf7k2q
 ```
 5. IF main checkout is clean AND `git -C "$REPO_DIR" branch --show-current` prints `$MAIN`, THEN job works in main checkout. `JOB_DIR="$REPO_DIR"`. After `rex init`, main checkout is clean only when user committed `AGENTS.md`, `.gitignore`, `.pre-commit-config.yaml`.
-6. ELSE job works in job worktree. Do not touch main checkout at all. Before first worktree in repo: IF `git -C "$REPO_DIR" check-ignore -q .rex` fails, THEN append `.rex/` to `$REPO_DIR/.git/info/exclude` (local file, not committed).
+6. ELSE job works in job worktree. Do not touch main checkout at all. Before first worktree in repo: IF `git -C "$REPO_DIR" check-ignore -q .rex` fails, THEN append `.rex/`: `printf '.rex/\n' >> "$REPO_DIR/.git/info/exclude"` (local file, not committed).
 ```sh
 git -C "$REPO_DIR" switch -c "$BRANCH" --no-track "$BASE"         # step 5
 JOB_DIR="$REPO_DIR/.rex/worktrees/$JOB/root"                      # step 6
@@ -134,7 +134,7 @@ git -C "$REPO_DIR" worktree add -b "$BRANCH" "$JOB_DIR" "$BASE"   # step 6
 - [ ] Sequential writers get no branch. They work on job branch, one after another.
 - [ ] Push names its branch, with no upstream: `git -C "$JOB_DIR" push origin "$BRANCH"`.
 - [ ] IF push prints `could not lock config file .git/config`, THEN push is complete. Make sure: `git -C "$JOB_DIR" ls-remote origin "$BRANCH"` prints same hash as `git -C "$JOB_DIR" rev-parse "$BRANCH"`.
-- [ ] Push when a loss of work would hurt. Always push before End 1. Mode `local`: no push.
+- [ ] Push when a loss of work can hurt. Always push before End 1. Mode `local`: no push.
 
 ## Parallel writers
 
@@ -149,7 +149,7 @@ Read this section when you start parallel writers in a repo. You = agent that st
 - [ ] Never remove a unit worktree or delete a unit branch here. Session removes them in clean-up, after merge.
 
 1. Commit your own work first. Each unit starts from last commit of `PARENT`.
-2. Before first worktree in repo: IF `git -C "$REPO_DIR" check-ignore -q .rex` fails, THEN append `.rex/` to `$REPO_DIR/.git/info/exclude`.
+2. Before first worktree in repo: IF `git -C "$REPO_DIR" check-ignore -q .rex` fails, THEN append `.rex/`: `printf '.rex/\n' >> "$REPO_DIR/.git/info/exclude"`.
 3. For each unit, create branch + worktree from a commit hash, with no tracking:
 ```sh
 TIP=$(git -C "$REPO_DIR" rev-parse "refs/heads/$PARENT")
@@ -183,7 +183,7 @@ Do not remove the worktree or delete the branch. Commit all of your work before 
 
 Done condition. IF one is false, THEN it is not END yet.
 - [ ] All units merged into job branch. `CHECKS` pass on job branch in `JOB_DIR`.
-- [ ] `git -C "$JOB_DIR" status --porcelain` prints nothing. Uncommitted work is left out of pull request and blocks worktree removal.
+- [ ] `git -C "$JOB_DIR" status --porcelain` prints nothing. Uncommitted work stays out of pull request and blocks worktree removal.
 
 1. IF `git -C "$JOB_DIR" rev-list --count "$BASE..$BRANCH"` prints `0`, THEN repo has no delivery. `PR_HEAD="$BASE"`. Go to End 3. Give no delivery object.
 2. IF mode ≠ `github`, THEN go to `## No remote or no gh`.
@@ -213,7 +213,7 @@ DO round UNTIL pull request is merged OR 3 rounds done.
 IF not merged after 3 rounds, THEN outcome = `blocked`.
 ```
 
-1. `git -C "$JOB_DIR" fetch origin`. IF `origin/$MAIN` is not ancestor of job branch, THEN `git -C "$JOB_DIR" merge --no-edit "origin/$MAIN"`. Never a rebase, never a force-push. Resolve conflicts on job branch, run `CHECKS` again, push. Nobody reviews, so tree on main must be tree that was tested. Then `PR_HEAD=$(git -C "$JOB_DIR" rev-parse "$BRANCH")`.
+1. `git -C "$JOB_DIR" fetch origin`. IF `origin/$MAIN` is not ancestor of job branch, THEN `git -C "$JOB_DIR" merge --no-edit "origin/$MAIN"`. Never a rebase, never a force-push. Resolve conflicts on job branch, run `CHECKS` again, push. Nobody reviews, so tree on main must be tested tree. Then `PR_HEAD=$(git -C "$JOB_DIR" rev-parse "$BRANCH")`.
 2. Wait for checks, max 30 minutes in this round (3 rounds: max 90 minutes in all). Count checks first: `gh pr view "$PR" --repo "$REPO" --json statusCheckRollup --jq '.statusCheckRollup | length'`.
    - IF count = 0, THEN run `CHECKS` in `JOB_DIR` + count again. IF still 0, THEN pull request has no checks: local `CHECKS` = proof. IF they fail, THEN do step 4. Do not call `gh pr checks`: with no checks it exits with error that is not a failed check.
    - ELSE `DO gh pr checks "$PR" --repo "$REPO" --watch --fail-fast UNTIL exit 0 (pass) OR exit 1 (a check failed) OR 3 calls done`.
@@ -234,7 +234,7 @@ EOF
    - IF `gh pr merge` refuses because a review is required, THEN outcome = `blocked` (`## Protected main`).
    - IF `gh pr merge` refuses because repo does not let a squash merge, THEN outcome = `blocked`.
    - IF GitHub refuses for another reason (head moved, or a ruleset needs an up-to-date branch), THEN next round.
-4. IF a check fails, THEN read failed log: `gh run view <run-id> --repo "$REPO" --log-failed`. Run ID is in link that `gh pr checks` prints. Correct cause with new commit on job branch. Push. Next round. Never turn a check off, weaken a test, or skip a hook.
+4. IF a check fails, THEN read failed log: `gh run view <run-id> --repo "$REPO" --log-failed`. Run ID is in link that `gh pr checks` prints. IF local `CHECKS` failed (step 2, no checks), THEN read output of `CHECKS`. Correct cause with new commit on job branch. Push. Next round. Never turn a check off, weaken a test, or skip a hook.
 
 Confirm: `gh pr view "$PR" --repo "$REPO" --json state,mergeCommit --jq '.state, .mergeCommit.oid'`. IF state = `MERGED`, THEN `merge_commit` = that hash. Go to End 3. ELSE outcome = `blocked`.
 

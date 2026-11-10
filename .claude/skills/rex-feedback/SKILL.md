@@ -23,8 +23,6 @@ You = analyst. Find cause of one verdict. Write lesson. Change a file only where
 
 Stages: 1 Input, 2 Find job, 3 Read, 4 Cause, 5 Lesson, 6 Change, 7 Record. Then Report.
 
-Feedback design: steps 1 to 4 and 6 = Stages 1 to 4 and 6. Step 5 (record) = Stage 7. Step 7 (lesson) = Stage 5.
-
 ## Words
 
 - User: person, or agent that acts as user, that asked for this run.
@@ -33,6 +31,7 @@ Feedback design: steps 1 to 4 and 6 = Stages 1 to 4 and 6. Step 5 (record) = Sta
 - Verdict: `accepted` (work hit the mark) or `rejected` (work missed).
 - Cause: why work missed. One or more values of Stage 4 table. Agent cause = each `agent-*` value.
 - Evidence: fact from Stage 3 that shows a cause: run, field, or line.
+- Builder: skill `orchestration-builder`.
 - Lesson: 1 or 2 full sentences for a later job of same kind. `rex recall` gives it to builder.
 - Rule: one instruction line in a skill file or an orchestrator file.
 - Home: the one file a rule is written in.
@@ -76,7 +75,7 @@ gh pr view "$PR" --json body --jq .body | grep '^Rex-Job:'
 rex jobs --json --search "<text>" --search "<text>" --since 2026-11-01 --until 2026-11-10
 ```
 
-- `--search`: repeatable. Each term must be in request text. ASCII case is ignored. Dates: `YYYY-MM-DD`, UTC, both inclusive.
+- `--search`: repeatable. Each term must be in request text. `rex` ignores ASCII case. Dates: `YYYY-MM-DD`, UTC, both inclusive.
 - `request` in output = first 200 characters of request text. IF text is longer, THEN `request_truncated` = `true`.
 - IF `gh` is not there, THEN skip `gh` commands and way 4.
 - IF more than one job fits, THEN ask user. Give each job ID with its request text + date. Write the question in full sentences.
@@ -176,7 +175,7 @@ GENERAL test: remove names of this job from lesson (files, repo, feature, people
 | `agent-model-effort`, check 3 | `orchestration-selection`, only IF lesson is general |
 | `agent-model-effort`, checks 1, 2, 4 | No file |
 
-CAUTION: You cannot undo an edit to a skill or an orchestrator. These files are not in Git in a target repo. Before you change a file, read the whole file. Copy the old text of each line that you change into the report.
+CAUTION: You cannot undo an edit to a skill or an orchestrator. These files are not in Git. Before you change a file, read the whole file. Copy the old text of each line that you change into the report.
 
 1. Read whole home file. Copy old text into report.
 2. IF a rule caused miss, THEN remove or correct that rule. Add no counter-rule.
@@ -208,10 +207,18 @@ rex feedback "$JOB" --verdict accepted --by "<who>" --said "<what user said>"
 
 - [ ] `rejected`: one `--cause` per cause, `--lesson`, and `--evidence` with each cause and its run, role, or field.
 - [ ] `accepted`: `--verdict`, `--by`, `--said` only. No cause, no lesson, no evidence, no changed name.
-- [ ] IF said text or lesson has a quote character or more than one line, THEN write it to a file. Use Write tool. Put file outside repo. Then use `--said-file <path>` or `--lesson-file <path>`.
 - [ ] `--changed-skill`: folder name under `.claude/skills/`, for example `orchestration-selection`. One flag per skill.
 - [ ] `--changed-orchestrator`: folder name under `.rex/orchestrators/`. A lead skill in it counts as that orchestrator.
 - [ ] Names, not paths. Name only changes that were kept.
+- [ ] IF said text or lesson has a quote character or more than one line, THEN put it in a variable. Use a quoted heredoc in same call as `rex feedback`. Then give `--said "$SAID"` or `--lesson "$LESSON"`.
+- [ ] `read` exits 1 at end of heredoc. That is normal. Do not join `read` to next command with `&&`.
+
+```sh
+read -r -d '' SAID <<'EOF'
+<what user said, word for word>
+EOF
+rex feedback "$JOB" --verdict accepted --by "<who>" --said "$SAID"
+```
 
 Status, from `job.stored_status` of Stage 3:
 
@@ -219,10 +226,10 @@ Status, from `job.stored_status` of Stage 3:
 | --- | --- | --- |
 | `delivered`, `accepted` | `accepted` | `accepted` |
 | `delivered`, `accepted`, `rejected` | `rejected` + cause + lesson | `analyzed` (one call) |
-| `blocked`, `failed`, `cancelled`, `analyzed` | any | Row is added. Status stays. |
+| `blocked`, `failed`, `cancelled`, `analyzed` | any | `rex` adds row. Status stays. |
 
 Output: four lines `job=`, `feedback=`, `previous=`, `status=`. Put `previous` + `status` in report.
-IF `rex feedback` exits with an error, THEN no row was added. Tell user + give its `error:` line.
+IF `rex feedback` exits with an error, THEN it added no row. Tell user + give its `error:` line.
 
 ## Report
 
