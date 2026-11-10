@@ -4,11 +4,12 @@ description: >
   This is stage 2 of the orchestration builder. It divides a request into
   tasks and finds what depends on what. It finds which tasks can run in
   parallel and which must run in sequence. Its output goes into the plan of the
-  job and into the briefs. Use this skill when `orchestration-builder` reaches
-  stage 2, or when an agent must find what work can run in parallel.
+  job and into the briefs.
+when_to_use: >
+  Use when `orchestration-builder` reaches stage 2, or when an agent must find
+  what work can run in parallel.
 disable-model-invocation: false
 user-invocable: true
-# PENDING(C7): form of the "use when" line and the header keys.
 ---
 
 # Work Breakdown
@@ -72,7 +73,7 @@ IF 2 or more tasks use one shared contract, THEN make contract stable first, in 
   3. Tasks own different files and state.
 - [ ] Different file names do not prove that tasks are independent.
 - [ ] IF tasks change same files or state, THEN put them in sequence.
-- [ ] Each parallel task that writes in Git repo works in its own Git worktree. `rex-deliver` gives path + branch. `PENDING(C12)`: worktree hand-off for parallel writers.
+- [ ] Each parallel task that writes in Git repo works in its own Git worktree. Section "Parallel writers" of `rex-deliver` names branch + worktree. Agent that starts parallel writers reads it.
 
 Groups:
 

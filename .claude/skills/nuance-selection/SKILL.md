@@ -3,12 +3,12 @@ name: nuance-selection
 description: >
   This is stage 1 of the orchestration builder. It lists the skills that are
   available and selects the skills that a job uses. It writes a new skill only
-  when a three-part test passes. The usual result is no new skill. Use this
-  skill when `orchestration-builder` reaches stage 1, or when an agent must
+  when a three-part test passes. The usual result is no new skill.
+when_to_use: >
+  Use when `orchestration-builder` reaches stage 1, or when an agent must
   select skills for a piece of work.
 disable-model-invocation: false
 user-invocable: true
-# PENDING(C7): form of the "use when" line and the header keys.
 ---
 
 # Nuance Selection
@@ -26,7 +26,7 @@ Settle which skills this job uses. Write new skill only IF test of step 3 passes
 
 ## Words
 
-- Skill: Folder with one `SKILL.md`. Its header gives name, description, and "use when" line.
+- Skill: Folder with one `SKILL.md`. Its header gives `name`, `description`, and `when_to_use`.
 - Session: Claude Code conversation that loaded builder. It has one session ID.
 - Builder: Agent that obeys `orchestration-builder`.
 - Requester: User or agent that gave request.
@@ -36,10 +36,11 @@ Settle which skills this job uses. Write new skill only IF test of step 3 passes
 - Nuanced skill: Skill for something particular to repo or to kind of work, that no other skill covers.
 - Gap skill: Nuanced skill for one language. It covers what Rust gives by default and that language does not.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
-- Main checkout: Repo folder that holds `.claude/skills/` and `.rex/`. IF you work in Git worktree, THEN main checkout = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
+- `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
+- `JOB_DIR`: Absolute path where job branch is checked out. START of `rex-deliver` gives it.
 - Brief: Prompt that sub-agent gets.
-- Tag lines: First lines of brief. They give job ID and role.
-- Paths: each path in this skill starts at main checkout.
+- Tag block: First lines of brief: `Rex-Job: <job ID>`, `Rex-Role: <role>`, then one blank line.
+- Paths: each path in this skill starts at `HOME_DIR`.
 
 ## Input
 
@@ -47,9 +48,17 @@ From builder: request, classification, recall output, job ID.
 
 ## Step 1 — List skills
 
-Run `rex skills list`. `PENDING(C7)`: output form.
+Run `rex skills list`. It prints one block of six lines for each skill, in repo and in user skill folder of Claude Code:
 
-- [ ] It prints name, description, and "use when" line of each skill: in repo and in user skill folder of Claude Code.
+```
+name=<name>
+description=<what skill is for>
+when_to_use=<when to load skill>
+source=<repo or user>
+shadowed=<yes or no>
+path=<absolute path of SKILL.md>
+```
+
 - [ ] Decide from these lines. Do not open each file.
 - [ ] Open skill file only IF its lines are not sufficient.
 
@@ -83,40 +92,43 @@ Never add rule to skill that exists. Only `rex-feedback` does that.
 Session agent writes new skill. It runs at model + effort of session.
 
 1. Select name: short lower-case words with hyphens. Name = folder name. No skill in list of step 1 has that name.
-2. Start session agent: `subagent_type` = `general-purpose`, no model. Do not call `rex oms` for it.
-3. Give it no worktree isolation. Skill goes into main checkout. Agent in worktree cannot write there.
-4. Give it brief below. Replace each `<…>`. `<main checkout>` = absolute path.
+2. Run `git -C "$HOME_DIR" check-ignore -q .claude/skills/<name>/SKILL.md`.
+3. IF it succeeds, THEN Git ignores new skill. `<root>` = `HOME_DIR`. No branch is necessary.
+4. ELSE new skill = change of repo. Builder reads START of `.claude/skills/rex-deliver/SKILL.md` for that repo first. `<root>` = `JOB_DIR`.
+5. Start session agent: `subagent_type` = `general-purpose`, no model. Do not call `rex oms` for it.
+6. Give it no worktree isolation. Skill goes into `<root>`.
+7. Give it brief below. It starts with tag block. Replace each `<…>`. Each path is absolute.
 
 - [ ] Sandbox refuses shell command that writes below `.claude/skills/`. Protection is part of sandbox, not of settings.
 - [ ] Write tool and Edit tool can write below `.claude/skills/`, in session and in sub-agent.
-- [ ] New skill stays out of Git, like all files that SuperRex adds. `PENDING(C6)`: whether ignore entries cover new skill.
 
-Brief template. `PENDING(C4)`: form of tag lines. `PENDING(C7)`: header keys and "use when" line.
+Brief template:
 
 ```
-<tag line: job ID = <job ID>>
-<tag line: role = skill-writer>
+Rex-Job: <job ID>
+Rex-Role: skill-writer
 
 Write one new skill. Its name is <name>. The skill must make agents do this: <need>.
 The reason: <why this job needs it, and why later jobs need it also>.
 
-1. Read <main checkout>/.claude/skills/rex-skill-language/SKILL.md in full. Obey it in every line.
-2. Write the file <main checkout>/.claude/skills/<name>/SKILL.md with the Write tool.
+1. Read <HOME_DIR>/.claude/skills/rex-skill-language/SKILL.md in full. Obey it in every line.
+2. Write the file <root>/.claude/skills/<name>/SKILL.md with the Write tool.
    A shell command cannot write below .claude/skills/.
 3. Start the file with this header:
    ---
    name: <name>
    description: >
-     <What the skill does, in one to three full sentences.>
-     Use this skill when <the situation in which an agent must load it>.
+     <What the skill is for, in one to three full sentences. No "use when" text here.>
+   when_to_use: >
+     Use when <the situations in which an agent must load it>.
    disable-model-invocation: false
    user-invocable: true
    ---
 4. The skill is not about one task. Put nothing in it that only this job needs.
 5. <Gap skill only: The skill covers what <language> does not give by default and Rust does.
    Write each such protection as a rule. Give each code example in Rust, beside the same example in <language>.>
-6. Run: rex skills check <main checkout>/.claude/skills/<name>/SKILL.md
-7. Do not add the file to Git.
+6. Run: rex skills check <root>/.claude/skills/<name>
+7. <Only if Git ignores the new skill: Do not add the file to Git.>
 
 Return a short report: the path of the file and the output of the check.
 ```
@@ -133,8 +145,10 @@ IF job writes code in language that is not `rust`, THEN find skill in list for g
 
 ## Step 5 — Skill check
 
-After session agent reports, run `rex skills check <main checkout>/.claude/skills/<name>/SKILL.md` on each new skill. `PENDING(C7)`: argument form and rules of check.
+After session agent reports, run `rex skills check <root>/.claude/skills/<name>` on each new skill. Path = skill folder, or its `SKILL.md`.
 
+- [ ] Pass: exit code 0 and line `ok <path>`.
+- [ ] Finding: line `<path>: <rule>: <what is wrong>`. Exit code 1.
 - [ ] DO correct skill with Edit tool UNTIL check passes OR 3 rounds done.
 - [ ] IF check passes, THEN add skill to skill list, with mark `new`.
 - [ ] IF check still fails, THEN do not use skill. Tell requester in final report: path + last check output.

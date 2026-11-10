@@ -3,13 +3,14 @@ name: orchestration-selection
 description: >
   This is stage 3 of the orchestration builder. It reuses an orchestrator skill
   from the library, or it builds a new one that suits the work breakdown. It
-  gives each role an agent with the `rex oms` command. It holds a summary of
-  the methods of agent orchestration and of the seven inputs of model
-  selection. Use this skill at stage 3 of the orchestration builder, or when an
-  agent selects orchestration and models for roles.
+  defines the roles and rates the inputs that select a model for each role. It
+  holds a summary of the methods of agent orchestration and of the seven inputs
+  of model selection.
+when_to_use: >
+  Use when `orchestration-builder` reaches stage 3, or when an agent selects
+  orchestration and models for roles.
 disable-model-invocation: false
 user-invocable: true
-# PENDING(C7): form of the "use when" line and the header keys.
 ---
 
 # Orchestration Selection
@@ -20,8 +21,8 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 1. Reuse. IF orchestrator skill in recall output suits work breakdown, THEN reuse it, do step 4, give output.
 2. ELSE select method.
 3. Define roles + skills of each role.
-4. For each role: run `rex oms`, OR give role session agent.
-5. Write orchestrator skill + lead skills. Run `rex skills check` on each.
+4. For each role: rate inputs + read `rex oms`, OR give role session agent.
+5. Write orchestrator skill + lead skills. Run `rex skills check` on its folder.
 6. Give output. Builder records it with `rex job plan`.
 ```
 
@@ -41,15 +42,16 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 - Role: Named part in orchestrator skill. Example: `engineer`.
 - Grid agent: One of 20 agent definitions in `.claude/agents/`. Name: `model-<tier>-effort-<level>`.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
-- Main checkout: Repo folder that holds `.claude/skills/` and `.rex/`. IF you work in Git worktree, THEN main checkout = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
+- `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
+- `JOB_DIR`: Absolute path where job branch is checked out. START of `rex-deliver` gives it.
 - Role table: For one job: skills, inputs, and agent of each role. Output of stage 3.
 - Orchestrator skill: Reusable file. It gives roles, order, skills of each role, and checks. Not about one task.
-- Lead skill: Reusable file for lead. Kept beside orchestrator skills.
-- Orchestrator library: Folder that holds orchestrator skills and lead skills. Outside `.claude/skills/`.
+- Lead skill: Reusable file for lead. Kept in folder of its orchestrator skill.
+- Orchestrator library: Folder `.rex/orchestrators/` in `HOME_DIR`. One folder for each orchestrator skill. Outside `.claude/skills/`.
 - Brief: Prompt that sub-agent gets.
-- Tag lines: First lines of brief. They give job ID and role.
+- Tag block: First lines of brief: `Rex-Job: <job ID>`, `Rex-Role: <role>`, then one blank line.
 - Orchestrator, lead, worker: Level 1 = session. Level 2 = sub-agent of session. Level 3 = sub-agent of lead.
-- Paths: each path in this skill starts at main checkout.
+- Paths: each path in this skill starts at `HOME_DIR`.
 
 ## Input
 
@@ -59,10 +61,11 @@ Work breakdown, skill list, classification, preferences, recall output.
 
 Reuse before you build.
 
-1. Candidates = orchestrator skills in recall output: those that similar jobs used, with result of each job, and those that never ran.
-2. Read file of each candidate IN FULL. Path: see `## Orchestrator library`.
-3. IF one suits work breakdown, THEN reuse it. You decide: weigh results of its jobs against preferences.
-4. IF none suits, THEN build new one: steps 2, 3, 5. In both cases, do step 4 for each role.
+1. Candidates = `orchestrator` lines and `unused` lines of recall output.
+2. `orchestrator` line: orchestrator skill that similar jobs used, with results of those jobs. `unused` line: orchestrator skill whose newest version never ran.
+3. Read `SKILL.md` of each candidate IN FULL. Its path is in `path` of its line.
+4. IF one suits work breakdown, THEN reuse it. You decide: weigh results of its jobs against preferences.
+5. IF none suits, THEN build new one: steps 2, 3, 5. In both cases, do step 4 for each role.
 
 - [ ] Reused file gives roles + skills of each role. Add skills from skill list that role uses.
 - [ ] Add no rule to reused file. Rule enters orchestrator skill only through `rex-feedback`.
@@ -145,7 +148,7 @@ Roles, not models. Orchestrator skill says "start agent for role `engineer`". Ro
 
 For each role, define:
 
-- [ ] Name. Examples: `engineer`, `reviewer`, `verifier`.
+- [ ] Name: lower-case letters, digits, and `-` only. Examples: `engineer`, `reviewer`, `verifier`.
 - [ ] Job: one primary job.
 - [ ] Skills it reads, from skill list: core rules + skills for its task.
 - [ ] Gap skill of each language that role writes.
@@ -167,9 +170,15 @@ Seven inputs. Each value = `low`, `medium`, `high`, or `none`.
 | `--verification` | Role | Correctness is hard to examine. | Some review or test is necessary. | Quick, reliable checks exist. |
 
 - [ ] `none` = input is not relevant. Function ignores it. Leave flag out: same as `none`.
-- [ ] Job inputs: pass only preference that user stated. Same value in each call for one job. ELSE leave flag out.
+- [ ] Job inputs: give `rex oms` same job inputs that `rex job create` got. These are only preferences that user stated.
 - [ ] Role inputs: rate each role. Role consequence starts at consequence in classification. It can be lower for role that cannot cause that harm.
 - [ ] Higher budget or longer duration permits more spend or time. It does not require it.
+
+Who selects agent:
+
+- [ ] Job with plan: `rex job plan` selects agent of each role from same inputs. Builder starts each role with agent that `rex job plan` printed.
+- [ ] `rex oms` is for design: read `demand` + `conflict` before you fix roles.
+- [ ] Builder inside open job has no plan. It starts each role with agent of `agent` line of `rex oms`.
 
 How function acts (function version 1). Stakes = higher of reliability and consequence.
 
@@ -188,7 +197,7 @@ rex oms [--duration <v>] [--budget <v>] [--intelligence <v>] [--autonomy <v>] \
         [--reliability <v>] [--consequence <v>] [--verification <v>]
 ```
 
-Output = six `key=value` lines, in fixed order. Read `agent` line. Write it in role table.
+Output = six `key=value` lines, in fixed order. Write `agent` in role table.
 
 | Key | Value |
 | --- | --- |
@@ -215,7 +224,7 @@ version=1
 Grid: tiers `low`, `medium`, `high`, `xhigh`. Levels `low`, `medium`, `high`, `xhigh`, `max`. Grid agent runs at model + effort of its definition.
 
 - [ ] Orchestrator = session. It runs at model + effort of session. Run no `rex oms` for it.
-- [ ] Role that must run as session does: run no `rex oms`. Write `session agent` in `Agent` column, and `—` in each input column. `PENDING(C2)`: how role table records such role.
+- [ ] Role that must run as session does: run no `rex oms`. Write `session agent` in `Agent` column, and `—` in each input column. In plan file, it is `"session": true`.
 
 ## Step 5 — Write orchestrator
 
@@ -228,17 +237,30 @@ Contents:
 - [ ] Skills that each role reads.
 - [ ] Checks: how agents examine work.
 - [ ] One rule (below).
-- [ ] Tag lines: each brief starts with them (`## Briefs`).
+- [ ] Tag block: each brief starts with it (`## Briefs`).
 
-Form: like any skill. Header with `name` and `description` with "use when" line. Then `## Words`, flow block, sections. `name` = folder name.
+Form: like any skill. Header, then `## Words`, flow block, sections. Header:
 
+```
+---
+name: <name>
+description: >
+  <What this orchestrator skill does, in full sentences.>
+when_to_use: >
+  Use when orchestration builder selects this orchestrator skill for a job.
+---
+```
+
+- [ ] `<name>` = folder name: lower-case letters and digits in groups joined by single hyphens.
+- [ ] `description`: `rex recall` prints it for orchestrator skill that never ran.
+- [ ] `when_to_use`: write only line above. Write no text on what kind of job it fits.
 - [ ] Not about one task. Nothing of this request goes in. Task detail goes in briefs.
 - [ ] No model names, no grid agents. Roles only.
 - [ ] No other fixed rule. Design it on its merits: no fixed count of rounds, proof form, or test budget, unless this design wants one.
-- [ ] Lead skill: IF lead has its own procedure, THEN write lead skill in library. Lead gets its path in brief.
-- [ ] Write each file at `.rex/orchestrators/<name>/SKILL.md`. `PENDING(C1)`: folder layout + file name.
+- [ ] Write file at `.rex/orchestrators/<name>/SKILL.md`.
+- [ ] Lead skill: IF lead has its own procedure, THEN write file `<role>.md` in same folder. Lead gets its path in brief.
 
-Then run `rex skills check <path of SKILL.md>` on each new file. DO correct file UNTIL check passes OR 3 rounds done. IF it still fails, THEN keep file and give findings to requester in final report. `PENDING(C7)`: argument form + rules.
+Then run `rex skills check "$HOME_DIR/.rex/orchestrators/<name>"`. DO correct files UNTIL exit code 0 OR 3 rounds done. IF it still fails, THEN keep files and give findings to requester in final report.
 
 ### One rule
 
@@ -252,8 +274,10 @@ Builder settles merge agreement before job opens. So requester gets question one
 
 ## Orchestrator library
 
-- [ ] Where: `.rex/orchestrators/<name>/` in main checkout. Outside `.claude/skills/`. Not in Git.
-- [ ] Store holds index (name + version) and results of jobs. `PENDING(C1)`, `PENDING(C2)`: how new orchestrator skill enters index with its version.
+- [ ] Where: `.rex/orchestrators/` in `HOME_DIR`. Outside `.claude/skills/`. Not in Git.
+- [ ] Each folder in library = one orchestrator skill: its `SKILL.md` + its lead skills. Never give lead skill its own folder.
+- [ ] `rex job plan` and `rex recall` index library and give version of each orchestrator skill. No agent writes version.
+- [ ] Store holds results of jobs that each orchestrator skill ran.
 - [ ] Claude Code does not list this folder. So library costs no context in other sessions.
 - [ ] Use: session reads orchestrator skill IN FULL and obeys it. Plain file read, not Skill tool.
 - [ ] Lead gets path of its lead skill in brief. Lead reads it same way.
@@ -261,16 +285,24 @@ Builder settles merge agreement before job opens. So requester gets question one
 
 ## Briefs
 
-Each brief starts with tag lines: job ID + role. Hooks use them to record which role each run filled. This is no quality rule. `PENDING(C4)`: exact form of tag lines.
+Each brief starts with tag block, as its first characters. Hooks read it to record which role each run filled. This is no quality rule.
 
+- [ ] Nothing before tag block: no heading, quote mark, or code fence. One space after each colon.
+- [ ] `Rex-Job`: copy it from tag block of your own brief. Session copies `job=` that `rex job create` printed.
+- [ ] `Rex-Role`: role of new sub-agent, as role table names it.
+- [ ] Session agent: tag block is only source of its role.
+- [ ] Do not tell agents to correct tags of brief already sent, or to send it again.
 - [ ] Paths in brief are absolute. Git worktree does not hold files that Git ignores.
+- [ ] Writer in Git repo: IF job works in job worktree, THEN brief gives `JOB_DIR`.
+- [ ] Parallel writer: its lines come from section "Parallel writers" of `rex-deliver`.
 - [ ] Task detail from work breakdown goes in brief.
 - [ ] Brief is for agent with no context: full sentences.
 
 Template:
 
 ```
-<tag lines: job ID and role>
+Rex-Job: <job ID>
+Rex-Role: <role>
 
 Outcome: <one deliverable, and why it matters>.
 Scope: <the files and state that you own, the prerequisites, the starting revision, and the edits or failures that exist already>.
@@ -286,7 +318,9 @@ Guidance, not rules. Orchestrator can do different.
 
 - [ ] Short reports. Sub-agent returns short verdict + references (paths, commits). No long report, no chatter.
 - [ ] Report ends with one of four states: `done`, `partial`, `awaiting decision`, `blocked`.
-- [ ] "How is it going?" from person or agent: answer from `rex status <job-id>`. It gives open sub-agents, how long each ran, what finished. Sub-agent can run it also. `PENDING(C5)`: output form.
+- [ ] "How is it going?" from person or agent: answer from `REX_STORE="$HOME_DIR/.rex" rex status <job-id>`. Sub-agent can run it also.
+- [ ] `rex status` prints one header line for job: ID, status, counts `open`, `finished`, `unconfirmed`. Then one line for each run: agent ID, role, agent type, duration, tokens.
+- [ ] `rex status` with no job ID: each open job.
 - [ ] Agreement of agents is not proof. Use tests, sources, observations you can repeat, or explicit rubric.
 - [ ] Select verification by uncertainty + consequence, not by complexity only. Stop when acceptance passes.
 - [ ] Put limit on reviews, retries, and search. Plan again IF failures repeat, OR coordination costs more than delivery.
