@@ -1,6 +1,6 @@
 ---
 name: rex-code-tests-contract-seams
-description: Hard rules for Rust contract seam tests. Test interface between modules using real impls on both sides. Lives in tests/contract/. Catches refactor breakage at module boundaries. Use when testing module-to-module interactions, after refactoring a seam, defining a new module interface, or user asks "test the boundary", "this seam keeps breaking", "interaction between modules".
+description: This skill gives hard rules for Rust contract seam tests. A contract seam test tests the interface between modules, with real impls on both sides. It lives in tests/contract/. It catches refactor breakage at module boundaries. Use it when you test module-to-module interactions, after you refactor a seam, or when you define a new module interface. Use it also when the user asks "test the boundary", "this seam keeps breaking", "interaction between modules".
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -19,18 +19,18 @@ Sister skills:
 
 ## Iron rule
 
-**Test the seam. Not the impls on either side.**
+**Test seam. Not impls on either side.**
 
-Seam = stable module-to-module interface inside the codebase. Contract test = "if A calls B this way, B promises this shape back." Catch = refactor of A or B breaks the promise → loud failure.
+Seam = stable module-to-module interface inside codebase. Contract test = "if A calls B this way, B promises this shape back." Catch = refactor of A or B breaks promise → loud failure.
 
 ## What is a seam
 
 - Stable interface between two modules
 - Examples in this domain: `OrderBook → Strategy`, `Strategy → Risk`, `Risk → Executor`, `MarketData → OrderBook`
-- BOTH sides = real impls in the binary. Not external. Not mocked.
-- Contract = method signature + error variants + ordering guarantees + invariants the seam promised
+- BOTH sides = real impls in binary. Not external. Not mocked.
+- Contract = method signature + error variants + ordering guarantees + invariants that seam promised
 
-If interface unstable → too early for contract test. Wait for shape (per philosophy).
+IF interface unstable, THEN too early for contract test. Wait for shape (per philosophy).
 
 ## Where contract tests live
 
@@ -56,11 +56,11 @@ pub mod orderbook_to_strategy;
 pub mod strategy_to_risk;
 ```
 
-## Use real impls. Stub only the outside.
+## Use real impls. Stub only outside.
 
 - Real `OrderBook`. Real `Strategy`. They are the seam.
-- Stub network, clock, FS — anything OUTSIDE the codebase.
-- If you reach for `mockall` on a module you own → wrong tool. Use the real one.
+- Stub network, clock, FS — anything OUTSIDE codebase.
+- IF you use `mockall` on module that you own, THEN wrong tool. Use real one.
 
 ```rust
 // good — real impls of both sides
@@ -95,21 +95,21 @@ fn strategy_handles_mocked_book() {
 - Method signature change (caller breaks)
 - Error variant added/removed (caller match no longer exhaustive)
 - Ordering guarantee broken (events delivered out of order)
-- Invariant the seam promised (e.g., "subscriber gets snapshot before any update")
+- Invariant that seam promised (e.g., "subscriber gets snapshot before any update")
 - New required parameter
 
-If contract test breaks under refactor → seam is shifting. Decide: update contract or revert refactor.
+IF contract test breaks under refactor, THEN seam shifts. Decide: update contract or revert refactor.
 
 ## Pattern: one test per outcome shape
 
-For each cross-module call, write tests covering:
+For each cross-module call, write tests that cover:
 
 - Happy path (Ok variant)
-- Each `Err` variant the seam can return
+- Each `Err` variant that seam can return
 - Boundary: empty input, max input, concurrent calls
 - Invariants under load (ordering, idempotency)
 
-Not exhaustive coverage. Coverage of the *contract*, not the *impl*.
+Not exhaustive coverage. Coverage of *contract*, not *impl*.
 
 ## Distinct from siblings
 
@@ -120,8 +120,8 @@ Not exhaustive coverage. Coverage of the *contract*, not the *impl*.
 | integration | outside world | no | yes |
 | fitness | architectural invariant | no | depends |
 
-If you're mocking a module the codebase owns → switch to real impl, you're contract-testing.
-If you're mocking the network → either stub it (unit/contract) or hit it real (integration).
+IF you mock module that codebase owns, THEN switch to real impl. You contract-test.
+IF you mock network, THEN stub it (unit/contract) or hit it real (integration).
 
 ## End-to-end example
 
@@ -181,10 +181,10 @@ fn subscribe_then_unsubscribe_stops_delivery() {
 
 - [ ] Test lives in `tests/contract/<seam_name>.rs`
 - [ ] Both sides of seam = real impls (not mocks)
-- [ ] Outside world (network, clock, FS) is stubbed, not hit
+- [ ] Outside world (network, clock, FS): stub, no real hit
 - [ ] One test per outcome shape (Ok + each Err variant + boundary)
-- [ ] Asserts the *contract* (signatures, ordering, errors), not impl details
-- [ ] Test name describes the contract clause being verified
-- [ ] Expected `Err` matched explicitly with `matches!` or destructure (per `rex-code-error-writing`)
+- [ ] Asserts *contract* (signatures, ordering, errors), not impl details
+- [ ] Test name describes contract clause that test proves
+- [ ] Test matches expected `Err` explicitly with `matches!` or destructure (per `rex-code-error-writing`)
 
-Fail any → fix before push.
+IF any fail, THEN fix before push.
