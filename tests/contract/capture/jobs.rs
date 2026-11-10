@@ -11,6 +11,8 @@ use super::fixture::*;
 fn builder_in_a_sub_agent_keeps_the_open_job() {
     let mut fixture = Fixture::new();
     fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
+    let before = fixture.status(JOB_A);
+    assert_eq!(before, ("created".to_owned(), 1));
 
     // LEAD's own `rex job create` finds the session's job open: no second job opens.
     match fixture.open_job(JOB_B, "2026-11-10T13:10:20.000Z") {
@@ -21,8 +23,26 @@ fn builder_in_a_sub_agent_keeps_the_open_job() {
         other => panic!("a second open job for the session must be refused, got {other:?}"),
     }
     fixture.append(&fixture.lines.clone());
+    // The builder ran `rex job create` in the main session: one more record of a
+    // request already in the transcript, and the call's result.
+    let create = [
+        r#"{"type":"assistant","timestamp":"2026-11-10T13:10:14.878Z","effort":"low","message":{"id":"msg_fixture0017","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"toolu_create","name":"Bash","input":{"command":"rex job create"}}]}}"#,
+        r#"{"type":"user","timestamp":"2026-11-10T13:10:14.900Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_create","content":"job=k3x9p2m7qd\nexisting=no"}]}}"#,
+    ];
+    append_text(
+        &fixture.main_transcript(),
+        &format!("{}\n", create.join("\n")),
+    );
 
     let runs = fixture.read(JOB_A, AFTER_SESSION);
+    assert_eq!(runs.runs.len(), 6);
+    assert_eq!(
+        fixture.status(JOB_A),
+        before,
+        "capture never changes a job's status"
+    );
+    let builder = (Some("claude-sonnet-5-5".to_owned()), Some("low".to_owned()));
+    assert_eq!(fixture.builder(JOB_A), builder);
     assert_eq!(run(&runs, WORKER).parent_agent_id.as_deref(), Some(LEAD));
     assert_eq!(run(&runs, BG_CHILD).parent_agent_id.as_deref(), Some(BG));
     for child in [WORKER, BG_CHILD] {
@@ -36,9 +56,11 @@ fn builder_in_a_sub_agent_keeps_the_open_job() {
         fixture.try_read(JOB_B, AFTER_SESSION),
         Err(CaptureError::Store(StoreError::JobNotFound { .. }))
     ));
+
+    late_lines_stay_with_the_first_job();
 }
 
-#[test]
+/// A late stop line after job A closed and B opened stays with A.
 fn late_lines_stay_with_the_first_job() {
     // PLAIN starts in job A; A closes; B opens; then PLAIN's stop line and call come.
     let mut fixture = Fixture::new();
@@ -88,29 +110,4 @@ fn close_a_and_open_b(fixture: &mut Fixture, held_back: &[&String]) {
     take_in(&mut fixture.store).unwrap();
     fixture.close_job(JOB_A, close);
     fixture.open_job(JOB_B, close).unwrap();
-}
-
-#[test]
-fn run_before_the_plan_leaves_the_status() {
-    let mut fixture = Fixture::new();
-    fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
-    let before = fixture.status(JOB_A);
-    assert_eq!(before, ("created".to_owned(), 1));
-    fixture.append(&fixture.lines.clone());
-    // The builder ran `rex job create` in the main session: one more record of a
-    // request already in the transcript, and the call's result.
-    let create = [
-        r#"{"type":"assistant","timestamp":"2026-11-10T13:10:14.878Z","effort":"low","message":{"id":"msg_fixture0017","model":"claude-sonnet-5-5","content":[{"type":"tool_use","id":"toolu_create","name":"Bash","input":{"command":"rex job create"}}]}}"#,
-        r#"{"type":"user","timestamp":"2026-11-10T13:10:14.900Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_create","content":"job=k3x9p2m7qd\nexisting=no"}]}}"#,
-    ];
-    append_text(
-        &fixture.main_transcript(),
-        &format!("{}\n", create.join("\n")),
-    );
-
-    let runs = fixture.read(JOB_A, AFTER_SESSION);
-    assert_eq!(runs.runs.len(), 6);
-    assert_eq!(fixture.status(JOB_A), before);
-    let builder = (Some("claude-sonnet-5-5".to_owned()), Some("low".to_owned()));
-    assert_eq!(fixture.builder(JOB_A), builder);
 }

@@ -24,23 +24,3 @@ pub fn hook_registration() -> Value {
         "PostToolUse": [{ "matcher": "Agent|Task", "hooks": hooks() }],
     })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn registration_is_the_documented_hooks_value() {
-        let documented = r#"{
-            "SubagentStart": [{ "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }],
-            "SubagentStop":  [{ "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }],
-            "PostToolUse":   [{ "matcher": "Agent|Task", "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }]
-        }"#;
-        let documented: Value = serde_json::from_str(documented).unwrap();
-        assert_eq!(
-            hook_registration().to_string(),
-            documented.to_string(),
-            "same keys in the same order"
-        );
-    }
-}

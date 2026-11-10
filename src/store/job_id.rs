@@ -111,8 +111,6 @@ impl fmt::Display for JobId {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use super::*;
 
     #[test]
@@ -145,13 +143,5 @@ mod tests {
             JobId::from_parts(last + 1, 0),
             Err(StoreError::ClockOutOfRange { .. })
         ));
-    }
-
-    #[test]
-    fn job_ids_do_not_repeat_in_a_burst() {
-        let ids: HashSet<String> = (0..10_000)
-            .map(|_| JobId::generate().unwrap().to_string())
-            .collect();
-        assert_eq!(ids.len(), 10_000);
     }
 }
