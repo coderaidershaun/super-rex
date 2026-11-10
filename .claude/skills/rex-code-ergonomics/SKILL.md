@@ -211,7 +211,7 @@ See `rex-code-error-writing` for full panic-vs-Result table. Short version: pani
 ## Async traps
 
 - **`async fn` in trait: stable since 1.75.** Use it. No `#[async_trait]` macro any more (mostly).
-- **`Send` bound by default.** IF proven need, THEN drop.
+- **`Send` bound by default.** Drop only IF proven need.
 - **`tokio::spawn` capture = `'static`.** Clone `Arc` not borrow.
 - **`.await` hold `MutexGuard` = deadlock risk.** Drop guard before await.
 
