@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/coderaidershaun/rex-skills/main/static/logo.png" alt="SuperRex logo" width="200">
+</p>
+
 # SuperRex
 
 This is version 0.1.0 of SuperRex.
