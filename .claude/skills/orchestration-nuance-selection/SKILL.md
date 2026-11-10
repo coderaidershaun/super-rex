@@ -1,34 +1,39 @@
 ---
 name: orchestration-nuance-selection
 description: >
-  This is stage 1 of the orchestration builder. It lists the skills that are
-  available and selects the skills that a job uses. It writes a new skill only
-  when a three-part test passes. The usual result is no new skill.
+  Stage 1 of the orchestration builder. It lists the available skills and
+  selects the skills that a job uses. It asks for a new skill only when a
+  three-part test passes. Usual result: no new skill.
 when_to_use: >
-  Use when `orchestration-builder` reaches stage 1, or when an agent must
-  select skills for a piece of work.
-disable-model-invocation: false
+  Use when the decision agent of `orchestration-builder` reaches stage 1, or
+  when an agent must select skills for a piece of work.
+disable-model-invocation: true
 user-invocable: false
 ---
 
 # Nuance Selection
 
-Settle which skills this job uses. Write new skill only IF test of step 3 passes. Default result: no new skill.
+Settle which skills this job uses. Ask for new skill only IF test of step 3 passes. Default result: no new skill.
 
 ```
 1. Take output of `rex skills list` from builder. IF you have none, THEN run `rex skills list`.
 2. Find needs of job. IF skill in list covers need, THEN add that skill to skill list.
 3. Test each need that no skill covers. IF test fails, THEN write no skill.
-4. IF test passes, THEN session agent writes new skill.
-5. Do skill check on each new skill.
-6. Give SKILL LIST to builder.
+4. IF test passes, THEN put need under NEW SKILLS. Builder has session agent write it.
+5. Builder does skill check on each new skill.
+6. Give SKILL LIST + NEW SKILLS to builder.
 ```
+
+| File | Read when |
+| --- | --- |
+| `.claude/skills/orchestration-nuance-selection/write-skill.md` | Builder: decision block lists NEW SKILLS. Steps 4 + 5. |
 
 ## Words
 
 - Skill: Folder with one `SKILL.md`. Its header gives `name`, `description`, and `when_to_use`.
 - Session: Claude Code conversation that loaded builder. It has one session ID.
 - Builder: Agent that obeys `orchestration-builder`.
+- Decision agent: Sub-agent of builder that does stages 1 to 3. Its brief gives input of each stage.
 - Requester: User or agent that gave request.
 - Job: One request that SuperRex handles. It has one job ID.
 - Classification: Four fields of job: work type, size, consequence, languages.
@@ -37,18 +42,16 @@ Settle which skills this job uses. Write new skill only IF test of step 3 passes
 - Gap skill: Nuanced skill for one language. It covers what Rust gives by default and that language does not.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
 - `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
-- `JOB_DIR`: Absolute path where job branch is checked out. START of `rex-deliver` gives it.
 - Brief: Prompt that sub-agent gets.
-- Tag block: First lines of brief: `Rex-Job: <job ID>`, `Rex-Role: <role>`, then one blank line.
 - Paths: each path in this skill starts at `HOME_DIR`.
 
 ## Input
 
-From builder: request, classification, recall output, output of `rex skills list`, job ID.
+From builder: request, classification, recall output, job ID. Output of `rex skills list`: step 1.
 
 ## Step 1 — List skills
 
-Builder ran `rex skills list` in its step 4. IF you have no output of it, THEN run `rex skills list` now.
+IF you have no output of `rex skills list`, THEN run `rex skills list` now.
 It prints one block of six lines for each skill, in repo and in user skill folder of Claude Code:
 
 ```
@@ -62,6 +65,7 @@ path=<absolute path of SKILL.md>
 
 - [ ] Decide from these lines. Do not open each file.
 - [ ] Open skill file only IF its lines are not sufficient.
+- [ ] Never list skills with `ls`: it gives no `when_to_use` line and no skill of user skill folder.
 
 ## Step 2 — Find needs
 
@@ -71,7 +75,7 @@ From request, classification, lessons of recall output, and look at repo: find w
 - [ ] IF skill covers need, THEN add that skill to skill list. Write nothing new.
 - [ ] IF no skill covers need, THEN do step 3 for it.
 - [ ] For each language in classification that is not `rust`: do `## Gap skill`.
-- [ ] Plan job (`## Plan jobs` of `orchestration-builder`): add `rex-codex-adversarial-review` to skill list.
+- [ ] Plan job (`.claude/skills/orchestration-builder/plan-jobs.md`): add `rex-codex-adversarial-review` to skill list.
 
 Examples of need: ergonomics are very important in this repo. Repo is very large, and architecture must get attention after work. Skill in list can cover each one already. Then add nothing new.
 
@@ -89,51 +93,7 @@ IF one is false, THEN write no skill. Content that only this job needs goes in b
 IF in doubt, THEN write no skill. Add skill only IF it is necessary.
 Never add rule to skill that exists. Only `rex-feedback` does that.
 
-## Step 4 — Write skill
-
-Session agent writes new skill.
-
-1. Select name: short lower-case words with hyphens. Name = folder name. No skill in list of step 1 has that name.
-2. Run `git -C "$HOME_DIR" check-ignore -q .claude/skills/<name>/SKILL.md`.
-3. IF it succeeds, THEN Git ignores new skill. `<root>` = `HOME_DIR`. No branch is necessary.
-4. ELSE new skill = change of repo. Builder makes values of table in its step 7 first. Then builder reads START of `.claude/skills/rex-deliver/SKILL.md` for that repo. `<root>` = `JOB_DIR`.
-5. Start session agent: `subagent_type` = `general-purpose`, no model. Do not call `rex oms` for it.
-6. Give it no worktree isolation. Skill goes into `<root>`.
-7. Give it brief below. It starts with tag block. Replace each `<…>`. Each path is absolute.
-
-- [ ] Sandbox refuses shell command that writes below `.claude/skills/`. Protection is part of sandbox, not of settings.
-- [ ] Write tool and Edit tool can write below `.claude/skills/`, in session and in sub-agent.
-
-Brief template:
-
-```
-Rex-Job: <job ID>
-Rex-Role: skill-writer
-
-Write one new skill. Its name is <name>. The skill must make agents do this: <need>.
-The reason: <why this job needs it, and why later jobs need it also>.
-
-1. Read <HOME_DIR>/.claude/skills/rex-skill-language/SKILL.md in full. Obey it in every line.
-2. Write the file <root>/.claude/skills/<name>/SKILL.md with the Write tool.
-   A shell command cannot write below .claude/skills/.
-3. Start the file with this header:
-   ---
-   name: <name>
-   description: >
-     <What the skill is for, in one to three full sentences. No "use when" text here.>
-   when_to_use: >
-     Use when <the situations in which an agent must load it>.
-   disable-model-invocation: false
-   user-invocable: true
-   ---
-4. The skill is not about one task. Put nothing in it that only this job needs.
-5. <Gap skill only: The skill covers what <language> does not give by default and Rust does.
-   Write each such protection as a rule. Give each code example in Rust, beside the same example in <language>.>
-6. Run: rex skills check <root>/.claude/skills/<name>
-7. <Only if Git ignores the new skill: Do not add the file to Git.>
-
-Return a short report: the path of the file and the output of the check.
-```
+IF all three are true, THEN put need under NEW SKILLS (`## Output`). Do not write skill yourself. Builder does steps 4 + 5 (`.claude/skills/orchestration-nuance-selection/write-skill.md`), and gives you path + check result of each new skill.
 
 ## Gap skill
 
@@ -145,21 +105,18 @@ IF job writes code in language that is not `rust`, THEN find skill in list for g
 - [ ] Code examples: Rust (reference) beside that language.
 - [ ] Go: error handling. C++: `const` correctness and memory safety, no chance of segmentation fault.
 
-## Step 5 — Skill check
-
-After session agent reports, run `rex skills check <root>/.claude/skills/<name>` on each new skill. Path = skill folder, or its `SKILL.md`.
-
-- [ ] Pass: exit code 0 and line `ok <path>`.
-- [ ] Finding: line `<path>: <rule>: <what is wrong>`. Exit code 1.
-- [ ] DO correct skill with Edit tool UNTIL check passes OR 3 rounds done.
-- [ ] IF check passes, THEN add skill to skill list, with mark `new`.
-- [ ] IF check still fails, THEN do not use skill. Tell requester in final report: path + last check output.
-
 ## Output
 
 SKILL LIST: one table. Columns, in this sequence: `Skill / Path / Why this job needs it`.
 
 - [ ] Mark each new skill in `Skill` column: `<name>` (`new`).
-- [ ] `Path` column: `path=` line of that skill in output of `rex skills list`. New skill: path of its `SKILL.md`.
+- [ ] `Path` column: `path=` line of that skill in output of `rex skills list`. New skill: path of its `SKILL.md`, OR `pending` until builder gives it.
 - [ ] Default: no row is `new`.
 - [ ] Builder records skill list with plan.
+
+NEW SKILLS: one table, OR `none`. One row for each need that passes test of step 3. Columns, in this sequence: `Name / Need / Reason / Gap language`.
+
+- [ ] Name: short lower-case words with hyphens. Name = folder name. No skill in list of step 1 has that name.
+- [ ] Need: what skill must make agents do. Reason: why this job needs it, and why later jobs need it also.
+- [ ] Gap language: language of gap skill, OR `—`.
+- [ ] Default: `none`.

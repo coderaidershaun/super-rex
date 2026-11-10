@@ -1,18 +1,13 @@
 ---
 name: orchestration-builder
 description: >
-  This is the entry skill of SuperRex. It classifies a request, settles with
-  the requester whether to merge the work to main, and opens a job. It recalls
-  experience, then runs three stages: skill selection, work breakdown, and
-  orchestration selection. A paired challenger checks that decision, and the
-  builder corrects it. It records its plan, runs the orchestrator on a new
-  branch, delivers the work, and closes the job. A request for a plan becomes a
-  plan job: it writes a plan file, and a second model challenges that plan
-  before it is final. A later run of the builder executes that plan.
+  SuperRex entry skill. It classifies a request, settles merge, and opens a
+  job. A decision agent selects skills, tasks, and orchestration, and a
+  challenger checks it. It records the plan, then runs, delivers, and closes
+  the job.
 when_to_use: >
-  Use when a user or an agent requests substantial work, or work that must
-  have a record. The work can be of any kind: code, research, or other work.
-  Do not use this skill for a small change, such as a one-line fix.
+  Use when a user or agent requests substantial work, a plan, or work that
+  must have a record. Not for a one-line fix.
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -23,17 +18,26 @@ You = builder. After you record plan, you = orchestrator.
 You run at model + effort of your session.
 
 ```
-IF your brief starts with tag block that holds `Rex-Job:`, THEN do "Open job exists" first.
-1. Classify request. IF job = plan job OR plan execution, THEN obey `## Plan jobs` also.
+IF `Rex-Role` of your brief = `decision-maker`, THEN you are decision agent: do stages only, start no decision agent, obey your brief. Obey nothing else in this skill.
+IF your brief starts with tag block that holds `Rex-Job:`, THEN read `.claude/skills/orchestration-builder/open-job.md` first.
+1. Classify request. IF job = plan job OR plan execution, THEN read `.claude/skills/orchestration-builder/plan-jobs.md` also.
 2. Settle merge agreement with requester.
-3. Open job. IF output gives `existing=yes`, THEN do "Open job exists".
-4. Recall + list skills: run `rex recall` and `rex skills list`.
-5. Stages, in sequence: orchestration-nuance-selection, then orchestration-work-breakdown, then orchestration-selection. Then paired challenger checks decision. Correct it.
+3. Open job. IF output gives `existing=yes`, THEN read `.claude/skills/orchestration-builder/open-job.md`.
+4. Recall: run `rex recall`.
+5. Decide: read `.claude/skills/orchestration-builder/decide.md`. Decision agent does three stages. Paired challenger checks decision. Decision agent corrects it.
 6. Record plan.
-7. Run: you = orchestrator. Obey orchestrator skill on job branch.
-8. Deliver: END of `rex-deliver`, for each repo with job branch.
+7. Run: read `.claude/skills/orchestration-builder/run.md`. You = orchestrator. Obey orchestrator skill on job branch.
+8. Deliver: `rex-deliver`, for each repo with job branch.
 9. Close job. Tell requester result.
 ```
+
+| File | Read when |
+| --- | --- |
+| `.claude/skills/orchestration-builder/classify.md` | Step 1: definition of each value, fill rules. |
+| `.claude/skills/orchestration-builder/decide.md` | Steps 5 + 6. |
+| `.claude/skills/orchestration-builder/run.md` | Steps 7 to 9, after `rex job plan`. Also `## Sandbox` there: IF command fails because host name lookup or connection fails. |
+| `.claude/skills/orchestration-builder/open-job.md` | Brief holds `Rex-Job`, OR `rex job create` prints `existing=yes`. |
+| `.claude/skills/orchestration-builder/plan-jobs.md` | Job = plan job OR plan execution. |
 
 ## Words
 
@@ -52,9 +56,12 @@ IF your brief starts with tag block that holds `Rex-Job:`, THEN do "Open job exi
 - Grid agent: One of 20 agent definitions in `.claude/agents/`. Name: `model-<tier>-effort-<level>`.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
 - `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
-- `JOB_DIR`: Absolute path where job branch is checked out. START of `rex-deliver` gives it.
-- Role table: For one job: skills, inputs, and agent of each role. Output of stage 3.
+- `JOB_DIR`: Absolute path where job branch is checked out. `.claude/skills/rex-deliver/start.md` gives it.
+- Role table: For one job: tasks, skills, inputs, and agent of each role. Output of stage 3.
 - Orchestrator skill: Reusable file. It gives roles, order, skills of each role, and checks. Not about one task.
+- Decision: Skill list + work breakdown + orchestrator skill + role table.
+- Decision agent: Session agent that does stages 1 to 3 and corrects decision. Role `decision-maker`.
+- Decision block: Text form of decision that decision agent gives. Form: `.claude/skills/orchestration-builder/decide.md`.
 - Brief: Prompt that sub-agent gets.
 - Tag block: First lines of brief: `Rex-Job: <job ID>`, `Rex-Role: <role>`, then one blank line.
 - Orchestrator, lead, worker: Level 1 = session. Level 2 = sub-agent of session. Level 3 = sub-agent of lead.
@@ -75,61 +82,21 @@ Never write `$PWD` there: in job worktree or in sibling repo, `$PWD` gives wrong
 - [ ] Pass duration, budget, and autonomy only IF user stated them.
 - [ ] Session has max one open job.
 - [ ] Review of pull request + feedback: only IF requester asks. See `## On request`.
-- [ ] Plan job: adversarial review of plan is required before plan is final. See `## Plan jobs`.
+- [ ] Plan job: adversarial review of plan is required before plan is final. See `.claude/skills/orchestration-builder/plan-jobs.md`.
 - [ ] Ask user only as `## Questions to user` says.
 - [ ] Read each skill file with Read tool, one file for each call. Shell command cuts long output.
 
 ## Step 1 — Classify
 
 Four fields. Classify from request + look at repo: `rex codebase`. No deep investigation first. Classification takes seconds.
+Read `.claude/skills/orchestration-builder/classify.md` for definition of each value and for fill rules.
 
 - Work type values: `feature`, `fix`, `refactor`, `chore`, `research`, `other`
 - Size values: `small`, `medium`, `large`
 - Consequence values: `low`, `medium`, `high`
 
-Work type: what request asks you to deliver. Take first row that applies, from top.
-
-| Value | Definition |
-| --- | --- |
-| `feature` | Adds behavior that software did not have. |
-| `fix` | Corrects behavior that is wrong against its intent. |
-| `refactor` | Changes code, not what code does. Includes faster or cleaner code. |
-| `chore` | Changes repo, but not behavior and not code structure: documentation, tests, dependencies, build, CI, configuration, tooling. |
-| `research` | Deliverable = answer: findings, comparison, recommendation, or plan. Request asks no change to product. |
-| `other` | No row above applies. |
-
 - [ ] IF request asks for plan, design, or approach for later work, and asks no change now, THEN work type = `research` and job = plan job.
 - [ ] IF request names plan file to execute, THEN read plan file IN FULL before you classify. Job = plan execution. Classify work of plan.
-
-Size: how much separate work request holds. Module = one source file, or one folder of files with one purpose.
-
-| Value | Definition |
-| --- | --- |
-| `small` | One outcome. You expect it to stay inside one module. |
-| `medium` | One outcome across several modules, OR 2 or 3 outcomes that depend on each other. |
-| `large` | Several independent outcomes, each one you can build and test alone. OR change that reaches most of codebase. |
-
-Consequence: worst credible result of mistake anywhere in job. Test: does revert of commit undo harm?
-
-| Value | Definition |
-| --- | --- |
-| `low` | Mistake is cheap: normal checks catch it, or revert of commit undoes it. |
-| `medium` | Mistake causes meaningful rework or disruption: it can reach main unseen, break other work, or be hard to find. |
-| `high` | Mistake can cause damage that revert of commit does not undo: real funds, production data, security or secrets, published release. |
-
-Languages: programming languages of source files that job adds or changes. One or more values. Data, configuration, and markup formats (Markdown, TOML, YAML, JSON) do not count.
-
-| Value | Definition |
-| --- | --- |
-| `<name>` | Lower-case name, no symbols: `rust`, `go`, `cpp`, `c`, `python`, `typescript`, `javascript`, `java`, `csharp`, `swift`, `kotlin`, `shell`, `sql`. Set is open. Spelling never changes. |
-| `none` | Job writes no code. |
-
-Fill rules:
-
-1. Classify whole request as one job, also when it holds two kinds of work.
-2. Work type: take first row that applies.
-3. IF in doubt between two sizes or two consequence levels, THEN take higher.
-4. Write classification one time. Never edit it.
 
 ## Step 2 — Merge agreement
 
@@ -163,262 +130,18 @@ EOF
 - [ ] `--builder-model`: exact model ID that your system prompt gives.
 - [ ] Output: `job=<job ID>`, `status=<status>`, `existing=no` or `existing=yes`.
 - [ ] Hold job ID as `JOB`. Each later step uses it.
-- [ ] IF output gives `existing=yes`, THEN do `## Open job exists`.
-
-## Open job exists
-
-Signs:
-
-1. Your brief starts with tag block that holds `Rex-Job:`. You are inside that job. Do not run `rex job create`.
-2. `rex job create` prints `existing=yes`.
-
-Case "inside open job": sign 1, OR sign 2 when you are sub-agent.
-
-1. Record nothing: no plan, no START, no END, no close.
-2. Run `REX_STORE="$HOME_DIR/.rex" rex job show <job-id>`. Job ID = `Rex-Job` of your brief, or `job=` of `rex job create`.
-3. Take from output: `duration`, `budget`, `autonomy` (`none` = not stated), `merge_agreed`, `experience_recalled` (= recall output for stages).
-4. Do step 1 for your part of work. Record nothing.
-5. Do step 5 for your part. Then run your part with roles of stage 3.
-6. Start each role with agent of `agent` line of `rex oms`: there is no plan.
-7. Work on branch that your brief gives. Copy `Rex-Job` of your brief into tag block of each brief that you write.
-8. IF you start parallel writers, THEN read only section "Parallel writers" of `.claude/skills/rex-deliver/SKILL.md`.
-9. IF you must change repo that has no job branch, THEN write nothing there. Report that repo to agent that started you.
-10. You have fewer sub-agent levels below you: see levels in `orchestration-selection`.
-11. Report result to requester.
-
-Case "session": no `Rex-Job` in your brief, and `rex job create` prints `existing=yes`.
-
-1. Run `REX_STORE="$HOME_DIR/.rex" rex job show <job-id>`.
-2. IF request continues that job, THEN continue at first step not done.
-3. IF that job is from earlier request that will not continue, THEN close it. Then do step 3 again.
-
-```sh
-REX_STORE="$HOME_DIR/.rex" rex job close <job-id> --status cancelled --outcome "<why>"
-```
-
-- [ ] IF work of that job failed, THEN use `--status failed` in place of `cancelled`.
-- [ ] `--outcome` also names each job branch of that job that stays (step 9).
-- [ ] `blocked` job is not open job.
+- [ ] IF output gives `existing=yes`, THEN read `.claude/skills/orchestration-builder/open-job.md`.
 
 ## Step 4 — Recall
 
-Run both commands:
+Run:
 
 ```sh
 REX_STORE="$HOME_DIR/.rex" rex recall <job-id>
-rex skills list
 ```
 
-Output of `rex recall`:
-
-```
-job=<job ID>
-recorded=yes
-lessons=<n>
-lesson feedback=<id> job=<id> score=<n> status=<status> causes=<causes> text=<lesson>
-orchestrators=<n>
-orchestrator name=<name> version=<v> best_match=<n> runs=<n> accepted=<n> missed=<n> path=<path>
-unused=<n>
-unused name=<name> version=<v> path=<path> description=<text>
-```
-
-- [ ] `lesson` lines: lessons from similar jobs. Use them in stages and in briefs where they apply.
-- [ ] `orchestrator` lines: orchestrator skills that similar jobs used, with results of those jobs.
-- [ ] `unused` lines: orchestrator skills whose newest version never ran.
-- [ ] Give `orchestrator` lines and `unused` lines to stage 3.
 - [ ] `rex recall` records recalled experience on job itself, while job status = `created`.
-- [ ] `rex skills list` prints each skill of repo and of user skill folder, with its `when_to_use` line and its `path`.
-- [ ] Give its output to stage 1.
-- [ ] Never list skills with `ls`: it gives no `when_to_use` line and no skill of user skill folder.
-
-## Step 5 — Stages
-
-Three stages, in sequence. For each stage: read its file IN FULL, do it, keep its output.
-
-| Stage | File | Input | Output |
-| --- | --- | --- | --- |
-| 1 | `.claude/skills/orchestration-nuance-selection/SKILL.md` | Request, classification, recall output, output of `rex skills list`, job ID | Skill list |
-| 2 | `.claude/skills/orchestration-work-breakdown/SKILL.md` | Request, classification, recall output, skill list | Work breakdown |
-| 3 | `.claude/skills/orchestration-selection/SKILL.md` | Work breakdown, skill list, classification, preferences, recall output | Orchestrator skill (name, path, `new` or `reused`) + role table |
-
-- [ ] Small job: stages are short. Output can be one task + one worker.
-- [ ] Stage sub-agents that start before you record plan do not change job status.
-
-### Challenge of decision
-
-Decision = skill list + work breakdown + orchestrator skill + role table. Before you record plan, paired challenger checks it. No work starts before this.
-
-1. Read `.claude/skills/orchestration-decision-challenge/SKILL.md` IN FULL. Obey its builder sections.
-2. Start challenger: fresh grid agent, role `decision-challenger`. It made no part of decision.
-3. Challenger looks most for important skills that decision did not include, or did not give to a role.
-4. Examine each finding against real files. Correct decision for each finding that holds.
-5. Add `DECISION CHECK` table to work breakdown. Then record plan with corrected decision.
-
-- [ ] Each job, small job also. One round only.
-- [ ] Inside open job (`## Open job exists`): challenge your part the same way, before work of your part starts.
-
-## Step 6 — Record plan
-
-Give plan as JSON on standard input:
-
-```sh
-REX_STORE="$HOME_DIR/.rex" rex job plan <job-id> --plan-file - <<'EOF'
-{"orchestrator": "<name>", "skills": ["<skill name>"], "breakdown": "<work breakdown, Markdown text>",
- "roles": [{"role": "<role>", "intelligence": "<v>", "reliability": "<v>", "consequence": "<v>", "verification": "<v>"},
-           {"role": "<role>", "session": true}]}
-EOF
-```
-
-- [ ] `orchestrator`: name from stage 3. Folder `.rex/orchestrators/<name>/` must exist.
-- [ ] `skills`: names from skill list. Can be `[]`.
-- [ ] `breakdown`: work breakdown from stage 2, as one JSON string. Write `\n` for each line end.
-- [ ] `roles`: role table from stage 3. At least one role. Each `<v>` = `low`, `medium`, `high`, or `none`.
-- [ ] Role has all four inputs, OR `"session": true` (session agent). Never both.
-- [ ] IF stage 1 started skill writer, THEN add `{"role": "skill-writer", "session": true}`.
-- [ ] `rex` selects agent of each role itself. Job gets one plan only.
-
-Output:
-
-```
-job=<job ID>
-status=planned
-orchestrator=<name>
-orchestrator_version=<n>
-role.<name>=<grid agent>
-role.<name>=session
-conflict.<name>=<budget, duration, or budget,duration>
-```
-
-- [ ] One `role.` line for each role.
-- [ ] `conflict.<name>` line comes right after its role line, only IF floor overrode cap (`budget`, `duration`, or both) of that role.
-
-## Step 7 — Run
-
-Now you = orchestrator. Hold these values under these exact names. `rex-deliver` uses same names.
-
-| Name | Value |
-| --- | --- |
-| `JOB` | Job ID. |
-| `WORK_TYPE` | Work type of classification. |
-| `SLUG` | 2 to 5 words of `a-z 0-9` from request, joined by single hyphens. Max 40 characters. Pattern `^[a-z0-9]+(-[a-z0-9]+){1,4}$`. Same in every repo. |
-| `MERGE` | `yes` or `no`, for each repo (step 2). |
-| `HOME_DIR` | See `## Words`. |
-| `REPO_DIR` | Absolute path of main checkout root of each repo that job changes. |
-| `CHECKS` | Commands that prove work of job in that repo: build, test. Empty IF repo has no such command. |
-
-You make `SLUG` only. You name no branch and no worktree.
-
-1. Read orchestrator skill IN FULL, at path from stage 3. Obey it. This is plain file read.
-2. IF job changes no file in Git repo, THEN do not read `rex-deliver`. Job has no branch.
-3. ELSE read START of `.claude/skills/rex-deliver/SKILL.md` after plan, before first agent writes file in Git repo.
-4. Do START one time for each repo, as soon as you know that repo changes. Never work on main.
-5. Start each role with agent that `rex job plan` printed. `role.<name>=<grid agent>`: `subagent_type` = that grid agent.
-6. `role.<name>=session`: start session agent.
-7. Each brief starts with tag block. Form: `## Briefs` in `orchestration-selection`.
-8. IF job works in job worktree, THEN put `JOB_DIR` in brief of each writer. Writer uses absolute paths below it, in each shell command and each file tool.
-9. Use no `isolation: "worktree"` for writers.
-10. Lead that starts parallel writers: tell it to read section "Parallel writers" of `rex-deliver`. Give it `JOB`, `REPO_DIR`, its branch, absolute path where that branch is checked out, and `CHECKS`.
-11. Brief of each role that runs commands holds brief text of `## Sandbox`.
-
-## Sandbox
-
-Shell command runs in sandbox. Sandbox gives network only through its proxy.
-
-- Program that uses proxy connects: `curl`, `git`, `cargo`, `gh`.
-- Program that opens its own connection does not connect: WebSocket client, database driver, `ssh`.
-- Sign: host name lookup fails or connection fails, and `curl` gets same host.
-
-IF command fails for this cause, THEN run that one command again with `dangerouslyDisableSandbox: true` in Bash tool.
-
-CAUTION: A command outside the sandbox can write to every folder of the user. Run outside the sandbox only the one command that cannot reach the network. Never run a command outside the sandbox because the sandbox refused a write.
-
-- [ ] Next command runs in sandbox again.
-- [ ] Report names each command that ran outside sandbox.
-- [ ] Never give user command to run IF you or sub-agent can run it.
-- [ ] IF command outside sandbox fails same way, THEN repo is strict (`rex init --strict`). Only then give user command, with `! ` before it, and say which result proves work.
-
-Brief text, for each role that runs commands:
-
-```
-Shell commands run in a sandbox that reaches the network only through its proxy. If a command fails because its program opens its own network connection (a host name lookup or a connection fails, but `curl` reaches the same host), run that one command again with `dangerouslyDisableSandbox: true`. Do this for no other cause, and never because the sandbox refused a write. In your report, name each command that ran outside the sandbox.
-```
-
-## Step 8 — Deliver
-
-IF job has no job branch, THEN skip this step. ELSE do these steps for each repo that has job branch, before `rex job close`:
-
-1. Make `TITLE`: `<type>: <what works now>`.
-2. Make `BODY`: request, what changed, commands that prove it + their results, what job left out. Last line: `Rex-Job: <JOB>`.
-3. Read END of `.claude/skills/rex-deliver/SKILL.md`. Obey it.
-4. Keep delivery JSON object that `rex-deliver` gives for that repo.
-
-## Step 9 — Close job
-
-You run `rex job close`. Put delivery objects of all repos in one JSON array, on standard input:
-
-```sh
-REX_STORE="$HOME_DIR/.rex" rex job close <job-id> --status <status> --outcome "<one line>" --deliveries-file - <<'EOF'
-[<delivery object>, <delivery object>]
-EOF
-```
-
-- [ ] No delivery: give no `--deliveries-file` and no standard input.
-
-| Status | When |
-| --- | --- |
-| `delivered` | Work complete. No delivery is `blocked`: each is `merged`, `pr-open`, or `kept-local`, or there is none. |
-| `blocked` | One delivery or more is `blocked`. Job closes and waits for something outside session. |
-| `failed` | Work stopped. It cannot continue without redo. |
-| `cancelled` | User stopped job. |
-
-- [ ] Give true status.
-- [ ] `failed` and `cancelled`: END does not run. Give no deliveries file. `--outcome` names each job branch that stays.
-- [ ] Blocked job later: record rest with `rex job close` on that job. It names only repos that changed.
-- [ ] New agent work after block = new job.
-- [ ] Then tell requester result in few lines.
-
-## Plan jobs
-
-For person, planning has two stages. Run 1 = plan job: it writes plan file. Person reads plan. Run 2 = plan execution: person starts builder again, and builder does work of plan. Each run = one job.
-
-### Run 1 — plan job
-
-- [ ] Work type `research`. `MERGE` = `no`. No job branch, no delivery.
-- [ ] Plan file: `$HOME_DIR/.rex/plans/<JOB>/plan.md`. Roles write only plan file + scratch files.
-- [ ] Skill list holds `rex-codex-adversarial-review`. Add skills that subject of plan needs. Example: code plan reads `rex-code-design-sketch` + `rex-code-validation-plan`.
-- [ ] Orchestrator skill is built for planning: `### Plan jobs` in `orchestration-selection`.
-- [ ] Before plan is final: adversarial review. Agent that wrote no part of plan reads `.claude/skills/rex-codex-adversarial-review/SKILL.md` IN FULL and obeys it.
-- [ ] Challenger = Codex. IF Codex is not available, THEN grid agent `model-high-effort-high` or above, by complexity. That skill gives choice.
-- [ ] Author changes plan for each `upheld` finding. Each `contested` finding goes into `Open questions` of plan, with both positions.
-- [ ] One review for each plan. IF revision changes approach of plan, THEN review again. Max 2 reviews for each job.
-- [ ] Plan is final only after review. First line of plan file: `Status: final. Reviewed by <challenger>.`
-- [ ] Close job: `--status delivered`, no deliveries file. `--outcome` names plan file.
-- [ ] Tell requester: path of plan file, open questions, and next step: "To execute this plan, start `orchestration-builder` again with: Execute plan `<absolute path of plan file>`."
-
-Plan file sections, in this order:
-
-1. `Status` line.
-2. Goal: request, and outcome that execution must give.
-3. Decisions: each decision, its reason, and alternative that plan rejected.
-4. Scope: what is in, what is out.
-5. Tasks: table of `orchestration-work-breakdown` form: `Task / Outcome / Evidence / Depends on / Owns (files, state) / Group`.
-6. Risks: each risk and its answer.
-7. Acceptance: evidence that shows whole work complete.
-8. Open questions: each with options + recommendation.
-9. Review: verdict table of adversarial review.
-
-- [ ] Plan is for agent with no context. Write Goal, Decisions, Risks in full sentences.
-
-### Run 2 — plan execution
-
-- [ ] Request names plan file, or job ID of plan job. IF only job ID, THEN plan file = `.rex/plans/<that job ID>/plan.md`.
-- [ ] IF first line of plan file is not `Status: final`, THEN tell requester. Stop.
-- [ ] Settle merge agreement as for each job (step 2).
-- [ ] Request text in `rex job create` stays unchanged. It names plan, so record links both jobs.
-- [ ] Stage 2 starts from task table of plan. Change task only IF repo changed since plan. Name each change in report.
-- [ ] Each brief gives absolute path of plan file + task row of that agent.
-- [ ] Open question that blocks task: ask requester (`## Questions to user`). ELSE use recommendation of plan.
-- [ ] Do not review plan again.
+- [ ] Keep output unchanged. Step 5 gives it to decision agent. `.claude/skills/orchestration-builder/decide.md` gives its form.
 
 ## Questions to user
 

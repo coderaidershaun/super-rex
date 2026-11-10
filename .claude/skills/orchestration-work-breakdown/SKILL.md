@@ -1,14 +1,13 @@
 ---
 name: orchestration-work-breakdown
 description: >
-  This is stage 2 of the orchestration builder. It divides a request into
-  tasks and finds what depends on what. It finds which tasks can run in
-  parallel and which must run in sequence. Its output goes into the plan of the
-  job and into the briefs.
+  Stage 2 of the orchestration builder. It divides a request into tasks, gives
+  each task its skills, and finds which tasks run in parallel and which in
+  sequence. Its output goes into the plan and the briefs.
 when_to_use: >
-  Use when `orchestration-builder` reaches stage 2, or when an agent must find
-  what work can run in parallel.
-disable-model-invocation: false
+  Use when the decision agent of `orchestration-builder` reaches stage 2, or
+  when an agent must find what work can run in parallel.
+disable-model-invocation: true
 user-invocable: false
 ---
 
@@ -18,7 +17,7 @@ Divide request into tasks. Find what depends on what, and what can run in parall
 
 ```
 1. Read input. Look at repo.
-2. Divide request into tasks.
+2. Divide request into tasks. Give each task its skills.
 3. Find dependencies and shared contracts.
 4. Put tasks in groups: parallel or sequence.
 5. Name integration owner of each group with 2 or more tasks.
@@ -28,6 +27,8 @@ IF job has one outcome, THEN write one task and go to step 6.
 
 ## Words
 
+- Decision agent: Sub-agent of builder that does stages 1 to 3. Its brief gives input of each stage.
+- Skill list: Skills this job uses. Output of stage 1.
 - Task: One outcome of job, with evidence that shows it is complete.
 - Dependency: Task T2 uses output of task T1. Then T2 depends on T1.
 - Shared contract: Interface, data form, or decision that 2 or more tasks use.
@@ -52,6 +53,7 @@ Work can be code, research, documents, or other work. Task can change no file.
 - [ ] Divide around useful outcomes, not around steps.
 - [ ] Keep decisions that are tightly coupled in one task.
 - [ ] Evidence: tests, sources, reproducible observations, or explicit rubric.
+- [ ] Skills: for each task, names from skill list that task needs: core rules for its kind of work and its language, gap skill of each language that it writes, and skills for its task. Add `<skill>/<file>.md` for each sibling file that task needs. Agent of task reads only these.
 - [ ] IF job has one outcome, THEN write one task. Go to `## Output`.
 - [ ] Plan job: tasks = research + plan writing. Last 2 tasks: adversarial review of plan, then revision. Evidence of review task: verdict table.
 - [ ] Plan execution: start from task table of plan file. Change task only IF repo changed since plan.
@@ -75,7 +77,7 @@ IF 2 or more tasks use one shared contract, THEN make contract stable first, in 
   3. Tasks own different files and state.
 - [ ] Different file names do not prove that tasks are independent.
 - [ ] IF tasks change same files or state, THEN put them in sequence.
-- [ ] Each parallel task that writes in Git repo works in its own Git worktree. Section "Parallel writers" of `rex-deliver` names branch + worktree. Agent that starts parallel writers reads it.
+- [ ] Each parallel task that writes in Git repo works in its own Git worktree. `.claude/skills/rex-deliver/parallel-writers.md` names branch + worktree. Agent that starts parallel writers reads `.claude/skills/rex-deliver/SKILL.md`, then that file.
 
 Groups:
 
@@ -96,19 +98,19 @@ Groups:
 
 WORK BREAKDOWN: one table, plus integration owner of each group with 2 or more tasks.
 
-Columns, in this sequence: `Task / Outcome / Evidence / Depends on / Owns (files, state) / Group`.
+Columns, in this sequence: `Task / Outcome / Evidence / Depends on / Owns (files, state) / Group / Skills`.
 
 Example:
 
-| Task | Outcome | Evidence | Depends on | Owns (files, state) | Group |
-| --- | --- | --- | --- | --- | --- |
-| T1 | Event contract stable | Contract tests pass | — | `events/` | 1 |
-| T2 | Email notices sent | Email tests pass | T1 | `email/` | 2 |
-| T3 | In-app notices shown | In-app tests pass | T1 | `inapp/` | 2 |
+| Task | Outcome | Evidence | Depends on | Owns (files, state) | Group | Skills |
+| --- | --- | --- | --- | --- | --- | --- |
+| T1 | Event contract stable | Contract tests pass | — | `events/` | 1 | `rex-code-ergonomics`, `rex-code-tests-contract-seams` |
+| T2 | Email notices sent | Email tests pass | T1 | `email/` | 2 | `rex-code-ergonomics`, `rex-code-tdd` |
+| T3 | In-app notices shown | In-app tests pass | T1 | `inapp/` | 2 | `rex-code-ergonomics`, `rex-code-tdd` |
 
 Integration owner, group 2: orchestrator. Evidence: delivery test of combined result passes.
 
 - [ ] Work breakdown is about this job only.
 - [ ] Builder records it with `rex job plan` and puts task detail in briefs.
 - [ ] It never goes into orchestrator skill.
-- [ ] This stage does not select method, roles, or models. `orchestration-selection` does that.
+- [ ] This stage does not select method, roles, or models. `orchestration-selection` does that. It can add skills to `Skills` of a task.
