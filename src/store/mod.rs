@@ -52,16 +52,19 @@ impl Store {
                 .map_err(StoreError::sqlite(&paths.db))?;
         }
 
-        match schema_version(&conn, paths)? {
-            0 => {
-                let tx = conn.transaction().map_err(StoreError::sqlite(&paths.db))?;
-                tx.execute_batch(SCHEMA)
-                    .map_err(StoreError::sqlite(&paths.db))?;
-                tx.commit().map_err(StoreError::sqlite(&paths.db))?;
-            }
+        // The version is read under the write lock, so two `rex init` runs at
+        // once cannot both see version 0 and both apply the schema.
+        let tx = conn
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(StoreError::sqlite(&paths.db))?;
+        match schema_version(&tx, paths)? {
+            0 => tx
+                .execute_batch(SCHEMA)
+                .map_err(StoreError::sqlite(&paths.db))?,
             SCHEMA_VERSION => {}
             found => return Err(newer_schema(paths, found)),
         }
+        tx.commit().map_err(StoreError::sqlite(&paths.db))?;
         Ok(Store {
             conn,
             paths: paths.clone(),

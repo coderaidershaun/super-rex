@@ -61,32 +61,34 @@ impl StorePaths {
     /// `CLAUDE_PROJECT_DIR` from the environment; see [`StorePaths::discover_from`].
     ///
     /// # Errors
-    /// [`StoreError::NotFound`] if no place gives an existing `rex.db`.
+    /// [`StoreError::NotFound`] if no place gives an existing `rex.db`, or
+    /// [`StoreError::Io`] if the `REX_STORE` folder cannot be resolved.
     pub fn discover(cwd: &Path) -> Result<StorePaths, StoreError> {
         let rex_store = std::env::var_os("REX_STORE");
         let project_dir = std::env::var_os("CLAUDE_PROJECT_DIR");
         StorePaths::discover_from(rex_store, project_dir, cwd)
     }
 
-    /// The first store whose `rex.db` exists: `rex_store` (a `.rex` folder, used
-    /// as is), else the main checkout of `project_dir`, else that of `cwd`. A set
+    /// The first store whose `rex.db` exists: `rex_store` (a `.rex` folder), else the main checkout of `project_dir`, else that of `cwd`. A set
     /// `rex_store` never falls through to the others. An empty value counts as
     /// unset, and a relative one is relative to `cwd`.
     ///
     /// # Errors
-    /// [`StoreError::NotFound`], listing each place tried and why it gave no store.
+    /// - [`StoreError::NotFound`], listing each place tried and why it gave no store.
+    /// - [`StoreError::Io`] if the `rex_store` folder cannot be resolved.
     pub fn discover_from(
         rex_store: Option<OsString>,
         project_dir: Option<OsString>,
         cwd: &Path,
     ) -> Result<StorePaths, StoreError> {
         if let Some(dir) = non_empty(rex_store) {
-            let paths = StorePaths::in_dir(cwd.join(dir));
-            if paths.db.is_file() {
-                return Ok(paths);
+            let dir = cwd.join(dir);
+            if dir.join("rex.db").is_file() {
+                let dir = dir.canonicalize().map_err(StoreError::io(&dir))?;
+                return Ok(StorePaths::in_dir(dir));
             }
             let tried = vec![Tried {
-                path: paths.dir,
+                path: dir,
                 place: Place::RexStore,
                 reason: Reason::NoDatabase,
             }];

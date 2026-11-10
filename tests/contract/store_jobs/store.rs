@@ -95,6 +95,14 @@ fn finds_main_store_from_worktree_and_subfolder() {
     assert_eq!(found_root(&sibling, None), sibling);
     assert_eq!(found_root(&sibling, Some(&main)), main);
 
+    let relative = StorePaths::discover_from(Some("main/.rex".into()), None, temp.path()).unwrap();
+    assert_eq!(
+        relative.dir,
+        main.join(".rex"),
+        "a relative REX_STORE gives absolute paths"
+    );
+    assert_eq!(relative.root, main);
+
     let not_a_store = temp.path().join("not-a-store");
     fs::create_dir_all(&not_a_store).unwrap();
     let result = StorePaths::discover_from(
