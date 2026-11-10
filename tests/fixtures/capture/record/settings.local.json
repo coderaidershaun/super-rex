@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "SubagentStart": [{ "hooks": [{ "type": "command", "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/hook-log.sh\"", "timeout": 10 }] }],
+    "SubagentStop":  [{ "hooks": [{ "type": "command", "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/hook-log.sh\"", "timeout": 10 }] }],
+    "PostToolUse":   [{ "matcher": "Agent|Task", "hooks": [{ "type": "command", "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/hook-log.sh\"", "timeout": 10 }] }]
+  }
+}
