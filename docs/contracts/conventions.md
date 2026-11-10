@@ -1,6 +1,6 @@
 # C11. Conventions for every `rex` command
 
-Status: DRAFT
+Status: FROZEN (10 November 2026, by Lane 1 at gate G1, on top of commit 3965277). A change to this file goes through Lane 1.
 
 ## 1. What this file is
 
@@ -35,7 +35,7 @@ pub fn run(cwd: &Path, options: RecallOptions) -> Result<(), E>
 
 **Stubs.** Every stub `run` returns `RexError::NotBuilt` until its lane replaces it. The stub of `rex hook` returns `Ok(())` instead.
 
-**One file becomes several.** Move `<name>.rs` to `<name>/mod.rs` and declare the children there with `mod`. This works the same in `src/` and in `tests/`. Do not keep both forms.
+**One file becomes several.** Move `<name>.rs` to `<name>/mod.rs` and declare the children there with `mod`. This works the same in `src/` and in `tests/`. Do not keep both forms. A lane may already have turned its test module into a folder (`tests/integration/init/` exists), and that lane's test files then live in that folder.
 
 **Shared files belong to Lane 1:** `Cargo.toml`, `Cargo.lock`, `build.rs`, `src/main.rs`, `src/lib.rs`, `src/error.rs`, `src/commands/mod.rs`, `src/commands/stdout.rs`, `src/commands/links.rs`, the `main.rs` of each test folder, `.github/`, `README.md`, and `docs/contracts/` after a freeze. To change one, write the exact change (file, old text, new text) under `REQUESTS FOR LANE 1` in your report to the orchestrator.
 
@@ -46,9 +46,10 @@ pub fn run(cwd: &Path, options: RecallOptions) -> Result<(), E>
 ## 3. Output style
 
 - stdout holds the result and nothing else. Warnings and errors go to stderr.
-- Plain text. No colour, no box characters, no progress lines. Agents read the output, so every line costs tokens: give one fact one time, in its shortest true form.
+- Plain text. No colour, no box characters, no progress lines. `rex watch` is the one exception: it draws a screen for a person (C9 section 6). Agents read the output, so every line costs tokens: give one fact one time, in its shortest true form.
 - One record on one line. Where a caller picks values out, print `key=value` lines in a fixed order, as `rex oms` does. The value a caller needs most comes first (`rex oms` prints `agent=` first).
 - `--json` only where a contract gives it: one JSON document on one line, keys in `snake_case`, the same facts as the text form.
+- A time prints as it is stored. C1 section 5.1 gives the one form: UTC text with milliseconds, in plain output and in JSON.
 - Print through `crate::commands::stdout` (`print_line_to_stdout`, `print_to_stdout`). They treat a reader that closes the pipe early, such as `head`, as success, not failure.
 - Library modules outside `src/commands/` (`src/store/`, `src/capture/`, `src/oms/`, `src/bundle.rs`) do not print.
 
@@ -60,13 +61,13 @@ pub fn run(cwd: &Path, options: RecallOptions) -> Result<(), E>
 | 1 | The command failed: the store, a job's state, a file, or a check that found something. |
 | 2 | The command line is wrong: clap prints its own message, or the command returns an error whose `is_usage()` is true. |
 
-Every exit that is not 0 has exactly one `error:` line on stderr. A check that finds something prints its findings on stdout and returns an error that gives the count. Let clap check what clap can check (`clap::ValueEnum`, a value parser). `rex hook` always exits 0 and prints nothing. There are no other codes: a contract that needs one asks Lane 1.
+Every exit that is not 0 writes exactly one line that starts with `error: ` to stderr. Clap may add its usage and tip lines after its own `error:` line. Lines that a command wrote before the error (warnings, findings) stay. A check that finds something prints its findings on stdout and returns an error that gives the count. Let clap check what clap can check: a required flag, a value from a fixed list (`clap::ValueEnum`), the form of one value (a value parser), and flags that need or exclude each other. Clap then prints its own message. A check that clap cannot make is the command's own: one that spans values, or needs the environment, a file or the store. The command returns an error whose `is_usage()` is true. The words of a usage message are not part of any contract. The exit code and the facts in the message (the flag, the value, the fix) are. `rex hook` always exits 0 and prints nothing. There are no other codes: a contract that needs one asks Lane 1.
 
 ## 5. Error text
 
-`main` writes `error: `, then the error, then each of its sources, joined by `: `, on one line on stderr.
+`main` writes `error: `, then the error, then each of its sources, joined by `: `, on one line on stderr. The error is one line: `main` turns each line end in the text into a space.
 
-- Lower-case first letter.
+- Lower-case first letter, unless the first word is a name that is always written another way (`SQLite`, `REX_STORE`).
 - No full stop at the end.
 - No `error:` prefix of your own; `main` adds it.
 - Say what failed, then the fix when it is known.
