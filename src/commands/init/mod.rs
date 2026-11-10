@@ -1,5 +1,5 @@
-//! `rex init`: sets a repo up for SuperRex in one run that is safe to repeat
-//! and never replaces what the person has, with the sandbox settings first.
+//! `rex init`: sets a repo up in one run that is safe to repeat and never
+//! replaces what the person has, with the sandbox settings first.
 
 mod agents_md;
 mod error;
@@ -33,32 +33,25 @@ pub struct InitOptions {
     pub is_without_hooks: bool,
 }
 
-/// Check that `cwd` is the root of a Git repository and that a recent
-/// enough Claude Code is on PATH. Nothing is written when a check fails.
+/// Set up the repo at `cwd`. The checks come first: `cwd` must be the root of
+/// a Git repository, and a recent enough Claude Code must be on PATH. Nothing
+/// is written when one fails.
 ///
-/// Then merge the safety settings and, unless `is_without_hooks` is set, the
-/// hooks that record sub-agent runs into `cwd/.claude/settings.local.json`.
-/// This comes first, so a later step that stops the install never leaves the
-/// skills and agents in place without the sandbox. Every value of the
-/// person's is kept; one that weakens a safety setting fails the run.
+/// Then, in this order: the safety settings and, unless `is_without_hooks`,
+/// the hooks in `.claude/settings.local.json`; the skills and agents in
+/// `.claude`; the rex sections of `AGENTS.md`; the block in `.gitignore`; the
+/// store in `.rex`; the pre-commit config, and its hooks when `pre-commit` is
+/// on PATH. The settings come first, so a step that stops the install never
+/// leaves the skills and agents in place without the sandbox.
 ///
-/// Then write every file from the embedded bundle into `cwd/.claude`. A file
-/// already present on disk is left untouched and counted, unless it differs
-/// from the bundle and `is_forced` is set, in which case it is overwritten.
-/// Then make sure `cwd/AGENTS.md` has the rex sections, `cwd/.gitignore`
-/// ignores the installed files, the store in `cwd/.rex` is set up, and
-/// `cwd/.pre-commit-config.yaml` is there, and run `pre-commit install` when
-/// the tool is on PATH. Each file is added once and an existing file is
-/// never replaced, with or without `is_forced`. The last line names the
-/// project files this run changed, for the person to commit.
-///
-/// None of these files is written through a symbolic link. One that is a link
-/// is named on stderr and left alone, and the install carries on.
+/// Nothing of the person's is replaced, and nothing is written through a
+/// symbolic link. `is_forced` overwrites only the skill and agent files that
+/// differ from the bundle. A value of the person's that weakens a safety
+/// setting is kept, and it fails the run.
 ///
 /// A failure that leaves the rest of the install possible, such as a settings
-/// file rex cannot merge, a store that cannot be set up or a failed
-/// `pre-commit install`, does not stop it.
-/// Each one is printed on stderr at the end, in the order they happened.
+/// file rex cannot merge, does not stop it. Each one is printed on stderr at
+/// the end, in the order they happened.
 ///
 /// # Errors
 /// A preflight variant of [`InitError`] if a check fails before anything is
@@ -94,8 +87,6 @@ fn install(
     let counts = install_bundle(&cwd.join(".claude"), is_forced)?;
     print_line_to_stdout(&summary(counts))?;
 
-    // The project files this run created or changed, which the person must
-    // commit, in the order they are named.
     let mut to_commit = Vec::new();
 
     let agents_md = agents_md::AGENTS_FILENAME;
@@ -192,6 +183,13 @@ fn set_up_store(cwd: &Path) -> Result<FileChange, StoreError> {
     }
 }
 
+/// Print a warning, a skipped path or a failure on stderr. A line that cannot
+/// be shown must not stop the install or hide the lines after it, so a failed
+/// write is ignored.
+fn print_line_to_stderr(line: &str) {
+    let _ = writeln!(io::stderr().lock(), "{line}");
+}
+
 fn report_file_change(filename: &str, change: FileChange) -> Result<(), InitError> {
     match change {
         FileChange::Created => print_line_to_stdout(&format!("rex init: {filename} created"))?,
@@ -207,10 +205,8 @@ fn finish(failures: &[InitError]) -> Result<(), InitError> {
     if failures.is_empty() {
         return Ok(());
     }
-    let mut stderr = io::stderr().lock();
     for failure in failures {
-        // A failure that cannot be shown must not hide the ones after it.
-        let _ = writeln!(stderr, "rex init: failed: {}", failure.with_sources());
+        print_line_to_stderr(&format!("rex init: failed: {}", failure.with_sources()));
     }
     Err(InitError::Incomplete {
         count: failures.len(),

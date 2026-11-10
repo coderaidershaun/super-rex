@@ -1,6 +1,5 @@
-//! Adds a block to `.gitignore` so what `rex init` installs (the skills, the
-//! agents, the local settings and the store) and Claude Code's worktrees are
-//! not committed.
+//! Adds a block to `.gitignore`, so what `rex init` installs, the store and
+//! Claude Code's worktrees are never committed.
 
 use std::fs;
 use std::io::ErrorKind;

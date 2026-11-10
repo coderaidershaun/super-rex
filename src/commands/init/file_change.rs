@@ -1,11 +1,10 @@
-//! What `rex init` did to one project file it owns a block in, the marker
-//! search that decides whether the block is already there, and the write that
-//! refuses to go through a symbolic link.
+//! Shared by the project files that rex adds a block to: whether a block is
+//! already there, and a write that never goes through a symbolic link.
 
 use std::fs;
-use std::io::{self, Write};
 use std::path::Path;
 
+use super::print_line_to_stderr;
 use crate::commands::links::is_symlink;
 use crate::error::RexError;
 
@@ -47,12 +46,10 @@ pub(super) enum ProjectWrite {
 /// [`RexError::Io`] if the file cannot be written.
 pub(super) fn write_unless_linked(path: &Path, contents: &[u8]) -> Result<ProjectWrite, RexError> {
     if is_symlink(path) {
-        // A warning that cannot be shown must not stop the install.
-        let _ = writeln!(
-            io::stderr().lock(),
+        print_line_to_stderr(&format!(
             "rex init: skipped {}: it is a symbolic link",
             path.display()
-        );
+        ));
         return Ok(ProjectWrite::SkippedLink);
     }
 

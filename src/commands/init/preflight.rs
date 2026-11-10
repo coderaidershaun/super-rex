@@ -1,17 +1,18 @@
 //! The checks `rex init` makes before it writes anything, in the order the
 //! person reads their messages.
 
-use std::io::{self, ErrorKind, Write};
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fmt};
 
 use super::error::InitError;
 use super::on_path::{first_on_path, is_missing};
+use super::print_line_to_stderr;
 
-/// The oldest Claude Code that SuperRex was tested against. An older one
-/// might ignore a safety setting it does not know and run without it; this
-/// is inferred, not tested.
+/// The oldest Claude Code version the safety settings were tested on. An
+/// older one might ignore a setting it does not know and run without it;
+/// this is inferred, not tested.
 const MIN_CLAUDE_CODE_VERSION: ClaudeVersion = ClaudeVersion {
     major: 2,
     minor: 1,
@@ -137,10 +138,8 @@ fn check_claude_version() -> Result<(), InitError> {
 /// works, so this is a warning and not a failure.
 fn warn_if_gh_is_missing() {
     if is_missing("gh") {
-        // A warning that cannot be shown must not stop the install.
-        let _ = writeln!(
-            io::stderr().lock(),
-            "rex init: warning: gh not found on PATH. Delivery works without pull requests until it is installed."
+        print_line_to_stderr(
+            "rex init: warning: gh not found on PATH. Delivery works without pull requests until it is installed.",
         );
     }
 }
@@ -156,9 +155,11 @@ fn warn_if_this_rex_is_not_on_path() {
     let warning = match first_on_path("rex") {
         None => "rex init: warning: rex not found on PATH. The hooks log nothing and the skills cannot run rex until it is.".to_string(),
         Some(found) => {
-            match found.canonicalize() {
-                Ok(canonical) if canonical != this => {}
-                _ => return,
+            let Ok(canonical) = found.canonicalize() else {
+                return;
+            };
+            if canonical == this {
+                return;
             }
             format!(
                 "rex init: warning: the rex on PATH is {}, not this one ({}). The hooks and the skills run that one; put this rex first on PATH.",
@@ -167,8 +168,7 @@ fn warn_if_this_rex_is_not_on_path() {
             )
         }
     };
-    // A warning that cannot be shown must not stop the install.
-    let _ = writeln!(io::stderr().lock(), "{warning}");
+    print_line_to_stderr(&warning);
 }
 
 /// The tools the Claude Code sandbox needs on Linux. Other systems have

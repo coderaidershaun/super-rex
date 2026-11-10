@@ -1,8 +1,7 @@
-//! Merges the safety settings and the hook registration into the repo's
-//! `.claude/settings.local.json`, a file the person owns, so nothing of theirs
-//! is lost and a weaker setting of theirs is never hidden.
+//! Merges the safety settings and the hooks into the person's own settings
+//! file, so nothing of theirs is lost and a weaker setting is never hidden.
 
-use std::io::{self, ErrorKind, Write};
+use std::io::ErrorKind;
 use std::path::Path;
 use std::{env, fs};
 
@@ -10,6 +9,7 @@ use serde_json::{Map, Value, json};
 
 use super::error::InitError;
 use super::file_change::FileChange;
+use super::print_line_to_stderr;
 use crate::commands::links::is_symlink;
 use crate::error::RexError;
 
@@ -97,10 +97,10 @@ fn settings_to_add(cwd: &Path, is_without_hooks: bool) -> Result<Map<String, Val
     Ok(settings)
 }
 
-/// `parent`, the folder that holds the repo, as agents are let to write in
-/// it so they can edit sibling repos. `None` when it holds the home folder,
-/// or the home folder is unknown, because then agents could write anywhere
-/// in it: keys, shell profiles, installed programs.
+/// `parent`, the folder that holds the repo, as text, so agents may write in
+/// it and edit sibling repos. `None`, with a warning, when it holds the home
+/// folder or the home folder is unknown, because agents could then write to
+/// keys, shell profiles and installed programs.
 fn parent_to_open(parent: &Path) -> Option<String> {
     let home = env::home_dir().map(|home| home.canonicalize().unwrap_or(home));
     if home.is_some_and(|home| !home.starts_with(parent)) {
@@ -109,12 +109,10 @@ fn parent_to_open(parent: &Path) -> Option<String> {
         // then cannot write there, which fails safe.
         return Some(parent.to_string_lossy().into_owned());
     }
-    // A warning that cannot be shown must not stop the install.
-    let _ = writeln!(
-        io::stderr().lock(),
+    print_line_to_stderr(&format!(
         "rex init: warning: the parent folder {} holds your home folder, so it was not added as a working directory. Agents can write only inside this repo. Move the repo into a folder of its own to let agents edit sibling repos.",
         parent.display()
-    );
+    ));
     None
 }
 
@@ -218,20 +216,19 @@ impl Merge {
         &mut self,
         settings: &mut Map<String, Value>,
         to_add: &Map<String, Value>,
-        key: &str,
+        parent_key: &str,
     ) {
         for (name, needed) in to_add {
-            let key = if key.is_empty() {
+            let key = if parent_key.is_empty() {
                 name.clone()
             } else {
-                format!("{key}.{name}")
+                format!("{parent_key}.{name}")
             };
-            match settings.get_mut(name) {
-                Some(found) => self.value(found, needed, key),
-                None => {
-                    settings.insert(name.clone(), needed.clone());
-                    self.is_changed = true;
-                }
+            if let Some(found) = settings.get_mut(name) {
+                self.value(found, needed, key);
+            } else {
+                settings.insert(name.clone(), needed.clone());
+                self.is_changed = true;
             }
         }
     }
@@ -299,11 +296,9 @@ fn holds_rex_hooks(settings: &Map<String, Value>) -> bool {
 /// Leaving the hooks out removes none that an earlier run wrote, because the
 /// file is the person's, so they are told how to turn telemetry off.
 fn warn_hooks_left_in() {
-    // A warning that cannot be shown must not stop the install.
-    let _ = writeln!(
-        io::stderr().lock(),
+    print_line_to_stderr(&format!(
         "rex init: warning: hooks left out, but hook entries from an earlier run are still in {SETTINGS_FILENAME}. Remove the entries that run rex hook to turn telemetry off."
-    );
+    ));
 }
 
 /// The one safety setting outside `sandbox`.
@@ -333,11 +328,9 @@ fn report_kept_value(kept: KeptValue) -> Option<InitError> {
             needed: needed.to_string(),
         });
     }
-    // A warning that cannot be shown must not stop the install.
-    let _ = writeln!(
-        io::stderr().lock(),
+    print_line_to_stderr(&format!(
         "rex init: warning: kept {key} = {found} in {SETTINGS_FILENAME}; SuperRex sets {needed}."
-    );
+    ));
     None
 }
 

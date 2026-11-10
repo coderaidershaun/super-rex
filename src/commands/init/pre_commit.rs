@@ -1,16 +1,15 @@
-//! Writes a `.pre-commit-config.yaml` for the pre-commit framework and
-//! installs its git hooks, so leaked secrets, vulnerable dependencies,
-//! misconfigured files, and unformatted or warning-laden Rust are caught
-//! before they are committed or pushed.
+//! Writes the pre-commit config and installs its git hooks, so leaked secrets,
+//! vulnerable dependencies and failing Rust checks stop a commit or a push.
 
 use std::fs;
-use std::io::{self, ErrorKind, Write};
+use std::io::ErrorKind;
 use std::path::Path;
 use std::process::Command;
 
 use super::error::{InitError, ToolStderr};
 use super::file_change::{ProjectWrite, contains_marker, write_unless_linked};
 use super::on_path::is_missing;
+use super::print_line_to_stderr;
 use crate::error::RexError;
 
 pub(super) const CONFIG_FILENAME: &str = ".pre-commit-config.yaml";
@@ -124,11 +123,9 @@ pub(super) fn ensure_config(cwd: &Path) -> Result<ConfigWrite, RexError> {
 /// PATH. Without one of them, its hook fails every time it runs.
 pub(super) fn warn_about_missing_hook_tools() {
     for (tool, action) in HOOK_TOOLS.into_iter().filter(|(tool, _)| is_missing(tool)) {
-        // A warning that cannot be shown must not stop the install.
-        let _ = writeln!(
-            io::stderr().lock(),
+        print_line_to_stderr(&format!(
             "rex init: warning: `{tool}` not found on PATH. Its hook in {CONFIG_FILENAME} fails every {action} until it is installed"
-        );
+        ));
     }
 }
 
@@ -137,7 +134,8 @@ pub(super) fn warn_about_missing_hook_tools() {
 ///
 /// # Errors
 /// [`InitError::Rex`] holding [`RexError::Io`] if the tool cannot be started
-/// for a reason other than being missing, and [`InitError::PreCommitInstall`] if it exits non-zero.
+/// for a reason other than being missing, and
+/// [`InitError::PreCommitInstall`] if it exits non-zero.
 pub(super) fn install_hooks(cwd: &Path) -> Result<HookInstall, InitError> {
     let mut parts = INSTALL_COMMAND.split(' ');
     let tool = parts.next().unwrap_or_default();
