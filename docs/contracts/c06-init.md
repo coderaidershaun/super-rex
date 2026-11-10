@@ -25,6 +25,8 @@ rex init [--force] [--no-hooks]
 
 `rex init` sets SuperRex up in a repo once. It is safe to run twice, and it never replaces what the user has. It runs in the current folder only.
 
+A person runs `rex init` and `rex init --force` from the person's own shell, not an agent in a session. Reason: inside a session the sandbox refuses each shell write below `.claude/skills/` (live check, Claude Code 2.1.322), and the pre-commit hook store cannot be filled there (section 8).
+
 | Option | Field in `InitOptions` | Effect |
 | --- | --- | --- |
 | `--force` | `is_forced: bool` | Overwrite installed skill and agent files that differ from this version of rex. It never touches a project file (`.claude/settings.local.json`, `AGENTS.md`, `.gitignore`, `.pre-commit-config.yaml`). |
@@ -212,7 +214,7 @@ The file after:
 }
 ```
 
-`Bash(sudo *)` is not added twice. `sandbox.enabled` keeps `false`, with the warning below. stdout gets `rex init: .claude/settings.local.json updated`. Without `--no-hooks`, a `hooks` key would be added after `model`.
+`Bash(sudo *)` is not added twice. `sandbox.enabled` keeps `false`, and the run ends as a reported failure (section 4.3). stdout gets `rex init: .claude/settings.local.json updated`. Without `--no-hooks`, a `hooks` key would be added after `model`.
 
 ### 4.3 Conflicts
 
@@ -220,15 +222,13 @@ When rule 5 keeps a value of the user's, stderr gets (values as compact JSON):
 
 `rex init: warning: kept <dotted.key> = <U value> in .claude/settings.local.json; SuperRex sets <R value>.`
 
-For a safety key (`sandbox` or any key below it, and `permissions.blockWritesOutsideWorkingDirectories`), the same line goes on:
+For a safety key (`sandbox` or any key below it, and `permissions.blockWritesOutsideWorkingDirectories`) the value is kept too, but the case is a reported failure (section 9), not a warning, so `rex init` exits 1. Its text names the key, the value found, the value SuperRex needs, and the fix:
 
-` The protection this key gives is off until you change it.`
+`kept <dotted.key> = <U value> in .claude/settings.local.json, so the protection it gives is off; set it to <R value> to turn it on`
 
-Example: `rex init: warning: kept sandbox.enabled = false in .claude/settings.local.json; SuperRex sets true. The protection this key gives is off until you change it.`
+Example, on stderr: `rex init: failed: kept sandbox.enabled = false in .claude/settings.local.json, so the protection it gives is off; set it to true to turn it on`, then the one line `error: rex init did not finish 1 step(s); each is named above`.
 
-Settled at G1 (section 11).
-
-FOR THE OWNER: the reviewer proposes a reported failure (exit 1) for this case. The warning stays until the owner decides.
+Reason: a safety net that is weaker with no failure is the worse case (challenge 1, §5.11). The user's value is never replaced. Keys that are not safety keys stay a warning with exit 0. Decided by the orchestrator at G1 as an assumption. The owner can reverse this to a warning with exit 0.
 
 ### 4.4 A file rex cannot merge
 
@@ -447,7 +447,7 @@ Exit codes are those of C11 part 4. Every failure of `rex init` exits 1. No `Ini
 Each failure text in this contract is the `Display` of an `InitError` variant, written by C11 part 5: lower-case first letter, no `rex init:` prefix, no full stop at the end, the fix after `; `, and the io, serde or C1 error as `#[source]`.
 
 - **Blocking** (section 2, checks 1 to 4): `run` returns the variant at once. Nothing is written. stderr gets `error: <text>[: <source>]`.
-- **Reported** (2.6, 4.4, 4.5, a C1 error, a failed `pre-commit install`, and a stop of this section): the install goes on. Each failure is kept in order. At the end, `run` prints each one on stderr as `rex init: failed: <text>[: <source>]`, then returns `InitError::Incomplete { count }`. Its text is `rex init did not finish <count> step(s); each is named above`.
+- **Reported** (2.6, a kept safety value of 4.3, 4.4, 4.5, a C1 error, a failed `pre-commit install`, and a stop of this section): the install goes on. Each failure is kept in order. At the end, `run` prints each one on stderr as `rex init: failed: <text>[: <source>]`, then returns `InitError::Incomplete { count }`. Its text is `rex init did not finish <count> step(s); each is named above`.
 - **Warning**: stderr only, `rex init: warning: …`. Exit 0.
 
 The `pre-commit install` failure text (its stderr, as one line, is the source): `` `pre-commit install` exited with <status>; fix what it names, then run rex init again ``.
@@ -484,7 +484,7 @@ Reason: the version check is a safety check (OP5). Without `claude`, rex cannot 
 
 - **Repo root only (section 2, check 1). Settled at G1.** Reason: the store, the settings and the skills belong to the main checkout (§5.12). A worktree is removed after a job (§5.16), with whatever was written in it. One rule with no search up the tree is predictable, and rex needs no `git` on PATH.
 - **Linux sandbox tools missing is reported, not blocking (section 2, check 6). Settled at G1.** Reason: P0.7 needs both "rex init reports it" and "Claude Code refuses to start". Claude Code refuses only IF `failIfUnavailable: true` is written. A blocking check would leave the repo with no sandbox settings, so a session would start unsandboxed in bypass mode (challenge 1). That is the worst case.
-- **A conflicting user value is kept, with a warning (section 4.3). Settled at G1.** Reason: the lane outcome "never replaces what the user has", and §5.7 "must merge into ... not replace". The warning makes a weaker setting visible.
+- **A conflicting user value is kept (section 4.3). Settled at G1.** Reason: the lane outcome "never replaces what the user has", and §5.7 "must merge into ... not replace". For a key that is not a safety key, a warning makes it visible. For a safety key, the run is a reported failure with exit 1, so that a weaker setting cannot go unseen.
 - **`~/` paths are written as `~/...` (section 4.1). Settled at G1.** Item 4.5 and §5.7 say "absolute". Reason: `~` is the form checks 11 and 12 tested, and it does not depend on the launch folder. The problem of check 13 is with `..` and plain relative paths. `<parent>` is absolute.
 - **A parent that holds the home folder is not added (section 4.7). Settled at G1.** Reason: §5.7 opens the parent so that agents can edit sibling repos. A repo directly in `~`, or the home folder itself, would make the whole home folder writable (`~/.ssh`, `~/.cargo/bin`, shell profiles). The owner asked for hard rules against catastrophic actions such as removing the user directory (§A.3). This case is inferred; the sources do not name it.
 - **`--no-hooks` removes nothing (section 4.6). Settled at G1.** Reason: least code, and a removal is a delete in a file the user owns. §4 "Telemetry on or off" says only whether the hooks are installed.
