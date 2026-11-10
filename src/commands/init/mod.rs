@@ -34,6 +34,10 @@ pub struct InitOptions {
     /// Leave out the hooks that record sub-agent runs (no telemetry).
     #[arg(long = "no-hooks")]
     pub is_without_hooks: bool,
+
+    /// Never let an agent run a command outside the sandbox.
+    #[arg(long = "strict")]
+    pub is_strict: bool,
 }
 
 /// Set up the repo at `cwd`. The checks come first: `cwd` must be the root of
@@ -50,7 +54,8 @@ pub struct InitOptions {
 /// Nothing of the person's is replaced, and nothing is written through a
 /// symbolic link. `is_forced` overwrites only the skill and agent files that
 /// differ from the bundle. A value of the person's that weakens a safety
-/// setting is kept, and it fails the run.
+/// setting is kept, and it fails the run. `is_strict` writes the setting that
+/// keeps every command inside the sandbox.
 ///
 /// A failure that leaves the rest of the install possible, such as a settings
 /// file rex cannot merge, does not stop it. Each one is printed on stderr at
@@ -79,15 +84,10 @@ fn install(
     options: InitOptions,
     failures: &mut Vec<InitError>,
 ) -> Result<(), InitError> {
-    let InitOptions {
-        is_forced,
-        is_without_hooks,
-    } = options;
-
-    let change = settings::ensure_settings(cwd, is_without_hooks, failures)?;
+    let change = settings::ensure_settings(cwd, options, failures)?;
     report_file_change(settings::SETTINGS_FILENAME, change)?;
 
-    let counts = install_bundle(&cwd.join(".claude"), is_forced)?;
+    let counts = install_bundle(&cwd.join(".claude"), options.is_forced)?;
     print_line_to_stdout(&summary(counts))?;
 
     let mut to_commit = Vec::new();

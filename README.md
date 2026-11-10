@@ -92,7 +92,7 @@ The protection is Claude Code's own sandbox, enforced by the operating system. `
 | --- | --- |
 | `sandbox.enabled: true` | Shell commands run in the sandbox. |
 | `sandbox.failIfUnavailable: true` | Claude Code refuses to start when the sandbox cannot, instead of running commands unsandboxed. |
-| `sandbox.allowUnsandboxedCommands: false` | Strict mode: a command cannot be retried outside the sandbox. |
+| `sandbox.allowUnsandboxedCommands: true` | An agent can run a command again outside the sandbox. `--strict` writes `false`. See "Commands outside the sandbox". |
 | `sandbox.enableWeakerNetworkIsolation: true` | `gh` works inside the sandbox. |
 | `sandbox.filesystem.allowWrite` | The five Cargo cache folders (not `~/.cargo/bin`), `~/.cache/pre-commit/patch*`, and the trivy cache (`~/Library/Caches/trivy` on macOS, `~/.cache/trivy` on Linux). |
 | `sandbox.filesystem.denyRead: ["~/.aws"]` | AWS credentials cannot be read. |
@@ -100,7 +100,19 @@ The protection is Claude Code's own sandbox, enforced by the operating system. `
 | `permissions.blockWritesOutsideWorkingDirectories: true` | The file tools cannot write outside the working folders. |
 | `permissions.deny` | `Bash(sudo *)`, `Bash(git push --force*)`, `Bash(cargo publish*)`, `Bash(gh pr merge*--admin*)` (a protected main is never bypassed). |
 
-The network stays open. In bypass mode a host list restricts nothing, so `rex init` writes none. Agents cannot edit the Claude Code settings files; `rex init` can, because you run it. A sandboxed command can still delete the repo itself: Git recovers the code, but the store in `.rex/` is not in Git.
+The network stays open, but only through the sandbox's proxy. In bypass mode a host list restricts nothing, so `rex init` writes none. A program that uses the proxy, such as `curl`, `git`, `cargo` or `gh`, reaches any host. A program that opens its own connection, such as a WebSocket client, a database driver or plain `ssh`, cannot connect inside the sandbox.
+
+Agents cannot edit the Claude Code settings files; `rex init` can, because you run it. A sandboxed command can still delete the repo itself: Git recovers the code, but the store in `.rex/` is not in Git.
+
+### Commands outside the sandbox
+
+Because of the proxy limit, an agent can run a command again outside the sandbox. The builder skill tells agents to do this only for a command that failed because its program opens its own network connection, such as a live test of a WebSocket, and to name each such command in their report.
+
+A command outside the sandbox runs with your full access. In bypass mode Claude Code approves it without a prompt; in the default mode it asks you first. So the sandbox stops mistakes, but it does not stop an agent that chooses to leave it. The file tools still cannot write outside the working folders.
+
+**`--strict`** writes `sandbox.allowUnsandboxedCommands: false`, and then no command leaves the sandbox. A live test that opens its own connection cannot run in a session, so the agent gives you the command to run yourself.
+
+A stricter value of yours is never made weaker. If the settings file already holds `false`, for example from an earlier version of `rex`, a run without `--strict` keeps it and warns. Set it to `true` by hand to let agents run such commands. The other way round, a kept `true` fails a `--strict` run, like any weaker safety value.
 
 ## How a job runs
 
@@ -125,7 +137,7 @@ The session is the orchestrator and runs at your model and effort. A small job c
 
 `rex commands` lists them all. Paths in the outputs below are shortened to `/home/ana/code/shop`.
 
-**`rex init [--force] [--no-hooks]`**: set SuperRex up in a repo. See above.
+**`rex init [--force] [--no-hooks] [--strict]`**: set SuperRex up in a repo. See above.
 
 **`rex job`**: the group of the four job commands below. On its own it prints its help on stderr and exits 2.
 
@@ -337,6 +349,8 @@ Feedback is always started by you: run `/rex-feedback` and say what was wrong or
 ## Telemetry
 
 The hooks record three events: a sub-agent starts, a call to a sub-agent completes (in the parent), and a sub-agent stops. Claude Code runs the hook by itself, and the model never sees it, so it costs no tokens. `rex hook` only appends a line to `.rex/events.jsonl`; any `rex` command that reads a job takes the new lines into the store. Taking a line in twice changes nothing.
+
+Claude Code also sends a stop event for each call it makes on its own, such as the reply it suggests after a turn. Such an event has an empty agent type, and `rex` records no run for it.
 
 A run record holds the sub-agent's ID and its parent, its role (from the brief's tag block), the agent type, the model and effort that actually ran, the brief, the skills it opened, start and stop times, tool uses, lines added and removed, its final message, and its tokens. When an event is lost, `rex` fills the gaps from the transcript and its metadata file.
 

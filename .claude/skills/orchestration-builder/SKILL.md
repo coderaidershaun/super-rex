@@ -293,6 +293,30 @@ You make `SLUG` only. You name no branch and no worktree.
 8. IF job works in job worktree, THEN put `JOB_DIR` in brief of each writer. Writer uses absolute paths below it, in each shell command and each file tool.
 9. Use no `isolation: "worktree"` for writers.
 10. Lead that starts parallel writers: tell it to read section "Parallel writers" of `rex-deliver`. Give it `JOB`, `REPO_DIR`, its branch, absolute path where that branch is checked out, and `CHECKS`.
+11. Brief of each role that runs commands holds brief text of `## Sandbox`.
+
+## Sandbox
+
+Shell command runs in sandbox. Sandbox gives network only through its proxy.
+
+- Program that uses proxy connects: `curl`, `git`, `cargo`, `gh`.
+- Program that opens its own connection does not connect: WebSocket client, database driver, `ssh`.
+- Sign: host name lookup fails or connection fails, and `curl` gets same host.
+
+IF command fails for this cause, THEN run that one command again with `dangerouslyDisableSandbox: true` in Bash tool.
+
+CAUTION: A command outside the sandbox can write to every folder of the user. Run outside the sandbox only the one command that cannot reach the network. Never run a command outside the sandbox because the sandbox refused a write.
+
+- [ ] Next command runs in sandbox again.
+- [ ] Report names each command that ran outside sandbox.
+- [ ] Never give user command to run IF you or sub-agent can run it.
+- [ ] IF command outside sandbox fails same way, THEN repo is strict (`rex init --strict`). Only then give user command, with `! ` before it, and say which result proves work.
+
+Brief text, for each role that runs commands:
+
+```
+Shell commands run in a sandbox that reaches the network only through its proxy. If a command fails because its program opens its own network connection (a host name lookup or a connection fails, but `curl` reaches the same host), run that one command again with `dangerouslyDisableSandbox: true`. Do this for no other cause, and never because the sandbox refused a write. In your report, name each command that ran outside the sandbox.
+```
 
 ## Step 8 — Deliver
 

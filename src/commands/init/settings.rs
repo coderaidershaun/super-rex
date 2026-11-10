@@ -7,6 +7,7 @@ use std::{env, fs};
 
 use serde_json::{Map, Value, json};
 
+use super::InitOptions;
 use super::error::InitError;
 use super::file_change::FileChange;
 use super::print_line_to_stderr;
@@ -27,7 +28,12 @@ const TRIVY_CACHE: &str = "~/.cache/trivy";
 /// The safety settings, with `parent` opened to agents when there is one.
 /// The `~/` paths stay as written, because Claude Code reads them the same
 /// way from any folder a session starts in.
-fn safety_settings(parent: Option<&str>) -> Map<String, Value> {
+///
+/// A sandboxed command reaches the network only through the sandbox's proxy,
+/// so a program that opens its own connection, such as a WebSocket client or
+/// a database driver, cannot connect. Unless `is_strict`, an agent may
+/// therefore run a command again outside the sandbox.
+fn safety_settings(parent: Option<&str>, is_strict: bool) -> Map<String, Value> {
     let mut permissions = Map::new();
     if let Some(parent) = parent {
         permissions.insert("additionalDirectories".into(), json!([parent]));
@@ -46,7 +52,7 @@ fn safety_settings(parent: Option<&str>) -> Map<String, Value> {
     let sandbox = json!({
         "enabled": true,
         "failIfUnavailable": true,
-        "allowUnsandboxedCommands": false,
+        "allowUnsandboxedCommands": !is_strict,
         "enableWeakerNetworkIsolation": true,
         "filesystem": {
             "allowWrite": [
@@ -70,14 +76,14 @@ fn safety_settings(parent: Option<&str>) -> Map<String, Value> {
 
 /// What rex adds to the settings file of the repo at `cwd`, in the order it
 /// is added.
-fn settings_to_add(cwd: &Path, is_without_hooks: bool) -> Result<Map<String, Value>, RexError> {
+fn settings_to_add(cwd: &Path, options: InitOptions) -> Result<Map<String, Value>, RexError> {
     let repo = cwd.canonicalize().map_err(|source| RexError::Io {
         path: cwd.to_path_buf(),
         source,
     })?;
     let parent = repo.parent().and_then(parent_to_open);
-    let mut settings = safety_settings(parent.as_deref());
-    if !is_without_hooks {
+    let mut settings = safety_settings(parent.as_deref(), options.is_strict);
+    if !options.is_without_hooks {
         settings.insert("hooks".into(), hook_registration());
     }
     Ok(settings)
@@ -103,9 +109,9 @@ fn parent_to_open(parent: &Path) -> Option<String> {
 }
 
 /// Make sure the settings file of the repo at `cwd` holds the safety settings
-/// and, unless `is_without_hooks`, the hook registration. Every key and value
-/// of the person's is kept, in its order, and only what is missing is added.
-/// When nothing is missing, the file is not written at all.
+/// and, unless `options.is_without_hooks`, the hook registration. Every key
+/// and value of the person's is kept, in its order, and only what is missing
+/// is added. When nothing is missing, the file is not written at all.
 ///
 /// The file is left as it is, and the reason added to `failures`, when it is
 /// not a JSON object, cannot be read, or is to be written through a symbolic
@@ -117,11 +123,11 @@ fn parent_to_open(parent: &Path) -> Option<String> {
 /// folder cannot be written.
 pub(super) fn ensure_settings(
     cwd: &Path,
-    is_without_hooks: bool,
+    options: InitOptions,
     failures: &mut Vec<InitError>,
 ) -> Result<FileChange, RexError> {
     let path = cwd.join(SETTINGS_FILENAME);
-    let to_add = settings_to_add(cwd, is_without_hooks)?;
+    let to_add = settings_to_add(cwd, options)?;
 
     let (settings, change) = match read_settings(&path) {
         Err(failure) => {
@@ -130,7 +136,7 @@ pub(super) fn ensure_settings(
         }
         Ok(None) => (to_add, FileChange::Created),
         Ok(Some(mut settings)) => {
-            if is_without_hooks && holds_rex_hooks(&settings) {
+            if options.is_without_hooks && holds_rex_hooks(&settings) {
                 warn_hooks_left_in();
             }
             let mut merge = Merge::default();
@@ -302,11 +308,22 @@ fn is_safety_key(key: &str) -> bool {
     is_in_sandbox || is_at_or_above_block
 }
 
+/// The setting that lets an agent run a command again outside the sandbox.
+const UNSANDBOXED_KEY: &str = "sandbox.allowUnsandboxedCommands";
+
 /// Tell the person about a value of theirs that rex kept. A weaker safety
 /// setting fails the run, so it cannot go unseen; any other value is a
 /// warning. Making the safety case a warning too is a change here only.
 fn report_kept_value(kept: KeptValue) -> Option<InitError> {
     let KeptValue { key, found, needed } = kept;
+    // The one safety value of the person's that is stricter than the one rex
+    // sets: it turns no protection off, so it does not fail the run.
+    if key == UNSANDBOXED_KEY && found == Value::Bool(false) {
+        print_line_to_stderr(&format!(
+            "rex init: warning: kept {key} = false in {SETTINGS_FILENAME}, so no agent can run a command outside the sandbox, such as a test that opens its own network connection; set it to true to let agents do that."
+        ));
+        return None;
+    }
     if is_safety_key(&key) {
         return Some(InitError::SafetySettingKept {
             key,

@@ -42,7 +42,7 @@ fn safety_settings(repo: &Repo) -> Value {
         "sandbox": {
             "enabled": true,
             "failIfUnavailable": true,
-            "allowUnsandboxedCommands": false,
+            "allowUnsandboxedCommands": true,
             "enableWeakerNetworkIsolation": true,
             "filesystem": {
                 "allowWrite": ["~/.cargo/registry", "~/.cargo/git", "~/.cargo/.package-cache", "~/.cargo/.package-cache-mutate", "~/.cargo/.global-cache", "~/.cache/pre-commit/patch*", trivy_cache()],
@@ -114,7 +114,7 @@ const EXAMPLE_AFTER: &str = r#"{
   "sandbox": {
     "enabled": false,
     "failIfUnavailable": true,
-    "allowUnsandboxedCommands": false,
+    "allowUnsandboxedCommands": true,
     "enableWeakerNetworkIsolation": true,
     "filesystem": {
       "allowWrite": [
@@ -378,6 +378,55 @@ fn no_hooks_writes_the_safety_settings_without_hooks() {
     assert_eq!(
         printed.stderr,
         "rex init: warning: hooks left out, but hook entries from an earlier run are still in .claude/settings.local.json. Remove the entries that run rex hook to turn telemetry off.\n"
+    );
+}
+
+// A program that opens its own network connection cannot run in the sandbox,
+// so an agent may run a command again outside it. `--strict` takes that away,
+// and a file that is stricter than the run asks for is never made weaker.
+#[test]
+fn strict_keeps_every_command_inside_the_sandbox() {
+    let allow_key = |repo: &Repo| {
+        let written: Value = serde_json::from_str(&read_settings(repo)).expect("settings JSON");
+        written["sandbox"]["allowUnsandboxedCommands"].clone()
+    };
+
+    let strict = repo();
+
+    let printed = rex_init_ok(&strict, &["--strict"]);
+
+    assert_eq!(printed.stderr, "");
+    assert_eq!(allow_key(&strict), json!(false));
+    let mut expected = safety_settings(&strict);
+    expected["sandbox"]["allowUnsandboxedCommands"] = json!(false);
+    expected["hooks"] = serde_json::from_str(HOOKS).expect("hooks JSON");
+    assert_eq!(read_settings(&strict), as_written(&expected));
+
+    // A later run without the flag keeps the stricter value, and says how to
+    // change it. A file that an earlier version of rex wrote is this case.
+    let before = read_settings(&strict);
+
+    let printed = rex_init_ok(&strict, &[]);
+
+    assert_eq!(read_settings(&strict), before);
+    assert_eq!(
+        printed.stderr,
+        "rex init: warning: kept sandbox.allowUnsandboxedCommands = false in .claude/settings.local.json, so no agent can run a command outside the sandbox, such as a test that opens its own network connection; set it to true to let agents do that.\n"
+    );
+
+    // The other way round, the kept value is the weaker one, so the run fails.
+    let open = repo();
+    rex_init_ok(&open, &[]);
+    assert_eq!(allow_key(&open), json!(true));
+
+    let printed = rex_init_failed(&open, &["--strict"]);
+
+    assert_eq!(allow_key(&open), json!(true));
+    assert_eq!(
+        printed.stderr,
+        format!(
+            "rex init: failed: kept sandbox.allowUnsandboxedCommands = true in .claude/settings.local.json, so the protection it gives is off; set it to false to turn it on\n{ONE_STEP_FAILED}"
+        )
     );
 }
 
