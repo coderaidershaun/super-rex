@@ -9,7 +9,7 @@ when_to_use: >
   Use when `orchestration-builder` reaches stage 2, or when an agent must find
   what work can run in parallel.
 disable-model-invocation: false
-user-invocable: true
+user-invocable: false
 ---
 
 # Work Breakdown

@@ -10,7 +10,7 @@ when_to_use: >
   Use when `orchestration-builder` reaches stage 3, or when an agent selects
   orchestration and models for roles.
 disable-model-invocation: false
-user-invocable: true
+user-invocable: false
 ---
 
 # Orchestration Selection

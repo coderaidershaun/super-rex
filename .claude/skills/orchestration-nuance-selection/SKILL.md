@@ -8,7 +8,7 @@ when_to_use: >
   Use when `orchestration-builder` reaches stage 1, or when an agent must
   select skills for a piece of work.
 disable-model-invocation: false
-user-invocable: true
+user-invocable: false
 ---
 
 # Nuance Selection

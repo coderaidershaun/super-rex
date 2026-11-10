@@ -7,6 +7,7 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 ### Changed
 
 - The builder's stage skills now carry the `orchestration-` prefix: `nuance-selection` is `orchestration-nuance-selection` and `work-breakdown` is `orchestration-work-breakdown`. A repo set up by an earlier `rex init` gets the new folders on its next run; delete the two old folders from `.claude/skills/` by hand.
+- The three stage skills `orchestration-nuance-selection`, `orchestration-work-breakdown` and `orchestration-selection` no longer appear in the `/` menu (`user-invocable: false`). Only the builder runs them, because each stage needs the job's inputs; Claude can still load them.
 - `rex watch` has a colour theme: coloured statuses and states with symbols, rounded panels, a top bar with counts, a details panel above the run tree, and tree lines.
 
 ## 0.1.0 - 2026-11-10
