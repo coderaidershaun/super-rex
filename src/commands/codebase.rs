@@ -1,17 +1,241 @@
-//! `rex codebase`: prints a tree outline of the working directory.
+//! Prints the working directory as a tree, so an agent can find its way
+//! around an unfamiliar repo without listing each directory itself.
 
+use std::fs::{self, File};
+use std::io::Read;
+use std::iter;
 use std::path::Path;
+use std::sync::LazyLock;
 
+use clap::ValueEnum;
+use clap::builder::PossibleValue;
+use ignore::DirEntry;
+
+use super::language::Language;
+use super::links::is_symlink;
+use super::module_comment::leading_sentence;
+use super::stdout::{print_line_to_stdout, print_to_stdout};
+use super::walk::{skip_if_denied, visible_entries};
 use crate::error::RexError;
 
-/// Arguments of `rex codebase`.
-#[derive(clap::Args)]
-pub struct CodebaseOptions {}
+const OUTPUT_FILENAME: &str = "CODEBASE.md";
 
+/// How much of the start of a file is read to find its first sentence. A
+/// generated file can be one line megabytes long, and only one sentence is
+/// needed.
+const MAX_DOC_BYTES: u64 = 4096;
+
+const WITH_CONTEXT_FLAG: &str = "with-context";
+const ONLY_FLAG: &str = "only";
+const RUST_ONLY_FLAG: &str = "rust-only";
+const FOR_HUMAN_FLAG: &str = "for-human";
+
+/// What `rex codebase` prints and where it goes.
+#[derive(clap::Args, Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct CodebaseOptions {
+    /// Add the first sentence of each source file's opening comment to its line.
+    #[arg(long = WITH_CONTEXT_FLAG)]
+    has_context: bool,
+
+    /// List only source files and the directories that hold at least one:
+    /// `code` for every language rex knows, or one language.
+    #[arg(long = ONLY_FLAG, value_name = "WHAT")]
+    only: Option<Only>,
+
+    /// Same as `--only rust`.
+    #[arg(long = RUST_ONLY_FLAG, conflicts_with = "only")]
+    is_rust_only: bool,
+
+    /// Write the tree to CODEBASE.md instead of printing it.
+    #[arg(long = FOR_HUMAN_FLAG)]
+    is_for_human: bool,
+}
+
+/// The files `--only` keeps: those in any language rex knows, or in one.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Only {
+    Code,
+    Language(Language),
+}
+
+impl Only {
+    fn matches(self, path: &Path) -> bool {
+        match self {
+            Self::Code => Language::of(path).is_some(),
+            // Not `Language::of`, because a `.h` file is both C and C++.
+            Self::Language(language) => language.has_extension(path),
+        }
+    }
+}
+
+// clap cannot derive this for a variant that holds a value.
+impl ValueEnum for Only {
+    fn value_variants<'a>() -> &'a [Self] {
+        static VARIANTS: LazyLock<Vec<Only>> = LazyLock::new(|| {
+            let languages = Language::value_variants().iter().copied();
+            iter::once(Only::Code)
+                .chain(languages.map(Only::Language))
+                .collect()
+        });
+        &VARIANTS
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        match self {
+            Self::Code => Some(PossibleValue::new("code")),
+            Self::Language(language) => language.to_possible_value(),
+        }
+    }
+}
+
+impl CodebaseOptions {
+    /// The files the tree keeps, or `None` for every file.
+    fn scope(self) -> Option<Only> {
+        let rust_only = self.is_rust_only.then_some(Only::Language(Language::Rust));
+        rust_only.or(self.only)
+    }
+
+    /// Builds the command line for these options. The flags always come in
+    /// the same order, whatever order the user typed them in.
+    fn invocation(self) -> String {
+        let only = self
+            .only
+            .and_then(|only| only.to_possible_value())
+            .map(|value| format!("--{ONLY_FLAG} {}", value.get_name()));
+        let flags = [
+            self.is_for_human.then(|| format!("--{FOR_HUMAN_FLAG}")),
+            only,
+            self.is_rust_only.then(|| format!("--{RUST_ONLY_FLAG}")),
+            self.has_context.then(|| format!("--{WITH_CONTEXT_FLAG}")),
+        ];
+
+        iter::once(String::from("rex codebase"))
+            .chain(flags.into_iter().flatten())
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+}
+
+/// Walk `cwd`, skip dotfiles and gitignored paths, and print an indented tree
+/// to stdout. With `is_for_human`, write the tree to CODEBASE.md instead.
+///
 /// # Errors
-/// [`RexError::NotBuilt`] until the command is built.
-pub fn run(_cwd: &Path, _options: CodebaseOptions) -> Result<(), RexError> {
-    Err(RexError::NotBuilt {
-        command: "codebase",
-    })
+/// - [`RexError::Walk`] if the directory walk fails (loop, glob). A path that
+///   cannot be read is skipped with a warning on stderr.
+/// - [`RexError::Io`] if a source file cannot be read for its opening comment
+///   (a file that is denied is listed without it, with a warning on stderr),
+///   or the output file cannot be written.
+/// - [`RexError::SymbolicLink`] if `CODEBASE.md` is a symbolic link.
+/// - [`RexError::Stdout`] if the tree cannot be written to stdout.
+pub fn run(cwd: &Path, options: CodebaseOptions) -> Result<(), RexError> {
+    let tree = render_tree(cwd, options)?;
+
+    if options.is_for_human {
+        write_markdown_file(cwd, &tree, options)
+    } else {
+        print_to_stdout(&tree)
+    }
+}
+
+fn write_markdown_file(cwd: &Path, tree: &str, options: CodebaseOptions) -> Result<(), RexError> {
+    let path = cwd.join(OUTPUT_FILENAME);
+    // Writing this file is the whole job, so a symbolic link here is an error.
+    // A warning alone would let the caller think the file was written.
+    if is_symlink(&path) {
+        return Err(RexError::SymbolicLink { path });
+    }
+
+    let invocation = options.invocation();
+    let body = format!("# Codebase\n\n```text\n{tree}```\n\nGenerated by `{invocation}`.\n");
+
+    fs::write(&path, body.as_bytes()).map_err(|source| RexError::Io {
+        path: path.clone(),
+        source,
+    })?;
+
+    print_line_to_stdout(&format!("rex codebase: wrote {}", path.display()))
+}
+
+fn render_tree(cwd: &Path, options: CodebaseOptions) -> Result<String, RexError> {
+    let mut tree = String::new();
+    let scope = options.scope();
+    // With a scope a directory line waits here until a file it keeps shows
+    // up below it, so directories with no such file never print.
+    let mut pending_dirs: Vec<(usize, String)> = Vec::new();
+
+    for entry in visible_entries(cwd) {
+        let entry = entry?;
+
+        let depth = entry.depth();
+        let is_dir = entry.file_type().is_some_and(|ft| ft.is_dir());
+        // Only `--for-human` leaves CODEBASE.md out, so the file it writes is
+        // the same on every run. A plain run lists it, as it is a real file.
+        if depth == 0 || (options.is_for_human && is_own_output(&entry, is_dir)) {
+            continue;
+        }
+
+        // The walk is depth-first, so a pending directory at this depth or
+        // deeper has been left without a kept file in it.
+        pending_dirs.retain(|(pending_depth, _)| *pending_depth < depth);
+
+        let indent = "  ".repeat(depth - 1);
+        if is_dir {
+            let line = format!("{indent}{}/\n", entry.file_name().to_string_lossy());
+            if scope.is_some() {
+                pending_dirs.push((depth, line));
+            } else {
+                tree.push_str(&line);
+            }
+        } else if scope.is_none_or(|only| only.matches(entry.path())) {
+            tree.extend(pending_dirs.drain(..).map(|(_, line)| line));
+            tree.push_str(&file_line(&entry, &indent, options)?);
+        }
+    }
+    Ok(tree)
+}
+
+/// Tells if the entry is the `CODEBASE.md` that `--for-human` writes.
+///
+/// Only a file at depth 1 counts. A nested `CODEBASE.md` elsewhere is unusual
+/// but legitimate user content, so it must not be dropped silently.
+fn is_own_output(entry: &DirEntry, is_dir: bool) -> bool {
+    !is_dir && entry.depth() == 1 && entry.file_name() == OUTPUT_FILENAME
+}
+
+/// One line of the tree for a file: its name and, with `--with-context`, the
+/// first sentence of the comment that opens a file in a language rex knows.
+fn file_line(entry: &DirEntry, indent: &str, options: CodebaseOptions) -> Result<String, RexError> {
+    let mut line = format!("{indent}{}", entry.file_name().to_string_lossy());
+
+    let is_regular_file = entry.file_type().is_some_and(|ft| ft.is_file());
+    if options.has_context
+        && is_regular_file
+        && let Some(language) = Language::of(entry.path())
+        && let Some(sentence) = first_doc_sentence(entry.path(), language)?
+    {
+        line = format!("{line} - {sentence}");
+    }
+
+    line.push('\n');
+    Ok(line)
+}
+
+/// Reads the first sentence of the comment that opens a source file, if it
+/// has one. Only the first [`MAX_DOC_BYTES`] of the file are read, so no file
+/// can make this line of the tree grow.
+fn first_doc_sentence(path: &Path, language: Language) -> Result<Option<String>, RexError> {
+    let Some(file) = skip_if_denied(path, File::open(path))? else {
+        return Ok(None);
+    };
+    let mut head = Vec::new();
+    file.take(MAX_DOC_BYTES)
+        .read_to_end(&mut head)
+        .map_err(|source| RexError::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
+
+    // Text that is not valid UTF-8 must not fail the whole command.
+    let head = String::from_utf8_lossy(&head);
+    Ok(leading_sentence(&head, &language.syntax()))
 }

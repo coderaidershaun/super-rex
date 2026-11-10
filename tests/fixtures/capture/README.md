@@ -62,6 +62,8 @@ skills/                       a second, smaller session: which skills each agent
 `expected.json`: the sum of tokens over the main transcript and the six sub-agent
 transcripts, with each `message.id` counted once, equals `modelUsage` of the result record
 for all three models (`sum_equals_model_usage` is true for each).
+Each agent also has `transcript_counts` (`tool_uses`, `lines_added`, `lines_removed`), worked out from its own transcript by the rule under "Facts" below;
+for each foreground run the script stops with an error IF these differ from the run's `totalToolUseCount` and `toolStats`, so BG's counts (no event gives them) come from the same checked rule.
 
 ## What was removed or replaced
 
