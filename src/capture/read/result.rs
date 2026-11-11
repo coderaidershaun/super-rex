@@ -75,7 +75,7 @@ impl Read<'_> {
 
 fn run_of(run: &StoredRun, state: RunState) -> Run {
     let stop_minus_start = run
-        .stopped_ms
+        .last_stop_ms()
         .zip(run.started_ms)
         .and_then(|(stopped, started)| stopped.checked_sub(started));
     Run {
@@ -90,7 +90,7 @@ fn run_of(run: &StoredRun, state: RunState) -> Run {
         background: run.background,
         state,
         started_at: run.started_at.clone(),
-        stopped_at: run.stopped_at.clone(),
+        stopped_at: run.last_stop_at().map(str::to_owned),
         duration_ms: run.duration_ms.or(stop_minus_start),
         tool_uses: run.tool_uses,
         lines_added: run.lines_added,

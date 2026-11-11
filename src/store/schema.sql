@@ -128,8 +128,15 @@ CREATE TABLE sub_agent_run (
     skills_opened            TEXT,
     background               INTEGER CHECK (background IN (0, 1)),
     first_seen_at            TEXT    NOT NULL,
+    -- A teammate of an agent team stops each time it goes idle and starts again,
+    -- under the same agent ID, when a message wakes it. started_at is its first
+    -- start and stopped_at its newest stop; the two last_ columns hold the newest
+    -- start line and stop line, so the run is finished only when it stopped after
+    -- it last started.
     started_at               TEXT,
     stopped_at               TEXT,
+    last_started_at          TEXT,
+    last_stopped_at          TEXT,
     duration_ms              INTEGER,
     tool_uses                INTEGER,
     lines_added              INTEGER,

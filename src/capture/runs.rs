@@ -50,8 +50,10 @@ pub struct Run {
     pub state: RunState,
     /// Text of the form `YYYY-MM-DDTHH:MM:SS.sssZ`.
     pub started_at: Option<String>,
+    /// The newest stop. `None` while a teammate that a message woke again works.
     pub stopped_at: Option<String>,
-    /// From the completed call, else the stop time minus the start time.
+    /// From the completed call, else the stop time minus the start time. For a
+    /// teammate this counts the time it waited idle between messages.
     pub duration_ms: Option<u64>,
     pub tool_uses: Option<u64>,
     pub lines_added: Option<u64>,

@@ -50,8 +50,12 @@ fn activities<'a>(runs: &'a [StoredRun], files: &[RunFiles]) -> Vec<Activity<'a>
         .map(|(run, files)| Activity {
             agent_id: &run.agent_id,
             parent_agent_id: run.parent_agent_id.as_deref(),
-            is_finished: run.stopped_at.is_some() || files.says_finished(),
-            last_active_ms: run.started_ms.max(files.modified_ms),
+            is_finished: run.last_stop_ms().is_some()
+                || (run.stopped_ms.is_none() && files.says_finished()),
+            last_active_ms: run
+                .started_ms
+                .max(run.last_started_ms)
+                .max(files.modified_ms),
         })
         .collect()
 }

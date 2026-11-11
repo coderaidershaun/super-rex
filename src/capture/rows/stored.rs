@@ -45,6 +45,9 @@ pub(crate) struct StoredRun {
     pub(crate) started_ms: Option<u64>,
     pub(crate) stopped_at: Option<String>,
     pub(crate) stopped_ms: Option<u64>,
+    /// The newest start line. A teammate that a message woke again has one later
+    /// than its stop.
+    pub(crate) last_started_ms: Option<u64>,
     pub(crate) duration_ms: Option<u64>,
     pub(crate) tool_uses: Option<u64>,
     pub(crate) lines_added: Option<u64>,
@@ -66,6 +69,24 @@ pub(crate) struct StoredTotal {
     pub(crate) damaged_lines: Option<u64>,
     pub(crate) read_at: Option<String>,
     pub(crate) read_ms: Option<u64>,
+}
+
+impl StoredRun {
+    /// The stop time of a run that has not started again since it stopped. A
+    /// teammate that a message woke has a stop line before its newest start line.
+    /// A stop and a start in the same millisecond count as started again, because
+    /// a run that stays quiet is shown unconfirmed later anyway.
+    pub(crate) fn last_stop_ms(&self) -> Option<u64> {
+        self.stopped_ms.filter(|stopped| {
+            self.last_started_ms
+                .is_none_or(|started| *stopped > started)
+        })
+    }
+
+    /// [`Self::last_stop_ms`] as stored text.
+    pub(crate) fn last_stop_at(&self) -> Option<&str> {
+        self.last_stop_ms().and(self.stopped_at.as_deref())
+    }
 }
 
 impl StoredTotal {
@@ -145,6 +166,7 @@ pub(crate) fn runs(conn: &Connection, job: &JobId) -> rusqlite::Result<Vec<Store
                 effort_ran, brief, skills_opened, background,
                 started_at, CAST(ROUND((julianday(started_at) - 2440587.5) * 86400000) AS INTEGER),
                 stopped_at, CAST(ROUND((julianday(stopped_at) - 2440587.5) * 86400000) AS INTEGER),
+                CAST(ROUND((julianday(last_started_at) - 2440587.5) * 86400000) AS INTEGER),
                 duration_ms, tool_uses, lines_added, lines_removed, final_message, transcript_path,
                 tokens_input, tokens_output, tokens_cache_read, tokens_cache_creation,
                 tokens_provisional, transcript_bytes, transcript_damaged_lines, tokens_read_at,
@@ -171,13 +193,14 @@ pub(crate) fn runs(conn: &Connection, job: &JobId) -> rusqlite::Result<Vec<Store
             started_ms: unsigned(row, 13)?,
             stopped_at: row.get(14)?,
             stopped_ms: unsigned(row, 15)?,
-            duration_ms: unsigned(row, 16)?,
-            tool_uses: unsigned(row, 17)?,
-            lines_added: unsigned(row, 18)?,
-            lines_removed: unsigned(row, 19)?,
-            final_message: row.get(20)?,
-            transcript_path: row.get(21)?,
-            total: total_from(row, 22)?,
+            last_started_ms: unsigned(row, 16)?,
+            duration_ms: unsigned(row, 17)?,
+            tool_uses: unsigned(row, 18)?,
+            lines_added: unsigned(row, 19)?,
+            lines_removed: unsigned(row, 20)?,
+            final_message: row.get(21)?,
+            transcript_path: row.get(22)?,
+            total: total_from(row, 23)?,
         })
     })?;
     runs.collect()

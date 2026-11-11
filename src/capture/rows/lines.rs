@@ -3,6 +3,11 @@
 //! is NULL (`COALESCE(x, excluded.x)`), so the stored run is the same whatever the
 //! order of its lines, and a line taken in twice changes nothing. The update lists
 //! never hold `job_id` or `first_seen_at`: a run keeps the job it was first tied to.
+//!
+//! A teammate of an agent team has many start lines and stop lines, because it stops
+//! each time it goes idle and starts again when a message wakes it. Start lines give
+//! `started_at` the earliest of them and `last_started_at` the newest; stop lines give
+//! `stopped_at` and `last_stopped_at` the newest. These are the same in any order too.
 
 use rusqlite::{Connection, named_params};
 
@@ -34,7 +39,9 @@ impl RunLine<'_> {
     }
 }
 
-/// A `SubagentStart` line: the first source of `agent_type` and `started_at`.
+/// A `SubagentStart` line: the first source of `agent_type` and `started_at`, and
+/// the only source of `last_started_at`. The first start line replaces a tie-time
+/// estimate in `started_at`; each later one keeps the earliest start.
 pub(crate) fn upsert_start(
     conn: &Connection,
     line: &RunLine<'_>,
@@ -42,12 +49,17 @@ pub(crate) fn upsert_start(
 ) -> rusqlite::Result<()> {
     conn.execute(
         "INSERT INTO sub_agent_run (job_id, session_id, agent_id, first_seen_at, agent_type,
-                                    started_at, transcript_path)
+                                    started_at, last_started_at, transcript_path)
          VALUES (:job, :session, :agent, :seen_at, :agent_type,
+                 strftime('%Y-%m-%dT%H:%M:%fZ', :at_ms / 1000.0, 'unixepoch'),
                  strftime('%Y-%m-%dT%H:%M:%fZ', :at_ms / 1000.0, 'unixepoch'), :derived)
          ON CONFLICT(session_id, agent_id) DO UPDATE SET
              agent_type = COALESCE(excluded.agent_type, agent_type),
-             started_at = COALESCE(excluded.started_at, started_at),
+             started_at = CASE WHEN last_started_at IS NULL THEN excluded.started_at
+                               ELSE MIN(COALESCE(started_at, excluded.started_at),
+                                        excluded.started_at) END,
+             last_started_at = MAX(COALESCE(last_started_at, excluded.last_started_at),
+                                   excluded.last_started_at),
              transcript_path = COALESCE(transcript_path, excluded.transcript_path)",
         named_params! {
             ":job": line.job_id, ":session": line.session_id, ":agent": line.agent_id,
@@ -67,8 +79,10 @@ pub(crate) struct StopColumns<'a> {
 }
 
 /// A `SubagentStop` line: the first source of `effort_ran`, `final_message`,
-/// `transcript_path` and `stopped_at`. For `agent_type` the start line ranks first,
-/// so that the order of the two lines cannot matter.
+/// `transcript_path` and `stopped_at`, and the only source of `last_stopped_at`. For
+/// `agent_type` the start line ranks first, so that the order of the two lines cannot
+/// matter. The first stop line replaces a stop time from the call; each later one
+/// keeps the newest stop.
 pub(crate) fn upsert_stop(
     conn: &Connection,
     line: &RunLine<'_>,
@@ -77,9 +91,10 @@ pub(crate) fn upsert_stop(
     conn.execute(
         "INSERT INTO sub_agent_run (job_id, session_id, agent_id, first_seen_at, agent_type,
                                     effort_ran, final_message, transcript_path, stopped_at,
-                                    started_at)
+                                    last_stopped_at, started_at)
          VALUES (:job, :session, :agent, :seen_at, :agent_type, :effort, :final_message,
                  COALESCE(:transcript, :derived),
+                 strftime('%Y-%m-%dT%H:%M:%fZ', :at_ms / 1000.0, 'unixepoch'),
                  strftime('%Y-%m-%dT%H:%M:%fZ', :at_ms / 1000.0, 'unixepoch'),
                  COALESCE(strftime('%Y-%m-%dT%H:%M:%fZ', :start_ms / 1000.0, 'unixepoch'),
                           strftime('%Y-%m-%dT%H:%M:%fZ', :start_text)))
@@ -88,7 +103,11 @@ pub(crate) fn upsert_stop(
              effort_ran = COALESCE(excluded.effort_ran, effort_ran),
              final_message = COALESCE(excluded.final_message, final_message),
              transcript_path = COALESCE(:transcript, transcript_path, :derived),
-             stopped_at = COALESCE(excluded.stopped_at, stopped_at),
+             stopped_at = CASE WHEN last_stopped_at IS NULL THEN excluded.stopped_at
+                               ELSE MAX(COALESCE(stopped_at, excluded.stopped_at),
+                                        excluded.stopped_at) END,
+             last_stopped_at = MAX(COALESCE(last_stopped_at, excluded.last_stopped_at),
+                                   excluded.last_stopped_at),
              started_at = COALESCE(started_at, excluded.started_at)",
         named_params! {
             ":job": line.job_id, ":session": line.session_id, ":agent": line.agent_id,
