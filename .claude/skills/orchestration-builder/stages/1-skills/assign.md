@@ -39,10 +39,11 @@ Each language. Rulebook text is about Rust. Agent applies intent of each rule in
 | Refactor candidates, module grouping, architecture friction | `rex-code-improve-codebase-architecture` |
 | Design, plan, or review decision that depends on ranking of qualities | `rex-code-priorities` |
 | Hotpath latency of ns to tens of µs, on Linux host you control | `rex-code-latency` + `rex-code-latency/measure.md` + first file of row of `## Router` in its `SKILL.md` that fits problem |
+| Review of branch or pull request by agent that wrote none of it | `rex-pr-review` |
 | Diagram in plan or document | `rex-mermaid-diagrams` |
 | Writes skill, prompt, or agent instructions | `rex-skill-language` |
 | Plan job: review of plan (role `plan-reviewer`) | `rex-codex-adversarial-review`. Code plan, writer of plan: + `rex-code-design-sketch` + `rex-code-validation-plan` |
 
 ## Not in table
 
-A person starts these, OR builder reads their files by path: `orchestration-builder`, `rex-deliver`, `rex-feedback`, `rex-pr-review`, `rex-grill-me`. No task gets them.
+A person starts these, OR builder reads their files by path: `orchestration-builder`, `rex-deliver`, `rex-feedback`, `rex-grill-me`. No task gets them.

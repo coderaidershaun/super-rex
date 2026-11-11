@@ -4,6 +4,21 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+### Added
+
+- One assignment table, `.claude/skills/orchestration-builder/stages/1-skills/assign.md`, says which skills each kind of work gets. The decision agent starts from it and gives a reason for each skill it adds or leaves out, and the challenger checks the decision against it.
+- `rex job plan`: a role in the plan file may give `"skills"`, the skills its tasks are assigned. Each one must also be in the job's `skills`. `rex job show` prints each role's skills.
+- `rex job close` lists each skill that a role was assigned and that no run of that role opened (`missed_skill.<i>=`, `role_not_run.<i>=`; `missed_skills`, `roles_not_run` and `missed_skills_incomplete` in `--json`). The status and the exit code do not change. The builder tells the person about each one.
+- `rex codebase --with-context` and `--only` support Java, Kotlin, Scala, C#, Swift, Objective-C, Dart, PHP, Ruby, Lua, Haskell, Elixir, R, SQL, Zig and Perl. `.m` is Objective-C and `.pl` is Perl.
+
+### Changed
+
+- `orchestration-builder` and `rex-deliver` start only from a person: `/orchestration-builder <request>`, `/orchestration-builder Execute plan <path>`, `/rex-deliver`. No agent can start them, and their descriptions no longer take up room in every session.
+- The four stage skills are now files inside the builder, in `.claude/skills/orchestration-builder/stages/`: 31 skills become 27. `rex init` names any of the four old folders that an earlier install left in `.claude/skills/`; delete them by hand.
+- The 20 model and effort agents have no Skill tool (`disallowedTools: Skill`). A worker reads only the files its brief names, and the list of every skill no longer fills its context.
+- The Rust rulebooks apply to every language: an agent applies the intent of each rule in that language's idiom. The module comment and priority block rules are no longer tied to `//!`, and agents find the priority block with `git grep -n 'Priorities, in order:'`.
+- The store's schema is now version 2 (`role.skills`). The first `rex` run in a version 1 store upgrades it in place. After that, an older `rex` refuses the store and asks for a newer one.
+
 ## 0.2.1 - 2026-11-11
 
 ### Changed

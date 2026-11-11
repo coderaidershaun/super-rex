@@ -90,4 +90,5 @@ EOF
 - [ ] `failed` and `cancelled`: END does not run (`.claude/skills/rex-deliver/stopped-or-blocked-job.md`). Give no deliveries file. `--outcome` names each job branch that stays.
 - [ ] Blocked job later: record rest with `rex job close` on that job (`.claude/skills/rex-deliver/stopped-or-blocked-job.md`). It names only repos that changed.
 - [ ] New agent work after block = new job.
+- [ ] Read output of close. Each `missed_skill.<i>=<role> <skill>` = skill that role was assigned and that no run of it opened. Each `role_not_run.<i>=<role>` = role with skills that never ran. Tell requester each. IF `missed_skills_incomplete=yes`, THEN say list can be wrong. Missed skill does not change status.
 - [ ] Then tell requester result in few lines. Give also each line of `REPORT` of decision block. Same for plan job and plan execution.
