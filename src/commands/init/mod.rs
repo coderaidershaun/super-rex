@@ -9,6 +9,7 @@ mod install;
 mod on_path;
 mod pre_commit;
 mod preflight;
+mod safety;
 mod settings;
 
 use std::io::{self, Write};
