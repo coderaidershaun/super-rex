@@ -9,7 +9,7 @@ use rusqlite::Connection;
 
 use super::error::CaptureError;
 use super::event::{Call, CallOutcome, Completion, Event, EventKind, Stop};
-use super::log::{self, LogLine};
+use super::hook::{self, LogLine};
 use super::recovery::{first_record_at, subagents_folder, transcript_name};
 use super::rows::{self, CallColumns, RunLine, StopColumns, TieTime};
 use super::tags::Tags;
@@ -31,7 +31,7 @@ pub(super) fn take_in(store: &mut Store) -> Result<(), CaptureError> {
     store.write(|tx| {
         // Read again under the write lock, so two commands at the same moment never
         // take in one line two times.
-        let read = log::read_log(&log_path, rows::offset(tx)?)?;
+        let read = hook::read_log(&log_path, rows::offset(tx)?)?;
         let intake = Intake {
             conn: tx,
             seen_at: rows::now_text(tx)?,

@@ -5,7 +5,7 @@ use std::ops::AddAssign;
 
 use serde_json::Value;
 
-use super::transcript::text_at;
+use super::transcripts::text_at;
 
 /// A cost in billionths of a dollar, so every list price is a whole number per token.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

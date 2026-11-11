@@ -4,7 +4,7 @@
 
 use serde_json::Value;
 
-use super::transcript::{content_text, text_at};
+use super::transcripts::{content_text, text_at};
 
 /// One hook event as intake sees it.
 #[derive(Debug, Clone, PartialEq, Eq)]

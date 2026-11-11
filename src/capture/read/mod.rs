@@ -84,7 +84,7 @@ pub(crate) fn last_activity_ms(
     };
     let runs = rows::runs(store.conn(), job)?;
     let files = read.observe(&runs, Need::State);
-    Ok(read.last_activities(&runs, &files))
+    Ok(files::last_activities(&runs, &files))
 }
 
 /// One call of `job_runs`: the job, the moment of the read, and whether a file of

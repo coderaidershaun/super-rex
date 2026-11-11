@@ -1,22 +1,18 @@
 //! Turns the events that `rex hook` logs into the record of sub-agent runs.
 
-// SMELL: this folder holds 14 modules, more than the 12 that one folder may hold. The
-// two transcript readers, and the hook's log with its registration, could each be grouped.
 mod error;
 mod event;
+mod hook;
 mod intake;
-mod log;
-mod main_transcript;
 mod price;
 mod read;
 mod recovery;
-mod registration;
 mod rows;
 mod runs;
 mod state;
 mod tags;
 mod tokens;
-mod transcript;
+mod transcripts;
 
 use std::path::Path;
 use std::time::SystemTime;
@@ -24,13 +20,13 @@ use std::time::SystemTime;
 use crate::store::{JobId, Store};
 
 pub use error::CaptureError;
-pub(crate) use log::append_event;
+pub(crate) use hook::append_event;
+pub use hook::{GATE_COMMAND, HOOK_COMMAND, REX_COMMANDS, hook_registration};
 pub use price::Cost;
 pub(crate) use read::last_activity_ms;
-pub use registration::{GATE_COMMAND, HOOK_COMMAND, REX_COMMANDS, hook_registration};
 pub use runs::{JobRuns, MainFacts, Run, RunState};
 pub use tokens::{Reading, RunActivity, SETTLE, Step, TokenCounts, TokenTotal, TotalCheck};
-pub use transcript::{TranscriptFacts, read_transcript};
+pub use transcripts::{TranscriptFacts, read_transcript};
 
 /// Takes the new lines of the event log into the store. Reads no transcript, except
 /// the first record of one for a run whose start line was lost. A log that has not
@@ -69,5 +65,5 @@ pub fn read_main_transcript(
     from: &str,
     to: Option<&str>,
 ) -> Result<Option<MainFacts>, CaptureError> {
-    main_transcript::read_main_transcript(path, job, from, to)
+    transcripts::read_main_transcript(path, job, from, to)
 }

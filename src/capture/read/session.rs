@@ -9,10 +9,10 @@ use rusqlite::Connection;
 use super::Read;
 use super::changes::SessionChange;
 use crate::capture::error::CaptureError;
-use crate::capture::main_transcript::read_main_transcript;
 use crate::capture::rows::{self, Builder, Reading, StoredTotal};
 use crate::capture::runs::MainFacts;
 use crate::capture::tokens::{RunActivity, SETTLE, Step, TotalCheck};
+use crate::capture::transcripts::read_main_transcript;
 
 impl Read<'_> {
     /// What this read stores for the main session. `None` when the figure is final,

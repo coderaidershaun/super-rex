@@ -7,7 +7,7 @@ use std::path::Path;
 
 use serde_json::{Value, json};
 
-use super::error::CaptureError;
+use crate::capture::error::CaptureError;
 
 /// The line format version that this code writes and reads.
 const VERSION: u64 = 1;

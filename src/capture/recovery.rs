@@ -11,7 +11,7 @@ use serde_json::Value;
 
 use super::error::CaptureError;
 use super::rows::{self, RecoveredRun, TieTime};
-use super::transcript::text_at;
+use super::transcripts::text_at;
 use crate::store::Store;
 
 /// What one metadata file says about its run.

@@ -8,9 +8,9 @@ use std::path::Path;
 
 use serde_json::Value;
 
-use super::error::CaptureError;
-use super::price::{Cost, cost_of};
-use super::tokens::TokenCounts;
+use crate::capture::error::CaptureError;
+use crate::capture::price::{Cost, cost_of};
+use crate::capture::tokens::TokenCounts;
 
 /// The folders whose sub-folders are skills, as the two last parts of their paths: the
 /// skills folders of Claude Code, and the skill and orchestrator libraries of rex.
@@ -78,7 +78,7 @@ pub fn read_transcript(path: &Path) -> Result<Option<TranscriptFacts>, CaptureEr
 }
 
 /// The bytes of the transcript at `path`, or `None` when there is no file there.
-pub(super) fn read_file(path: &Path) -> Result<Option<Vec<u8>>, CaptureError> {
+pub(crate) fn read_file(path: &Path) -> Result<Option<Vec<u8>>, CaptureError> {
     match fs::read(path) {
         Ok(contents) => Ok(Some(contents)),
         Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
@@ -91,7 +91,7 @@ pub(super) fn read_file(path: &Path) -> Result<Option<Vec<u8>>, CaptureError> {
 
 /// Each record of a transcript, in order. `None` is a line that is not valid JSON,
 /// a cut last line included. Blank lines are not records.
-pub(super) fn records(contents: &[u8]) -> impl Iterator<Item = Option<Value>> {
+pub(crate) fn records(contents: &[u8]) -> impl Iterator<Item = Option<Value>> {
     contents
         .split(|byte| *byte == b'\n')
         .filter(|line| !line.trim_ascii().is_empty())
@@ -221,11 +221,11 @@ impl Tally {
     }
 }
 
-pub(super) fn text_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
+pub(crate) fn text_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
 }
 
-pub(super) fn blocks_of(message: &Value) -> &[Value] {
+pub(crate) fn blocks_of(message: &Value) -> &[Value] {
     message
         .get("content")
         .and_then(Value::as_array)
@@ -233,7 +233,7 @@ pub(super) fn blocks_of(message: &Value) -> &[Value] {
         .unwrap_or_default()
 }
 
-pub(super) fn usage_of(message: &Value) -> TokenCounts {
+pub(crate) fn usage_of(message: &Value) -> TokenCounts {
     let count = |key: &str| {
         message
             .get("usage")
@@ -290,7 +290,7 @@ fn user_text(message: &Value) -> Option<String> {
 
 /// The text of a message's or a tool result's `content`: plain text, or a list of
 /// blocks of which some are text.
-pub(super) fn content_text(content: &Value) -> Option<String> {
+pub(crate) fn content_text(content: &Value) -> Option<String> {
     match content {
         Value::String(text) => Some(text.clone()),
         Value::Array(blocks) => {

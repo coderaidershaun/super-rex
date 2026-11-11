@@ -6,11 +6,11 @@ use std::path::Path;
 
 use serde_json::Value;
 
-use super::error::CaptureError;
-use super::price::{Cost, cost_of};
-use super::runs::MainFacts;
-use super::tokens::TokenCounts;
-use super::transcript::{blocks_of, content_text, read_file, records, text_at, usage_of};
+use super::{blocks_of, content_text, read_file, records, text_at, usage_of};
+use crate::capture::error::CaptureError;
+use crate::capture::price::{Cost, cost_of};
+use crate::capture::runs::MainFacts;
+use crate::capture::tokens::TokenCounts;
 use crate::store::JobId;
 
 /// The form of every time the store holds. Each `0` stands for one digit.
@@ -20,7 +20,7 @@ const STORE_TIME_FORM: &[u8; 24] = b"0000-00-00T00:00:00.000Z";
 /// of its message ID has a time in `[from, to)`; `to` is `None` while the job is
 /// open. Times are compared as text, which is right because every time has the
 /// store's one form; a record whose time has another form is counted as damaged.
-pub(super) fn read_main_transcript(
+pub(crate) fn read_main_transcript(
     path: &Path,
     job: &JobId,
     from: &str,

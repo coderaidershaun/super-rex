@@ -16,7 +16,7 @@ use crate::capture::runs::RunState;
 use crate::capture::state::{self, Activity};
 use crate::capture::tags::Tags;
 use crate::capture::tokens::{RunActivity, Step, TotalCheck};
-use crate::capture::transcript::{TranscriptFacts, read_transcript};
+use crate::capture::transcripts::{TranscriptFacts, read_transcript};
 
 /// How much a read must know of each run's files.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,6 +34,11 @@ pub(super) struct RunFiles {
     bytes: Option<u64>,
     modified_ms: Option<u64>,
     metadata: Option<Metadata>,
+}
+
+/// The last activity of each run, in milliseconds since the epoch.
+pub(super) fn last_activities(runs: &[StoredRun], files: &[RunFiles]) -> HashMap<String, u64> {
+    state::last_activities(&activities(runs, files))
 }
 
 fn activities<'a>(runs: &'a [StoredRun], files: &[RunFiles]) -> Vec<Activity<'a>> {
@@ -109,15 +114,6 @@ impl Read<'_> {
             .map(|run| run.agent_id.clone())
             .zip(states)
             .collect()
-    }
-
-    /// The last activity of each run, in milliseconds since the epoch.
-    pub(super) fn last_activities(
-        &self,
-        runs: &[StoredRun],
-        files: &[RunFiles],
-    ) -> HashMap<String, u64> {
-        state::last_activities(&activities(runs, files))
     }
 
     /// For each run whose total is not final: the token step, and the columns its
