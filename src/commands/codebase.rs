@@ -29,7 +29,7 @@ const WITH_CONTEXT_FLAG: &str = "with-context";
 const ONLY_FLAG: &str = "only";
 const FOR_HUMAN_FLAG: &str = "for-human";
 
-/// What `rex codebase` prints and where it goes.
+/// Print a tree outline of the working directory.
 #[derive(clap::Args, Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct CodebaseOptions {
     /// Add the first sentence of each source file's opening comment to its line.

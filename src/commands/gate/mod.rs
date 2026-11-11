@@ -13,7 +13,7 @@ use std::time::{Duration, SystemTime};
 
 use serde_json::{Value, json};
 
-use super::hook::silently;
+use super::hook::{IgnoredArguments, silently};
 use super::stdout::print_line_to_stdout;
 use crate::capture::job_runs;
 use crate::error::RexError;
@@ -23,6 +23,14 @@ use crate::store::{Store, StorePaths};
 /// another writer, not the store's usual 10 seconds.
 const LOCK_WAIT: Duration = Duration::from_secs(1);
 
+/// Called by Claude Code, not by people. Refuse a new sub-agent once the job
+/// has spent its limit.
+#[derive(clap::Args)]
+pub struct GateOptions {
+    #[command(flatten)]
+    pub ignored: IgnoredArguments,
+}
+
 /// Reads one PreToolUse event on standard input. When the session's open job has
 /// spent its limit, prints the refusal that Claude Code reads. Otherwise prints
 /// nothing, so the normal permission flow decides; it never prints `allow`.
@@ -30,7 +38,7 @@ const LOCK_WAIT: Duration = Duration::from_secs(1);
 /// # Errors
 /// None. Every failure, a panic included, ends in silence with success, so the
 /// agent starts its sub-agent: a gate that cannot tell must not stop work.
-pub fn run(cwd: &Path, _options: super::hook::HookOptions) -> Result<(), RexError> {
+pub fn run(cwd: &Path, _options: GateOptions) -> Result<(), RexError> {
     // Whether the refusal was printed is not reported: there is no one to tell.
     let _refused = silently(|| refuse_if_over(cwd));
     Ok(())

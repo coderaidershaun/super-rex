@@ -21,7 +21,7 @@ use crate::store::{Store, StoreError, StorePaths};
 /// How long the data stays as read before the next refresh.
 const REFRESH_SECONDS: u64 = 2;
 
-/// Arguments of `rex watch`.
+/// Show a live dashboard of jobs for people.
 #[derive(clap::Args)]
 #[command(
     after_help = "Needs a terminal: with its output redirected it draws nothing and exits 1. Up and Down move, Enter switches between the jobs and the runs of one, q quits."

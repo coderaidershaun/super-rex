@@ -9,8 +9,9 @@
 //! that need or exclude each other. A check that clap cannot make, such as one
 //! that spans several values, is the command's own, and its error says through
 //! `is_usage` whether the command line is at fault.
-//! Extra help for a command goes in `#[command(after_help = "...")]` on its
-//! options struct, which clap keeps.
+//! The doc comment of the options struct is the command's description in
+//! `rex --help` and `rex commands`, so it is one paragraph that says what the
+//! command does. Extra help goes in `#[command(after_help = "...")]` beside it.
 //!
 //! Agents read the output, so every line costs tokens. stdout holds the result
 //! and nothing else, as plain text with one record on one line: `key=value`

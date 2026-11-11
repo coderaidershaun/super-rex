@@ -17,7 +17,7 @@ use crate::store::{JobId, Store, StoreError, StorePaths};
 use report::{Report, plain_lines};
 use similar::{asked_job, groups, lessons, unused};
 
-/// Arguments of `rex recall`.
+/// Print lessons from similar past jobs and the orchestrators they used.
 #[derive(clap::Args)]
 #[command(
     after_help = "Writes what it prints into the job's record while the job is created (recorded=yes); in any other status it writes nothing (recorded=no). It also indexes the orchestrators in .rex/orchestrators."

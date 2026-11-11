@@ -16,7 +16,7 @@ use crate::store::{JobId, Store, StoreError, StorePaths};
 /// the builder's context.
 const LESSON_LIMIT: usize = 600;
 
-/// Arguments of `rex feedback`.
+/// Record what the user said about a job, the root cause and the lesson.
 #[derive(clap::Args)]
 #[command(
     group(ArgGroup::new("said_source").required(true).args(["said", "said_file"])),

@@ -11,12 +11,21 @@ use crate::capture::append_event;
 use crate::error::RexError;
 use crate::store::StorePaths;
 
-/// Arguments of `rex hook` and `rex gate`. Every argument is accepted and ignored, because
-/// Claude Code treats a hook that exits with code 2 as an order to block the
-/// agent, and clap exits with 2 on an argument it does not know.
+/// Called by Claude Code, not by people. Append an event to the log.
+#[derive(clap::Args)]
+pub struct HookOptions {
+    #[command(flatten)]
+    pub ignored: IgnoredArguments,
+}
+
+// Every argument of a command that Claude Code runs as a hook is accepted and
+// ignored, because Claude Code treats a hook that exits with code 2 as an order
+// to block the agent, and clap exits with 2 on an argument it does not know.
+// This is not a doc comment, because clap would show one as the description of
+// a command whose options struct has none.
 #[derive(clap::Args)]
 #[command(disable_help_flag = true)]
-pub struct HookOptions {
+pub struct IgnoredArguments {
     #[arg(trailing_var_arg = true, allow_hyphen_values = true, hide = true)]
     pub arguments: Vec<OsString>,
 }

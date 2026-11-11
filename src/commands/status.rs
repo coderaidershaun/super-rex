@@ -15,7 +15,7 @@ use crate::error::{CommandError, RexError};
 use crate::store::status::{OPEN_STATUSES_SQL, Shown, Status};
 use crate::store::{JobId, Store, StoreError, StorePaths};
 
-/// Arguments of `rex status`.
+/// Print where a job stands: open sub-agents and what has finished.
 #[derive(clap::Args)]
 #[command(
     after_help = "Exits 0 also when no job is open, with the line `no open job`. Tokens are `in` (input), `cache-w` (cache writes), `cache-r` (cache reads) and `out` (output); `hit` is the share of prompt tokens read from the cache; the dollar figure is their cost at list prices, `≥` when some requests ran on a model with no price. A `~` at the end means the counts can still grow. From 80% of the spend limit of a job that is created or planned, a `warning:` line follows the header (see `rex limit`)."

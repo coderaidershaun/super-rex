@@ -16,9 +16,17 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde_json::{Value, json};
 
-use super::hook::{HookOptions, silently};
+use super::hook::{IgnoredArguments, silently};
 use super::stdout::{print_line_to_stdout, print_to_stdout};
 use crate::error::RexError;
+
+/// Called by Claude Code, not by people. Pipe a test command's output through
+/// `rex test-filter`.
+#[derive(clap::Args)]
+pub struct TestHookOptions {
+    #[command(flatten)]
+    pub ignored: IgnoredArguments,
+}
 
 /// Reads one PreToolUse event on standard input. When it is a Bash call of a test
 /// command, prints the same call with the command's output piped through
@@ -27,7 +35,7 @@ use crate::error::RexError;
 /// # Errors
 /// None. Every failure, a panic included, ends in silence with success, so the
 /// command runs unchanged.
-pub fn run_hook(_cwd: &Path, _options: HookOptions) -> Result<(), RexError> {
+pub fn run_hook(_cwd: &Path, _options: TestHookOptions) -> Result<(), RexError> {
     // Whether the command was changed is not reported: there is no one to tell.
     let _changed = silently(|| {
         let mut input = Vec::new();
@@ -68,7 +76,8 @@ pub fn hook_output(event: &Value) -> Option<Value> {
     }))
 }
 
-/// Arguments of `rex test-filter`.
+/// Read a test run's output on stdin, print only its summary or its failures,
+/// and exit with its status.
 #[derive(clap::Args)]
 pub struct FilterOptions {}
 

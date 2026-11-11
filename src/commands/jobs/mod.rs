@@ -20,7 +20,7 @@ use summary::jobs_json;
 pub use select::JobFilter;
 pub use summary::{CostSummary, JobSummary, OrchestratorRef, RunCounts, TokenSummary};
 
-/// Arguments of `rex jobs`.
+/// List jobs for scripts and agents.
 #[derive(clap::Args)]
 #[command(
     after_help = "Newest first, with no limit. Each plain line: id, status, type, size, consequence, languages, created_at, then the start of the request."

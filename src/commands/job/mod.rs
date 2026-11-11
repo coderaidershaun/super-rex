@@ -20,7 +20,7 @@ pub use show::ShowOptions;
 
 use std::path::Path;
 
-/// Arguments of `rex job`.
+/// Open, plan, close and show a job.
 #[derive(clap::Args)]
 pub struct JobOptions {
     #[command(subcommand)]

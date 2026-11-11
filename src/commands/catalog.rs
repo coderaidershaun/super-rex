@@ -6,7 +6,7 @@ use clap::Command;
 use super::stdout::print_to_stdout;
 use crate::error::RexError;
 
-/// Arguments of `rex commands`.
+/// List every command with its full invocation path and description.
 #[derive(clap::Args)]
 pub struct CommandsOptions {}
 

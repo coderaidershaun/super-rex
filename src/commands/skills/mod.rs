@@ -29,7 +29,7 @@ pub fn describe(skill_file: &Path) -> Option<String> {
     Header::of_skill_path(skill_file)?.text("description")
 }
 
-/// Arguments of `rex skills`.
+/// List the skills, or check a skill file.
 #[derive(clap::Args)]
 pub struct SkillsOptions {
     #[command(subcommand)]

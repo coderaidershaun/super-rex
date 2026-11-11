@@ -12,7 +12,7 @@ use crate::error::RexError;
 
 const FLAG_WORD: &[u8] = b"SMELL";
 
-/// Arguments of `rex smells`.
+/// List every `SMELL` flag comment.
 #[derive(clap::Args)]
 #[command(
     after_help = "Prints one path:line for each flag, then the count. Exits 0 whatever the count."

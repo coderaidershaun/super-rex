@@ -9,7 +9,7 @@ use crate::commands::stdout::print_line_to_stdout;
 use crate::error::{CommandError, RexError};
 use crate::oms::{Inputs, Level, Selection, VERSION, select};
 
-/// Arguments of `rex oms`. A rating left out is the same as `none`.
+/// Print the grid agent for a set of inputs.
 #[derive(clap::Args)]
 #[command(
     after_help = "Prints agent=<grid agent> first, then the demand before caps, the rules that fired, any conflict, the inputs and the version. A rating left out counts as none."

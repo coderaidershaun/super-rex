@@ -24,60 +24,26 @@ struct Cli {
     command: Command,
 }
 
-// SMELL: the `///` line on each variant is that command's help text, and clap
-// lets it replace any description that the command's own options struct sets.
-// So a command's description can only change with an edit to this file.
+// Each command's description is the doc comment of its options struct, which
+// clap reads when the variant has none.
 #[derive(Subcommand)]
 enum Command {
-    /// Set SuperRex up in a repo. Safe to run twice.
     Init(init::InitOptions),
-
-    /// Open, plan, close and show a job.
     Job(job::JobOptions),
-
-    /// Called by Claude Code, not by people. Append an event to the log.
     Hook(hook::HookOptions),
-
-    /// Called by Claude Code, not by people. Refuse a new sub-agent once the job has spent its limit.
-    Gate(hook::HookOptions),
-
-    /// Called by Claude Code, not by people. Pipe a test command's output through `rex test-filter`.
-    TestHook(hook::HookOptions),
-
-    /// Read a test run's output on stdin, print only its summary or its failures, and exit with its status.
+    Gate(gate::GateOptions),
+    TestHook(test_output::TestHookOptions),
     TestFilter(test_output::FilterOptions),
-
-    /// Print a job's spend and spend limit, or set a new limit.
     Limit(gate::LimitOptions),
-
-    /// Print where a job stands: open sub-agents and what has finished.
     Status(status::StatusOptions),
-
-    /// Print the grid agent for a set of inputs.
     Oms(oms::OmsOptions),
-
-    /// List the skills, or check a skill file.
     Skills(skills::SkillsOptions),
-
-    /// Print lessons from similar past jobs and the orchestrators they used.
     Recall(recall::RecallOptions),
-
-    /// List jobs for scripts and agents.
     Jobs(jobs::JobsOptions),
-
-    /// Show a live dashboard of jobs for people.
     Watch(watch::WatchOptions),
-
-    /// Record what the user said about a job, the root cause and the lesson.
     Feedback(feedback::FeedbackOptions),
-
-    /// Print a tree outline of the working directory.
     Codebase(codebase::CodebaseOptions),
-
-    /// List every `SMELL` flag comment.
     Smells(smells::SmellsOptions),
-
-    /// List every command with its full invocation path and description.
     Commands(catalog::CommandsOptions),
 }
 

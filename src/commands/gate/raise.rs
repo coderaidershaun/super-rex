@@ -11,7 +11,7 @@ use crate::commands::token_text::cost_usd;
 use crate::error::{CommandError, RexError};
 use crate::store::{JobId, Store, StoreError, StorePaths};
 
-/// Arguments of `rex limit`.
+/// Print a job's spend and spend limit, or set a new limit.
 #[derive(clap::Args)]
 #[command(
     after_help = "Prints `limit_usd=`, `spent_usd=` and `source=` (`default` from the job's budget and size, or `set`). Spend is the cost of the job's sub-agents and main session at list prices. Once spend reaches the limit, `rex gate` refuses new sub-agents."

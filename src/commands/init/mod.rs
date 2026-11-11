@@ -22,7 +22,7 @@ use file_change::FileChange;
 use install::{install_bundle, summary};
 use pre_commit::{ConfigWrite, HookInstall};
 
-/// What `rex init` installs and whether it replaces files it wrote before.
+/// Set SuperRex up in a repo. Safe to run twice.
 #[derive(clap::Args, Clone, Copy, Debug)]
 #[command(
     after_help = "Run it from your own shell, in the root of the main checkout (the folder that holds .git). It never replaces a file or setting of yours; a kept value that weakens a safety setting is reported, and the run exits 1."
