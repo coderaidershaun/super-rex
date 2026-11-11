@@ -34,6 +34,24 @@ const TRIVY_CACHE: &str = "~/.cache/trivy";
 /// so a program that opens its own connection, such as a WebSocket client or
 /// a database driver, cannot connect. Unless `is_strict`, an agent may
 /// therefore run a command again outside the sandbox.
+/// Commands that run outside the sandbox, unless `is_strict`. The sandbox never
+/// lets a command write `.claude/skills`, `.claude/agents` or the settings
+/// files, and no setting narrows that. These commands must write them: a Git
+/// checkout of a repo that tracks those folders, and `rex init` itself. Each
+/// still goes through the permission flow. `git commit` and `git push` are not
+/// here, because their hooks run code that an agent can change.
+const COMMANDS_OUTSIDE_SANDBOX: [&str; 9] = [
+    "git worktree *",
+    "git -C * worktree *",
+    "git merge *",
+    "git -C * merge *",
+    "git pull *",
+    "git -C * pull *",
+    "git switch *",
+    "git -C * switch *",
+    "rex init*",
+];
+
 fn safety_settings(parent: Option<&str>, is_strict: bool) -> Map<String, Value> {
     let mut permissions = Map::new();
     if let Some(parent) = parent {
@@ -50,11 +68,13 @@ fn safety_settings(parent: Option<&str>, is_strict: bool) -> Map<String, Value> 
         ]),
     );
 
-    let sandbox = json!({
+    let mut sandbox = json!({
         "enabled": true,
         "failIfUnavailable": true,
         "allowUnsandboxedCommands": !is_strict,
         "enableWeakerNetworkIsolation": true,
+        // Lets a test server or a nested `claude -p` listen on localhost.
+        "network": { "allowLocalBinding": true },
         "filesystem": {
             "allowWrite": [
                 "~/.cargo/registry",
@@ -68,6 +88,10 @@ fn safety_settings(parent: Option<&str>, is_strict: bool) -> Map<String, Value> 
             "denyRead": ["~/.aws"]
         }
     });
+
+    if !is_strict {
+        sandbox["excludedCommands"] = json!(COMMANDS_OUTSIDE_SANDBOX);
+    }
 
     let mut settings = Map::new();
     settings.insert("sandbox".into(), sandbox);
@@ -149,6 +173,14 @@ pub(super) fn ensure_settings(
             if options.is_without_hooks && holds_rex_hooks(&settings) {
                 warn_hooks_left_in();
             }
+            let mut to_add = to_add;
+            if forbids_unsandboxed(&settings) {
+                // A file that keeps every command in the sandbox is never made
+                // weaker, so no command is added that would run outside it.
+                if let Some(Value::Object(sandbox)) = to_add.get_mut("sandbox") {
+                    sandbox.remove("excludedCommands");
+                }
+            }
             let mut merge = Merge::default();
             merge.object(&mut settings, &to_add, "");
             failures.extend(merge.kept.into_iter().filter_map(report_kept_value));
@@ -165,6 +197,15 @@ pub(super) fn ensure_settings(
     }
     write_settings(&path, &Value::Object(settings))?;
     Ok(change)
+}
+
+/// True when `settings` set `sandbox.allowUnsandboxedCommands` to false, as
+/// `rex init --strict` or the person did.
+fn forbids_unsandboxed(settings: &Map<String, Value>) -> bool {
+    settings
+        .get("sandbox")
+        .and_then(|sandbox| sandbox.get("allowUnsandboxedCommands"))
+        == Some(&Value::Bool(false))
 }
 
 /// The part of the settings path that is a symbolic link, as messages name

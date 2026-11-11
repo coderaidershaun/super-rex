@@ -107,11 +107,13 @@ The protection is Claude Code's own sandbox, enforced by the operating system. `
 | `sandbox.failIfUnavailable: true` | Claude Code refuses to start when the sandbox cannot, instead of running commands unsandboxed. |
 | `sandbox.allowUnsandboxedCommands: true` | An agent can run a command again outside the sandbox. `--strict` writes `false`. See "Commands outside the sandbox". |
 | `sandbox.enableWeakerNetworkIsolation: true` | `gh` works inside the sandbox. |
+| `sandbox.network.allowLocalBinding: true` | A sandboxed command can listen on localhost, so a test server or a nested `claude -p` starts. |
+| `sandbox.excludedCommands` | `git worktree`, `git merge`, `git pull`, `git switch` (each also as `git -C <dir> …`) and `rex init` run outside the sandbox. The sandbox never lets a command write `.claude/skills`, `.claude/agents` or the `.claude` settings files, and no setting narrows that, so these commands could not check out a repo that tracks those folders, or install them. They still ask for permission as before. `git commit` and `git push` stay in the sandbox, because their hooks run code that an agent can change. `--strict` writes none. |
 | `sandbox.filesystem.allowWrite` | The five Cargo cache folders (not `~/.cargo/bin`), `~/.cache/pre-commit/patch*`, and the trivy cache (`~/Library/Caches/trivy` on macOS, `~/.cache/trivy` on Linux). |
 | `sandbox.filesystem.denyRead: ["~/.aws"]` | AWS credentials cannot be read. |
 | `permissions.additionalDirectories` | The parent folder of the repo, as an absolute path, so that agents can edit sibling repos. Left out, with a warning, when it holds your home folder. |
 | `permissions.blockWritesOutsideWorkingDirectories: true` | The file tools cannot write outside the working folders. |
-| `permissions.allow` | `Bash(rex test-filter)`, so that a test command whose output `rex test-hook` cuts needs no extra permission. See `rex test-hook`. |
+| `permissions.allow` | `Bash(rex test-filter)` and `Bash(set -o pipefail)`, so that a test command whose output `rex test-hook` cuts needs no extra permission. See `rex test-hook`. |
 | `permissions.deny` | `Bash(sudo *)`, `Bash(git push --force*)`, `Bash(cargo publish*)`, `Bash(gh pr merge*--admin*)` (a protected main is never bypassed). |
 
 The network stays open, but only through the sandbox's proxy. In bypass mode a host list restricts nothing, so `rex init` writes none. A program that uses the proxy, such as `curl`, `git`, `cargo` or `gh`, reaches any host. A program that opens its own connection, such as a WebSocket client, a database driver or plain `ssh`, cannot connect inside the sandbox.
@@ -124,9 +126,9 @@ Because of the proxy limit, an agent can run a command again outside the sandbox
 
 A command outside the sandbox runs with your full access. In bypass mode Claude Code approves it without a prompt; in the default mode it asks you first. So the sandbox stops mistakes, but it does not stop an agent that chooses to leave it. The file tools still cannot write outside the working folders.
 
-**`--strict`** writes `sandbox.allowUnsandboxedCommands: false`, and then no command leaves the sandbox. A live test that opens its own connection cannot run in a session, so the agent gives you the command to run yourself.
+**`--strict`** writes `sandbox.allowUnsandboxedCommands: false` and no `sandbox.excludedCommands`, and then no command leaves the sandbox. A live test that opens its own connection cannot run in a session, so the agent gives you the command to run yourself.
 
-A stricter value of yours is never made weaker. If the settings file already holds `false`, for example from an earlier version of `rex`, a run without `--strict` keeps it and warns. Set it to `true` by hand to let agents run such commands. The other way round, a kept `true` fails a `--strict` run, like any weaker safety value.
+A stricter value of yours is never made weaker. If the settings file already holds `false`, for example from an earlier version of `rex`, a run without `--strict` keeps it, adds no excluded commands, and warns. Set it to `true` by hand to let agents run such commands. The other way round, a kept `true` fails a `--strict` run, like any weaker safety value.
 
 ## How a job runs
 

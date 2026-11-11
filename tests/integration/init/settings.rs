@@ -53,6 +53,20 @@ fn parent_of(repo: &Repo) -> String {
 }
 
 /// The safety settings `rex init` writes for `repo`, in their order.
+/// The commands that `rex init` lets run outside the sandbox, except with
+/// `--strict`.
+const OUTSIDE_SANDBOX: [&str; 9] = [
+    "git worktree *",
+    "git -C * worktree *",
+    "git merge *",
+    "git -C * merge *",
+    "git pull *",
+    "git -C * pull *",
+    "git switch *",
+    "git -C * switch *",
+    "rex init*",
+];
+
 fn safety_settings(repo: &Repo) -> Value {
     json!({
         "sandbox": {
@@ -60,10 +74,12 @@ fn safety_settings(repo: &Repo) -> Value {
             "failIfUnavailable": true,
             "allowUnsandboxedCommands": true,
             "enableWeakerNetworkIsolation": true,
+            "network": { "allowLocalBinding": true },
             "filesystem": {
                 "allowWrite": ["~/.cargo/registry", "~/.cargo/git", "~/.cargo/.package-cache", "~/.cargo/.package-cache-mutate", "~/.cargo/.global-cache", "~/.cache/pre-commit/patch*", trivy_cache()],
                 "denyRead": ["~/.aws"]
-            }
+            },
+            "excludedCommands": OUTSIDE_SANDBOX
         },
         "permissions": {
             "additionalDirectories": [parent_of(repo)],
@@ -132,6 +148,9 @@ const EXAMPLE_AFTER: &str = r#"{
     "failIfUnavailable": true,
     "allowUnsandboxedCommands": true,
     "enableWeakerNetworkIsolation": true,
+    "network": {
+      "allowLocalBinding": true
+    },
     "filesystem": {
       "allowWrite": [
         "~/.cargo/registry",
@@ -145,7 +164,18 @@ const EXAMPLE_AFTER: &str = r#"{
       "denyRead": [
         "~/.aws"
       ]
-    }
+    },
+    "excludedCommands": [
+      "git worktree *",
+      "git -C * worktree *",
+      "git merge *",
+      "git -C * merge *",
+      "git pull *",
+      "git -C * pull *",
+      "git switch *",
+      "git -C * switch *",
+      "rex init*"
+    ]
   },
   "model": "opus"
 }
@@ -401,6 +431,11 @@ fn strict_and_no_hooks_change_only_the_settings_they_name() {
     assert_eq!(allow_key(&strict), json!(false));
     let mut expected = hooked(safety_settings(&strict));
     expected["sandbox"]["allowUnsandboxedCommands"] = json!(false);
+    // With --strict no command may run outside the sandbox, so none is excluded.
+    expected["sandbox"]
+        .as_object_mut()
+        .expect("sandbox object")
+        .remove("excludedCommands");
     assert_eq!(read_settings(&strict), as_written(&expected));
 
     // A later run without the flag keeps the stricter value, and says how to
