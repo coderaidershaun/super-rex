@@ -175,12 +175,13 @@ existing=no
 
 A session has at most one open job (`created` or `planned`). A second create in the same session opens nothing, prints that job with `existing=yes`, notes it on stderr, and exits 0.
 
-**`rex job plan <job> --plan-file <path|-> [--json]`**: record the skills, the work breakdown, the orchestrator and the roles, and move the job to `planned`. A job is planned once. The orchestrator folder `.rex/orchestrators/<name>/` must exist. Each role gives four inputs, each `low`, `medium`, `high` or `none`, or `"session": true` to run at the session's model.
+**`rex job plan <job> --plan-file <path|-> [--json]`**: record the skills, the work breakdown, the orchestrator and the roles, and move the job to `planned`. A job is planned once. The orchestrator folder `.rex/orchestrators/<name>/` must exist. Each role gives four inputs, each `low`, `medium`, `high` or `none`, or `"session": true` to run at the session's model. A role may also give `"skills"`, the skills its tasks are assigned: each name is a skill folder name, is also in the job's `skills`, and is given once. `rex job close` reports each of them that no run of the role opened.
 
 ```console
 $ rex job plan 0g51g6fykv --plan-file - <<'EOF'
-{"orchestrator":"solo-engineer","skills":["rex-code-tdd"],"breakdown":"1. Reject zero in the parser; test.",
- "roles":[{"role":"engineer","intelligence":"medium","reliability":"high","consequence":"medium","verification":"high"},
+{"orchestrator":"solo-engineer","skills":["rex-code-tdd","rex-code-philosophy"],"breakdown":"1. Reject zero in the parser; test.",
+ "roles":[{"role":"engineer","intelligence":"medium","reliability":"high","consequence":"medium","verification":"high",
+           "skills":["rex-code-tdd","rex-code-philosophy"]},
           {"role":"skill-writer","session":true}]}
 EOF
 job=0g51g6fykv
@@ -202,16 +203,21 @@ job=0g51g6fykv
 status=delivered
 deliveries=1
 delivery.1=merged /home/ana/code/shop
+missed_skills=1
+missed_skill.1=engineer rex-code-philosophy
 ```
 
-**`rex job show [<job>] [--json]`**: print one job's record: classification, preferences, merge answer, plan, roles with their model selection, deliveries, sub-agent runs, tokens, request, breakdown and the recalled experience. With no job, it shows the open job of `$CLAUDE_CODE_SESSION_ID`. `--json` adds the transitions, each run's brief and final message, and the feedback.
+When a role has skills, the close compares them with the skills its runs opened: a run opens a skill when it reads a `.md` file below `.claude/skills/<name>/`. `missed_skills=<n>` counts the `missed_skill.<i>=<role> <skill>` lines that follow, one for each skill that no run of the role opened. A role with skills and no run at all gets one `role_not_run.<i>=<role>` line instead. A role run as the session is not checked, because the session's own reads are not recorded. `missed_skills_incomplete=yes` means the record of the runs misses facts, so the list may be wrong. `--json` gives the same as `"missed_skills": [{"role": ..., "skill": ...}]`, `"roles_not_run": [...]` and `"missed_skills_incomplete": true|false`. A missed skill never changes the status or the exit code.
+
+**`rex job show [<job>] [--json]`**: print one job's record: classification, preferences, merge answer, plan, roles with their model selection and skills (`skills=none`, or `[]` in `--json`, for none), deliveries, sub-agent runs, tokens, request, breakdown and the recalled experience. With no job, it shows the open job of `$CLAUDE_CODE_SESSION_ID`. `--json` adds the transitions, each run's brief and final message, and the feedback.
 
 ```console
 $ rex job show 0g51g6fykv
 job=0g51g6fykv
 status=delivered
 ...
-role.engineer=model-high-effort-high inputs=--M-HMH demand=model-high-effort-high rules=T1,T2,E1,E3,F1 conflict=none oms_version=1
+role.engineer=model-high-effort-high inputs=--M-HMH demand=model-high-effort-high rules=T1,T2,E1,E3,F1 conflict=none oms_version=1 skills=rex-code-tdd,rex-code-philosophy
+role.skill-writer=session skills=none
 delivery.1=merged branch=fix/reject-zero-quantity-0g51g6fykv pr=none merge_agreed=yes merge_commit=53622c9d5c38e5adfd47454e2cedcdc3f0a24feb repo=/home/ana/code/shop
 request:
   Make the order parser reject a quantity of zero.

@@ -60,6 +60,8 @@ pub(super) struct RoleRow {
     pub(super) rules: Option<String>,
     pub(super) conflict: Option<String>,
     pub(super) oms_version: Option<i64>,
+    /// A comma list, or `None` for no skills.
+    pub(super) skills: Option<String>,
 }
 
 pub(super) struct DeliveryRow {
@@ -111,7 +113,7 @@ pub(super) fn read(
         conn,
         "SELECT role, runs_as_session, in_duration, in_budget, in_intelligence, in_autonomy,
                 in_reliability, in_consequence, in_verification, agent, demand, rules, conflict,
-                oms_version
+                oms_version, skills
          FROM role WHERE job_id = ?1 ORDER BY rowid",
         job,
         role_row,
@@ -199,6 +201,7 @@ fn role_row(row: &Row<'_>) -> rusqlite::Result<RoleRow> {
         rules: row.get(11)?,
         conflict: row.get(12)?,
         oms_version: row.get(13)?,
+        skills: row.get(14)?,
     })
 }
 

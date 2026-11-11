@@ -10,6 +10,7 @@ use serde_json::json;
 
 use super::JobError;
 use super::input::read_text;
+use super::missed::SkillCheck;
 use super::value::value_name;
 use crate::capture;
 use crate::commands::stdout::print_to_stdout;
@@ -94,7 +95,7 @@ struct Delivery {
 /// - [`JobError::Store`]: the job is not found, is already closed, or the store fails.
 pub(super) fn run(cwd: &Path, options: CloseOptions) -> Result<(), JobError> {
     let mut store = Store::open(&StorePaths::discover(cwd)?)?;
-    capture::job_runs(&mut store, &options.job, SystemTime::now())?;
+    let view = capture::job_runs(&mut store, &options.job, SystemTime::now())?;
 
     let job_agreed: Option<bool> = store
         .conn()
@@ -114,23 +115,37 @@ pub(super) fn run(cwd: &Path, options: CloseOptions) -> Result<(), JobError> {
     };
 
     let recorded = store.write(|tx| record(tx, &options, &deliveries))?;
-    print_to_stdout(&output_text(&options, &recorded))?;
+    let check = SkillCheck::read(store.conn(), &options.job, &view)?;
+    print_to_stdout(&output_text(&options, &recorded, &check))?;
     Ok(())
 }
 
-/// The answer of the close, from every delivery of the job as (outcome, repo).
-fn output_text(options: &CloseOptions, recorded: &[(String, String)]) -> String {
+/// The answer of the close, from every delivery of the job as (outcome, repo),
+/// and the skills that the roles' runs never opened.
+fn output_text(
+    options: &CloseOptions,
+    recorded: &[(String, String)],
+    check: &SkillCheck,
+) -> String {
     let status = value_name(options.status);
     if options.json {
         let deliveries: Vec<_> = recorded
             .iter()
             .map(|(outcome, repo)| json!({"outcome": outcome, "repo": repo}))
             .collect();
+        let missed: Vec<_> = check
+            .missed
+            .iter()
+            .map(|missed| json!({"role": missed.role, "skill": missed.skill}))
+            .collect();
         let line = json!({
             "schema": 1,
             "job": options.job.as_str(),
             "status": status,
             "deliveries": deliveries,
+            "missed_skills": missed,
+            "roles_not_run": check.roles_not_run,
+            "missed_skills_incomplete": check.is_incomplete,
         });
         return format!("{line}\n");
     }
@@ -141,6 +156,23 @@ fn output_text(options: &CloseOptions, recorded: &[(String, String)]) -> String 
     );
     for (number, (outcome, repo)) in recorded.iter().enumerate() {
         text.push_str(&format!("delivery.{}={outcome} {repo}\n", number + 1));
+    }
+    if check.has_assigned {
+        text.push_str(&format!("missed_skills={}\n", check.missed.len()));
+    }
+    for (number, missed) in check.missed.iter().enumerate() {
+        text.push_str(&format!(
+            "missed_skill.{}={} {}\n",
+            number + 1,
+            missed.role,
+            missed.skill
+        ));
+    }
+    for (number, role) in check.roles_not_run.iter().enumerate() {
+        text.push_str(&format!("role_not_run.{}={role}\n", number + 1));
+    }
+    if check.is_incomplete {
+        text.push_str("missed_skills_incomplete=yes\n");
     }
     text
 }

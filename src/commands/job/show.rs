@@ -140,11 +140,12 @@ fn scalar_lines(record: &JobRecord, shown: Shown, view: &JobRuns) -> Vec<String>
 }
 
 fn role_line(role: &RoleRow) -> String {
+    let skills = or_none(role.skills.as_deref());
     let Some(agent) = &role.agent else {
-        return format!("role.{}=session", role.role);
+        return format!("role.{}=session skills={skills}", role.role);
     };
     format!(
-        "role.{}={agent} inputs={} demand={} rules={} conflict={} oms_version={}",
+        "role.{}={agent} inputs={} demand={} rules={} conflict={} oms_version={} skills={skills}",
         role.role,
         role.inputs.code(),
         or_none(role.demand.as_deref()),
@@ -289,6 +290,7 @@ fn json_role(role: &RoleRow) -> Value {
             _ => list(Some(conflict)),
         }),
         "oms_version": role.oms_version,
+        "skills": list(role.skills.as_deref()),
     })
 }
 

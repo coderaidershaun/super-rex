@@ -11,6 +11,7 @@ use crate::store::JobId;
 pub(super) struct PlannedRole {
     pub(super) name: String,
     pub(super) selection: Option<Selection>,
+    pub(super) skills: Vec<String>,
 }
 
 pub(super) fn plain_text(

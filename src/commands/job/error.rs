@@ -70,6 +70,26 @@ pub enum JobError {
     BadSkillName { name: String, path: PathBuf },
 
     #[error(
+        "skill {name} of role {role} in plan file {} is not in the job's \"skills\"; add it to \"skills\", or remove it from the role",
+        path.display()
+    )]
+    RoleSkillNotInJob {
+        role: String,
+        name: String,
+        path: PathBuf,
+    },
+
+    #[error(
+        "role {role} in plan file {} names skill {name} twice; give each skill once",
+        path.display()
+    )]
+    RoleSkillTwice {
+        role: String,
+        name: String,
+        path: PathBuf,
+    },
+
+    #[error(
         "plan file {} has an empty breakdown; write the work breakdown into \"breakdown\"",
         path.display()
     )]

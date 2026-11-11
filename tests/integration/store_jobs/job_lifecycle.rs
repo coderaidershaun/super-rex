@@ -1,6 +1,7 @@
 //! A job's life through the `rex` binary: opened, planned, closed and shown,
-//! with the hooks absent, from the main checkout and from worktrees, and the
-//! delivery outcomes `merged`, `blocked` and `kept-local`.
+//! with the hooks absent, from the main checkout and from worktrees, the
+//! delivery outcomes `merged`, `blocked` and `kept-local`, and the skills a
+//! role was assigned and never opened.
 
 use std::fs;
 
@@ -12,6 +13,19 @@ use super::fixture::{
     COMMIT, PLAN, SESSION, close, create_args, new_repo, new_store, new_worktree, open_job, plan,
     rex, show_json, stderr_of, stdout_of, value,
 };
+
+/// The plan of the fixture, with skills for each role. The session role's
+/// skills are never checked, because the session's reads are not recorded.
+const ROLE_SKILLS_PLAN: &str = r#"{
+  "orchestrator": "pipeline",
+  "skills": ["rex-code-tdd", "rex-code-philosophy", "rex-code-tdd"],
+  "breakdown": "1. Reject zero.\n2. Test it.",
+  "roles": [
+    {"role": "engineer", "intelligence": "high", "reliability": "high", "consequence": "high", "verification": "low", "skills": ["rex-code-tdd", "rex-code-philosophy"]},
+    {"role": "reviewer", "intelligence": "medium", "reliability": "medium", "consequence": "medium", "verification": "high", "skills": ["rex-code-philosophy"]},
+    {"role": "skill-writer", "session": true, "skills": ["rex-code-tdd"]}
+  ]
+}"#;
 
 #[test]
 fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
@@ -47,7 +61,7 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
 
     let worktree = new_worktree(&main, temp.path(), "agent-a1b8");
     let plan_file = temp.path().join("plan.json");
-    fs::write(&plan_file, PLAN).unwrap();
+    fs::write(&plan_file, ROLE_SKILLS_PLAN).unwrap();
     let planned = stdout_of(&mut rex(
         &worktree,
         &[
@@ -84,6 +98,27 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
              planned once, and a builder that got existing=yes records no plan of its own\n"
         )
     );
+    // The plan file is checked before the job's status.
+    let refused = |from: &str, to: &str| {
+        let plan = ROLE_SKILLS_PLAN.replacen(from, to, 1);
+        stderr_of(
+            rex(&worktree, &["job", "plan", &job, "--plan-file", "-"]).write_stdin(plan),
+            1,
+        )
+    };
+    assert_eq!(
+        refused(r#"["rex-code-philosophy"]"#, r#"["rex-code-smells"]"#),
+        "error: skill rex-code-smells of role reviewer in plan file - is not in the job's \
+         \"skills\"; add it to \"skills\", or remove it from the role\n"
+    );
+    assert_eq!(
+        refused(
+            r#"["rex-code-philosophy"]"#,
+            r#"["rex-code-philosophy", "rex-code-philosophy"]"#
+        ),
+        "error: role reviewer in plan file - names skill rex-code-philosophy twice; give each \
+         skill once\n"
+    );
     let usage = stderr_of(
         rex(
             &main,
@@ -97,6 +132,22 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
     );
     assert!(usage.starts_with("error: --lang none"), "{usage}");
 
+    // One engineer run that opened one of its two skills, and no reviewer run.
+    // With no transcript the run has no tokens, so the record is incomplete.
+    store
+        .write(|tx| {
+            tx.execute(
+                "INSERT INTO sub_agent_run (job_id, session_id, agent_id, depth, role,
+                                            skills_opened, first_seen_at, started_at, stopped_at)
+                 VALUES (?1, ?2, 'a1b8', 1, 'engineer', 'rex-code-tdd',
+                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
+                [&job, SESSION],
+            )
+            .map_err(StoreError::from)
+        })
+        .unwrap();
     let deliveries = format!(
         r#"[{{"repo": ".", "branch": "agent-a1b8", "merge_commit": "{COMMIT}", "outcome": "merged"}}]"#
     );
@@ -120,7 +171,9 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
     assert_eq!(
         closed,
         format!(
-            "job={job}\nstatus=delivered\ndeliveries=1\ndelivery.1=merged {}\n",
+            "job={job}\nstatus=delivered\ndeliveries=1\ndelivery.1=merged {}\n\
+             missed_skills=1\nmissed_skill.1=engineer rex-code-philosophy\n\
+             role_not_run.1=reviewer\nmissed_skills_incomplete=yes\n",
             main.display()
         )
     );
@@ -154,14 +207,18 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
              builder_model=none\nbuilder_effort=none\norchestrator=pipeline\n\
              orchestrator_version=1\nskills=rex-code-philosophy,rex-code-tdd\n\
              created_at={created_at}\nupdated_at={updated_at}\ntokens=none\n\
-             tokens_provisional=no\nincomplete=no\noutcome=Zero is rejected\n\
+             tokens_provisional=no\nincomplete=yes\noutcome=Zero is rejected\n\
              role.engineer=model-medium-effort-high inputs=-LHHHHL demand=model-xhigh-effort-max \
-             rules=T1,T2,E1,E2,E4,C1,C2,F1 conflict=budget oms_version=1\n\
+             rules=T1,T2,E1,E2,E4,C1,C2,F1 conflict=budget oms_version=1 \
+             skills=rex-code-tdd,rex-code-philosophy\n\
              role.reviewer=model-medium-effort-medium inputs=-LMHMMH \
-             demand=model-medium-effort-medium rules=T1,E1,E3,E4 conflict=none oms_version=1\n\
-             role.skill-writer=session\n\
+             demand=model-medium-effort-medium rules=T1,E1,E3,E4 conflict=none oms_version=1 \
+             skills=rex-code-philosophy\n\
+             role.skill-writer=session skills=rex-code-tdd\n\
              delivery.1=merged branch=agent-a1b8 pr=none merge_agreed=yes merge_commit={COMMIT} \
              repo={}\n\
+             run.a1b8=finished parent=main role=engineer agent=none ran=none/none \
+             skills=rex-code-tdd tokens=none provisional=no\n\
              request:\n  Reject a quantity of zero.\nbreakdown:\n  1. Reject zero.\n  2. Test it.\n\
              experience_recalled:\n  {recalled}\n",
             main.display()
@@ -184,8 +241,12 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
         .collect();
     assert_eq!(events, ["job create", "job plan", "job close"]);
     assert_eq!(record["roles"][0]["inputs"]["budget"], "low");
+    assert_eq!(
+        record["roles"][0]["skills"],
+        json!(["rex-code-tdd", "rex-code-philosophy"])
+    );
     assert_eq!(record["deliveries"][0]["merge_agreed"], true);
-    assert_eq!(record["runs"], serde_json::json!([]));
+    assert_eq!(record["runs"][0]["skills_opened"], json!(["rex-code-tdd"]));
     assert_eq!(record["job"]["experience_recalled"], recalled.as_str());
 
     // The --json form of create, plan and close, on a second job.
@@ -211,7 +272,7 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
             &worktree,
             &["job", "plan", second, "--plan-file", "-", "--json"],
         )
-        .write_stdin(PLAN),
+        .write_stdin(ROLE_SKILLS_PLAN),
     );
     let planned: Value = serde_json::from_str(&planned).unwrap();
     assert_eq!(
@@ -255,11 +316,26 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
         .write_stdin(deliveries),
     );
     let closed: Value = serde_json::from_str(&closed).unwrap();
-    assert_eq!(keys(&closed), ["schema", "job", "status", "deliveries"]);
+    assert_eq!(
+        keys(&closed),
+        [
+            "schema",
+            "job",
+            "status",
+            "deliveries",
+            "missed_skills",
+            "roles_not_run",
+            "missed_skills_incomplete"
+        ]
+    );
     assert_eq!(
         closed["deliveries"],
         json!([{"outcome": "merged", "repo": main.to_str().unwrap()}])
     );
+    // No run at all: each role is named once, and no skill is listed.
+    assert_eq!(closed["missed_skills"], json!([]));
+    assert_eq!(closed["roles_not_run"], json!(["engineer", "reviewer"]));
+    assert_eq!(closed["missed_skills_incomplete"], false);
 }
 
 /// The keys of a JSON object, in the order they were printed.
