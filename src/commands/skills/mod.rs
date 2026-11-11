@@ -4,10 +4,12 @@
 mod check;
 mod header;
 mod list;
+mod references;
 mod rules;
 
+pub use references::KnownSkills;
 pub(crate) use rules::is_skill_name;
-pub use rules::{Finding, KnownSkills, Rule, Skill, SkillFile, check_skill};
+pub use rules::{Finding, Rule, Skill, SkillFile, check_skill};
 
 use std::io;
 use std::path::{Path, PathBuf};

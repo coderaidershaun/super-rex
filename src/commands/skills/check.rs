@@ -9,7 +9,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use super::list::{self, Source};
-use super::rules::{KnownSkills, Skill, SkillFile, check_skill};
+use super::references::KnownSkills;
+use super::rules::{Skill, SkillFile, check_skill};
 use super::{SKILL_FILE, SkillsError};
 use crate::bundle::{self, LIBRARY_ROOT, SKILLS_ROOT};
 use crate::commands::stdout::print_line_to_stdout;
