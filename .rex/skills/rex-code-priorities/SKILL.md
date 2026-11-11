@@ -7,8 +7,6 @@ when_to_use: >
   Use when an orchestrator starts work on a repo, a plan or architecture decision has
   a tie, the priority block is missing, or the user says "repo priorities",
   "what matters most here", "rank the priorities", "constitution".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Repo Priorities — Hard Rules

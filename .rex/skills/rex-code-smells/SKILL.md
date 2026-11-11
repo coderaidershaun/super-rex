@@ -8,8 +8,6 @@ when_to_use: >
   "code rot", "bit rot", "stale code", "what has gone stale", "old TODOs",
   "code quality audit", "review for smells", "is this maintainable",
   "refactor opportunities in X".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Smell, Brittleness + Rot Detection

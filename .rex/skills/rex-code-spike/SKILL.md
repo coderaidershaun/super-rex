@@ -7,8 +7,6 @@ when_to_use: >
   Use when plan or sketch lists an unknown, an engineer doubts an approach,
   crate, or outside service, or user says "spike this", "prove it works first",
   "quick experiment", "scratch test", "will this even work".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Spike — Hard Rules

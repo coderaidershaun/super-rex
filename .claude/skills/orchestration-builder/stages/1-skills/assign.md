@@ -47,3 +47,5 @@ Each language. Rulebook text is about Rust. Agent applies intent of each rule in
 ## Not in table
 
 A person starts these, OR builder reads their files by path: `orchestration-builder`, `rex-deliver`, `rex-feedback`, `rex-grill-me`. No task gets them.
+
+`rex-rules`: router for session with no builder. It sends that session to this table. No task gets it.

@@ -15,7 +15,7 @@ Each brief starts with tag block, as its first characters. Hooks read it to reco
 - [ ] `Rex-Role`: role of new sub-agent, as role table names it.
 - [ ] Session agent: tag block is only source of its role.
 - [ ] Do not tell agents to correct tags of brief already sent, or to send it again.
-- [ ] Paths in brief are absolute. Git worktree does not hold files that Git ignores.
+- [ ] Paths in brief are absolute. Git worktree does not hold files that Git ignores. Skill paths start at `HOME_DIR`, never at `JOB_DIR`: most repos ignore `.claude/skills/` and `.rex/skills/`.
 - [ ] Writer in Git repo: IF job works in job worktree, THEN brief gives `JOB_DIR`.
 - [ ] Parallel writer: its lines come from `.claude/skills/rex-deliver/parallel-writers.md`.
 - [ ] Task detail from work breakdown goes in brief.

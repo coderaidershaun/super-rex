@@ -8,8 +8,6 @@ when_to_use: >
   Use when you test real APIs or exchanges, websocket reconnect, or
   deserialization edge cases, or user asks "test the Coinbase API", "real
   exchange test", "end-to-end", "run with real funds".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Rust Integration Tests — Hard Rules

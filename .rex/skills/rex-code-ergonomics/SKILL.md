@@ -8,8 +8,6 @@ when_to_use: >
   choose String vs &str, Result vs panic, generic vs dyn, or builder vs struct
   literal, or the user asks "is this idiomatic Rust", "ergonomic API", "make
   this nicer".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Rust Ergonomics — Hard Rules

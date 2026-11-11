@@ -8,8 +8,6 @@ when_to_use: >
   Use when you add or upgrade a crate, choose features, or pick a version, or
   the user asks "add crate X", "what version", "which features", "is this crate
   idiomatic".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Rust External Libraries — Hard Rules

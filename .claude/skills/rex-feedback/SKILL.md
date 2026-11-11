@@ -106,7 +106,7 @@ rex feedback "$JOB" --verdict accepted --by "<who>" --said "<what user said>"
 
 - [ ] `rejected`: one `--cause` per cause, `--lesson`, and `--evidence` with each cause and its run, role, or field.
 - [ ] `accepted`: `--verdict`, `--by`, `--said` only. No cause, no lesson, no evidence, no changed name.
-- [ ] `--changed-skill`: folder name under `.claude/skills/`, for example `orchestration-builder`. One flag per skill.
+- [ ] `--changed-skill`: folder name under `.claude/skills/` or `.rex/skills/`, for example `orchestration-builder`. One flag per skill.
 - [ ] `--changed-orchestrator`: folder name under `.rex/orchestrators/`. A lead skill in it counts as that orchestrator.
 - [ ] Names, not paths. Name only changes that were kept.
 - [ ] IF said text or lesson has a quote character or more than one line, THEN put it in a variable. Use a quoted heredoc in same call as `rex feedback`. Then give `--said "$SAID"` or `--lesson "$LESSON"`.

@@ -10,7 +10,7 @@ GENERAL test: remove names of this job from lesson (files, repo, feature, people
 
 | Cause | Home |
 | --- | --- |
-| `agent-skill` | That skill: file in `.claude/skills/<name>/` that holds the rule. `SKILL.md` or a sibling file. |
+| `agent-skill` | That skill: file that holds the rule, `SKILL.md` or a sibling file. Library skill (`source=library` in `rex skills list`): in `.rex/skills/<name>/`. Other skill: in `.claude/skills/<name>/`. |
 | `agent-skill`, task did not get skill or sibling file that holds rule | `.claude/skills/orchestration-builder/stages/1-skills/assign.md` (assignment table: skills + sibling files of each kind of work) |
 | `agent-skill`, table gave it, brief did not name it | `.claude/skills/orchestration-builder/stages/2-work-breakdown/stage.md` (it gives skills of each task) |
 | `agent-orchestration` | Orchestrator file, or its lead skill, in `.rex/orchestrators/<name>/` |
@@ -24,12 +24,13 @@ CAUTION: You cannot undo an edit to a skill or an orchestrator. These files are 
 3. IF lesson shows a rule is not needed now, THEN remove that rule.
 4. IF no rule caused miss, THEN add one rule. Shortest text. Obey `rex-skill-language`.
 5. IF new rule is for one step or one case, THEN write it in file of that step or case, next to `SKILL.md`. IF no such file exists, THEN create it and add one row for it to the table in that skill's `SKILL.md` that says when to read each file. Changed `SKILL.md` stays within limits: body max 1,500 words, `description` + `when_to_use` together max 60 words.
-6. IF same rule is in a different file, THEN change it there. To find it, search skill folder for key words of rule. One rule, one home. Do not copy it.
-7. Change file with Edit tool or Write tool. Never use a shell command. Reason: sandbox refuses a shell write below `.claude/skills/`.
+6. IF same rule is in a different file, THEN change it there. To find it, search `.claude/skills/`, `.rex/skills/`, and `.rex/orchestrators/` for key words of rule. One rule, one home. Do not copy it.
+7. Change file with Edit tool or Write tool. Never use a shell command. Reason: sandbox refuses a shell write below `.claude/skills/`. Use same tools in `.rex/skills/` and `.rex/orchestrators/`: one method for each file.
 8. Run check on folder of each changed skill or orchestrator. Give that folder, also when only a sibling file changed. Exit 0 = pass. Exit 1 = findings on standard output, one line each.
 
 ```sh
-rex skills check .claude/skills/<name>        # skill
+rex skills check .claude/skills/<name>        # skill in .claude/skills/
+rex skills check .rex/skills/<name>           # library skill
 rex skills check .rex/orchestrators/<name>    # orchestrator or its lead skill
 ```
 

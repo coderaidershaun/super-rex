@@ -8,8 +8,6 @@ when_to_use: >
   RETRY, HALT row lacks scenario, or user says "validation plan", "expected
   trace", "what happens step by step", "prove the order", "failure scenarios",
   "how do we know it works".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Validation Plan — Hard Rules

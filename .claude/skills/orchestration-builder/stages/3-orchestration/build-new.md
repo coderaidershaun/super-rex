@@ -6,7 +6,7 @@ Steps 2 + 5 of `.claude/skills/orchestration-builder/stages/3-orchestration/stag
 - Merge agreement: Answer of requester: merge work to main, yes or no.
 - Integration owner: One agent that combines parallel work and tests result.
 - Lead skill: Reusable file for lead. Kept in folder of its orchestrator skill.
-- Orchestrator library: Folder `.rex/orchestrators/` in `HOME_DIR`. One folder for each orchestrator skill. Outside `.claude/skills/`.
+- Orchestrator library: Folder `.rex/orchestrators/` in `HOME_DIR`. One folder for each orchestrator skill. Outside `.claude/skills/` and skill library `.rex/skills/`.
 
 ## Step 2 — Method
 
@@ -125,9 +125,9 @@ Builder settles merge agreement before job opens. So requester gets question one
 ## Orchestrator library
 
 - [ ] Where: `.rex/orchestrators/` in `HOME_DIR`. Outside `.claude/skills/`. Not in Git.
-- [ ] Each folder in library = one orchestrator skill: its `SKILL.md` + its lead skills. Never give lead skill its own folder.
-- [ ] `rex job plan` and `rex recall` index library and give version of each orchestrator skill. No agent writes version.
+- [ ] Each folder in orchestrator library = one orchestrator skill: its `SKILL.md` + its lead skills. Never give lead skill its own folder.
+- [ ] `rex job plan` and `rex recall` index orchestrator library and give version of each orchestrator skill. No agent writes version.
 - [ ] Store holds results of jobs that each orchestrator skill ran.
-- [ ] Claude Code does not list this folder. So library costs no context in other sessions.
+- [ ] Claude Code does not list this folder. So orchestrator library costs no context in other sessions.
 - [ ] Use: session reads orchestrator skill IN FULL and obeys it. Plain file read, not Skill tool.
 - [ ] Fit: write no text on what orchestrator skill fits. Store reads fit from jobs that orchestrator skill ran, and their results.

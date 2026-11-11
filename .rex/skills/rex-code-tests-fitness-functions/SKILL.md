@@ -7,8 +7,6 @@ when_to_use: >
   Use when you test critical invariants (orderbook reconstruction, money
   conservation, schema backward-compat), or user asks "make sure X never
   breaks", "invariant must always hold", "property test", "promote to fitness".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Rust Fitness Function Tests — Hard Rules

@@ -7,8 +7,6 @@ when_to_use: >
   Use when a lead plans a new system, feature, or module change, or user says
   "draw the architecture", "design this first", "boxes and arrows", "what is
   the design pattern", "how should this fit in".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Design Sketch — Hard Rules

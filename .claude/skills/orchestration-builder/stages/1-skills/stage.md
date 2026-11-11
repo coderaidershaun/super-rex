@@ -30,7 +30,8 @@ Settle which skills this job uses. Start from assignment table. Ask for new skil
 - Gap skill: Nuanced skill for one language. It covers what Rust gives by default and that language does not.
 - Assignment table: `.claude/skills/orchestration-builder/stages/1-skills/assign.md`. One home of which skills each kind of work gets.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
-- `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
+- Skill library: Folder `.rex/skills/` in `HOME_DIR`. Skills that agents read by path. Claude Code does not list them. Skill tool cannot load them.
+- `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`, `.rex/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
 - Brief: Prompt that sub-agent gets.
 - Paths: each path in this skill starts at `HOME_DIR`.
 
@@ -40,14 +41,14 @@ From builder: request, classification, recall output, job ID. Output of `rex ski
 
 ## Step 1 — List skills
 
-Run `rex skills list`.
-It prints one block of six lines for each skill, in repo and in user skill folder of Claude Code:
+Run `rex skills list` in `HOME_DIR`. Git worktree can lack `.rex/skills/`: Git ignores it in most repos.
+It prints one block of six lines for each skill, in three folders: `.claude/skills/` of repo, skill library, and user skill folder of Claude Code (`~/.claude/skills/`):
 
 ```
 name=<name>
 description=<what skill is for>
 when_to_use=<when to load skill>
-source=<repo or user>
+source=<repo, library, or user>
 shadowed=<yes or no>
 path=<absolute path of SKILL.md>
 ```

@@ -8,8 +8,6 @@ when_to_use: >
   Use when you write, review, or tidy comments, JSDoc, docstrings, or TODO
   markers, or commit AI-generated code, or the user asks "should I add a
   comment", "document this", "explain this code".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Code Commenting — Hard Rules

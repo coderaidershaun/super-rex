@@ -7,8 +7,6 @@ when_to_use: >
   Use when you write, review, refactor, or design code, or the user asks "how
   should I write this", "what's right approach", "is this over-engineered",
   "should I abstract this", "ship simple or do it right", "MVP vs proper".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Code Philosophy — Grug + Gabriel

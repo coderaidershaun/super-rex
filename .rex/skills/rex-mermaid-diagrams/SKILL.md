@@ -8,8 +8,6 @@ when_to_use: >
   explain architecture, database design, code structure, or user or
   application flows, or for "diagram", "visualize", "model", "map out", "show
   the flow".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Mermaid Diagramming

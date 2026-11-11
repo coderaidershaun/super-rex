@@ -33,7 +33,7 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 - Role: Named part in orchestrator skill. Example: `engineer`.
 - Grid agent: One of 20 agent definitions in `.claude/agents/`. Name: `model-<tier>-effort-<level>`. It has no Skill tool.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
-- `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
+- `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`, skill library `.rex/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
 - Role table: For one job: tasks, skills, inputs, and agent of each role. Output of stage 3.
 - Orchestrator skill: Reusable file. It gives roles, order, skills of each role, and checks. Not about one task.
 - Brief: Prompt that sub-agent gets.

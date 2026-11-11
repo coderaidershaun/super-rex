@@ -8,8 +8,6 @@ when_to_use: >
   a main loop, or the user says "what happens when this fails", "should this
   stop the system", "retry or fail", "fatal error", "kill switch", "halt",
   "make error handling consistent".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Failure Policy — Hard Rules

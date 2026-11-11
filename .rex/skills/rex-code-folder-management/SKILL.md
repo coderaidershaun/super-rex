@@ -8,8 +8,6 @@ when_to_use: >
   Use when you create, split, or move a module, file, or folder, review a tree,
   or the user says "tidy the modules", "group modules", "folder structure",
   "where does this file go", "subfolders", "mod.rs".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Folder Management — Hard Rules

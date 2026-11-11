@@ -8,8 +8,6 @@ when_to_use: >
   Use when user wants refactor candidates, module grouping, or code easier to
   test and navigate, or says "improve architecture", "refactor opportunities",
   "deepen modules", "tidy up modules", "get ready for the next feature".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Improve Codebase Architecture

@@ -46,7 +46,7 @@ Run it yourself, in your own shell, in the root of the main checkout (the folder
 $ cd ~/code/shop
 $ rex init
 rex init: .claude/settings.local.json created
-rex init: 147 written, 0 skipped
+rex init: 149 written, 0 skipped
 rex init: AGENTS.md created
 rex init: .gitignore created
 rex init: .rex/ created
@@ -59,11 +59,12 @@ What it writes:
 
 | Path | What | In Git |
 | --- | --- | --- |
-| `.claude/skills/` | The 27 skills (section "Skills and the agent grid"). | No |
+| `.claude/skills/` | The 6 skills that you start, or that a session finds by itself (section "Skills and the agent grid"). | No |
 | `.claude/agents/` | The 20 grid agents. | No |
 | `.claude/settings.local.json` | The hooks and the safety settings, merged into your file. | No |
-| `.rex/` | The store `rex.db`, and the empty library folder `orchestrators/`. | No |
-| `.gitignore` | A block that starts with `# rex:ignore superrex` and ignores the four paths above and `/.claude/worktrees/`. | Yes |
+| `.rex/skills/` | The skill library: the 22 skills that agents read by path. | No |
+| `.rex/` | The store `rex.db`, the skill library `skills/`, and the empty library folder `orchestrators/`. | No |
+| `.gitignore` | A block that starts with `# rex:ignore superrex` and ignores `.claude/skills/`, `.claude/agents/`, `.claude/settings.local.json`, `/.rex/` and `/.claude/worktrees/`. | Yes |
 | `AGENTS.md` | Two sections at the top, after the marker `<!-- rex:codebase -->`: how to use `rex codebase` and `rex smells`. | Yes |
 | `.pre-commit-config.yaml` | Checks for large files, merge markers, TOML, YAML, private keys and white space; gitleaks at commit; trivy at push; `cargo fmt`, `cargo clippy` and (at push) `cargo test` for Rust files. Only if you have no such file. | Yes |
 
@@ -75,11 +76,11 @@ git add AGENTS.md .gitignore .pre-commit-config.yaml && git commit -m "chore: se
 
 **Safe to run twice.** A second run changes no file in the repo. `rex init` never replaces what you have:
 
-- A skill or agent file that differs from this version of `rex` is skipped and counted (`(1 differs from this version; use --force to overwrite)`). `--force` overwrites those files, and only those: it never touches the settings file, `AGENTS.md`, `.gitignore` or the pre-commit config.
+- A skill or agent file, in `.claude/` or in `.rex/skills/`, that differs from this version of `rex` is skipped and counted (`(1 differs from this version; use --force to overwrite)`). `--force` overwrites those files, and only those: it never touches the settings file, `AGENTS.md`, `.gitignore` or the pre-commit config.
 - Your settings file is merged: missing keys and list entries are added, your keys and order stay. A value of yours that differs is kept, with a warning.
 - `AGENTS.md` and `.gitignore` get their block once, found by its marker. An existing pre-commit config is never replaced.
 - Nothing is written through a symbolic link. Skills of your own are left alone. `rex init` removes nothing, does not touch your user-level Claude Code settings, and writes no `CLAUDE.md`.
-- The ignore block hides whole folders, so a skill of your own in `.claude/skills/` is hidden from Git too. To keep one in Git, run `git add -f <path>`.
+- The ignore block hides whole folders, so a skill of your own in `.claude/skills/` or `.rex/skills/` is hidden from Git too. To keep one in Git, run `git add -f <path>`.
 
 **`--no-hooks`** leaves out the hooks, so no telemetry is recorded. Everything else is written. Hook entries from an earlier run are not removed: delete the entries that run `rex hook` to turn telemetry off.
 
@@ -132,7 +133,7 @@ Start Claude Code in the main checkout and give it a request with `/orchestratio
 2. **Agrees on the merge.** If the request does not say whether the work may be merged to main, it asks you. This is the one rule every job keeps.
 3. **Opens the job** with `rex job create`, which prints the job ID.
 4. **Recalls** lessons from similar jobs and the orchestrators they used (`rex recall`).
-5. **Starts a decision agent.** A sub-agent that runs at your model and effort makes the decision, so the session does not carry the rules of the three stages while it runs the job. The decision agent lists the skills in the repo and in your own skills folder (`rex skills list`), then works through three stages. Each stage is a file inside the builder's folder, `.claude/skills/orchestration-builder/stages/`, not a skill of its own:
+5. **Starts a decision agent.** A sub-agent that runs at your model and effort makes the decision, so the session does not carry the rules of the three stages while it runs the job. The decision agent lists the skills in the repo's `.claude/skills/`, in the skill library `.rex/skills/` and in your own skills folder (`rex skills list`), then works through three stages. Each stage is a file inside the builder's folder, `.claude/skills/orchestration-builder/stages/`, not a skill of its own:
    - **Stage 1, `1-skills/stage.md`:** chooses the skills for the job. It starts from one assignment table, `1-skills/assign.md`, which says which skills each kind of work gets: every task that writes code gets `rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics` and `rex-code-error-writing`, whatever its language, and tests, new files, new dependencies, retries, designs, refactors and the rest each add their own. A skill the table does not give, or one it gives that the job leaves out, needs a one-line reason. It asks for a new skill only when a three-part test passes, and the session then has a sub-agent write it.
    - **Stage 2, `2-work-breakdown/stage.md`:** splits the request into tasks, gives each task the skills the table gives its kind of work, and finds what can run in parallel.
    - **Stage 3, `3-orchestration/stage.md`:** reuses an orchestrator from `.rex/orchestrators/` or writes a new one, gives each task a role, defines the roles, and rates the inputs that pick each role's model.
@@ -207,7 +208,7 @@ missed_skills=1
 missed_skill.1=engineer rex-code-philosophy
 ```
 
-When a role has skills, the close compares them with the skills its runs opened: a run opens a skill when it reads a `.md` file below `.claude/skills/<name>/`. `missed_skills=<n>` counts the `missed_skill.<i>=<role> <skill>` lines that follow, one for each skill that no run of the role opened. A role with skills and no run at all gets one `role_not_run.<i>=<role>` line instead. A role run as the session is not checked, because the session's own reads are not recorded. `missed_skills_incomplete=yes` means the record of the runs misses facts, so the list may be wrong. `--json` gives the same as `"missed_skills": [{"role": ..., "skill": ...}]`, `"roles_not_run": [...]` and `"missed_skills_incomplete": true|false`. A missed skill never changes the status or the exit code.
+When a role has skills, the close compares them with the skills its runs opened: a run opens a skill when it reads a `.md` file below `.claude/skills/<name>/` or `.rex/skills/<name>/`. `missed_skills=<n>` counts the `missed_skill.<i>=<role> <skill>` lines that follow, one for each skill that no run of the role opened. A role with skills and no run at all gets one `role_not_run.<i>=<role>` line instead. A role run as the session is not checked, because the session's own reads are not recorded. `missed_skills_incomplete=yes` means the record of the runs misses facts, so the list may be wrong. `--json` gives the same as `"missed_skills": [{"role": ..., "skill": ...}]`, `"roles_not_run": [...]` and `"missed_skills_incomplete": true|false`. A missed skill never changes the status or the exit code.
 
 **`rex job show [<job>] [--json]`**: print one job's record: classification, preferences, merge answer, plan, roles with their model selection and skills (`skills=none`, or `[]` in `--json`, for none), deliveries, sub-agent runs, tokens, request, breakdown and the recalled experience. With no job, it shows the open job of `$CLAUDE_CODE_SESSION_ID`. `--json` adds the transitions, each run's brief and final message, and the feedback.
 
@@ -254,14 +255,14 @@ version=1
 
 **`rex skills`**: the group of `list` and `check`. On its own it prints its help on stderr and exits 2.
 
-**`rex skills list [--json]`**: print each skill of the repo's `.claude/skills/` and of `~/.claude/skills/` as a block of six lines. `shadowed=yes` marks a repo skill that a user skill of the same name hides.
+**`rex skills list [--json]`**: print each skill of the repo's `.claude/skills/`, of the repo's skill library `.rex/skills/` and of `~/.claude/skills/` as a block of six lines. `source` is `repo`, `library` or `user`, and `path` is the absolute path of the skill's `SKILL.md`. `shadowed=yes` marks a repo skill that a user skill of the same name hides; a library skill is never shadowed.
 
 ```console
 $ rex skills list
 name=rex-code-spike
 description=Throwaway code in a scratch folder that answers one yes/no question before real code depends on it. Never enters the source tree.
 when_to_use=Use when plan or sketch lists an unknown, an engineer doubts an approach, crate, or outside service, or user says "spike this", "prove it works first", "quick experiment", "scratch test", "will this even work".
-source=repo
+source=library
 shadowed=no
 path=/home/ana/code/shop/.rex/skills/rex-code-spike/SKILL.md
 ...
@@ -415,6 +416,7 @@ Only a person can start `/rex-deliver`, for example for the clean-up after a per
 | --- | --- |
 | `.rex/rex.db` | The SQLite store: jobs, roles, deliveries, runs, feedback, the orchestrator index. Read it with `sqlite3`, but write it only through `rex`. |
 | `.rex/events.jsonl` | The hook event log. It is never truncated. |
+| `.rex/skills/<name>/` | The skill library: one folder with a `SKILL.md` per skill that agents read by path. Claude Code does not list it. |
 | `.rex/orchestrators/<name>/` | The orchestrator library: one folder with a `SKILL.md` per orchestrator. A changed folder gets a new version at the next plan or recall. |
 | `.rex/worktrees/<job-id>/` | Worktrees of a job, removed after its merge. |
 
@@ -457,18 +459,28 @@ An agent reads all of `SKILL.md`, so it holds only the rules an agent needs ever
 | B1 | There is text after the header. |
 | B2 | `SKILL.md` has at most 500 lines. |
 | B3 | Each relative link to a `.md` file points to a file inside the skills folder. |
-| B4 | Each `.claude/skills/<name>/<file>.md` named in the text is a Markdown file of a known skill: its `SKILL.md`, or a file in its folder or below it. A path with a placeholder such as `<name>` is a template and is not checked. |
+| B4 | Each `.claude/skills/<name>/<file>.md` or `.rex/skills/<name>/<file>.md` named in the text is a Markdown file of a known skill in that folder: its `SKILL.md`, or a file in its folder or below it. A path to a skill in the other folder is a finding. A path with a placeholder such as `<name>` is a template and is not checked. |
 | B5 | The text after the header of `SKILL.md` has at most 1,500 words, counted as `wc -w` counts them. |
 
 ## Skills and the agent grid
 
-`rex init` installs 27 skills:
+`rex init` installs 28 skills in two folders. Claude Code lists each skill in `.claude/skills/` in every session, so only 6 are there: the ones that you start with `/<name>`, and one that a session must find by itself. The other 22 are the skill library in `.rex/skills/`, which Claude Code does not list, so they cost no context in a session. The decision agent finds them with `rex skills list`, and each brief names the ones its agent reads, by path.
+
+In `.claude/skills/`:
 
 - **The builder:** `orchestration-builder`, which only you start, with `/orchestration-builder <request>` or `/orchestration-builder Execute plan <path>`. Its three stages and the challenge of their decision are files in its folder, under `stages/`: `1-skills/` (with the assignment table `assign.md`), `2-work-breakdown/`, `3-orchestration/` and `challenge/`. Each stage file holds at most 1,500 words.
 - **Delivery:** `rex-deliver` (only you start it), `rex-pr-review` and `rex-feedback`.
-- **Plan review:** `rex-codex-adversarial-review`, which every plan job runs before its plan is final. You can also ask for it on a plan or a code change ("codex review", "challenge this design").
-- **Rulebooks:** 19 `rex-code-*` skills for writing code. Most are written for Rust, and they apply to every language: an agent applies the intent of each rule in that language's idiom, and a gap skill covers what the language lacks. They cover philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four kinds of test, design sketch, spike, validation plan, priorities and latency. `rex-code-latency` is a reference for hot paths that run in nanoseconds to microseconds: an agent measures first, then reads only the one or two files for its problem. Two utilities go with them: `rex-grill-me` and `rex-mermaid-diagrams`. Run `rex skills list` to see each one's description and when to use it.
+- **`rex-grill-me`:** it questions you about a plan or a design until the two of you agree on each decision. Start it with `/rex-grill-me`.
+- **The router, `rex-rules`:** a session that writes or reviews code without the builder loads it by itself, or you start it with `/rex-rules`. It tells the session to read the four rulebooks that every task that writes code gets, then the rows of the assignment table that fit its work.
+
+In the skill library, `.rex/skills/`:
+
+- **Rulebooks:** 19 `rex-code-*` skills for writing code. Most are written for Rust, and they apply to every language: an agent applies the intent of each rule in that language's idiom, and a gap skill covers what the language lacks. They cover philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four kinds of test, design sketch, spike, validation plan, priorities and latency. `rex-code-latency` is a reference for hot paths that run in nanoseconds to microseconds: an agent measures first, then reads only the one or two files for its problem.
+- **Plan review:** `rex-codex-adversarial-review`, which every plan job runs before its plan is final. Outside a job, ask the session to read `.rex/skills/rex-codex-adversarial-review/SKILL.md` and run it on a plan or a code change.
+- **`rex-mermaid-diagrams`:** how to draw diagrams in Mermaid.
 - **`rex-skill-language`:** the language every skill and agent instruction is written in.
+
+Run `rex skills list` to see each skill's description and when to use it. No library skill has a `/<name>` command; to use one outside a job, ask the session to read its `SKILL.md`.
 
 **The grid** is 20 agents in `.claude/agents/`, named `model-<low|medium|high|xhigh>-effort-<low|medium|high|xhigh|max>`. The tiers are `haiku`, `sonnet`, `opus` and `fable`. An agent runs with exactly the model and effort in its file. Each file also holds `disallowedTools: Skill`, so a grid agent has no Skill tool and no list of skills: it reads only the skill files its brief names.
 
@@ -496,6 +508,6 @@ Build with `cargo build` and test with `cargo test`. The tests live in three fol
 
 This repo has no CI service. Its checks are git hooks in `.pre-commit-config.yaml`; run `pre-commit install` once to set up both hooks. At commit: the file checks and trivy. At push: `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo check` with the oldest Rust that `Cargo.toml` claims (the hook installs that Rust when it is missing), and `cargo package`, with the tests run again from inside the package. The push checks run on the work tree, not on the commits being pushed, so push from the branch that is checked out.
 
-Two rules hold for every source file: at most 500 lines, and a module comment of one or two lines at the top that says what the file is for (`rex codebase --only code --with-context` shows them). The skills and agents in `.claude/` are source in this repo and are committed; the build embeds them in the binary, and `rex init` installs them from there. Each skill is a short `SKILL.md` and the sibling files it points to, and `cargo test` checks every bundled skill with the rules of `rex skills check`, each stage file of the builder for at most 1,500 words, and each grid agent for `disallowedTools: Skill`.
+Two rules hold for every source file: at most 500 lines, and a module comment of one or two lines at the top that says what the file is for (`rex codebase --only code --with-context` shows them). The skills and agents in `.claude/skills/`, `.claude/agents/` and `.rex/skills/` are source in this repo and are committed: this repo uses the same layout that `rex init` installs. The build embeds them in the binary, and `rex init` installs them from there. Each skill is a short `SKILL.md` and the sibling files it points to, and `cargo test` checks every bundled skill with the rules of `rex skills check`, each stage file of the builder for at most 1,500 words, and each grid agent for `disallowedTools: Skill`.
 
 **Licence:** MIT. See [LICENSE](LICENSE).

@@ -8,8 +8,6 @@ when_to_use: >
   says "adversarial review", "codex review", "second opinion on this plan",
   "second opinion on this code", "challenge this design", "challenge this
   implementation".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Adversarial Review

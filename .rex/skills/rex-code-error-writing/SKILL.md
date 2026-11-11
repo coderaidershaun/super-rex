@@ -8,8 +8,6 @@ when_to_use: >
   Use when you write error types, design Result<T,E> APIs, wrap errors, or
   write error messages, or the user asks "what error type", "how should I
   handle this error", "thiserror or anyhow", "error variants".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Rust Error Writing — Hard Rules

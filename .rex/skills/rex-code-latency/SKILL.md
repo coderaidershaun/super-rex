@@ -9,8 +9,6 @@ when_to_use: >
   Use when a Rust hotpath has a latency problem: "p99", "tail latency",
   "jitter", "lock-free", "false sharing", "kernel bypass", "busy poll", "time
   this function".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Code latency

@@ -6,8 +6,6 @@ when_to_use: >
   Use when the user wants to build features or fix bugs with TDD, mentions
   "red-green-refactor", wants integration tests, or asks for test-first
   development.
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Test-Driven Development

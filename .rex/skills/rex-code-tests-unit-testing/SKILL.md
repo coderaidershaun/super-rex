@@ -7,8 +7,6 @@ when_to_use: >
   Use when you write unit tests, do TDD, or decide to keep or delete a unit
   test, or user asks "should I unit test this", "TDD this fn", "should I delete
   this test", "promote to fitness".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Rust Unit Tests — Hard Rules

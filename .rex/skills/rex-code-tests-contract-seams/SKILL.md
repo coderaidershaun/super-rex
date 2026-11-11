@@ -7,8 +7,6 @@ when_to_use: >
   Use when you test module-to-module interactions, refactor a seam, or define a
   new module interface, or user asks "test the boundary", "this seam keeps
   breaking", "interaction between modules".
-disable-model-invocation: false
-user-invocable: true
 ---
 
 # Rust Contract Seam Tests — Hard Rules
