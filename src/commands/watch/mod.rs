@@ -1,6 +1,7 @@
 //! `rex watch`: a live view of jobs and their agent trees, for people. The job
 //! data comes from the function `rex jobs` uses, so the screen and the list agree.
 
+mod draw;
 mod model;
 mod theme;
 mod view;
@@ -86,7 +87,7 @@ fn event_loop(
     loop {
         let view = snapshot.view(state.job);
         terminal
-            .draw(|frame| view::draw(frame, &view, &state))
+            .draw(|frame| draw::draw(frame, &view, &state))
             .map_err(WatchError::Terminal)?;
 
         let wait = refresh.saturating_sub(refreshed.elapsed());
