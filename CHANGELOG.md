@@ -4,6 +4,12 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.6.0 - 2026-11-11
+
+### Fixed
+
+- A teammate of a Claude Code agent team no longer shows as finished while it works. Claude Code stops a teammate each time it goes idle and starts it again, under the same agent ID, when a message wakes it. `rex watch`, `rex status` and `rex job show` now show the run open from each new start until its next stop, keep its first start as `started_at`, and give it no `stopped_at` while it is open. Its duration counts the time it waited idle between messages. The store has two new columns: delete `.rex/rex.db` and run `rex init` again.
+
 ## 0.5.0 - 2026-11-11
 
 ### Changed

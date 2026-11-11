@@ -1,6 +1,6 @@
 [package]
 name = "super-rex"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
 # `rusqlite` asks for 1.89, the highest of any package in the build. No lower
 # version would compile it.
