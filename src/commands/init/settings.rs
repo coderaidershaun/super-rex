@@ -26,14 +26,6 @@ const TRIVY_CACHE: &str = "~/Library/Caches/trivy";
 #[cfg(not(target_os = "macos"))]
 const TRIVY_CACHE: &str = "~/.cache/trivy";
 
-/// The safety settings, with `parent` opened to agents when there is one.
-/// The `~/` paths stay as written, because Claude Code reads them the same
-/// way from any folder a session starts in.
-///
-/// A sandboxed command reaches the network only through the sandbox's proxy,
-/// so a program that opens its own connection, such as a WebSocket client or
-/// a database driver, cannot connect. Unless `is_strict`, an agent may
-/// therefore run a command again outside the sandbox.
 /// Commands that run outside the sandbox, unless `is_strict`. The sandbox never
 /// lets a command write `.claude/skills`, `.claude/agents` or the settings
 /// files, and no setting narrows that. These commands must write them: a Git
@@ -50,6 +42,15 @@ const COMMANDS_OUTSIDE_SANDBOX: [&str; 5] = [
     "rex init*",
 ];
 
+/// The safety settings, with `parent` opened to agents when there is one.
+/// The `~/` paths stay as written, because Claude Code reads them the same
+/// way from any folder a session starts in.
+///
+/// A sandboxed command reaches the network only through the sandbox's proxy,
+/// so a program that opens its own connection, such as a WebSocket client or
+/// a database driver, cannot connect. Unless `is_strict`, an agent may
+/// therefore run a command again outside the sandbox, from
+/// [`COMMANDS_OUTSIDE_SANDBOX`].
 fn safety_settings(parent: Option<&str>, is_strict: bool) -> Map<String, Value> {
     let mut permissions = Map::new();
     if let Some(parent) = parent {
