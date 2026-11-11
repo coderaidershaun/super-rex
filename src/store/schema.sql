@@ -1,4 +1,4 @@
--- Version 2 of the SuperRex store: the record of jobs, their roles, deliveries,
+-- Version 1 of the SuperRex store: the record of jobs, their roles, deliveries,
 -- sub-agent runs, feedback and the orchestrator index, kept in .rex/rex.db.
 --
 -- Every time is UTC text in the one form YYYY-MM-DDTHH:MM:SS.sssZ, so that text
@@ -78,8 +78,7 @@ CREATE TABLE role (
     rules           TEXT,
     conflict        TEXT,
     oms_version     INTEGER,
-    -- The skills the role's tasks are assigned, as a comma list. Last, because an
-    -- upgrade from version 1 adds it at the end.
+    -- The skills the role's tasks are assigned, as a comma list.
     skills          TEXT,
     PRIMARY KEY (job_id, role),
     CHECK ((runs_as_session = 1) = (agent IS NULL)),
@@ -205,4 +204,4 @@ CREATE TABLE meta (
     value TEXT NOT NULL
 ) STRICT;
 
-PRAGMA user_version = 2;
+PRAGMA user_version = 1;

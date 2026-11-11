@@ -10,25 +10,6 @@ use crate::bundle;
 use crate::commands::links::is_symlink;
 use crate::error::RexError;
 
-/// Skills that an earlier SuperRex installed and this one no longer ships.
-/// Their text now lives inside `orchestration-builder`.
-const RETIRED_SKILLS: [&str; 4] = [
-    "orchestration-nuance-selection",
-    "orchestration-work-breakdown",
-    "orchestration-selection",
-    "orchestration-decision-challenge",
-];
-
-/// The folders of retired skills still under `claude_dir`. rex names them and
-/// never deletes them: a person may have edited one.
-pub(super) fn retired_skill_folders(claude_dir: &Path) -> Vec<PathBuf> {
-    RETIRED_SKILLS
-        .iter()
-        .map(|name| claude_dir.join("skills").join(name))
-        .filter(|folder| folder.is_dir())
-        .collect()
-}
-
 /// How many bundle files an install wrote, overwrote and left alone.
 #[derive(Clone, Copy, Default)]
 pub(super) struct InstallCounts {

@@ -5,7 +5,7 @@ Run one of these commands before you search the tree by hand. Each one prints a 
 
 - `rex codebase`: every file.
 - `rex codebase --only code`: only source files (Rust, Go, C, C++, Python, JavaScript, TypeScript, shell, Java, Kotlin, Scala, C#, Swift, Objective-C, Dart, PHP, Ruby, Lua, Haskell, Elixir, R, SQL, Zig, Perl).
-- `rex codebase --only go`: only one language. `--rust-only` is the same as `--only rust`.
+- `rex codebase --only go`: only one language.
 - `rex codebase --with-context`: adds the first sentence of each source file's opening comment to its line.
 - `rex codebase --only code --with-context`: the source files and what each one is for. Start here.
 

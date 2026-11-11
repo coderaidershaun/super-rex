@@ -4,6 +4,10 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+### Removed
+
+- All backward compatibility, because no repo uses SuperRex yet. The store's schema is version 1 again, with `role.skills` part of it, and has no upgrade path: a store made by 0.3.0 is refused, so delete its `.rex/rex.db` and run `rex init`. `rex init` no longer names old stage-skill folders. `rex codebase --rust-only` is gone; use `--only rust`.
+
 ## 0.3.0 - 2026-11-11
 
 ### Added

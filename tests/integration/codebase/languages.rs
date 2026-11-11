@@ -211,14 +211,13 @@ fn codebase_only_code_lists_source_files_and_their_dirs() {
              lib/\n  x.go\nm.rs\nupper.RS\nweb/\n  app.TSX\n",
         ),
         (&["--only", "rust"], rust),
-        (&["--rust-only"], rust),
         (&["--only", "go"], "a/\n  c/\n    y.go\nlib/\n  x.go\n"),
         (&["--only", "cpp"], "feed.cpp\nfeed.h\n"),
         (&["--only", "c"], "feed.c\nfeed.h\n"),
         (&["--only", "objc"], "feed.h\nfeed.m\n"),
         (&["--only", "python"], "a/\n  z.py\n"),
         (
-            &["--rust-only", "--with-context"],
+            &["--only", "rust", "--with-context"],
             "a/\n  c/\n    y.rs - Reads y.\n  z.rs\nm.rs\nupper.RS\n",
         ),
     ];
@@ -229,9 +228,4 @@ fn codebase_only_code_lists_source_files_and_their_dirs() {
             "args {args:?}"
         );
     }
-    assert_eq!(
-        codebase_stdout(dir.path(), &["--only", "rust", "--with-context"]),
-        codebase_stdout(dir.path(), &["--rust-only", "--with-context"]),
-        "--only rust must print the same as --rust-only"
-    );
 }

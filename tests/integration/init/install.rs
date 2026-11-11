@@ -153,60 +153,6 @@ fn existing_agents_md_gets_section_on_top_once() {
         ignore_first,
         fs::read(own.path().join(".gitignore")).expect("read .gitignore")
     );
-
-    // An older rex-skills install has older texts in the files this version
-    // writes. None of them may change, and the new ignore entries and the
-    // agents must still arrive.
-    let older = repo();
-    let n = bundle_file_count();
-    let old_ignore_block: &[u8] =
-        b"# rex:ignore claude\n.claude/skills/\n.claude/settings.local.json\n";
-    let kept: [(&str, &[u8]); 3] = [
-        (
-            "AGENTS.md",
-            b"<!-- rex:codebase -->\n## Codebase map\n\n- `rex codebase --rust-only --with-context`: an older section.\n",
-        ),
-        (
-            ".pre-commit-config.yaml",
-            b"# rex:pre-commit\n# Installed by `rex skills`.\nrepos: []\n",
-        ),
-        (
-            ".claude/skills/rex-skill-language/SKILL.md",
-            b"an older text of this skill\n",
-        ),
-    ];
-    for (path, contents) in kept {
-        let path = older.path().join(path);
-        fs::create_dir_all(path.parent().expect("file has a folder")).expect("create folder");
-        fs::write(&path, contents).expect("write older file");
-    }
-    fs::write(older.path().join(".gitignore"), old_ignore_block).expect("write .gitignore");
-
-    let printed = rex_init_ok(&older, &[]);
-
-    for (path, contents) in kept {
-        let after = fs::read(older.path().join(path)).expect("read older file");
-        assert_eq!(after, contents, "{path} must not change");
-    }
-    let gitignore = fs::read(older.path().join(".gitignore")).expect("read .gitignore");
-    assert_eq!(
-        gitignore,
-        [old_ignore_block, b"\n", SUPERREX_IGNORE_BLOCK].concat()
-    );
-    for (path, contents) in super_rex::bundle::walk() {
-        if path.starts_with("agents") {
-            let installed = fs::read(older.path().join(".claude").join(&path)).expect("read agent");
-            assert_eq!(installed, contents, "{} must be installed", path.display());
-        }
-    }
-    assert!(
-        printed.stdout.contains(&format!(
-            "rex init: {} written, 1 skipped (1 differs from this version; use --force to overwrite)\n",
-            n - 1
-        )),
-        "got: {}",
-        printed.stdout
-    );
 }
 
 // The promise that `rex init` is safe to run twice: the second run

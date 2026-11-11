@@ -1,6 +1,5 @@
 //! What the store promises to the code that calls it: where it is found, that a
-//! second writer waits, that its schema guards its own rules, and that a store
-//! of an older version is upgraded to the same tables as a new one.
+//! second writer waits, and that schema version 1 guards its own rules.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -195,43 +194,6 @@ fn paths_in(dir: &Path) -> StorePaths {
     }
 }
 
-/// Each table's columns as `table_info` gives them, by table name.
-fn layout(conn: &rusqlite::Connection) -> Vec<(String, Vec<String>)> {
-    let mut tables = conn
-        .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
-        .unwrap();
-    let names: Vec<String> = tables
-        .query_map([], |row| row.get(0))
-        .unwrap()
-        .collect::<Result<_, _>>()
-        .unwrap();
-    names
-        .into_iter()
-        .map(|name| {
-            let mut columns = conn
-                .prepare(
-                    "SELECT name, type, \"notnull\", dflt_value, pk FROM pragma_table_info(?1)",
-                )
-                .unwrap();
-            let columns = columns
-                .query_map([&name], |row| {
-                    let default: Option<String> = row.get(3)?;
-                    Ok(format!(
-                        "{} {} notnull={} default={default:?} pk={}",
-                        row.get::<_, String>(0)?,
-                        row.get::<_, String>(1)?,
-                        row.get::<_, i64>(2)?,
-                        row.get::<_, i64>(4)?,
-                    ))
-                })
-                .unwrap()
-                .collect::<Result<_, _>>()
-                .unwrap();
-            (name, columns)
-        })
-        .collect()
-}
-
 fn insert_meta(tx: &Transaction<'_>, key: &str) -> Result<(), StoreError> {
     tx.execute("INSERT INTO meta (key, value) VALUES (?1, 'x')", [key])?;
     Ok(())
@@ -280,7 +242,7 @@ fn second_writer_waits_instead_of_failing() {
 }
 
 #[test]
-fn schema_applies_once_upgrades_old_stores_and_guards_its_invariants() {
+fn schema_v1_applies_once_and_guards_its_invariants() {
     let temp = tempfile::tempdir().unwrap();
     let repo = temp.path().join("repo");
     fs::create_dir_all(&repo).unwrap();
@@ -292,7 +254,7 @@ fn schema_applies_once_upgrades_old_stores_and_guards_its_invariants() {
         .conn()
         .query_row("PRAGMA user_version", [], |row| row.get(0))
         .unwrap();
-    assert_eq!(version, 2);
+    assert_eq!(version, 1);
     let tables = count(
         &store,
         "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name IN
@@ -309,7 +271,7 @@ fn schema_applies_once_upgrades_old_stores_and_guards_its_invariants() {
     assert_eq!(
         snapshot_files(&paths.dir),
         before,
-        "a store at the current version must be left as it was"
+        "a store at version 1 must be left as it was"
     );
     for leftover in ["rex.db-wal", "rex.db-shm"] {
         assert!(
@@ -391,55 +353,16 @@ fn schema_applies_once_upgrades_old_stores_and_guards_its_invariants() {
     let newer = paths_in(&temp.path().join("newer").join(".rex"));
     rusqlite::Connection::open(&newer.db)
         .unwrap()
-        .pragma_update(None, "user_version", 3)
+        .pragma_update(None, "user_version", 2)
         .unwrap();
     for result in [Store::open(&newer), Store::create(&newer)] {
         assert!(matches!(
             result,
             Err(StoreError::NewerSchema {
-                found: 3,
-                supported: 2,
+                found: 2,
+                supported: 1,
                 ..
             })
         ));
-    }
-
-    // A store that rex 0.2 made, with a role in it, is upgraded by the first
-    // rex run in it, whether that is `rex init` or any other command.
-    let fresh = layout(Store::open(&paths).unwrap().conn());
-    let old_schema = fs::read_to_string(
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/store/schema-v1.sql"),
-    )
-    .unwrap();
-    type Opener = fn(&StorePaths) -> Result<Store, StoreError>;
-    let upgrades: [(&str, Opener); 2] = [("open", Store::open), ("create", Store::create)];
-    for (name, upgrade) in upgrades {
-        let old = paths_in(&temp.path().join(format!("old-{name}")).join(".rex"));
-        let mut conn = rusqlite::Connection::open(&old.db).unwrap();
-        conn.execute_batch(&old_schema).unwrap();
-        let tx = conn.transaction().unwrap();
-        insert_job(&tx, "job0000001", "s1", "planned").unwrap();
-        tx.execute(
-            "INSERT INTO role (job_id, role, runs_as_session) VALUES ('job0000001', 'writer', 1)",
-            [],
-        )
-        .unwrap();
-        tx.commit().unwrap();
-        drop(conn);
-
-        let store = upgrade(&old).unwrap();
-        assert_eq!(layout(store.conn()), fresh, "{name} of an old store");
-        let version: i64 = store
-            .conn()
-            .query_row("PRAGMA user_version", [], |row| row.get(0))
-            .unwrap();
-        assert_eq!(version, 2, "{name} of an old store");
-        let role: (String, Option<String>) = store
-            .conn()
-            .query_row("SELECT role, skills FROM role", [], |row| {
-                Ok((row.get(0)?, row.get(1)?))
-            })
-            .unwrap();
-        assert_eq!(role, ("writer".to_owned(), None), "{name} of an old store");
     }
 }

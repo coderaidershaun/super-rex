@@ -27,7 +27,6 @@ const MAX_DOC_BYTES: u64 = 4096;
 
 const WITH_CONTEXT_FLAG: &str = "with-context";
 const ONLY_FLAG: &str = "only";
-const RUST_ONLY_FLAG: &str = "rust-only";
 const FOR_HUMAN_FLAG: &str = "for-human";
 
 /// What `rex codebase` prints and where it goes.
@@ -41,10 +40,6 @@ pub struct CodebaseOptions {
     /// `code` for every language rex knows, or one language.
     #[arg(long = ONLY_FLAG, value_name = "WHAT")]
     only: Option<Only>,
-
-    /// Same as `--only rust`.
-    #[arg(long = RUST_ONLY_FLAG, conflicts_with = "only")]
-    is_rust_only: bool,
 
     /// Write the tree to CODEBASE.md instead of printing it.
     #[arg(long = FOR_HUMAN_FLAG)]
@@ -91,8 +86,7 @@ impl ValueEnum for Only {
 impl CodebaseOptions {
     /// The files the tree keeps, or `None` for every file.
     fn scope(self) -> Option<Only> {
-        let rust_only = self.is_rust_only.then_some(Only::Language(Language::Rust));
-        rust_only.or(self.only)
+        self.only
     }
 
     /// Builds the command line for these options. The flags always come in
@@ -105,7 +99,6 @@ impl CodebaseOptions {
         let flags = [
             self.is_for_human.then(|| format!("--{FOR_HUMAN_FLAG}")),
             only,
-            self.is_rust_only.then(|| format!("--{RUST_ONLY_FLAG}")),
             self.has_context.then(|| format!("--{WITH_CONTEXT_FLAG}")),
         ];
 

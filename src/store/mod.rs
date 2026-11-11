@@ -19,12 +19,7 @@ use rusqlite::types::Type;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction, TransactionBehavior};
 
 const SCHEMA: &str = include_str!("schema.sql");
-const SCHEMA_VERSION: i64 = 2;
-
-/// The changes that bring an older store up to [`SCHEMA_VERSION`]: entry `n`
-/// takes a store from version `n + 1` to version `n + 2`. A store made new
-/// gets [`SCHEMA`] instead, which must end in the same tables.
-const UPGRADES: [&str; 1] = ["ALTER TABLE role ADD COLUMN skills TEXT;"];
+const SCHEMA_VERSION: i64 = 1;
 
 /// How long a writer waits for another writer before it fails with
 /// `database is locked`.
@@ -50,8 +45,8 @@ pub struct Store {
 
 impl Store {
     /// Makes the store for `rex init`, or opens it if it is already made. A
-    /// store of an older version is upgraded, and one already at the current
-    /// version is left exactly as it was, so this is safe to run twice.
+    /// store already at version 1 is left exactly as it was, so this is safe to
+    /// run twice.
     ///
     /// # Errors
     /// - [`StoreError::NewerSchema`] if the file has a newer schema.
@@ -81,7 +76,8 @@ impl Store {
             0 => tx
                 .execute_batch(SCHEMA)
                 .map_err(StoreError::sqlite(&paths.db))?,
-            found => upgrade(&tx, paths, found)?,
+            SCHEMA_VERSION => {}
+            found => return Err(newer_schema(paths, found)),
         }
         tx.commit().map_err(StoreError::sqlite(&paths.db))?;
         Ok(Store {
@@ -90,8 +86,7 @@ impl Store {
         })
     }
 
-    /// Opens an existing store, and upgrades it if it is of an older version.
-    /// Never makes a file.
+    /// Opens an existing store. Never makes a file.
     ///
     /// # Errors
     /// - [`StoreError::NotFound`] if `rex.db` does not exist.
@@ -108,33 +103,21 @@ impl Store {
             return Err(StoreError::NotFound { tried });
         }
         let flags = OpenFlags::default().difference(OpenFlags::SQLITE_OPEN_CREATE);
-        let mut conn =
+        let conn =
             Connection::open_with_flags(&paths.db, flags).map_err(StoreError::sqlite(&paths.db))?;
         configure(&conn, paths)?;
 
         match schema_version(&conn, paths)? {
-            SCHEMA_VERSION => {}
-            0 => {
-                return Err(StoreError::NotInitialised {
-                    db: paths.db.clone(),
-                    root: paths.root.clone(),
-                });
-            }
-            _ => {
-                // Read again under the write lock, so that two rex runs at once
-                // cannot both upgrade the same store.
-                let tx = conn
-                    .transaction_with_behavior(TransactionBehavior::Immediate)
-                    .map_err(StoreError::sqlite(&paths.db))?;
-                let found = schema_version(&tx, paths)?;
-                upgrade(&tx, paths, found)?;
-                tx.commit().map_err(StoreError::sqlite(&paths.db))?;
-            }
+            SCHEMA_VERSION => Ok(Store {
+                conn,
+                paths: paths.clone(),
+            }),
+            0 => Err(StoreError::NotInitialised {
+                db: paths.db.clone(),
+                root: paths.root.clone(),
+            }),
+            found => Err(newer_schema(paths, found)),
         }
-        Ok(Store {
-            conn,
-            paths: paths.clone(),
-        })
     }
 
     /// The paths this store was opened with.
@@ -206,22 +189,6 @@ fn stored_id_error(paths: &StorePaths) -> impl FnOnce(JobIdError) -> StoreError 
         let source = rusqlite::Error::FromSqlConversionFailure(0, Type::Text, Box::new(error));
         StoreError::sqlite(&db)(source)
     }
-}
-
-/// Applies each upgrade after version `from`, then sets the current version. A
-/// store already at the current version is left as it is.
-fn upgrade(tx: &Transaction<'_>, paths: &StorePaths, from: i64) -> Result<(), StoreError> {
-    let done = match from {
-        SCHEMA_VERSION => return Ok(()),
-        1..SCHEMA_VERSION => (from - 1) as usize,
-        _ => return Err(newer_schema(paths, from)),
-    };
-    for change in &UPGRADES[done..] {
-        tx.execute_batch(change)
-            .map_err(StoreError::sqlite(&paths.db))?;
-    }
-    tx.pragma_update(None, "user_version", SCHEMA_VERSION)
-        .map_err(StoreError::sqlite(&paths.db))
 }
 
 fn schema_version(conn: &Connection, paths: &StorePaths) -> Result<i64, StoreError> {

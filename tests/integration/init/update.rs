@@ -35,26 +35,12 @@ fn force_overwrites_only_the_files_that_differ() {
         bundle_file(SKILL_MARKER)
     );
 
-    let retired = repo.path().join(".claude/skills/orchestration-selection");
-    fs::create_dir_all(&retired).expect("make retired skill folder");
-
-    let printed = rex_init_ok(&repo, &["--force"]);
+    let stdout = rex_init_stdout(&repo, &["--force"]);
 
     assert_eq!(
-        printed.stdout,
+        stdout,
         format!("rex init: 0 written, {n} skipped\n{HOOKS_LINE}"),
         "--force on an up-to-date install must rewrite nothing"
-    );
-    assert!(
-        printed
-            .stderr
-            .contains("orchestration-selection is a skill this version no longer uses"),
-        "a retired skill folder must be named: {}",
-        printed.stderr
-    );
-    assert!(
-        retired.is_dir(),
-        "rex must never delete a retired skill folder"
     );
 }
 

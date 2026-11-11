@@ -11,9 +11,7 @@ use crate::error::RexError;
 pub(super) const GITIGNORE_FILENAME: &str = ".gitignore";
 
 /// The first line of the block. Finding it in `.gitignore` is what stops a
-/// second run from adding the block again. The older `# rex:ignore claude`
-/// block of rex-skills does not count, so a repo that has it still gets the
-/// new entries.
+/// second run from adding the block again.
 const IGNORE_MARKER: &str = "# rex:ignore superrex";
 
 /// The whole block, marker line included, ending in a newline.

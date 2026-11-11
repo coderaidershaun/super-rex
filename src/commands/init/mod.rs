@@ -18,7 +18,7 @@ use super::stdout::print_line_to_stdout;
 use crate::store::{Store, StoreError, StorePaths};
 pub use error::InitError;
 use file_change::FileChange;
-use install::{install_bundle, retired_skill_folders, summary};
+use install::{install_bundle, summary};
 use pre_commit::{ConfigWrite, HookInstall};
 
 /// What `rex init` installs and whether it replaces files it wrote before.
@@ -89,12 +89,6 @@ fn install(
 
     let counts = install_bundle(&cwd.join(".claude"), options.is_forced)?;
     print_line_to_stdout(&summary(counts))?;
-    for folder in retired_skill_folders(&cwd.join(".claude")) {
-        print_line_to_stderr(&format!(
-            "rex init: {} is a skill this version no longer uses; its text is now in orchestration-builder, so delete the folder",
-            folder.display()
-        ));
-    }
 
     let mut to_commit = Vec::new();
 

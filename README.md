@@ -78,7 +78,7 @@ git add AGENTS.md .gitignore .pre-commit-config.yaml && git commit -m "chore: se
 - A skill or agent file that differs from this version of `rex` is skipped and counted (`(1 differs from this version; use --force to overwrite)`). `--force` overwrites those files, and only those: it never touches the settings file, `AGENTS.md`, `.gitignore` or the pre-commit config.
 - Your settings file is merged: missing keys and list entries are added, your keys and order stay. A value of yours that differs is kept, with a warning.
 - `AGENTS.md` and `.gitignore` get their block once, found by its marker. An existing pre-commit config is never replaced.
-- Nothing is written through a symbolic link. Skills of your own, and an older rex-skills install, are left alone. `rex init` removes nothing, does not touch your user-level Claude Code settings, and writes no `CLAUDE.md`.
+- Nothing is written through a symbolic link. Skills of your own are left alone. `rex init` removes nothing, does not touch your user-level Claude Code settings, and writes no `CLAUDE.md`.
 - The ignore block hides whole folders, so a skill of your own in `.claude/skills/` is hidden from Git too. To keep one in Git, run `git add -f <path>`.
 
 **`--no-hooks`** leaves out the hooks, so no telemetry is recorded. Everything else is written. Hook entries from an earlier run are not removed: delete the entries that run `rex hook` to turn telemetry off.
@@ -312,7 +312,7 @@ previous=delivered
 status=analyzed
 ```
 
-**`rex codebase`**: print a tree of the working folder, skipping what Git ignores. `--only code` (every language `rex` knows) or `--only rust|go|c|cpp|python|js|ts|shell|java|kotlin|scala|csharp|swift|objc|dart|php|ruby|lua|haskell|elixir|r|sql|zig|perl` keeps source files; `--rust-only` is `--only rust`; `--with-context` adds the first sentence of each source file's opening comment; `--for-human` writes `CODEBASE.md` instead.
+**`rex codebase`**: print a tree of the working folder, skipping what Git ignores. `--only code` (every language `rex` knows) or `--only rust|go|c|cpp|python|js|ts|shell|java|kotlin|scala|csharp|swift|objc|dart|php|ruby|lua|haskell|elixir|r|sql|zig|perl` keeps source files; `--with-context` adds the first sentence of each source file's opening comment; `--for-human` writes `CODEBASE.md` instead.
 
 ```console
 $ rex codebase --only code --with-context

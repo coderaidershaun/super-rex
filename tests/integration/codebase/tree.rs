@@ -82,11 +82,11 @@ fn codebase_golden_tree_honors_gitignore() {
     // Each case: the arguments, the file, its contents, the tree and the footer.
     let footers: &[(&[&str], &str, &str, &str, &str)] = &[
         (
-            &["--with-context", "--rust-only", "--for-human"],
+            &["--with-context", "--only", "rust", "--for-human"],
             "src/main.rs",
             "//! Entry point. Runs the tool.\nfn main() {}\n",
             "src/\n  main.rs - Entry point.\n",
-            "--for-human --rust-only --with-context",
+            "--for-human --only rust --with-context",
         ),
         (
             &["--with-context", "--only", "go", "--for-human"],
