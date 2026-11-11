@@ -32,6 +32,6 @@ IF brief of builder job names your skill files, THEN read those. Do not use this
 4. Run `rex skills list` in `HOME_DIR`. It prints each skill: `description`, `when_to_use`, `source`, and `path` of its `SKILL.md`.
 5. Read `## By kind of work` in `assign.md` of step 2. That table is one home of which skills each kind of work gets.
 6. For each row that fits your work: read its skills + sibling files. Skill path = its `path=` line. Row gives path of each sibling file.
-7. IF language is not Rust, AND list has gap skill `rex-gap-<language>` of that language, THEN read it. `<language>` = `--only` name of that language in `rex codebase`, for example `rex-gap-go`.
+7. IF language is not Rust, AND list has gap skill `rex-gap-<language>` of that language, THEN read it. `<language>` = `--only` name of that language in `rex codebase` (`rex codebase --help` lists them), for example `rex-gap-go`, `rex-gap-ts`.
 8. IF need fits no row, THEN read skill whose `description` + `when_to_use` fit need.
 9. Read sibling file when a `SKILL.md` that you read sends you there.

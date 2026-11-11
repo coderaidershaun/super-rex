@@ -219,12 +219,18 @@ fn keys_after(text: &str, anchor: &str) -> Vec<String> {
             _ => {}
         }
     }
-    plain
+    let keys: Vec<String> = plain
         .split('`')
         .skip(1)
         .step_by(2)
         .map(str::to_owned)
-        .collect()
+        .collect();
+    // A reflowed line must fail the test, not turn its check off.
+    assert!(
+        !keys.is_empty(),
+        "the sentence after {anchor:?} must name at least one key in backticks"
+    );
+    keys
 }
 
 /// The keys of `rex job show`: each `key=` line and each `key:` field.

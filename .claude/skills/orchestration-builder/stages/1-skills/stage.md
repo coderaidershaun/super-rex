@@ -111,5 +111,5 @@ NEW SKILLS: one table, OR `none`. One row for each need that passes test of step
 - [ ] Name: short lower-case words with hyphens. Name = folder name. No skill in list of step 1 has that name.
 - [ ] Need: what skill must make agents do. Reason: why this job needs it, and why later jobs need it also.
 - [ ] Gap language: language of gap skill, OR `—`.
-- [ ] Gap skill name: `rex-gap-<language>`. `<language>` = `--only` name of that language in `rex codebase`. Examples: `rex-gap-go`, `rex-gap-python`, `rex-gap-cpp`. IF `rex codebase` has no `--only` name for it, THEN `<language>` = its classification value.
+- [ ] Gap skill name: `rex-gap-<language>`. `<language>` = `--only` name of that language in `rex codebase` (`rex codebase --help` lists them: `ts`, not `typescript`; `js`, not `javascript`). Examples: `rex-gap-go`, `rex-gap-python`, `rex-gap-cpp`. IF `rex codebase` has no `--only` name for it, THEN `<language>` = its classification value.
 - [ ] Default: `none`.

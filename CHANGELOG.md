@@ -4,6 +4,8 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.4.0 - 2026-11-11
+
 ### Added
 
 - `rex-rules`, a router skill. A session that writes or reviews code without the builder reads the four core rulebooks through it, then the rows of the assignment table that fit its work.
@@ -21,10 +23,6 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 - `skills_opened` is `[]` when the run's transcript was read and it opened no skill, and `null` when no transcript was read. `rex-feedback` compares it with each role's `skills`.
 - `rex skills list` in a linked worktree also lists the main checkout's library. `rex skills check` takes the bundled skills as known only for a folder the repo does not have. `rex job plan` refuses a skill name that is not a folder name, such as `rex-code-tdd/mocking.md`.
 - The skills: full paths in the assignment table, one home each for the core rulebooks, the `SLUG` form and the sandbox brief text, gap skills named `rex-gap-<language>`, the plan writer gets the skill list, a pull request review on request runs in a fresh agent, and text of earlier designs is gone (the builder branch for a sub-agent, "stage sub-agents", the unused mermaid `README.md`).
-
-### Added
-
-- Tests that every skill, file and section that the assignment table or a skill names resolves, that the keys the skills copy from `rex` output are in the real output, and that each grid agent runs the model and effort its name says.
 
 ### Removed
 

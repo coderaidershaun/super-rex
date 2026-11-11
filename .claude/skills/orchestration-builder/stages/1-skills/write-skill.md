@@ -12,7 +12,7 @@ Session agent writes new skill. Brief of each task names it by path. So it goes 
 1. Name = `Name` of row. Gap skill: `rex-gap-<language>` (`## Output` of `.claude/skills/orchestration-builder/stages/1-skills/stage.md`).
 2. Run `git -C "$HOME_DIR" check-ignore -q .rex/skills/<name>/SKILL.md`.
 3. IF it succeeds, THEN Git ignores new skill. `<root>` = `HOME_DIR`. No branch is necessary.
-4. ELSE new skill = change of repo. Builder makes values of table of step 7 first (`.claude/skills/orchestration-builder/run.md`). Then builder reads `.claude/skills/rex-deliver/SKILL.md`, then `.claude/skills/rex-deliver/start.md`, for that repo. `<root>` = `JOB_DIR`. This START comes before plan: exception to item 3 of `## Step 7` in `run.md`. Path of new skill starts at `JOB_DIR`, not at `HOME_DIR`.
+4. ELSE new skill = change of repo. Builder makes values of table of step 7 first (`.claude/skills/orchestration-builder/run.md`). Then builder reads `.claude/skills/rex-deliver/SKILL.md`, then `.claude/skills/rex-deliver/start.md`, for that repo. `<root>` = `JOB_DIR`. This START comes before plan: exception to item 3 of `## Step 7 — Run` of `.claude/skills/orchestration-builder/run.md`. Path of new skill starts at `JOB_DIR`, not at `HOME_DIR`.
 5. Start session agent: `subagent_type` = `general-purpose`, no model. Do not call `rex oms` for it.
 6. Give it no worktree isolation. Skill goes into `<root>`.
 7. Give it brief below. It starts with tag block. Replace each `<…>`. Each path is absolute.

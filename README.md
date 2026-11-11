@@ -4,7 +4,7 @@
 
 # SuperRex
 
-This is version 0.3.0 of SuperRex.
+This is version 0.4.0 of SuperRex.
 
 SuperRex is two things that work together inside your repo:
 
@@ -27,7 +27,7 @@ cd super-rex
 cargo install --path .
 ```
 
-The binary is `rex`. rex-skills installs a binary named `rex` too: if it is installed, run `cargo uninstall rex-skills` first, and make sure that the `rex` first on your `PATH` is this one (`rex --version` prints `rex 0.3.0`).
+The binary is `rex`. rex-skills installs a binary named `rex` too: if it is installed, run `cargo uninstall rex-skills` first, and make sure that the `rex` first on your `PATH` is this one (`rex --version` prints `rex 0.4.0`).
 
 | Need | Why |
 | --- | --- |
