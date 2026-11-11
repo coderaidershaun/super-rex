@@ -215,7 +215,9 @@ fn test_commands_show_only_their_failures() {
     // left as it is, and so is every other command and every input that is not a Bash call.
     for command in [
         "ls -la",
-        "pytest -q | tail -5",
+        "pytest -q | tail -5 -f",
+        "pytest -q | grep FAILED",
+        "pytest -q | tail -5 | head -1",
         "cd src && pytest -q",
         "cd src && pytest -q; rm x",
         "pytest -q && exit 0",
@@ -234,6 +236,22 @@ fn test_commands_show_only_their_failures() {
             "{command}"
         );
     }
+    // A test command piped into `tail` with only a line count gets the filter in
+    // place of `tail`, which could cut a failure off.
+    for command in [
+        "pytest -q | tail -5",
+        "pytest -q 2>&1 | tail -n 50",
+        "pytest -q | tail",
+    ] {
+        let printed = test_hook(&repo, &bash_event(command).to_string());
+        let output: Value = serde_json::from_str(&printed).expect("one JSON object");
+        assert_eq!(
+            output["hookSpecificOutput"]["updatedInput"]["command"],
+            json!(expected_command),
+            "{command}"
+        );
+    }
+
     let mut outside_sandbox = bash_event("pytest -q");
     outside_sandbox["tool_input"]["dangerouslyDisableSandbox"] = json!(true);
     assert_eq!(test_hook(&repo, &outside_sandbox.to_string()), "");

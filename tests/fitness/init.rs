@@ -137,8 +137,9 @@ fn test_hook_never_decides_a_permission() {
         "{test} --quiet",
         "{test} 2>&1",
         "RUST_LOG=debug {test}",
-        "cd src && {test}",
         "{test} | tail -5",
+        "cd src && {test}",
+        "{test} | grep x",
         "{test}; rm -rf x",
         "{test} && exit 0",
         "{test} > out.txt",
@@ -170,6 +171,6 @@ fn test_hook_never_decides_a_permission() {
         kept["command"] = Value::String(command.clone());
         assert_eq!(kept, tool_input, "every other field stays: {command}");
     }
-    // The first four forms of each test command are changed; the rest are not.
-    assert_eq!(changed, TEST_COMMANDS.len() * 4);
+    // The first five forms of each test command are changed; the rest are not.
+    assert_eq!(changed, TEST_COMMANDS.len() * 5);
 }

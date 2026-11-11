@@ -75,17 +75,50 @@ pub const OUTPUT_FLAGS: [&str; 17] = [
 const UNSAFE_TEXT: [&str; 11] = ["|", ">", "<", ";", "&", "`", "$(", "\n", "\r", "\\", "#"];
 
 /// `command` changed so that its output goes through `rex test-filter`, or
-/// `None` when it is not a test command or is not safe to change.
+/// `None` when it is not a test command or is not safe to change. A test
+/// command piped into `tail` alone has the `tail` replaced: the filter keeps
+/// every failure and summary line, where `tail` can cut a failure off.
 pub(super) fn filtered_command(command: &str) -> Option<String> {
+    let command = without_tail(command).unwrap_or(command);
     if !is_test_run(command) {
         return None;
     }
+    // The pipe below merges the error stream itself.
+    let command = command.trim_end();
+    let command = command.strip_suffix("2>&1").unwrap_or(command).trim_end();
     // No braces, quotes or subshell: Claude Code's check of a Bash command
     // refuses `{ ...; echo "..."; }` and `( ... )` as hard to read before it
     // runs. A plain pipe of two allowed commands passes it.
     Some(format!(
         "{PIPEFAIL_COMMAND}; {command} 2>&1 | {FILTER_COMMAND}"
     ))
+}
+
+/// The part of `command` before `| tail`, when `command` ends with exactly one
+/// pipe into `tail` with no option or only a line count (`-50`, `-n 50`,
+/// `-n50`, `--lines=50`). `None` for any other command.
+fn without_tail(command: &str) -> Option<&str> {
+    let (left, right) = command.split_once('|')?;
+    if right.starts_with('|') || right.contains('|') {
+        return None;
+    }
+    let mut words = right.split_whitespace();
+    if words.next()? != "tail" {
+        return None;
+    }
+    let options: Vec<&str> = words.collect();
+    let is_count = |text: &str| !text.is_empty() && text.bytes().all(|b| b.is_ascii_digit());
+    let is_line_count = match options.as_slice() {
+        [] => true,
+        ["-n", count] => is_count(count),
+        [option] => option
+            .strip_prefix("--lines=")
+            .or_else(|| option.strip_prefix("-n"))
+            .or_else(|| option.strip_prefix('-'))
+            .is_some_and(is_count),
+        _ => false,
+    };
+    is_line_count.then(|| left.trim_end())
 }
 
 /// True when `command` is one test command, alone. The command runs on the left
