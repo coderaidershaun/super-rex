@@ -22,6 +22,8 @@ Brief is for agents with no context. Write it in full sentences. It must hold:
 - [ ] What code does, in 3 lines. What task is. Owner's words, quoted.
 - [ ] Files in scope. Current friction.
 - [ ] Target tree + target interface. Seam placement. Dependency category.
+- [ ] Pattern, in one line. Growth + the one module that grows.
+- [ ] Priority line + Never lines, word for word.
 - [ ] Hard constraints, numbered. Include each rule from `rex-code-folder-management` that applies.
 - [ ] Parallel builders: each builder gets one file group. No file is in two groups. CAUTION: No builder runs `git stash`, `git checkout`, `git restore`, or `git reset`. These commands delete the work of other builders.
 - [ ] Hidden behavior, each item named, with rule: "move by cut and paste, never type again".
@@ -44,6 +46,7 @@ Put these checks in brief. Builder runs Proof after each stage.
 - [ ] Snapshots = byte-identical.
 - [ ] Code-only diff = closed list + `mod` lines + `use` lines. Nothing else.
 - [ ] Each flag comment is present, word for word.
+- [ ] IF priority line gives a number (latency, size, throughput), THEN measure it before + after. Result must not be worse.
 - [ ] AUDIT block (`.rex/skills/rex-code-folder-management/audit.md`) gives zero defects. No file > 500 lines.
 
 IF check fails, THEN stage is not done.

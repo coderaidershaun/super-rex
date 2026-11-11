@@ -14,7 +14,7 @@ when_to_use: >
 
 Find friction. Rank candidates. Design best candidate. Give brief to builder. Brief tells how to prove behavior did not change.
 This skill builds nothing. It edits no code.
-Aim: code that is easy to test, easy to navigate, easy to call.
+Aim: code that is easy to test, easy to navigate, easy to call, easy to change. Never at cost of a higher quality in priority line.
 
 Steps: 1 Explore, 2 Rank, 3 Grill self, 4 Brief. Then Report.
 
@@ -39,6 +39,10 @@ Use these exact terms in each suggestion.
 | Lens mode | Other skill loads this file to review only. |
 | Brief | Design for builder. Output of step 4. |
 | Builder | Caller, agent, or person that builds design from brief. |
+| Pattern | Named arrangement of modules. Example: pipeline, one owner of state, state machine. Full rules: `.rex/skills/rex-code-design-sketch/SKILL.md`. |
+| Growth | What there will be more of. Source: brackets in priority line, or next work. ELSE "none". |
+| Main path | Modules that first quality of priority line depends on. Latency = hot path. |
+| Bandage | Branch or module that only hides fault in other module. |
 
 Forbidden words: "component", "service", "API", "boundary". Say module, interface, seam.
 
@@ -76,6 +80,7 @@ Run alone from start to end. Invocation = permission.
 - [ ] No permission question. No "shall I proceed".
 - [ ] No choice question. Break ties yourself.
 - [ ] IF fact is unknown, THEN pick sane assumption, write it in report, continue.
+- [ ] Never assume growth or ranking. IF no source names growth, THEN growth = "none".
 - [ ] Findings, decisions, risks go in final report. Never in question.
 - [ ] IF user sends message during run, THEN message = hard constraint. Add it to brief. Continue. Do not ask user to confirm.
 - [ ] IF decision is hard, or tie, or load-bearing, THEN get second opinion.
