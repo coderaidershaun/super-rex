@@ -1,2 +1,8 @@
 /target
 .scratch
+# The store of `rex` stays local, and the skill library in `.rex/skills/` is
+# tracked source. The first line wins over an ignore of all of `.rex/` in a
+# checkout's own exclude file.
+!/.rex/
+/.rex/*
+!/.rex/skills/

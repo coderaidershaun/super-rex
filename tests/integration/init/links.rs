@@ -44,7 +44,7 @@ fn force_never_overwrites_the_file_a_symlink_points_at() {
         "the symlink must still be a symlink"
     );
     assert!(
-        stderr.contains("rex init: skipped ./.claude/skills/rex-skill-language/SKILL.md: it or a folder above it is a symbolic link"),
+        stderr.contains("rex init: skipped ./.rex/skills/rex-skill-language/SKILL.md: it or a folder above it is a symbolic link"),
         "got: {stderr}"
     );
     assert_eq!(
@@ -63,7 +63,7 @@ fn force_never_overwrites_the_file_a_symlink_points_at() {
     let agent = installed(&second, AGENT_MARKER);
     fs::create_dir_all(agent.parent().expect("agent has a folder")).expect("create agents folder");
     symlink(&dangling_target, &agent).expect("create dangling symlink");
-    let skills = second.path().join(".claude/skills");
+    let skills = second.path().join(".rex/skills");
     fs::create_dir_all(&skills).expect("create skills dir");
     let outside_dir = elsewhere.path().join("outside-dir");
     fs::create_dir_all(&outside_dir).expect("create outside dir");
@@ -82,7 +82,7 @@ fn force_never_overwrites_the_file_a_symlink_points_at() {
         0
     );
     assert!(
-        stderr.contains("rex init: skipped ./.claude/skills/rex-skill-language/SKILL.md: it or a folder above it is a symbolic link"),
+        stderr.contains("rex init: skipped ./.rex/skills/rex-skill-language/SKILL.md: it or a folder above it is a symbolic link"),
         "got: {stderr}"
     );
     assert!(

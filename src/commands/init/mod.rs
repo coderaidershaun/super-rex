@@ -27,7 +27,7 @@ use pre_commit::{ConfigWrite, HookInstall};
     after_help = "Run it from your own shell, in the root of the main checkout (the folder that holds .git). It never replaces a file or setting of yours; a kept value that weakens a safety setting is reported, and the run exits 1."
 )]
 pub struct InitOptions {
-    /// Overwrite installed skill and agent files that differ from this version of rex.
+    /// Overwrite installed skill, agent and library files that differ from this version of rex.
     #[arg(long = "force")]
     pub is_forced: bool,
 
@@ -46,13 +46,14 @@ pub struct InitOptions {
 ///
 /// Then, in this order: the safety settings and, unless `is_without_hooks`,
 /// the hooks in `.claude/settings.local.json`; the skills and agents in
-/// `.claude`; the rex sections of `AGENTS.md`; the block in `.gitignore`; the
-/// store in `.rex`; the pre-commit config, and its hooks when `pre-commit` is
+/// `.claude` and the skill library in `.rex/skills`; the rex sections of
+/// `AGENTS.md`; the block in `.gitignore`; the store in `.rex`; the
+/// pre-commit config, and its hooks when `pre-commit` is
 /// on PATH. The settings come first, so a step that stops the install never
 /// leaves the skills and agents in place without the sandbox.
 ///
 /// Nothing of the person's is replaced, and nothing is written through a
-/// symbolic link. `is_forced` overwrites only the skill and agent files that
+/// symbolic link. `is_forced` overwrites only the skill, agent and library files that
 /// differ from the bundle. A value of the person's that weakens a safety
 /// setting is kept, and it fails the run. `is_strict` writes the setting that
 /// keeps every command inside the sandbox.
@@ -87,7 +88,7 @@ fn install(
     let change = settings::ensure_settings(cwd, options, failures)?;
     report_file_change(settings::SETTINGS_FILENAME, change)?;
 
-    let counts = install_bundle(&cwd.join(".claude"), options.is_forced)?;
+    let counts = install_bundle(cwd, options.is_forced)?;
     print_line_to_stdout(&summary(counts))?;
 
     let mut to_commit = Vec::new();
@@ -172,12 +173,14 @@ fn commit_line(files: &[&str]) -> Option<String> {
     ))
 }
 
-/// Make the store and its library folder, or open the store when it is
+/// Make the store and its orchestrator folder, or open the store when it is
 /// already there. Opening a store of this version changes no file in it, so
 /// a second run leaves `.rex/` as it was.
 fn set_up_store(cwd: &Path) -> Result<FileChange, StoreError> {
     let paths = StorePaths::locate(cwd)?;
-    let was_there = paths.dir.exists();
+    // The skill library is installed into `.rex/` before this step, so the
+    // folder alone does not tell whether the store is new.
+    let was_there = paths.db.exists();
     drop(Store::create(&paths)?);
     if was_there {
         Ok(FileChange::Unchanged)

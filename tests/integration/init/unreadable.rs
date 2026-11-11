@@ -52,7 +52,7 @@ fn skills_force_skips_an_unreadable_installed_file_and_finishes_the_install() {
 
     assert!(
         printed.stderr.contains(
-            "rex init: skipped ./.claude/skills/rex-skill-language/SKILL.md: Permission denied"
+            "rex init: skipped ./.rex/skills/rex-skill-language/SKILL.md: Permission denied"
         ),
         "warning must name the skipped file, got: {}",
         printed.stderr

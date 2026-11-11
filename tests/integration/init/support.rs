@@ -7,12 +7,12 @@ use std::process::{Command, Output};
 
 use tempfile::{TempDir, tempdir};
 
-/// The skill file that every bundle ships. Tests name no other skill, because
-/// which skills ship can change.
-pub const SKILL_MARKER: &str = "skills/rex-skill-language/SKILL.md";
+/// The library skill file that every bundle ships, as a path from the repo
+/// root. Tests name no other skill, because which skills ship can change.
+pub const SKILL_MARKER: &str = ".rex/skills/rex-skill-language/SKILL.md";
 
 /// An agent of the grid, for a test that needs a second bundle file.
-pub const AGENT_MARKER: &str = "agents/model-medium-effort-medium.md";
+pub const AGENT_MARKER: &str = ".claude/agents/model-medium-effort-medium.md";
 
 /// The file the stand-in `pre-commit` writes its arguments to, in the folder
 /// of the stand-in tools.
@@ -196,5 +196,5 @@ pub fn bundle_file(bundle_path: &str) -> &'static [u8] {
 
 /// Where the bundle file at `bundle_path` is installed in `repo`.
 pub fn installed(repo: &Repo, bundle_path: &str) -> PathBuf {
-    repo.path().join(".claude").join(bundle_path)
+    repo.path().join(bundle_path)
 }

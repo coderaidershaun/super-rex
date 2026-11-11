@@ -2,7 +2,7 @@
 //! `.gitignore` each land once and are never replaced, and the person is
 //! told which project files to commit.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -35,10 +35,17 @@ fn fresh_install_writes_every_bundle_file() {
         "no warning when every tool is installed"
     );
 
+    let mut roots = BTreeSet::new();
     for (path, contents) in super_rex::bundle::walk() {
-        let installed = fs::read(repo.path().join(".claude").join(&path)).expect("read installed");
+        let installed = fs::read(repo.path().join(&path)).expect("read installed");
         assert_eq!(installed, contents, "{} was changed", path.display());
+        roots.extend(super_rex::bundle::root_of(&path));
     }
+    assert_eq!(
+        roots,
+        BTreeSet::from([".claude/agents", ".claude/skills", ".rex/skills"]),
+        "the skills, the agents and the library are each installed"
+    );
 
     let agents_md = fs::read_to_string(repo.path().join("AGENTS.md")).expect("read AGENTS.md");
     assert!(agents_md.starts_with("<!-- rex:codebase -->\n## Codebase map\n"));

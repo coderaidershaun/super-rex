@@ -1,5 +1,5 @@
-//! `rex skills list`: finds the skills that Claude Code loads in this repo, in
-//! the repo's skills folder and in the user's, and prints their headers.
+//! `rex skills list`: finds the skills of this repo, in the repo's skills folder,
+//! its skill library and the user's skills folder, and prints their headers.
 
 use std::collections::BTreeSet;
 use std::fs;
@@ -10,18 +10,18 @@ use serde::Serialize;
 
 use super::header::Header;
 use super::{SKILL_FILE, SkillsError};
+use crate::bundle::{LIBRARY_ROOT, SKILLS_ROOT};
 use crate::commands::stdout::{print_line_to_stdout, print_to_stdout};
 use crate::store::StorePaths;
 
-/// Where Claude Code looks for skills, below the repo and below the home folder.
-const SKILLS_FOLDER: &str = ".claude/skills";
-
-/// Where a skill was found. Claude Code runs the user's skill when both
-/// places hold one with the same name.
+/// Where a skill was found. Claude Code runs the user's skill when the repo's
+/// skills folder and the user's both hold one with the same name. Claude Code
+/// does not load the library; an agent reads a library skill by its path.
 #[derive(Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
-enum Source {
+pub(super) enum Source {
     Repo,
+    Library,
     User,
 }
 
@@ -29,50 +29,56 @@ impl Source {
     fn name(self) -> &'static str {
         match self {
             Source::Repo => "repo",
+            Source::Library => "library",
             Source::User => "user",
         }
     }
 }
 
-/// One folder that Claude Code loads skills from.
+/// One folder that holds skills.
 pub(super) struct Place {
-    source: Source,
+    pub(super) source: Source,
     pub(super) folder: PathBuf,
 }
 
-/// The skills folders of the repo that holds `cwd` and of the user, repo
-/// first. When both are the same folder, only the user's is given.
+/// The repo's skills folder and skill library, for the repo that holds
+/// `cwd`, then the user's skills folder. When the repo's skills folder is the
+/// user's, only the user's is given.
 ///
 /// # Errors
 /// [`SkillsError::Read`] if `cwd` or a `.git` entry above it cannot be read.
 pub(super) fn places(cwd: &Path) -> Result<Vec<Place>, SkillsError> {
     let repo = Place {
         source: Source::Repo,
-        folder: repo_root(cwd)?.join(SKILLS_FOLDER),
+        folder: repo_root(cwd, SKILLS_ROOT)?.join(SKILLS_ROOT),
+    };
+    let library = Place {
+        source: Source::Library,
+        folder: repo_root(cwd, LIBRARY_ROOT)?.join(LIBRARY_ROOT),
     };
     let home = std::env::var_os("HOME").filter(|home| !home.is_empty());
     let Some(home) = home else {
-        return Ok(vec![repo]);
+        return Ok(vec![repo, library]);
     };
     let user = Place {
         source: Source::User,
-        folder: PathBuf::from(home).join(SKILLS_FOLDER),
+        folder: PathBuf::from(home).join(SKILLS_ROOT),
     };
     let same_folder = match (repo.folder.canonicalize(), user.folder.canonicalize()) {
         (Ok(repo), Ok(user)) => repo == user,
         _ => false,
     };
     if same_folder {
-        Ok(vec![user])
+        Ok(vec![library, user])
     } else {
-        Ok(vec![repo, user])
+        Ok(vec![repo, library, user])
     }
 }
 
 /// The nearest folder at or above `cwd` that holds `.git`, else `cwd`. A
-/// linked worktree with no skills folder of its own gives its main checkout,
-/// the way Claude Code finds skills there.
-fn repo_root(cwd: &Path) -> Result<PathBuf, SkillsError> {
+/// linked worktree with no `skills_folder` of its own gives its main
+/// checkout, the way Claude Code finds skills there.
+fn repo_root(cwd: &Path, skills_folder: &str) -> Result<PathBuf, SkillsError> {
     let cwd = cwd.canonicalize().map_err(SkillsError::read(cwd))?;
     for folder in cwd.ancestors() {
         let dot_git = folder.join(".git");
@@ -86,7 +92,7 @@ fn repo_root(cwd: &Path) -> Result<PathBuf, SkillsError> {
                 });
             }
         };
-        if metadata.is_dir() || folder.join(SKILLS_FOLDER).exists() {
+        if metadata.is_dir() || folder.join(skills_folder).exists() {
             return Ok(folder.to_path_buf());
         }
         // A worktree whose main checkout cannot be found still lists its own
@@ -168,8 +174,9 @@ impl Listed {
     }
 }
 
-/// Print every skill of [`places`]: repo skills by name, then user skills by
-/// name, as `key=value` blocks or, with `json`, as one JSON line.
+/// Print every skill of [`places`]: repo skills by name, then library skills
+/// by name, then user skills by name, as `key=value` blocks or, with `json`,
+/// as one JSON line. Only a repo skill can be shadowed.
 ///
 /// # Errors
 /// [`SkillsError::Read`] if a place exists but cannot be read,
