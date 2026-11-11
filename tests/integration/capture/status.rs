@@ -1,5 +1,6 @@
 //! `rex status` run on a store that holds the recorded session: the job with its
-//! runs, no job open, a job that is not there, and an ID that is not an ID.
+//! runs, the warning near its spend limit, no job open, a job that is not there,
+//! and an ID that is not an ID.
 
 use std::fs::{self, File};
 use std::path::Path;
@@ -9,11 +10,7 @@ use assert_cmd::Command;
 use serde_json::Value;
 use super_rex::store::StoreError;
 
-#[allow(dead_code)]
-#[path = "../../contract/capture/fixture.rs"]
-mod fixture;
-
-use fixture::{
+use super::recorded::{
     AFTER_SESSION, BEFORE_SESSION, BG, BG_CHILD, Fixture, JOB_A, JOB_B, LEAD, PLAIN, REVIEWER,
     WORKER, event_of,
 };
@@ -143,8 +140,42 @@ fn status_prints_runs() {
         "no argument gives the open job"
     );
 
+    // From 80% of the limit, a warning line comes right after the header.
+    for (limit, warning) in [
+        (
+            "0.20",
+            "warning: spend is 93% of the $0.200 limit; at 100% new sub-agents are refused; \
+             raise it with rex limit k3x9p2m7qd --set 0.40",
+        ),
+        (
+            "0.10",
+            "warning: spend is 186% of the $0.100 limit; new sub-agents are refused; \
+             raise it with rex limit k3x9p2m7qd --set 0.20",
+        ),
+    ] {
+        Command::cargo_bin("rex")
+            .unwrap()
+            .args(["limit", JOB_A, "--set", limit])
+            .current_dir(&root)
+            .env_remove("REX_STORE")
+            .env_remove("CLAUDE_PROJECT_DIR")
+            .assert()
+            .success();
+        let warned = stdout_of(&root, &[JOB_A]);
+        let warned: Vec<&str> = warned.lines().collect();
+        assert_eq!(warned[0], lines[0]);
+        assert_eq!(warned[1], warning);
+        assert_eq!(warned[2..], lines[1..]);
+    }
+
     fixture.close_job(JOB_A, AFTER_SESSION);
     assert_eq!(stdout_of(&root, &[]), "no open job\n");
+    let closed = stdout_of(&root, &[JOB_A]);
+    assert_eq!(
+        closed.lines().nth(1),
+        Some("finished"),
+        "a closed job over its limit gets no warning, because the gate checks only open jobs"
+    );
 
     let unknown = rex_status(&root, &[JOB_B])
         .assert()

@@ -1,6 +1,7 @@
 //! A second writer that holds the store's write lock while an agent finishes: the
-//! hook's line still reaches the log, a read that cannot get the lock writes
-//! nothing, and the next read gives the full history.
+//! hook's line still reaches the log, the spend gate lets a new sub-agent start
+//! within its short wait, a read that cannot get the lock writes nothing, and the
+//! next read gives the full history.
 
 use std::fs;
 use std::sync::mpsc;
@@ -9,9 +10,10 @@ use std::time::{Duration, Instant};
 
 use assert_cmd::Command;
 use rusqlite::ErrorCode;
-use serde_json::Value;
+use serde_json::{Value, json};
 use super_rex::capture::{CaptureError, RunState};
-use super_rex::store::{Store, StoreError};
+use super_rex::commands::gate::SpendLimit;
+use super_rex::store::{JobId, Store, StoreError};
 
 use super::fixture::*;
 
@@ -22,6 +24,9 @@ fn held_writer_lock_loses_nothing() {
     let (last, early) = fixture.lines.split_last().unwrap();
     let (last, early) = (last.clone(), early.to_vec());
     fixture.append(&early);
+    // A limit of one billionth of a dollar, so only a failure can let the gate allow.
+    let job: JobId = JOB_A.parse().unwrap();
+    SpendLimit::set(&mut fixture.store, &job, "0.000000001".parse().unwrap()).unwrap();
 
     let (locked, is_locked) = mpsc::channel();
     let (release, is_released) = mpsc::channel::<()>();
@@ -57,6 +62,28 @@ fn held_writer_lock_loses_nothing() {
         started.elapsed() < Duration::from_secs(5),
         "the hook waited"
     );
+
+    // The gate needs the lock to take the new log lines in. It waits a moment, then
+    // lets the sub-agent start: silent, exit 0, and long before the hook's timeout.
+    let started = Instant::now();
+    Command::cargo_bin("rex")
+        .unwrap()
+        .arg("gate")
+        .current_dir(&fixture.store.paths().root)
+        .env_remove("REX_STORE")
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .write_stdin(
+            json!({ "session_id": SESSION, "hook_event_name": "PreToolUse", "tool_name": "Agent" })
+                .to_string(),
+        )
+        .assert()
+        .success()
+        .stdout("")
+        .stderr("");
+    assert!(
+        started.elapsed() < Duration::from_secs(5),
+        "the gate waited for the store's full 10 seconds"
+    );
     let log = fs::read_to_string(&fixture.store.paths().event_log).unwrap();
     let logged: Value = serde_json::from_str(log.lines().last().unwrap()).unwrap();
     assert_eq!(
@@ -82,7 +109,8 @@ fn held_writer_lock_loses_nothing() {
         .store
         .conn()
         .query_row(
-            "SELECT (SELECT COUNT(*) FROM sub_agent_run) + (SELECT COUNT(*) FROM meta)",
+            "SELECT (SELECT COUNT(*) FROM sub_agent_run)
+                  + (SELECT COUNT(*) FROM meta WHERE key LIKE 'intake.%')",
             [],
             |row| row.get(0),
         )

@@ -20,7 +20,7 @@ Same error, same reaction, everywhere in repo. Reaction is decided one time, in 
 
 Sister skills:
 
-- `rex-code-error-writing` — typed errors. Read first.
+- `rex-code-error-writing` — typed errors. Each code task gets it.
 - `rex-code-priorities` — Never lines. Each one = HALT.
 - `rex-code-tests-fitness-functions` — guard for each HALT that protects state.
 - `rex-code-validation-plan` — expected trace for each failure scenario.

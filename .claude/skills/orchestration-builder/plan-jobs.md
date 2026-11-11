@@ -12,9 +12,10 @@ For person, planning has two stages. Run 1 = plan job: it writes plan file. Pers
 - [ ] Skill list: row `Plan job` of assignment table (`.claude/skills/orchestration-builder/stages/1-skills/assign.md`), + skills that subject of plan needs.
 - [ ] Orchestrator skill is built for planning: `.claude/skills/orchestration-builder/stages/3-orchestration/plan-jobs.md`.
 - [ ] Before plan is final: adversarial review. Agent that wrote no part of plan reads `.rex/skills/rex-codex-adversarial-review/SKILL.md` IN FULL and obeys it.
-- [ ] Challenger = Codex. IF Codex is not available, THEN grid agent `model-high-effort-high` or above, by complexity. That skill gives choice.
+- [ ] Challenger = Codex. IF Codex is not available, THEN fallback grid agent from `rex oms`. That skill gives its ratings.
+- [ ] Brief of reviewer names its output file (`## Words` of `.claude/skills/orchestration-builder/stages/3-orchestration/briefs.md`). Give author path of that file for revision, never text of verdict table.
 - [ ] Author changes plan for each `upheld` finding. Each `contested` finding goes into `Open questions` of plan, with both positions.
-- [ ] One review for each plan. IF revision changes approach of plan, THEN review again. Max 2 reviews for each job.
+- [ ] One review for each plan. No second review, also IF revision changes approach of plan. Author puts each doubt that stays in `Open questions`.
 - [ ] Plan is final only after review. Plan writer writes first line of plan file in revision task: `Status: final. Reviewed by <challenger>.`
 - [ ] Brief of plan writer gives absolute path of plan file, plan file sections (below), rule of `Status` line, and `SKILL LIST` of decision block (names + `Path`).
 - [ ] Close job: `--status delivered`, no deliveries file. `--outcome` names plan file.

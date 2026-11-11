@@ -139,6 +139,46 @@ impl Fixture {
             .unwrap();
     }
 
+    /// The main session's cost of `job` in billionths of a dollar, with the
+    /// requests it leaves out for want of a price, and its input, cache write
+    /// and cache read tokens.
+    pub fn add_session_tokens(&self, job: &str, cost: (i64, i64), tokens: [i64; 3]) {
+        let (nanodollars, unpriced_requests) = cost;
+        let [input, cache_creation, cache_read] = tokens;
+        self.conn
+            .execute(
+                "INSERT INTO session_tokens (job_id, tokens_input, tokens_output,
+                                             tokens_cache_read, tokens_cache_creation,
+                                             cost_nanodollars, cost_unpriced_requests)
+                 VALUES (?1, ?2, 0, ?3, ?4, ?5, ?6)",
+                (
+                    job,
+                    input,
+                    cache_read,
+                    cache_creation,
+                    nanodollars,
+                    unpriced_requests,
+                ),
+            )
+            .unwrap();
+    }
+
+    /// One run of `job`, with the same figures as `add_session_tokens`.
+    pub fn add_run_tokens(&self, job: &str, agent: &str, nanodollars: i64, tokens: [i64; 3]) {
+        let [input, cache_creation, cache_read] = tokens;
+        self.conn
+            .execute(
+                "INSERT INTO sub_agent_run (job_id, session_id, agent_id, first_seen_at,
+                                            tokens_input, tokens_output, tokens_cache_read,
+                                            tokens_cache_creation, cost_nanodollars,
+                                            cost_unpriced_requests)
+                 VALUES (?1, 'session-' || ?1, ?2, '2026-11-10T10:00:00.000Z', ?3, 0, ?4, ?5,
+                         ?6, 0)",
+                (job, agent, input, cache_read, cache_creation, nanodollars),
+            )
+            .unwrap();
+    }
+
     pub fn feedback_rows(&self, id: &str) -> i64 {
         self.count(&format!(
             "SELECT count(*) FROM feedback WHERE job_id = '{id}'"

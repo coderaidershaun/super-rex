@@ -5,7 +5,9 @@ One home of which skills each task gets. Stage 1 starts skill list from it. Stag
 - [ ] Row fits task IF task does kind of work of that row. One task can fit many rows.
 - [ ] Skill that table does not give: one-line reason in `Why` of SKILL LIST, starts `Not in table:`.
 - [ ] Skill that table gives and job does not get: one `Left out` line below SKILL LIST.
-- [ ] Sibling file: row gives its path `.rex/skills/<skill>/<file>.md`. Write it `<skill>/<file>.md` in `Skills` of task, not in SKILL LIST. Its skill goes in SKILL LIST.
+- [ ] Sibling file: row gives its path `.rex/skills/<skill>/<file>.md`. Write it `<skill>/<file>.md` in `Skills` or `Open when` of task, not in SKILL LIST. Its skill goes in SKILL LIST.
+- [ ] Row that task does in each step: its skills go in `Skills`. Row that task reaches only in one case: `Open when`, with that case.
+- [ ] Sibling file after a case word (`Move:`, `Audit:`, `Real funds:`, `Plan for such feature:`): IF task is that case, THEN `Skills`. ELSE `Open when`, with that case.
 
 ## Each task that writes code
 

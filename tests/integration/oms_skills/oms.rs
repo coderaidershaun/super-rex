@@ -40,7 +40,7 @@ fn oms_prints_six_lines_for_the_specification_example() {
                     rules=T1,T2,E1,E2,E4,C1,C2,F1\n\
                     conflict=budget\n\
                     inputs=-LHHHHL\n\
-                    version=1\n";
+                    version=2\n";
     assert_eq!(stdout_of_success(&SPECIFICATION_EXAMPLE), expected);
 
     let mut arguments = SPECIFICATION_EXAMPLE.to_vec();
@@ -48,7 +48,7 @@ fn oms_prints_six_lines_for_the_specification_example() {
     let expected_json = concat!(
         r#"{"agent":"model-medium-effort-high","demand":"model-xhigh-effort-max","#,
         r#""rules":["T1","T2","E1","E2","E4","C1","C2","F1"],"conflict":["budget"],"#,
-        r#""inputs":"-LHHHHL","version":1}"#,
+        r#""inputs":"-LHHHHL","version":2}"#,
         "\n"
     );
     assert_eq!(stdout_of_success(&arguments), expected_json);

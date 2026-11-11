@@ -135,7 +135,7 @@ fn selection_invariants_hold_for_every_combination() {
         let code = inputs.code();
         let high_stakes = has_high_stakes(inputs);
 
-        // Version 1 supports all twenty pairs, so every pair of a known tier
+        // Version 2 supports all twenty pairs, so every pair of a known tier
         // and a known effort whose name reads back is in the supported table.
         assert!(
             tiers.contains(&agent.tier) && efforts.contains(&agent.effort),
@@ -208,28 +208,76 @@ fn selection_invariants_hold_for_every_combination() {
             );
         }
 
+        // Reliability and consequence weigh the same, except that only
+        // consequence opens the top tier. So the swap must give the same
+        // selection unless one side fired the rule that closes the top tier.
+        // Then only the tier between `high` and `xhigh`, and with it the
+        // budget cap on the tier, may differ.
         let swapped = Inputs {
             reliability: inputs.consequence,
             consequence: inputs.reliability,
             ..inputs
         };
         let swapped_selection = select(swapped);
-        assert_eq!(
-            (
-                &selection.agent,
-                &selection.demand,
-                &selection.rules,
-                &selection.conflict
-            ),
-            (
-                &swapped_selection.agent,
-                &swapped_selection.demand,
-                &swapped_selection.rules,
-                &swapped_selection.conflict
-            ),
-            "symmetry: {code} against {}",
-            swapped.code()
-        );
+        let fired_top_tier_rule =
+            |selection: &Selection| selection.rules.contains(&Rule::TierTopNeedsConsequence);
+        if fired_top_tier_rule(&selection) || fired_top_tier_rule(&swapped_selection) {
+            let without_top_tier = |selection: &Selection| {
+                let below_top = |agent: GridAgent| GridAgent {
+                    tier: agent.tier.min(Tier::High),
+                    ..agent
+                };
+                let rules: Vec<Rule> = selection
+                    .rules
+                    .iter()
+                    .copied()
+                    .filter(|rule| {
+                        !matches!(rule, Rule::TierTopNeedsConsequence | Rule::CapBudgetTier)
+                    })
+                    .collect();
+                (
+                    below_top(selection.agent),
+                    below_top(selection.demand),
+                    rules,
+                    selection.conflict.clone(),
+                )
+            };
+            assert_eq!(
+                without_top_tier(&selection),
+                without_top_tier(&swapped_selection),
+                "symmetry below the top tier: {code} against {}",
+                swapped.code()
+            );
+            let (with_rule, other) = if fired_top_tier_rule(&selection) {
+                (&selection, &swapped_selection)
+            } else {
+                (&swapped_selection, &selection)
+            };
+            assert!(
+                !fired_top_tier_rule(other)
+                    && with_rule.demand.tier == Tier::High
+                    && other.demand.tier == Tier::Xhigh,
+                "the top tier rule fires on one side only and moves the demand from xhigh to high: {code} against {}",
+                swapped.code()
+            );
+        } else {
+            assert_eq!(
+                (
+                    &selection.agent,
+                    &selection.demand,
+                    &selection.rules,
+                    &selection.conflict
+                ),
+                (
+                    &swapped_selection.agent,
+                    &swapped_selection.demand,
+                    &swapped_selection.rules,
+                    &swapped_selection.conflict
+                ),
+                "symmetry: {code} against {}",
+                swapped.code()
+            );
+        }
 
         for (name, field, neutral) in neutral_levels {
             let mut filled = inputs;
@@ -259,10 +307,10 @@ fn selection_invariants_hold_for_every_combination() {
                 "max effort is guarded: {code} gave {agent}"
             );
         }
-        if agent.tier == Tier::Xhigh {
+        if agent.tier == Tier::Xhigh || demand.tier == Tier::Xhigh {
             assert!(
-                inputs.intelligence == Some(Level::High) && high_stakes,
-                "the top tier is guarded: {code} gave {agent}"
+                inputs.intelligence == Some(Level::High) && inputs.consequence == Some(Level::High),
+                "the top tier needs high consequence: {code} gave {agent}, demand {demand}"
             );
         }
         if agent.tier == Tier::Low {
@@ -306,8 +354,8 @@ fn the_checksum_pins_the_function_at_its_version() {
     assert_eq!(
         (VERSION, hex.as_str()),
         (
-            1,
-            "baf26ba9c8d654b46318d8b6cc2e18b639e3bed245eafa9f0cd30f11e47a6c99"
+            2,
+            "783662252c3f2bc38e0799d903e403141869d27a366a413eeab49c53ca5f0f17"
         )
     );
 }

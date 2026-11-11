@@ -31,7 +31,12 @@ IF brief of builder job names your skill files, THEN read those. Do not use this
 3. Rulebook text is about Rust. IF language is not Rust, THEN apply intent of each rule in idiom of that language.
 4. Run `rex skills list` in `HOME_DIR`. It prints each skill: `description`, `when_to_use`, `source`, and `path` of its `SKILL.md`.
 5. Read `## By kind of work` in `assign.md` of step 2. That table is one home of which skills each kind of work gets.
-6. For each row that fits your work: read its skills + sibling files. Skill path = its `path=` line. Row gives path of each sibling file.
-7. IF language is not Rust, AND list has gap skill `rex-gap-<language>` of that language, THEN read it. `<language>` = `--only` name of that language in `rex codebase` (`rex codebase --help` lists them), for example `rex-gap-go`, `rex-gap-ts`.
-8. IF need fits no row, THEN read skill whose `description` + `when_to_use` fit need.
-9. Read sibling file when a `SKILL.md` that you read sends you there.
+6. For each row that fits each step of your work: read its skills + sibling files. Skill path = its `path=` line. Row gives path of each sibling file.
+7. For each row that fits only one case of your work: read its skills only IF work reaches that case. Same for sibling file after a case word: `Move:`, `Audit:`, `Real funds:`, `Plan for such feature:`, or other word + colon.
+8. IF language is not Rust, AND list has gap skill `rex-gap-<language>` of that language, THEN read it. `<language>` = `--only` name of that language in `rex codebase` (`rex codebase --help` lists them), for example `rex-gap-go`, `rex-gap-ts`.
+9. IF need fits no row, THEN read skill whose `description` + `when_to_use` fit need.
+10. Read sibling file when a `SKILL.md` that you read sends you there.
+
+Each skill that you read stays in context, and cache gives it again on each later call. Read few.
+
+- [ ] Skill name in a `SKILL.md` (example: list of sister skills) = map, not read order. Open that skill only IF a step above gives it.

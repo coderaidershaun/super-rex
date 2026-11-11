@@ -11,5 +11,7 @@ mod settings;
 mod store;
 mod support;
 #[cfg(unix)]
+mod test_output;
+#[cfg(unix)]
 mod unreadable;
 mod update;

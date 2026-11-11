@@ -153,17 +153,15 @@ fn scalar_lines(record: &JobRecord, shown: Shown, view: &JobRuns) -> Vec<String>
 
 fn role_line(role: &RoleRow) -> String {
     let skills = or_none(role.skills.as_deref());
-    let Some(agent) = &role.agent else {
-        return format!("role.{}=session skills={skills}", role.role);
-    };
     format!(
-        "role.{}={agent} inputs={} demand={} rules={} conflict={} oms_version={} skills={skills}",
+        "role.{}={} inputs={} demand={} rules={} conflict={} oms_version={} skills={skills}",
         role.role,
+        role.agent,
         role.inputs.code(),
-        or_none(role.demand.as_deref()),
-        or_none(role.rules.as_deref()),
-        or_none(role.conflict.as_deref()),
-        number_or_none(role.oms_version),
+        role.demand,
+        role.rules,
+        role.conflict,
+        role.oms_version,
     )
 }
 
@@ -285,7 +283,6 @@ fn json_role(role: &RoleRow) -> Value {
     let inputs = role.inputs;
     json!({
         "role": role.role,
-        "session": role.runs_as_session,
         "inputs": {
             "duration": level(inputs.duration),
             "budget": level(inputs.budget),
@@ -297,11 +294,11 @@ fn json_role(role: &RoleRow) -> Value {
         },
         "agent": role.agent,
         "demand": role.demand,
-        "rules": role.rules.as_deref().map(|rules| list(Some(rules))),
-        "conflict": role.conflict.as_deref().map(|conflict| match conflict {
+        "rules": list(Some(&role.rules)),
+        "conflict": match role.conflict.as_str() {
             "none" => json!([]),
-            _ => list(Some(conflict)),
-        }),
+            conflict => list(Some(conflict)),
+        },
         "oms_version": role.oms_version,
         "skills": list(role.skills.as_deref()),
     })

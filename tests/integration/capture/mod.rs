@@ -1,9 +1,15 @@
-//! Integration tests of the hook, the intake of hook events and `rex status`.
+//! Integration tests of the hook, the spend gate, the intake of hook events and `rex status`.
 
+mod gate;
 mod hook;
 mod main_transcript;
 mod status;
 mod transcript;
+
+/// The recorded session in a store, shared with the contract tests.
+#[allow(dead_code)]
+#[path = "../../contract/capture/fixture.rs"]
+mod recorded;
 
 use std::fs;
 use std::path::{Path, PathBuf};

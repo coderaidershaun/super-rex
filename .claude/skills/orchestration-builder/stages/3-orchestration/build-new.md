@@ -60,6 +60,7 @@ Methods combine. Parallel leads can each run sequential workers. Sequential stag
 **Load of each agent.**
 
 - [ ] One coherent primary job for each agent. Size it to capability of agent and difficulty of task.
+- [ ] Method obeys max agent count of job size (`## Step 3 — Roles` of `.claude/skills/orchestration-builder/stages/3-orchestration/stage.md`). Fewer, larger agents for code work.
 - [ ] Separate concerns that later pass can examine. Example: agent that built work gives it to fresh specialists for security, performance, edge cases.
 - [ ] Run parallel reviews only against stable result. Combine findings before fixes.
 - [ ] New agent for different responsibility. Same agent for clarifications + repairs while its context is useful.

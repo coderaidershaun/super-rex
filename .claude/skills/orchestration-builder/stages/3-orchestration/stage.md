@@ -6,7 +6,7 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 1. Reuse. IF orchestrator skill in recall output suits work breakdown, THEN reuse it, do steps 3 + 4, give output.
 2. ELSE select method: read `.claude/skills/orchestration-builder/stages/3-orchestration/build-new.md`.
 3. Define roles, tasks + skills of each role.
-4. For each role: rate inputs, run `rex oms`, read `demand` + `conflict`. OR give role session agent.
+4. For each role: rate inputs, run `rex oms`, read `demand` + `conflict`.
 5. New only: write orchestrator skill + lead skills (`build-new.md`). Run `rex skills check` on its folder.
 6. Give output. Builder records it with `rex job plan`.
 ```
@@ -17,6 +17,7 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 | `.claude/skills/orchestration-builder/stages/3-orchestration/plan-jobs.md` | Job = plan job. |
 | `.claude/skills/orchestration-builder/stages/3-orchestration/model-function.md` | You must know why `rex oms` gave its output. |
 | `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md` | Orchestration has a lead. |
+| `.claude/skills/orchestration-builder/stages/3-orchestration/role-skills.md` | Step 3. Skills + Open when of each role. |
 
 ## Words
 
@@ -32,7 +33,6 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 - Work breakdown: Tasks of job, their dependencies, and groups that run in parallel. Output of stage 2.
 - Role: Named part in orchestrator skill. Example: `engineer`.
 - Grid agent: One of 20 agent definitions in `.claude/agents/`. Name: `model-<tier>-effort-<level>`. It has no Skill tool.
-- Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
 - `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`, skill library `.rex/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
 - Role table: For one job: tasks, skills, inputs, and agent of each role. Output of stage 3.
 - Orchestrator skill: Reusable file. It gives roles, order, skills of each role, and checks. Not about one task.
@@ -52,6 +52,7 @@ Reuse before you build.
 2. `orchestrator` line: orchestrator skill that similar jobs used, with results of those jobs. `unused` line: orchestrator skill whose newest version never ran.
 3. Read `SKILL.md` of each candidate IN FULL. Its path is in `path` of its line.
 4. IF one suits work breakdown, THEN reuse it. You decide: weigh results of its jobs against preferences.
+   IF two candidates suit work AND have equal results, THEN prefer lower `cost_per_job_usd` of its `orchestrator` line.
 5. IF none suits, THEN build new one: steps 2, 3, 5. In both cases, do steps 3 + 4 for each role.
 
 - [ ] Reused file gives roles + skills of each role. Add skills from skill list that role uses.
@@ -66,12 +67,20 @@ For each role, define:
 - [ ] Name: lower-case letters, digits, and `-` only. Examples: `engineer`, `reviewer`, `verifier`.
 - [ ] Job: one primary job.
 - [ ] Tasks: tasks of work breakdown that role does. Each task gets one role that does it. Lead: tasks that it leads. Role that only checks work of other roles (example: `reviewer`, `verifier`): `—`.
-- [ ] Skills of role that does tasks: union of Skills of its tasks.
-- [ ] Skills of lead, and of role with `—`: skills it reads for its own job, from skill list: rows of assignment table that fit its job + other skills for its job. Gap skill of each language that role writes.
-- [ ] Skills that orchestrator skill gives a role: add them to Skills of each task of that role, and to skill list with their `Path` (`path=` line of `rex skills list`).
-- [ ] Reuse: roles come from reused file. Give tasks + skills the same way.
+- [ ] Skills + Open when of each role: obey `.claude/skills/orchestration-builder/stages/3-orchestration/role-skills.md`.
 
-Skills are files. Agent first reads, IN FULL, `SKILL.md` of each skill of its task and each sibling file that its task row names (lead, or role with `—`: skills of its role). It also reads a sibling file when a `SKILL.md` sends it there. Its brief gives absolute paths. Grid agent has no Skill tool: only skills that its brief names reach it.
+Agent count = each sub-agent of job: decision agent, challenger, leads, workers, reviewers. Role that runs N times counts N.
+
+| Size | Max agents |
+| --- | --- |
+| small | 5 |
+| medium | 6 |
+| large | 10 |
+
+- [ ] IF count > max, THEN merge tasks into fewer roles. Each sub-agent builds its context from nothing: cache write = most of its cost.
+- [ ] Small plan job fits: decision agent, challenger, plan writer, `plan-reviewer`, fallback reviewer = 5.
+- [ ] Spend limit of job = (max agents + 2) x dollars for each agent of budget: `low` $1.50, `medium` $4.00, `high` $8.00. The 2 = main session. No stated budget = `medium`.
+- [ ] Code of `rex limit` (`src/commands/gate/limit.rs`) holds same caps + dollars. A test compares them. Change both together.
 
 ## Step 4 — Model for each role
 
@@ -95,7 +104,7 @@ Seven inputs. Each value = `low`, `medium`, `high`, or `none`.
 Who selects agent:
 
 - [ ] Job with plan: `rex job plan` selects agent of each role from same inputs. Builder starts each role with agent that `rex job plan` printed.
-- [ ] Run `rex oms` for each role in this step. Read `demand` + `conflict` before you fix roles: job gets one plan only.
+- [ ] Run `rex oms` for each role here. Read `demand` + `conflict` before you fix roles: job gets one plan only.
 
 Run:
 
@@ -116,17 +125,19 @@ Output = six `key=value` lines, in fixed order. Write `agent` in role table.
 | `version` | Function version, whole number. |
 
 - [ ] Orchestrator = session. It runs at model + effort of session. Run no `rex oms` for it.
-- [ ] Role that must run as session does: run no `rex oms`. Write `session agent` in `Agent` column, and `—` in each input column. In plan file, it is `"session": true`.
+- [ ] Each other role gets grid agent from `rex oms`. No role gets fixed agent.
+- [ ] Tier `xhigh` costs most. `rex oms` gives it only IF consequence = `high`. Rate consequence `high` only IF mistake of role can do damage that revert does not undo.
 
 ## Output
 
-Paired challenger checks both first (`.claude/skills/orchestration-builder/stages/challenge/stage.md`). Then builder records both with `rex job plan`.
+Paired challenger checks both first (`.claude/skills/orchestration-builder/stages/challenge/stage.md`). Then builder records both: `rex job plan`.
 
 ```
 ORCHESTRATOR: <name> | <path> | new OR reused
+AGENTS: <count> of max <max>
 ROLE TABLE:
-| Role | Tasks | Skills | Intelligence | Reliability | Consequence | Verification | Agent |
-| <role> | <task IDs> OR — | <skill names> | <v> | <v> | <v> | <v> | <grid agent> OR session agent |
+| Role | Tasks | Skills | Open when | Intelligence | Reliability | Consequence | Verification | Agent |
+| <role> | <task IDs> OR — | <skill names> | <skill (case)> OR — | <v> | <v> | <v> | <v> | <grid agent> |
 ```
 
-- [ ] Give work breakdown again, with Skills as step 3 changed them.
+- [ ] Give work breakdown again, with Skills + Open when as step 3 changed them.

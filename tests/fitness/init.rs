@@ -1,7 +1,10 @@
 //! Fitness tests of `rex init`: what the binary embeds and so installs into
-//! every repo.
+//! every repo, and what the hooks it installs may answer.
 
 use std::path::{Component, Path, PathBuf};
+
+use serde_json::{Value, json};
+use super_rex::commands::test_output::{OUTPUT_FLAGS, TEST_COMMANDS, hook_output};
 
 /// Each model tier of the grid, with the Claude Code model alias it runs.
 const MODEL_TIERS: [(&str, &str); 4] = [
@@ -121,4 +124,52 @@ fn bundle_contains_only_skill_and_agent_paths() {
             path.display()
         );
     }
+}
+
+// This test must never be deleted. The test hook runs before every shell
+// command in every repo. A permission decision in its answer would skip or
+// change the person's permission prompt for that command, and nothing would
+// show that it had.
+#[test]
+fn test_hook_never_decides_a_permission() {
+    let forms = [
+        "{test}",
+        "{test} --quiet",
+        "{test} 2>&1",
+        "RUST_LOG=debug {test}",
+        "cd src && {test}",
+        "{test} | tail -5",
+        "{test}; rm -rf x",
+        "{test} && exit 0",
+        "{test} > out.txt",
+        "echo $({test})",
+        "{test} \\",
+    ];
+    let mut commands: Vec<String> = TEST_COMMANDS
+        .iter()
+        .flat_map(|test| forms.iter().map(move |form| form.replace("{test}", test)))
+        .collect();
+    // A run that asks for its output keeps it, so it is never changed.
+    for test in TEST_COMMANDS {
+        commands.extend(OUTPUT_FLAGS.iter().map(|flag| format!("{test} {flag}")));
+    }
+    commands.extend(["ls -la", "git status", "rm -rf build", ""].map(String::from));
+
+    let mut changed = 0;
+    for command in &commands {
+        let tool_input = json!({ "command": command, "description": "d", "timeout": 5, "run_in_background": true });
+        let event = json!({ "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": tool_input });
+        let Some(output) = hook_output(&event) else {
+            continue;
+        };
+        changed += 1;
+        let answer = &output["hookSpecificOutput"];
+        let keys: Vec<&String> = answer.as_object().expect("an object").keys().collect();
+        assert_eq!(keys, ["hookEventName", "updatedInput"], "{command}");
+        let mut kept = answer["updatedInput"].clone();
+        kept["command"] = Value::String(command.clone());
+        assert_eq!(kept, tool_input, "every other field stays: {command}");
+    }
+    // The first four forms of each test command are changed; the rest are not.
+    assert_eq!(changed, TEST_COMMANDS.len() * 4);
 }

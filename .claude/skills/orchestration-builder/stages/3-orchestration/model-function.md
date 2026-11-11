@@ -4,15 +4,16 @@ Step 4 of `.claude/skills/orchestration-builder/stages/3-orchestration/stage.md`
 
 Grid: tiers `low`, `medium`, `high`, `xhigh`. Levels `low`, `medium`, `high`, `xhigh`, `max`. Grid agent runs at model + effort of its definition.
 
-How function acts (function version 1). Stakes = higher of reliability and consequence.
+How function acts (function version 2). Stakes = higher of reliability and consequence.
 
 - [ ] Tier starts at intelligence. Stakes `high` adds one step.
+- [ ] Tier `xhigh` only IF consequence = `high`. ELSE tier stops at `high` (rule `T3`). Reason: `xhigh` costs most. Use it only where mistake can do damage that revert does not undo.
 - [ ] Effort starts at stakes. Verification `low` adds one level, `high` removes one. Autonomy `high` adds one, `low` removes one.
 - [ ] Budget caps tier + effort. Duration caps effort only. Caps never raise anything.
 - [ ] Stakes `high`: result is never below `model-medium-effort-high`. `conflict` line names cap that floor overrode.
 - [ ] All inputs `none` gives `model-medium-effort-medium`.
 
-IF `version` line of output is not `1`, THEN trust output, not these lines.
+IF `version` line of output is not `2`, THEN trust output, not these lines.
 
 Example:
 
@@ -24,5 +25,5 @@ demand=model-xhigh-effort-max
 rules=T1,T2,E1,E2,E4,C1,C2,F1
 conflict=budget
 inputs=-LHHHHL
-version=1
+version=2
 ```

@@ -11,8 +11,9 @@ use super::InitOptions;
 use super::error::InitError;
 use super::file_change::FileChange;
 use super::print_line_to_stderr;
-use crate::capture::{HOOK_COMMAND, hook_registration};
+use crate::capture::{REX_COMMANDS, hook_registration};
 use crate::commands::links::is_symlink;
+use crate::commands::test_output::FILTER_COMMAND;
 use crate::error::RexError;
 
 /// The settings file, as every message names it.
@@ -85,6 +86,12 @@ fn settings_to_add(cwd: &Path, options: InitOptions) -> Result<Map<String, Value
     let mut settings = safety_settings(parent.as_deref(), options.is_strict);
     if !options.is_without_hooks {
         settings.insert("hooks".into(), hook_registration());
+        // The test hook pipes a test command into the filter. Claude Code checks
+        // each part of a piped command against the allow rules, so without
+        // this rule each test run would ask the person again.
+        if let Some(Value::Object(permissions)) = settings.get_mut("permissions") {
+            permissions.insert("allow".into(), json!([format!("Bash({FILTER_COMMAND})")]));
+        }
     }
     Ok(settings)
 }
@@ -229,9 +236,13 @@ impl Merge {
         match (found, needed) {
             (Value::Object(found), Value::Object(needed)) => self.object(found, needed, &key),
             (Value::Array(found), Value::Array(needed)) if is_hook_event(&key) => {
-                if !found.iter().any(holds_rex_hook) {
-                    found.extend(needed.iter().cloned());
-                    self.is_changed = true;
+                for group in needed {
+                    let is_present = rex_commands_of(group)
+                        .any(|command| found.iter().any(|kept| runs_command(kept, command)));
+                    if !is_present {
+                        found.push(group.clone());
+                        self.is_changed = true;
+                    }
                 }
             }
             (Value::Array(found), Value::Array(needed)) => {
@@ -258,20 +269,33 @@ fn is_hook_event(key: &str) -> bool {
         .is_some_and(|event| !event.contains('.'))
 }
 
-/// True when a hook in `group` runs rex's hook command, whatever else the
-/// person changed in it.
-fn holds_rex_hook(group: &Value) -> bool {
+/// The command of each hook in `group`.
+fn commands_of(group: &Value) -> impl Iterator<Item = &str> {
     group
         .get("hooks")
         .and_then(Value::as_array)
-        .is_some_and(|hooks| {
-            hooks
-                .iter()
-                .any(|hook| hook.get("command").and_then(Value::as_str) == Some(HOOK_COMMAND))
-        })
+        .into_iter()
+        .flatten()
+        .filter_map(|hook| hook.get("command").and_then(Value::as_str))
 }
 
-/// True when a hook of any event in `settings` runs rex's hook command.
+/// Each of rex's hook commands that `group` runs.
+fn rex_commands_of(group: &Value) -> impl Iterator<Item = &str> {
+    commands_of(group).filter(|command| REX_COMMANDS.contains(command))
+}
+
+/// True when a hook in `group` runs `command`, whatever else the person
+/// changed in it, so an entry of rex's that they changed is not added again.
+fn runs_command(group: &Value, command: &str) -> bool {
+    commands_of(group).any(|found| found == command)
+}
+
+/// True when a hook in `group` runs one of rex's hook commands.
+fn holds_rex_hook(group: &Value) -> bool {
+    rex_commands_of(group).next().is_some()
+}
+
+/// True when a hook of any event in `settings` runs one of rex's hook commands.
 fn holds_rex_hooks(settings: &Map<String, Value>) -> bool {
     settings
         .get("hooks")
@@ -286,10 +310,10 @@ fn holds_rex_hooks(settings: &Map<String, Value>) -> bool {
 }
 
 /// Leaving the hooks out removes none that an earlier run wrote, because the
-/// file is the person's, so they are told how to turn telemetry off.
+/// file is the person's, so they are told how to turn each hook off.
 fn warn_hooks_left_in() {
     print_line_to_stderr(&format!(
-        "rex init: warning: hooks left out, but hook entries from an earlier run are still in {SETTINGS_FILENAME}. Remove the entries that run rex hook to turn telemetry off."
+        "rex init: warning: hooks left out, but hook entries from an earlier run are still in {SETTINGS_FILENAME}. Remove the entries that run rex hook, rex gate or rex test-hook to turn telemetry, the spend gate and the test output filter off."
     ));
 }
 

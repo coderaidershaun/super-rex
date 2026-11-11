@@ -20,6 +20,11 @@ const SKILL_ROOTS: [(&str, &str); 3] = [
     (".rex", "orchestrators"),
 ];
 
+/// The folders that hold Git worktrees, as the two last parts of their paths: the
+/// job and unit worktrees of rex, and the worktrees that Claude Code makes. A skill
+/// file below one is the work of a job, which briefs never send an agent to read.
+const WORKTREE_ROOTS: [(&str, &str); 2] = [(".rex", "worktrees"), (".claude", "worktrees")];
+
 /// What one transcript says about its run.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TranscriptFacts {
@@ -252,14 +257,21 @@ fn piece_count(input: &Value, key: &str) -> u64 {
 /// The skill a read file belongs to. A `SKILL.md` belongs to the skill that the folder
 /// holding it names. Any other Markdown file belongs to `<name>` when it is at or below
 /// `<root>/<name>/` for one of [`SKILL_ROOTS`], and to no skill when it is anywhere else.
+/// A file below one of [`WORKTREE_ROOTS`] belongs to no skill.
 fn skill_of_path(path: &str) -> Option<&str> {
+    let parts: Vec<&str> = path.split('/').collect();
+    let is_in_worktree = parts
+        .windows(2)
+        .any(|window| WORKTREE_ROOTS.contains(&(window[0], window[1])));
+    if is_in_worktree {
+        return None;
+    }
     if let Some(folder) = path.strip_suffix("/SKILL.md") {
         return folder.rsplit('/').next().filter(|name| !name.is_empty());
     }
     if !path.ends_with(".md") {
         return None;
     }
-    let parts: Vec<&str> = path.split('/').collect();
     parts.windows(4).rev().find_map(|window| match *window {
         [parent, root, name, _]
             if SKILL_ROOTS.contains(&(parent, root))
@@ -290,5 +302,40 @@ pub(super) fn content_text(content: &Value) -> Option<String> {
             (!texts.is_empty()).then(|| texts.join("\n"))
         }
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::skill_of_path;
+
+    #[test]
+    fn a_skill_file_below_a_worktree_is_no_skill_read() {
+        let home = "/home/me/repo";
+        assert_eq!(
+            skill_of_path(&format!("{home}/.rex/skills/rex-code-tdd/mocking.md")),
+            Some("rex-code-tdd")
+        );
+        assert_eq!(
+            skill_of_path(&format!("{home}/.claude/skills/rex-deliver/SKILL.md")),
+            Some("rex-deliver")
+        );
+        for worktree in [
+            ".rex/worktrees/0g6blgc4oo/root",
+            ".claude/worktrees/agent-a1b8",
+        ] {
+            assert_eq!(
+                skill_of_path(&format!(
+                    "{home}/{worktree}/.claude/skills/rex-deliver/SKILL.md"
+                )),
+                None
+            );
+            assert_eq!(
+                skill_of_path(&format!(
+                    "{home}/{worktree}/.rex/skills/rex-code-tdd/mocking.md"
+                )),
+                None
+            );
+        }
     }
 }

@@ -1,7 +1,8 @@
 //! A job's life through the `rex` binary: opened, planned, closed and shown,
 //! with the hooks absent, from the main checkout and from worktrees, the
-//! delivery outcomes `merged`, `blocked` and `kept-local`, and the skills a
-//! role was assigned and never opened.
+//! delivery outcomes `merged`, `blocked` and `kept-local`, the skills a role
+//! was assigned and never opened, the skills a run opened beyond them, and the
+//! runs whose final message is long.
 
 use std::fs;
 
@@ -14,16 +15,14 @@ use super::fixture::{
     rex, show_json, stderr_of, stdout_of, value,
 };
 
-/// The plan of the fixture, with skills for each role. The session role's
-/// skills are never checked, because the session's reads are not recorded.
+/// The plan of the fixture, with skills for each role.
 const ROLE_SKILLS_PLAN: &str = r#"{
   "orchestrator": "pipeline",
   "skills": ["rex-code-tdd", "rex-code-philosophy", "rex-code-tdd"],
   "breakdown": "1. Reject zero.\n2. Test it.",
   "roles": [
     {"role": "engineer", "intelligence": "high", "reliability": "high", "consequence": "high", "verification": "low", "skills": ["rex-code-tdd", "rex-code-philosophy"]},
-    {"role": "reviewer", "intelligence": "medium", "reliability": "medium", "consequence": "medium", "verification": "high", "skills": ["rex-code-philosophy"]},
-    {"role": "skill-writer", "session": true, "skills": ["rex-code-tdd"]}
+    {"role": "reviewer", "intelligence": "medium", "reliability": "medium", "consequence": "medium", "verification": "high", "skills": ["rex-code-philosophy"]}
   ]
 }"#;
 
@@ -77,7 +76,7 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
         format!(
             "job={job}\nstatus=planned\norchestrator=pipeline\norchestrator_version=1\n\
              role.engineer=model-medium-effort-high\nconflict.engineer=budget\n\
-             role.reviewer=model-medium-effort-medium\nrole.skill-writer=session\n"
+             role.reviewer=model-medium-effort-medium\n"
         )
     );
 
@@ -128,6 +127,16 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
         "error: role reviewer in plan file - names skill rex-code-philosophy twice; give each \
          skill once\n"
     );
+    // A role always gets a grid agent: the plan file has no form for a role
+    // that the session runs itself.
+    let session_role = refused(
+        r#"{"role": "reviewer","#,
+        r#"{"role": "reviewer", "session": true,"#,
+    );
+    assert!(
+        session_role.contains("unknown field `session`"),
+        "{session_role}"
+    );
     let usage = stderr_of(
         rex(
             &main,
@@ -141,18 +150,40 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
     );
     assert!(usage.starts_with("error: --lang none"), "{usage}");
 
-    // One engineer run that opened one of its two skills, and no reviewer run.
-    // With no transcript the run has no tokens, so the record is incomplete.
+    // One engineer run that opened one of its two skills and one skill it was
+    // not given, and no reviewer run. With no transcript the run has no
+    // tokens, so the record is incomplete. Its final message has 2,001
+    // characters in 4,002 bytes, so it is long; a second engineer run's
+    // message of 2,000 characters is not. A decision-maker run, which the
+    // plan does not hold, read the builder's text and the orchestrator that
+    // the builder gives it, so it opened no skill beyond its brief.
+    let extra = main.join(".rex/skills/rex-code-smells");
+    fs::create_dir_all(&extra).unwrap();
+    fs::write(
+        extra.join("SKILL.md"),
+        "---\nname: rex-code-smells\n---\n\nFind the smells in five words.\n",
+    )
+    .unwrap();
     store
         .write(|tx| {
             tx.execute(
                 "INSERT INTO sub_agent_run (job_id, session_id, agent_id, depth, role,
-                                            skills_opened, first_seen_at, started_at, stopped_at)
-                 VALUES (?1, ?2, 'a1b8', 1, 'engineer', 'rex-code-tdd',
+                                            skills_opened, final_message, first_seen_at,
+                                            started_at, stopped_at)
+                 VALUES (?1, ?2, 'a1b8', 1, 'engineer', 'rex-code-smells,rex-code-tdd', ?3,
+                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                        (?1, ?2, 'a1b9', 1, 'engineer', 'rex-code-tdd', ?4,
+                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                         strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                        (?1, ?2, 'a1c0', 1, 'decision-maker', 'orchestration-builder,pipeline',
+                         NULL,
                          strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                          strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                          strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
-                [&job, SESSION],
+                [&job, SESSION, &"é".repeat(2001), &"e".repeat(2000)],
             )
             .map_err(StoreError::from)
         })
@@ -182,7 +213,9 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
         format!(
             "job={job}\nstatus=delivered\ndeliveries=1\ndelivery.1=merged {}\n\
              missed_skills=1\nmissed_skill.1=engineer rex-code-philosophy\n\
-             role_not_run.1=reviewer\nmissed_skills_incomplete=yes\n",
+             role_not_run.1=reviewer\nextra_skills=1\n\
+             extra_skill.1=engineer rex-code-smells skill_md_words=10\nskills_incomplete=yes\n\
+             long_messages=1\nlong_message.1=engineer a1b8 chars=2001\n",
             main.display()
         )
     );
@@ -219,20 +252,25 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
              tokens_cache_write=none\ntokens_cache_read=none\ntokens_output=none\n\
              tokens_cache_hit=none\ncost_usd=none\ncost_unpriced_requests=none\ntokens_provisional=no\nincomplete=yes\noutcome=Zero is rejected\n\
              role.engineer=model-medium-effort-high inputs=-LHHHHL demand=model-xhigh-effort-max \
-             rules=T1,T2,E1,E2,E4,C1,C2,F1 conflict=budget oms_version=1 \
+             rules=T1,T2,E1,E2,E4,C1,C2,F1 conflict=budget oms_version=2 \
              skills=rex-code-tdd,rex-code-philosophy\n\
              role.reviewer=model-medium-effort-medium inputs=-LMHMMH \
-             demand=model-medium-effort-medium rules=T1,E1,E3,E4 conflict=none oms_version=1 \
+             demand=model-medium-effort-medium rules=T1,E1,E3,E4 conflict=none oms_version=2 \
              skills=rex-code-philosophy\n\
-             role.skill-writer=session skills=rex-code-tdd\n\
              delivery.1=merged branch=agent-a1b8 pr=none merge_agreed=yes merge_commit={COMMIT} \
              repo={}\n\
              session input=none cache_write=none cache_read=none output=none cache_hit=none \
              cost_usd=none unpriced_requests=none provisional=no\n\
              run.a1b8=finished parent=main role=engineer agent=none ran=none/none \
-             skills=rex-code-tdd input=none cache_write=none cache_read=none output=none \
+             skills=rex-code-smells,rex-code-tdd input=none cache_write=none cache_read=none output=none \
              cache_hit=none cost_usd=none \
              unpriced_requests=none provisional=no\n\
+             run.a1b9=finished parent=main role=engineer agent=none ran=none/none \
+             skills=rex-code-tdd input=none cache_write=none cache_read=none output=none \
+             cache_hit=none cost_usd=none unpriced_requests=none provisional=no\n\
+             run.a1c0=finished parent=main role=decision-maker agent=none ran=none/none \
+             skills=orchestration-builder,pipeline input=none cache_write=none cache_read=none \
+             output=none cache_hit=none cost_usd=none unpriced_requests=none provisional=no\n\
              request:\n  Reject a quantity of zero.\nbreakdown:\n  1. Reject zero.\n  2. Test it.\n\
              experience_recalled:\n  {recalled}\n",
             main.display()
@@ -260,7 +298,10 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
         json!(["rex-code-tdd", "rex-code-philosophy"])
     );
     assert_eq!(record["deliveries"][0]["merge_agreed"], true);
-    assert_eq!(record["runs"][0]["skills_opened"], json!(["rex-code-tdd"]));
+    assert_eq!(
+        record["runs"][0]["skills_opened"],
+        json!(["rex-code-smells", "rex-code-tdd"])
+    );
     assert_eq!(record["job"]["experience_recalled"], recalled.as_str());
 
     // The --json form of create, plan and close, on a second job.
@@ -299,7 +340,6 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
     );
     let role_keys = [
         "role",
-        "session",
         "agent",
         "demand",
         "rules",
@@ -308,7 +348,6 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
     ];
     assert_eq!(keys(&planned["roles"][0]), role_keys);
     assert_eq!(planned["roles"][0]["conflict"], json!([]));
-    assert_eq!(planned["roles"][2]["agent"], Value::Null);
     let deliveries =
         format!(r#"[{{"repo": ".", "merge_commit": "{COMMIT}", "outcome": "merged"}}]"#);
     let closed = stdout_of(
@@ -339,7 +378,9 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
             "deliveries",
             "missed_skills",
             "roles_not_run",
-            "missed_skills_incomplete"
+            "extra_skills",
+            "skills_incomplete",
+            "long_messages"
         ]
     );
     assert_eq!(
@@ -349,7 +390,9 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
     // No run at all: each role is named once, and no skill is listed.
     assert_eq!(closed["missed_skills"], json!([]));
     assert_eq!(closed["roles_not_run"], json!(["engineer", "reviewer"]));
-    assert_eq!(closed["missed_skills_incomplete"], false);
+    assert_eq!(closed["extra_skills"], json!([]));
+    assert_eq!(closed["skills_incomplete"], false);
+    assert_eq!(closed["long_messages"], json!([]));
 }
 
 /// The keys of a JSON object, in the order they were printed.

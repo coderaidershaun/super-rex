@@ -102,8 +102,7 @@ fn plan_records_what_oms_returns() {
     let plan = r#"{"orchestrator": "pipeline", "skills": [], "breakdown": "Build it.", "roles": [
         {"role": "architect", "intelligence": "high", "reliability": "high", "consequence": "high", "verification": "high"},
         {"role": "engineer", "intelligence": "medium", "reliability": "none", "consequence": "low", "verification": "low"},
-        {"role": "scout", "intelligence": "none", "reliability": "none", "consequence": "none", "verification": "none"},
-        {"role": "writer", "session": true}]}"#;
+        {"role": "scout", "intelligence": "none", "reliability": "none", "consequence": "none", "verification": "none"}]}"#;
     rex(&repo, &["job", "plan", job, "--plan-file", "-"], plan);
 
     let store = Store::open(&paths).unwrap();
@@ -111,7 +110,7 @@ fn plan_records_what_oms_returns() {
         .conn()
         .prepare("SELECT * FROM role WHERE job_id = ?1 ORDER BY rowid")
         .unwrap();
-    let rows: Vec<(String, bool, Inputs, Record)> = statement
+    let rows: Vec<(String, Inputs, Record)> = statement
         .query_map([job], |row| {
             let inputs = Inputs {
                 duration: level(row, "in_duration"),
@@ -129,19 +128,14 @@ fn plan_records_what_oms_returns() {
                 conflict: row.get("conflict")?,
                 oms_version: row.get("oms_version")?,
             };
-            Ok((
-                row.get("role")?,
-                row.get("runs_as_session")?,
-                inputs,
-                record,
-            ))
+            Ok((row.get("role")?, inputs, record))
         })
         .unwrap()
         .collect::<Result<_, _>>()
         .unwrap();
 
     let names: Vec<&str> = rows.iter().map(|(name, ..)| name.as_str()).collect();
-    assert_eq!(names, ["architect", "engineer", "scout", "writer"]);
+    assert_eq!(names, ["architect", "engineer", "scout"]);
     let job_inputs = Inputs {
         duration: Some(Level::High),
         budget: Some(Level::Low),
@@ -163,7 +157,7 @@ fn plan_records_what_oms_returns() {
         ),
         (None, None, None, None),
     ];
-    for ((name, is_session, inputs, record), role) in rows.iter().zip(role_inputs) {
+    for ((name, inputs, record), role) in rows.iter().zip(role_inputs) {
         let (intelligence, reliability, consequence, verification) = role;
         let expected_inputs = Inputs {
             intelligence,
@@ -173,7 +167,6 @@ fn plan_records_what_oms_returns() {
             ..job_inputs
         };
         assert_eq!(*inputs, expected_inputs, "{name}");
-        assert!(!is_session, "{name}");
 
         let selection = oms::select(expected_inputs);
         let rules: Vec<&str> = selection.rules.iter().map(|rule| rule.id()).collect();
@@ -191,15 +184,4 @@ fn plan_records_what_oms_returns() {
         };
         assert_eq!(*record, expected, "{name}");
     }
-
-    let (_, is_session, _, writer) = &rows[3];
-    assert!(is_session);
-    let nothing = Record {
-        agent: None,
-        demand: None,
-        rules: None,
-        conflict: None,
-        oms_version: None,
-    };
-    assert_eq!(*writer, nothing);
 }

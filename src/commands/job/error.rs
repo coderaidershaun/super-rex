@@ -96,12 +96,7 @@ pub enum JobError {
     EmptyBreakdown { path: PathBuf },
 
     #[error(
-        "role {role} has \"session\": true and OMS inputs; give either \"session\": true or all four of intelligence, reliability, consequence and verification"
-    )]
-    SessionAndInputs { role: String },
-
-    #[error(
-        "role {role} lacks {key}; give all four of intelligence, reliability, consequence and verification (each low, medium, high or none), or \"session\": true"
+        "role {role} lacks {key}; give all four of intelligence, reliability, consequence and verification (each low, medium, high or none)"
     )]
     MissingInput { role: String, key: &'static str },
 

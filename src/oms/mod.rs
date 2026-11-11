@@ -9,7 +9,7 @@ pub use mapping::select;
 
 /// Version of the selection function. Bumped whenever any input can produce
 /// a different [`Selection`], so that old records keep their meaning.
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
 
 /// A rating on the Low, Medium, High scale. A rating that does not apply is
 /// `Option::None`.
@@ -73,6 +73,7 @@ pub enum Rule {
     TierDefault,
     TierIntelligence,
     TierStakesLift,
+    TierTopNeedsConsequence,
     EffortDefault,
     EffortStakes,
     EffortHardToVerify,
@@ -95,6 +96,7 @@ impl Rule {
             Rule::TierDefault => "T0",
             Rule::TierIntelligence => "T1",
             Rule::TierStakesLift => "T2",
+            Rule::TierTopNeedsConsequence => "T3",
             Rule::EffortDefault => "E0",
             Rule::EffortStakes => "E1",
             Rule::EffortHardToVerify => "E2",

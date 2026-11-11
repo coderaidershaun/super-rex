@@ -34,6 +34,7 @@ const BUSY_TIMEOUT: Duration = Duration::from_secs(10);
 /// deliveries, and a job's status only through [`status::apply`]. Capture
 /// writes the sub-agent runs, the session tokens, the `intake.` keys of
 /// `meta`, and a job's builder model and effort while they are unset.
+/// `rex limit` writes the `limit.` keys of `meta`, a job's spend limit.
 /// `rex feedback` writes feedback, `rex recall` the recalled experience, and
 /// [`orchestrator::index`] the orchestrator index. Every update of a job row
 /// sets `updated_at` in the same statement.

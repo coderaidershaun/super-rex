@@ -6,7 +6,7 @@ Settle which skills this job uses. Start from assignment table. Ask for new skil
 1. Run `rex skills list`.
 2. Read assignment table. Add skills of each row that fits job. Find other needs. IF skill in list covers need, THEN add that skill to skill list.
 3. Test each need that no skill covers. IF test fails, THEN write no skill.
-4. IF test passes, THEN put need under NEW SKILLS. Builder has session agent write it.
+4. IF test passes, THEN put need under NEW SKILLS. Builder has grid agent of role `skill-writer` write it.
 5. Builder does skill check on each new skill.
 6. Give SKILL LIST + NEW SKILLS to builder.
 ```
@@ -28,7 +28,6 @@ Settle which skills this job uses. Start from assignment table. Ask for new skil
 - Skill list: Skills this job uses. Output of stage 1.
 - Gap skill: Skill for one language. It covers what Rust gives by default and that language does not. Name: `rex-gap-<language>` (`## Output`).
 - Assignment table: `.claude/skills/orchestration-builder/stages/1-skills/assign.md`. One home of which skills each kind of work gets.
-- Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
 - Skill library: Folder `.rex/skills/` in `HOME_DIR`. Skills that agents read by path. Claude Code does not list them. Skill tool cannot load them.
 - `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`, `.rex/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
 - Brief: Prompt that sub-agent gets.
@@ -103,6 +102,7 @@ SKILL LIST: one table. Columns, in this sequence: `Skill / Path / Why this job n
 - [ ] Mark each new skill in `Skill` column: `<name>` (`new`).
 - [ ] `Path` column: `path=` line of that skill in output of `rex skills list`. New skill: path of its `SKILL.md`, OR `pending` until builder gives it.
 - [ ] Default: no row is `new`.
+- [ ] Skill list holds each skill that a task reads first or opens in one case. Stage 2 divides them in `Skills` + `Open when` of each task.
 - [ ] Below table: `Left out: <skill> — <one-line reason>`, one line for each skill that assignment table gives and job does not get. OR `Left out: none`.
 - [ ] Builder records skill list with plan.
 

@@ -54,13 +54,12 @@ Person starts builder: `/orchestration-builder <request>`, or `/orchestration-bu
 - Work breakdown: Tasks of job, their dependencies, and groups that run in parallel. Output of stage 2.
 - Role: Named part in orchestrator skill. Example: `engineer`.
 - Grid agent: One of 20 agent definitions in `.claude/agents/`. Name: `model-<tier>-effort-<level>`. It has no Skill tool.
-- Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
 - `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`, skill library `.rex/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
 - `JOB_DIR`: Absolute path where job branch is checked out. `.claude/skills/rex-deliver/start.md` gives it.
 - Role table: For one job: tasks, skills, inputs, and agent of each role. Output of stage 3.
 - Orchestrator skill: Reusable file. It gives roles, order, skills of each role, and checks. Not about one task.
 - Decision: Skill list + work breakdown + orchestrator skill + role table.
-- Decision agent: Session agent that does stages 1 to 3 and corrects decision. Role `decision-maker`.
+- Decision agent: Grid agent that does stages 1 to 3 and corrects decision. Role `decision-maker`.
 - Decision block: Text form of decision that decision agent gives. Form: `.claude/skills/orchestration-builder/decide.md`.
 - Brief: Prompt that sub-agent gets.
 - Tag block: First lines of brief: `Rex-Job: <job ID>`, `Rex-Role: <role>`, then one blank line.
@@ -153,6 +152,6 @@ REX_STORE="$HOME_DIR/.rex" rex recall <job-id>
 
 ## On request
 
-- [ ] IF requester asks for review of pull request, THEN start fresh grid agent `model-high-effort-high`, role `pr-reviewer`. It wrote no part of change. Brief: tag block, `PR` or `BASE` + `HEAD`, `JOB`, and absolute path of `.claude/skills/rex-pr-review/SKILL.md` to read IN FULL and obey. Give its verdict to requester.
+- [ ] IF requester asks for review of pull request, THEN start fresh grid agent, role `pr-reviewer`: `rex oms` gives it from ratings of `## Builder roles` in `.claude/skills/orchestration-builder/decide.md`. It wrote no part of change. Brief: tag block, `PR` or `BASE` + `HEAD`, `JOB`, and absolute path of `.claude/skills/rex-pr-review/SKILL.md` to read IN FULL and obey. Give its verdict to requester.
 - [ ] IF requester asks for feedback on job, THEN read `.claude/skills/rex-feedback/SKILL.md` IN FULL and obey it.
 - [ ] Requester can give other instructions at any time. Obey them.

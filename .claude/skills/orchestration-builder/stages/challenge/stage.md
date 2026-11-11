@@ -6,12 +6,12 @@ Decision agent decides. Paired challenger attacks decision. Decision agent exami
 Builder:
 1. Select challenger agent. Write brief.
 2. Start challenger. Wait for findings.
-3. Send findings to decision agent.
+3. Send path of findings file to decision agent.
 
 Challenger:
 1. Read input + repo.
 2. Do each check of `## Checks`.
-3. Give findings. Change nothing.
+3. Write findings to output file. Change nothing else.
 
 Decision agent (`correct.md`):
 1. Examine each finding: CONFIRMED, REJECTED, or PARTIAL.
@@ -44,7 +44,7 @@ Decision agent (`correct.md`):
 
 - [ ] Challenge runs for each job, before `rex job plan`. Job gets one plan only, so correct decision first.
 - [ ] Challenger made no part of decision. Never builder, never decision agent.
-- [ ] Challenger only reads. It changes no file and runs no command that writes.
+- [ ] Challenger only reads. It changes no file except its output file, and runs no command that writes.
 - [ ] One round. Builder does not send decision back for second check.
 - [ ] Classification stays. Builder and decision agent never edit it. Challenger can name doubt about it.
 - [ ] Decision agent examines each finding: `.claude/skills/orchestration-builder/stages/challenge/correct.md`.
@@ -55,15 +55,17 @@ Challenger. Do each check. Read repo where check needs it: `rex codebase --only 
 
 Skills (most important). Read assignment table IN FULL first.
 
-- [ ] Each task: find rows of assignment table that fit it. IF row gives skill or sibling file that task does not get, AND no `Left out` line gives reason, THEN finding.
+- [ ] Each task: find rows of assignment table that fit it. IF row gives skill or sibling file that task does not get in `Skills` or `Open when`, AND no `Left out` line gives reason, THEN finding.
 - [ ] Skill in skill list that table does not give: IF `Why` gives no reason that holds, THEN finding.
 - [ ] Read each block of `rex skills list`. For each skill whose `when_to_use` fits request, work type, languages, or repo: IF it is not in skill list, THEN finding.
-- [ ] Each skill in skill list: IF no task and no role gets it, THEN finding. Included is not sufficient. An agent must read it.
-- [ ] Each task: IF it needs a skill that its `Skills` do not give, THEN finding. Example: build task gets `rex-code-tdd`, test task does not.
+- [ ] Each skill in skill list: IF no task and no role gets it in `Skills` or `Open when`, THEN finding. Included is not sufficient. An agent must be able to read it.
+- [ ] Each task: IF it needs a skill that its `Skills` and `Open when` do not give, THEN finding. Example: build task gets `rex-code-tdd`, test task does not.
 - [ ] Each lead, and each role with no task: IF its job needs a skill that it does not get, THEN finding.
 - [ ] Language other than `rust`: IF skill list has no gap skill `rex-gap-<language>` of it (`## Output` of `.claude/skills/orchestration-builder/stages/1-skills/stage.md`), THEN finding. IF repo already has a skill that covers gaps of that language under another name, THEN finding, severity `MINOR`: rename it to `rex-gap-<language>`.
 - [ ] Lesson of recall output that names a skill: IF decision ignores it, THEN finding.
 - [ ] Skill in list that job does not need, OR skill of a task that task does not need: finding, severity `MINOR`. Each loaded skill costs context.
+- [ ] Item in `Skills` that agent uses only in one case of its task: finding, severity `MINOR`. Move it to `Open when` with that case. Same IF `Skills` of task holds more than 6 items (code task: 4 code skills + 2).
+- [ ] Item in `Open when` with no case, OR with case that each step of task reaches: finding, severity `MINOR`.
 
 Work breakdown:
 
@@ -74,6 +76,7 @@ Work breakdown:
 Orchestrator + roles:
 
 - [ ] Method does not fit breakdown. Example: fan-out for tightly coupled work.
+- [ ] Agent count > max of job size (`## Step 3 — Roles` of `.claude/skills/orchestration-builder/stages/3-orchestration/stage.md`). Count = decision agent + challenger + each agent of role table. Severity `MAJOR`. IF `AGENTS` line gives other count, THEN also finding.
 - [ ] Role with consequence `high` and verification `low`, with no reviewer or verifier role.
 - [ ] Role consequence below classification, with no reason.
 - [ ] Rating that does not fit task. Example: intelligence `low` for design work.
@@ -82,7 +85,7 @@ Orchestrator + roles:
 
 ## Output
 
-Challenger gives findings only. No praise, no new decision.
+Challenger gives findings only. No praise, no new decision. Write them to output file that brief names. Final message: path + count of findings for each severity.
 
 ```
 FINDINGS: <n>

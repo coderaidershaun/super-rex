@@ -27,7 +27,7 @@ pub use error::CaptureError;
 pub(crate) use log::append_event;
 pub use price::Cost;
 pub(crate) use read::last_activity_ms;
-pub use registration::{HOOK_COMMAND, hook_registration};
+pub use registration::{GATE_COMMAND, HOOK_COMMAND, REX_COMMANDS, hook_registration};
 pub use runs::{JobRuns, MainFacts, Run, RunState};
 pub use tokens::{Reading, RunActivity, SETTLE, Step, TokenCounts, TokenTotal, TotalCheck};
 pub use transcript::{TranscriptFacts, read_transcript};

@@ -25,7 +25,7 @@ use output::{PlannedRole, conflict_text, json_text, plain_text, rule_ids};
 /// Arguments of `rex job plan`.
 #[derive(clap::Args)]
 #[command(
-    after_help = "Prints job=<id> first, then status=, the orchestrator and its version, and one role.<name>= line per role: the grid agent to start that role with, or session."
+    after_help = "Prints job=<id> first, then status=, the orchestrator and its version, and one role.<name>= line per role: the grid agent to start that role with."
 )]
 pub struct PlanOptions {
     /// The job to plan. It must be created and not yet planned.
@@ -140,8 +140,7 @@ fn orchestrator_version(
     Ok(version)
 }
 
-/// Asks the selection function for each role not run as the session, with the
-/// job's three preferences, and writes each role row in the order of the file.
+/// Asks the selection function for each role, with the job's three preferences, and writes each role row in the order of the file.
 fn record_roles(
     tx: &Transaction<'_>,
     job: &JobId,
@@ -150,13 +149,11 @@ fn record_roles(
 ) -> Result<Vec<PlannedRole>, JobError> {
     let mut roles = Vec::with_capacity(entries.len());
     for entry in entries {
-        let selection = entry.ratings()?.map(|ratings| {
-            oms::select(Inputs {
-                duration: preferences.duration,
-                budget: preferences.budget,
-                autonomy: preferences.autonomy,
-                ..ratings
-            })
+        let selection = oms::select(Inputs {
+            duration: preferences.duration,
+            budget: preferences.budget,
+            autonomy: preferences.autonomy,
+            ..entry.ratings()?
         });
         let role = PlannedRole {
             name: entry.role.clone(),
@@ -169,39 +166,37 @@ fn record_roles(
     Ok(roles)
 }
 
-/// Writes one role row. The job's three preferences and the role's skills are
-/// stored on every role, and the selection function's answer only on a role not
-/// run as the session.
+/// Writes one role row: the job's three preferences, the selection function's
+/// answer and the role's skills.
 fn insert_role(
     tx: &Transaction<'_>,
     job: &JobId,
     role: &PlannedRole,
     preferences: Inputs,
 ) -> rusqlite::Result<()> {
-    let selection = role.selection.as_ref();
-    let inputs = selection.map(|chosen| chosen.inputs);
+    let chosen = &role.selection;
+    let inputs = chosen.inputs;
     let skills = (!role.skills.is_empty()).then(|| role.skills.join(","));
     tx.execute(
-        "INSERT INTO role (job_id, role, runs_as_session, in_duration, in_budget, in_autonomy,
+        "INSERT INTO role (job_id, role, in_duration, in_budget, in_autonomy,
                            in_intelligence, in_reliability, in_consequence, in_verification,
                            agent, demand, rules, conflict, oms_version, skills)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
         params![
             job.as_str(),
             role.name,
-            selection.is_none(),
             preferences.duration.map(value_name),
             preferences.budget.map(value_name),
             preferences.autonomy.map(value_name),
-            inputs.and_then(|i| i.intelligence).map(value_name),
-            inputs.and_then(|i| i.reliability).map(value_name),
-            inputs.and_then(|i| i.consequence).map(value_name),
-            inputs.and_then(|i| i.verification).map(value_name),
-            selection.map(|chosen| chosen.agent.to_string()),
-            selection.map(|chosen| chosen.demand.to_string()),
-            selection.map(|chosen| rule_ids(&chosen.rules).join(",")),
-            selection.map(|chosen| conflict_text(&chosen.conflict)),
-            selection.map(|_| oms::VERSION),
+            inputs.intelligence.map(value_name),
+            inputs.reliability.map(value_name),
+            inputs.consequence.map(value_name),
+            inputs.verification.map(value_name),
+            chosen.agent.to_string(),
+            chosen.demand.to_string(),
+            rule_ids(&chosen.rules).join(","),
+            conflict_text(&chosen.conflict),
+            oms::VERSION,
             skills,
         ],
     )?;

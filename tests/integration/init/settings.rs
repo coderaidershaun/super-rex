@@ -16,8 +16,24 @@ use super::support::{
 const HOOKS: &str = r#"{
     "SubagentStart": [{ "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }],
     "SubagentStop":  [{ "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }],
-    "PostToolUse":   [{ "matcher": "Agent|Task", "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }]
+    "PostToolUse":   [{ "matcher": "Agent|Task", "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }],
+    "PreToolUse":    [
+        { "matcher": "Agent|Task", "hooks": [{ "type": "command", "command": "rex gate 2>/dev/null || true", "timeout": 10 }] },
+        { "matcher": "Bash", "hooks": [{ "type": "command", "command": "rex test-hook 2>/dev/null || true", "timeout": 10 }] }
+    ]
 }"#;
+
+/// The allow rule that `rex init` writes beside the hooks, so a test command
+/// piped into the filter needs no rule beyond the test command's own.
+const FILTER_RULE: &str = "Bash(rex test-filter)";
+
+/// `settings` with the hooks and the filter's allow rule that `rex init`
+/// writes unless the hooks are left out.
+fn hooked(mut settings: Value) -> Value {
+    settings["hooks"] = serde_json::from_str(HOOKS).expect("hooks JSON");
+    settings["permissions"]["allow"] = json!([FILTER_RULE]);
+    settings
+}
 
 /// Where the trivy scanner keeps its database on the machine that runs the
 /// tests.
@@ -148,10 +164,15 @@ fn fresh_settings_hold_the_safety_settings_and_the_hooks() {
         "got: {}",
         printed.stdout
     );
-    let mut expected = safety_settings(&repo);
-    expected["hooks"] = serde_json::from_str(HOOKS).expect("hooks JSON");
+    let expected = hooked(safety_settings(&repo));
     let text = read_settings(&repo);
     assert_eq!(text, as_written(&expected));
+
+    // A second run finds the rule and the hooks in place and writes nothing,
+    // so the rule is there once.
+    rex_init_ok(&repo, &[]);
+    assert_eq!(read_settings(&repo), text);
+    assert_eq!(text.matches(FILTER_RULE).count(), 1);
 
     let written: Value = serde_json::from_str(&text).expect("settings JSON");
     let parent = written["permissions"]["additionalDirectories"][0]
@@ -190,15 +211,17 @@ fn a_settings_file_the_user_has_keeps_its_keys() {
     assert_eq!(read_settings(&example), expected);
 
     // A hook group of the person's own stays, a rex group they changed is not
-    // added again, and a value that is not a safety setting is kept with a
-    // warning only.
+    // added again, a rex group they removed beside one they kept is added
+    // again, and a value that is not a safety setting is kept with a warning only.
     let with_hooks = repo();
     let own_group = json!({ "hooks": [{ "type": "command", "command": "my-logger" }] });
     let changed_rex_group = json!({ "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 30 }] });
+    let rex_hooks: Value = serde_json::from_str(HOOKS).expect("hooks JSON");
     let before = json!({
         "hooks": {
             "SubagentStop": [changed_rex_group],
-            "SubagentStart": [own_group]
+            "SubagentStart": [own_group],
+            "PreToolUse": [rex_hooks["PreToolUse"][0]]
         },
         "permissions": { "deny": "Bash(sudo *)" }
     });
@@ -210,18 +233,19 @@ fn a_settings_file_the_user_has_keeps_its_keys() {
         printed.stderr,
         "rex init: warning: kept permissions.deny = \"Bash(sudo *)\" in .claude/settings.local.json; SuperRex sets [\"Bash(sudo *)\",\"Bash(git push --force*)\",\"Bash(cargo publish*)\",\"Bash(gh pr merge*--admin*)\"].\n"
     );
-    let rex_hooks: Value = serde_json::from_str(HOOKS).expect("hooks JSON");
     let safety = safety_settings(&with_hooks);
     let expected = json!({
         "hooks": {
             "SubagentStop": [changed_rex_group],
             "SubagentStart": [own_group, rex_hooks["SubagentStart"][0]],
+            "PreToolUse": rex_hooks["PreToolUse"],
             "PostToolUse": rex_hooks["PostToolUse"]
         },
         "permissions": {
             "deny": "Bash(sudo *)",
             "additionalDirectories": [parent_of(&with_hooks)],
-            "blockWritesOutsideWorkingDirectories": true
+            "blockWritesOutsideWorkingDirectories": true,
+            "allow": [FILTER_RULE]
         },
         "sandbox": safety["sandbox"]
     });
@@ -247,8 +271,7 @@ fn a_settings_file_the_user_has_keeps_its_keys() {
     // A file that already holds everything is not written at all, so it
     // keeps the person's own format.
     let complete = repo();
-    let mut everything = safety_settings(&complete);
-    everything["hooks"] = serde_json::from_str(HOOKS).expect("hooks JSON");
+    let everything = hooked(safety_settings(&complete));
     let one_line = everything.to_string();
     write_settings(&complete, &one_line);
 
@@ -374,9 +397,8 @@ fn strict_and_no_hooks_change_only_the_settings_they_name() {
 
     assert_eq!(printed.stderr, "");
     assert_eq!(allow_key(&strict), json!(false));
-    let mut expected = safety_settings(&strict);
+    let mut expected = hooked(safety_settings(&strict));
     expected["sandbox"]["allowUnsandboxedCommands"] = json!(false);
-    expected["hooks"] = serde_json::from_str(HOOKS).expect("hooks JSON");
     assert_eq!(read_settings(&strict), as_written(&expected));
 
     // A later run without the flag keeps the stricter value, and says how to
@@ -424,7 +446,7 @@ fn strict_and_no_hooks_change_only_the_settings_they_name() {
     assert_eq!(read_settings(&hooked), before, "the hook entries stay");
     assert_eq!(
         printed.stderr,
-        "rex init: warning: hooks left out, but hook entries from an earlier run are still in .claude/settings.local.json. Remove the entries that run rex hook to turn telemetry off.\n"
+        "rex init: warning: hooks left out, but hook entries from an earlier run are still in .claude/settings.local.json. Remove the entries that run rex hook, rex gate or rex test-hook to turn telemetry, the spend gate and the test output filter off.\n"
     );
 }
 

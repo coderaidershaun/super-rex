@@ -40,8 +40,14 @@ Work can be code, research, documents, or other work. Task can change no file.
 - [ ] Divide request into tasks. For each task, write outcome + evidence.
 - [ ] Divide around useful outcomes, not around steps.
 - [ ] Keep decisions that are tightly coupled in one task.
+- [ ] Code work: fewer, larger tasks. One task builds one feature whole: code, tests, docs of feature.
+- [ ] Divide code work only where files + outcomes are independent. Each task = one more agent, and each agent builds its context from nothing.
 - [ ] Evidence: tests, sources, reproducible observations, or explicit rubric.
-- [ ] Skills: for each task, from skill list: skills + sibling files of each row of assignment table that fits task, gap skill of each language that it writes, and other skills for its task. Add `<skill>/<file>.md` for each sibling file that task needs. To name sibling file of a skill in skill list: read table in `SKILL.md` of that skill that says when to read each file. Agent of task reads these first. It also reads a sibling file when a `SKILL.md` that it read sends it there.
+- [ ] Skills: for each task, from skill list: skills + sibling files of each row of assignment table that fits task, gap skill of each language that it writes, and other skills for its task. Add `<skill>/<file>.md` for each sibling file that task needs. To name sibling file of a skill in skill list: read table in `SKILL.md` of that skill that says when to read each file.
+- [ ] Divide them in two columns. Each skill read enters context of agent, and cache gives it again on each later call.
+  - `Skills` = read first: skill or file that agent uses in each step of task. Max 6. Code task: 4 skills of `## Each task that writes code` of assignment table + max 2.
+  - `Open when` = each other skill or file, with case that sends agent there: `<skill or skill/file.md> (<case>)`. Comma between items. OR `—`. Agent opens it only IF work reaches that case.
+- [ ] IF row of assignment table fits only part of task (example: move only IF a file grows past 400 lines), THEN its skills go in `Open when`.
 - [ ] IF job has one outcome, THEN write one task. Go to `## Output`.
 - [ ] Plan job: tasks = research + plan writing. Last 2 tasks: adversarial review of plan, then revision. Evidence of review task: verdict table.
 - [ ] Plan execution: start from task table of plan file. Change task only IF repo changed since plan.
@@ -86,19 +92,19 @@ Groups:
 
 WORK BREAKDOWN: one table, plus integration owner of each group with 2 or more tasks.
 
-Columns, in this sequence: `Task / Outcome / Evidence / Depends on / Owns (files, state) / Group / Skills`.
+Columns, in this sequence: `Task / Outcome / Evidence / Depends on / Owns (files, state) / Group / Skills / Open when`.
 
 Example:
 
-| Task | Outcome | Evidence | Depends on | Owns (files, state) | Group | Skills |
-| --- | --- | --- | --- | --- | --- | --- |
-| T1 | Event contract stable | Contract tests pass | — | `events/` | 1 | `rex-code-ergonomics`, `rex-code-tests-contract-seams` |
-| T2 | Email notices sent | Email tests pass | T1 | `email/` | 2 | `rex-code-ergonomics`, `rex-code-tdd` |
-| T3 | In-app notices shown | In-app tests pass | T1 | `inapp/` | 2 | `rex-code-ergonomics`, `rex-code-tdd` |
+| Task | Outcome | Evidence | Depends on | Owns (files, state) | Group | Skills | Open when |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| T1 | Event contract stable | Contract tests pass | — | `events/` | 1 | `rex-code-ergonomics`, `rex-code-tests-contract-seams` | — |
+| T2 | Email notices sent | Email tests pass | T1 | `email/` | 2 | `rex-code-ergonomics`, `rex-code-tdd` | `rex-code-tdd/mocking.md` (test calls mail server) |
+| T3 | In-app notices shown | In-app tests pass | T1 | `inapp/` | 2 | `rex-code-ergonomics`, `rex-code-tdd` | `rex-code-folder-management` (file grows past 400 lines) |
 
 Integration owner, group 2: orchestrator. Evidence: delivery test of combined result passes.
 
 - [ ] Work breakdown is about this job only.
 - [ ] Builder records it with `rex job plan` and puts task detail in briefs.
 - [ ] It never goes into orchestrator skill.
-- [ ] This stage does not select method, roles, or models. Stage 3 does that. It can add skills to `Skills` of a task.
+- [ ] This stage does not select method, roles, or models. Stage 3 does that. It can add skills to `Skills` or `Open when` of a task.

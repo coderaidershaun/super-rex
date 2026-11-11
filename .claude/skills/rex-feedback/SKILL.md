@@ -77,7 +77,7 @@ Read from it:
 
 - [ ] `job`: `request`, `stored_status`, `work_type`, `size`, `consequence`, `languages`, `merge_agreed`, `skills`, `outcome`.
 - [ ] `job.orchestrator`: `name` + `version`. Then read `.rex/orchestrators/<name>/SKILL.md`.
-- [ ] `roles[]`: `role`, `session`, `inputs`, `agent`, `demand`, `rules`, `conflict`, `oms_version`, `skills`. Compare `skills` of each role with `skills_opened` of runs of that role.
+- [ ] `roles[]`: `role`, `inputs`, `agent`, `demand`, `rules`, `conflict`, `oms_version`, `skills`. Compare `skills` of each role with `skills_opened` of runs of that role.
 - [ ] `runs[]`: `role`, `agent_type`, `model_ran`, `effort_ran`, `depth`, `parent_agent_id`, `brief`, `skills_opened` (`[]` = transcript read, run opened no skill; `null` = no transcript read), `final_message`.
 - [ ] `deliveries[]`: `repo`, `branch`, `pr`, `merge_commit`, `outcome`, `note`.
 - [ ] `feedback[]`: earlier feedback of this job, with `evidence`.

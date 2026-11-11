@@ -23,8 +23,6 @@ pub(super) struct PlanFile {
 #[serde(deny_unknown_fields)]
 pub(super) struct RoleEntry {
     pub(super) role: String,
-    #[serde(default)]
-    session: bool,
     intelligence: Option<Rating>,
     reliability: Option<Rating>,
     consequence: Option<Rating>,
@@ -119,23 +117,8 @@ fn check_role_skills(
 }
 
 impl RoleEntry {
-    /// The role's four inputs, with the job's three left unset, or `None` for a
-    /// role run as the session.
-    pub(super) fn ratings(&self) -> Result<Option<Inputs>, JobError> {
-        if self.session {
-            let given = [
-                self.intelligence,
-                self.reliability,
-                self.consequence,
-                self.verification,
-            ];
-            if given.iter().any(Option::is_some) {
-                return Err(JobError::SessionAndInputs {
-                    role: self.role.clone(),
-                });
-            }
-            return Ok(None);
-        }
+    /// The role's four inputs, with the job's three left unset.
+    pub(super) fn ratings(&self) -> Result<Inputs, JobError> {
         let level = |key: &'static str, rating: Option<Rating>| {
             rating
                 .map(Rating::level)
@@ -144,13 +127,13 @@ impl RoleEntry {
                     key,
                 })
         };
-        Ok(Some(Inputs {
+        Ok(Inputs {
             intelligence: level("intelligence", self.intelligence)?,
             reliability: level("reliability", self.reliability)?,
             consequence: level("consequence", self.consequence)?,
             verification: level("verification", self.verification)?,
             ..Inputs::default()
-        }))
+        })
     }
 }
 

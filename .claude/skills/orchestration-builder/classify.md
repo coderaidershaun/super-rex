@@ -21,6 +21,8 @@ Size: how much separate work request holds. Module = one source file, or one fol
 | `medium` | One outcome across several modules, OR 2 or 3 outcomes that depend on each other. |
 | `large` | Several independent outcomes, each one you can build and test alone. OR change that reaches most of codebase. |
 
+Size + stated budget set spend limit of job. At limit, `rex gate` refuses each new sub-agent. Person raises limit with `rex limit <job> --set <dollars>`.
+
 Consequence: worst credible result of mistake anywhere in job. Test: does revert of commit undo harm?
 
 | Value | Definition |

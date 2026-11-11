@@ -65,7 +65,6 @@ CREATE TABLE job_transition (
 CREATE TABLE role (
     job_id          TEXT    NOT NULL REFERENCES job (id),
     role            TEXT    NOT NULL,
-    runs_as_session INTEGER NOT NULL CHECK (runs_as_session IN (0, 1)),
     in_duration     TEXT,
     in_budget       TEXT,
     in_autonomy     TEXT,
@@ -73,17 +72,14 @@ CREATE TABLE role (
     in_reliability  TEXT,
     in_consequence  TEXT,
     in_verification TEXT,
-    agent           TEXT,
-    demand          TEXT,
-    rules           TEXT,
-    conflict        TEXT,
-    oms_version     INTEGER,
+    agent           TEXT    NOT NULL,
+    demand          TEXT    NOT NULL,
+    rules           TEXT    NOT NULL,
+    conflict        TEXT    NOT NULL,
+    oms_version     INTEGER NOT NULL,
     -- The skills the role's tasks are assigned, as a comma list.
     skills          TEXT,
-    PRIMARY KEY (job_id, role),
-    CHECK ((runs_as_session = 1) = (agent IS NULL)),
-    CHECK (agent IS NULL OR (demand IS NOT NULL AND rules IS NOT NULL
-                             AND conflict IS NOT NULL AND oms_version IS NOT NULL))
+    PRIMARY KEY (job_id, role)
 ) STRICT;
 
 CREATE TABLE delivery (

@@ -37,7 +37,7 @@ const NO_BUDGET_CAP: BudgetCap = BudgetCap {
 /// Effort levels each tier accepts, indexed by tier position minus one.
 type SupportedEfforts = [&'static [Effort]; 4];
 
-// Warning: the nine constants below are the whole mapping. A change to any of
+// Warning: the ten constants below are the whole mapping. A change to any of
 // them changes some selection, so it needs a new VERSION and a new checksum.
 
 const TIER_WHEN_INTELLIGENCE_IS_NONE: Tier = Tier::Medium;
@@ -45,6 +45,10 @@ const TIER_WHEN_INTELLIGENCE_IS_NONE: Tier = Tier::Medium;
 const EFFORT_WHEN_STAKES_ARE_NONE: Effort = Effort::Medium;
 
 const TIER_LIFT_FOR_HIGH_STAKES: i8 = 1;
+
+/// The most expensive tier is kept for roles whose mistakes a revert does not
+/// undo, so without high consequence the tier stops one step below it.
+const TIER_CAP_WITHOUT_HIGH_CONSEQUENCE: Tier = Tier::High;
 
 const EFFORT_SHIFT_FOR_VERIFICATION: ByLevel<i8> = ByLevel {
     low: 1,
@@ -96,7 +100,7 @@ fn select_with(inputs: Inputs, supported: &SupportedEfforts) -> Selection {
     let mut fired = BTreeSet::new();
     let stakes = stakes(inputs);
     let demand = GridAgent {
-        tier: tier_demand(inputs.intelligence, stakes, &mut fired),
+        tier: tier_demand(inputs, stakes, &mut fired),
         effort: effort_demand(inputs, stakes, &mut fired),
     };
 
@@ -129,12 +133,8 @@ fn stakes(inputs: Inputs) -> Option<Level> {
     inputs.reliability.max(inputs.consequence)
 }
 
-fn tier_demand(
-    intelligence: Option<Level>,
-    stakes: Option<Level>,
-    fired: &mut BTreeSet<Rule>,
-) -> Tier {
-    let start = match intelligence {
+fn tier_demand(inputs: Inputs, stakes: Option<Level>, fired: &mut BTreeSet<Rule>) -> Tier {
+    let start = match inputs.intelligence {
         None => {
             fired.insert(Rule::TierDefault);
             TIER_WHEN_INTELLIGENCE_IS_NONE
@@ -148,7 +148,12 @@ fn tier_demand(
         return start;
     }
     fired.insert(Rule::TierStakesLift);
-    Tier::at_position(start.position() + TIER_LIFT_FOR_HIGH_STAKES)
+    let lifted = Tier::at_position(start.position() + TIER_LIFT_FOR_HIGH_STAKES);
+    if inputs.consequence != Some(Level::High) && lifted > TIER_CAP_WITHOUT_HIGH_CONSEQUENCE {
+        fired.insert(Rule::TierTopNeedsConsequence);
+        return TIER_CAP_WITHOUT_HIGH_CONSEQUENCE;
+    }
+    lifted
 }
 
 fn effort_demand(inputs: Inputs, stakes: Option<Level>, fired: &mut BTreeSet<Rule>) -> Effort {
@@ -400,13 +405,15 @@ mod tests {
             ("LLLLLLL", "low / low", "T1,E1,E2,E5", "none"),
             ("-LLHM-L", "low / medium", "T1,E1,E2,E4,C2", "none"),
             ("M--H--L", "medium / high", "T0,E0,E2,E4,C3", "none"),
+            ("--HHHML", "high / max", "T1,T2,T3,E1,E2,E4", "none"),
+            ("--H-H--", "high / high", "T1,T2,T3,E1", "none"),
         ];
         for (index, (code, agent, rules, conflict)) in cases.into_iter().enumerate() {
             let selection = select(inputs_from_code(code));
             assert_case(index + 1, &selection, agent, rules, conflict);
         }
 
-        // Case 43: case 36 with a table in which the `high` tier lacks `xhigh`.
+        // Case 45: case 36 with a table in which the `high` tier lacks `xhigh`.
         let high_without_xhigh: &[Effort] =
             &[Effort::Low, Effort::Medium, Effort::High, Effort::Max];
         let gapped = [
@@ -416,6 +423,6 @@ mod tests {
             &Effort::ALL[..],
         ];
         let selection = select_with(inputs_from_code("--HHMML"), &gapped);
-        assert_case(43, &selection, "high / high", "T1,E1,E2,E4,V1", "none");
+        assert_case(45, &selection, "high / high", "T1,E1,E2,E4,V1", "none");
     }
 }

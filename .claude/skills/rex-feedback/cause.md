@@ -22,7 +22,6 @@ Words + rules: `.claude/skills/rex-feedback/SKILL.md`. Evidence comes from Stage
 Do checks in this order. Stop at first check that is true. Only check 4 points at mapping.
 
 1. Chosen agent = `agent` of role. Its file `.claude/agents/<agent>.md` has keys `model` (for example `sonnet`) and `effort`. IF `agent_type` of a run ≠ `agent`, OR `model_ran` does not contain `model`, OR `effort_ran` ≠ `effort`, THEN environment overrode choice. Mapping not at fault.
-   - A role with `session` = `true` has no `agent`: skip check 1 for it.
    - IF `model_ran` or `effort_ran` is `null`, THEN write it under EMPTY FIELDS. Go to check 2.
 2. IF `rules` has `C1`, `C2` or `C3`, THEN user's budget or duration capped choice. Lesson is about that preference.
 3. IF `inputs` were wrong (for example, hard role rated low intelligence), THEN lesson belongs to builder rating. Home = `.claude/skills/orchestration-builder/stages/3-orchestration/stage.md`.

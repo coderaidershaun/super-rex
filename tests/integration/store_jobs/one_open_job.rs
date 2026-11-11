@@ -53,7 +53,7 @@ fn create_in_session_with_open_job_returns_it() {
     );
     let shown = show_json(&main, &job);
     assert_eq!(shown["transitions"].as_array().unwrap().len(), 2);
-    assert_eq!(shown["roles"].as_array().unwrap().len(), 3);
+    assert_eq!(shown["roles"].as_array().unwrap().len(), 2);
 
     // Several creates at the same moment in a session with no open job: the
     // check and the insert are one write, so exactly one opens the job.

@@ -3,7 +3,7 @@
 
 use std::ffi::OsString;
 use std::io::{self, Read};
-use std::panic;
+use std::panic::{self, UnwindSafe};
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -11,7 +11,7 @@ use crate::capture::append_event;
 use crate::error::RexError;
 use crate::store::StorePaths;
 
-/// Arguments of `rex hook`. Every argument is accepted and ignored, because
+/// Arguments of `rex hook` and `rex gate`. Every argument is accepted and ignored, because
 /// Claude Code treats a hook that exits with code 2 as an order to block the
 /// agent, and clap exits with 2 on an argument it does not know.
 #[derive(clap::Args)]
@@ -31,14 +31,21 @@ pub struct HookOptions {
 /// None. Every failure, a panic included, ends in silence with success, because a
 /// hook that prints or fails can stop the agent that fired it.
 pub fn run(cwd: &Path, _options: HookOptions) -> Result<(), RexError> {
+    // Whether the event was logged is not reported: there is no one to tell.
+    let _logged = silently(|| log_event(cwd));
+    Ok(())
+}
+
+/// Runs `work` with panics caught and printing nothing. `None` when it panicked or
+/// gave `None`.
+pub(super) fn silently<T>(work: impl FnOnce() -> Option<T> + UnwindSafe) -> Option<T> {
     // The default panic hook prints to standard error, which Claude Code can hand
     // to the model, so it is replaced by one that prints nothing.
     let default_hook = panic::take_hook();
     panic::set_hook(Box::new(|_| {}));
-    // Whether the event was logged is not reported: there is no one to tell.
-    let _logged = panic::catch_unwind(|| log_event(cwd));
+    let result = panic::catch_unwind(work).ok().flatten();
     panic::set_hook(default_hook);
-    Ok(())
+    result
 }
 
 /// `None` when the event was not logged: unreadable input, no store, or a log that

@@ -137,8 +137,7 @@ pub const PLAN: &str = r#"{
   "breakdown": "1. Reject zero.\n2. Test it.",
   "roles": [
     {"role": "engineer", "intelligence": "high", "reliability": "high", "consequence": "high", "verification": "low"},
-    {"role": "reviewer", "intelligence": "medium", "reliability": "medium", "consequence": "medium", "verification": "high"},
-    {"role": "skill-writer", "session": true}
+    {"role": "reviewer", "intelligence": "medium", "reliability": "medium", "consequence": "medium", "verification": "high"}
   ]
 }"#;
 

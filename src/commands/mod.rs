@@ -1,5 +1,6 @@
-//! One module per `rex` command (`catalog` serves `rex commands`), each with a
-//! `run` handler, plus the private helpers that the commands share.
+//! One module per `rex` command (`catalog` serves `rex commands`, `gate` also
+//! serves `rex limit`, `test_output` serves `rex test-hook` and `rex test-filter`),
+//! each with a `run` handler, plus the private helpers that the commands share.
 //!
 //! A command has an options struct that derives `clap::Args` and one
 //! `run(cwd, options)` that returns the command's own error type, which
@@ -21,6 +22,7 @@ pub mod catalog;
 pub mod codebase;
 mod comments;
 pub mod feedback;
+pub mod gate;
 pub mod hook;
 pub mod init;
 pub mod job;
@@ -34,6 +36,7 @@ pub mod skills;
 pub mod smells;
 pub mod status;
 mod stdout;
+pub mod test_output;
 mod token_text;
 mod walk;
 pub mod watch;

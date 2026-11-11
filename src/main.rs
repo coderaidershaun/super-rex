@@ -8,7 +8,8 @@ use std::process::ExitCode;
 use clap::{CommandFactory, Parser, Subcommand};
 
 use super_rex::commands::{
-    catalog, codebase, feedback, hook, init, job, jobs, oms, recall, skills, smells, status, watch,
+    catalog, codebase, feedback, gate, hook, init, job, jobs, oms, recall, skills, smells, status,
+    test_output, watch,
 };
 use super_rex::error::CommandError;
 
@@ -36,6 +37,18 @@ enum Command {
 
     /// Called by Claude Code, not by people. Append an event to the log.
     Hook(hook::HookOptions),
+
+    /// Called by Claude Code, not by people. Refuse a new sub-agent once the job has spent its limit.
+    Gate(hook::HookOptions),
+
+    /// Called by Claude Code, not by people. Pipe a test command's output through `rex test-filter`.
+    TestHook(hook::HookOptions),
+
+    /// Read a test run's output on stdin, print only its summary or its failures, and exit with its status.
+    TestFilter(test_output::FilterOptions),
+
+    /// Print a job's spend and spend limit, or set a new limit.
+    Limit(gate::LimitOptions),
 
     /// Print where a job stands: open sub-agents and what has finished.
     Status(status::StatusOptions),
@@ -76,6 +89,10 @@ fn main() -> ExitCode {
         Command::Init(options) => finish(init::run(&cwd, options)),
         Command::Job(options) => finish(job::run(&cwd, options)),
         Command::Hook(options) => finish(hook::run(&cwd, options)),
+        Command::Gate(options) => finish(gate::run(&cwd, options)),
+        Command::TestHook(options) => finish(test_output::run_hook(&cwd, options)),
+        Command::TestFilter(options) => test_output::run_filter(options),
+        Command::Limit(options) => finish(gate::run_limit(&cwd, options)),
         Command::Status(options) => finish(status::run(&cwd, options)),
         Command::Oms(options) => finish(oms::run(&cwd, options)),
         Command::Skills(options) => finish(skills::run(&cwd, options)),

@@ -6,11 +6,10 @@ use serde_json::{Value, json};
 use crate::oms::{self, Overridden, Rule, Selection};
 use crate::store::JobId;
 
-/// A role as planned: the selection function's answer, or `None` when the role
-/// runs as the session.
+/// A role as planned, with the selection function's answer.
 pub(super) struct PlannedRole {
     pub(super) name: String,
-    pub(super) selection: Option<Selection>,
+    pub(super) selection: Selection,
     pub(super) skills: Vec<String>,
 }
 
@@ -24,10 +23,7 @@ pub(super) fn plain_text(
         "job={job}\nstatus=planned\norchestrator={orchestrator}\norchestrator_version={version}\n"
     );
     for role in roles {
-        let Some(chosen) = &role.selection else {
-            text.push_str(&format!("role.{}=session\n", role.name));
-            continue;
-        };
+        let chosen = &role.selection;
         text.push_str(&format!("role.{}={}\n", role.name, chosen.agent));
         if !chosen.conflict.is_empty() {
             text.push_str(&format!(
@@ -48,25 +44,16 @@ pub(super) fn json_text(
 ) -> String {
     let roles: Vec<Value> = roles
         .iter()
-        .map(|role| match &role.selection {
-            Some(chosen) => json!({
+        .map(|role| {
+            let chosen = &role.selection;
+            json!({
                 "role": role.name,
-                "session": false,
                 "agent": chosen.agent.to_string(),
                 "demand": chosen.demand.to_string(),
                 "rules": rule_ids(&chosen.rules),
                 "conflict": chosen.conflict.iter().map(|c| c.name()).collect::<Vec<_>>(),
                 "oms_version": oms::VERSION,
-            }),
-            None => json!({
-                "role": role.name,
-                "session": true,
-                "agent": null,
-                "demand": null,
-                "rules": null,
-                "conflict": null,
-                "oms_version": null,
-            }),
+            })
         })
         .collect();
     let line = json!({

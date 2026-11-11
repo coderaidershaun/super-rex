@@ -4,6 +4,7 @@
 use std::collections::BTreeSet;
 
 use rusqlite::Connection;
+use serde_json::{Value, json};
 
 use crate::capture::JobRuns;
 use crate::store::JobId;
@@ -31,12 +32,8 @@ impl SkillCheck {
     /// # Errors
     /// The error of SQLite if the read of the roles fails.
     pub(super) fn read(conn: &Connection, job: &JobId, view: &JobRuns) -> rusqlite::Result<Self> {
-        // A role run as the session is left out: the main session's reads of
-        // skills are not recorded, so each of its skills would look missed.
         let mut statement = conn.prepare(
-            "SELECT role, skills FROM role
-             WHERE job_id = ?1 AND runs_as_session = 0 AND skills IS NOT NULL
-             ORDER BY rowid",
+            "SELECT role, skills FROM role WHERE job_id = ?1 AND skills IS NOT NULL ORDER BY rowid",
         )?;
         let assigned = statement
             .query_map([job.as_str()], |row| {
@@ -72,5 +69,29 @@ impl SkillCheck {
             }
         }
         Ok(check)
+    }
+    /// The `missed_skills=` and `role_not_run.` lines of the text answer.
+    pub(super) fn push_text(&self, text: &mut String) {
+        if self.has_assigned {
+            text.push_str(&format!("missed_skills={}\n", self.missed.len()));
+        }
+        for (number, missed) in self.missed.iter().enumerate() {
+            text.push_str(&format!(
+                "missed_skill.{}={} {}\n",
+                number + 1,
+                missed.role,
+                missed.skill
+            ));
+        }
+        for (number, role) in self.roles_not_run.iter().enumerate() {
+            text.push_str(&format!("role_not_run.{}={role}\n", number + 1));
+        }
+    }
+
+    pub(super) fn missed_json(&self) -> Value {
+        self.missed
+            .iter()
+            .map(|missed| json!({"role": missed.role, "skill": missed.skill}))
+            .collect()
     }
 }

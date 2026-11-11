@@ -49,17 +49,15 @@ pub(super) struct Transition {
     pub(super) at: String,
 }
 
-/// A role and what the selection function chose for it. `agent` and the fields
-/// after it are `None` for a role run as the session.
+/// A role and what the selection function chose for it.
 pub(super) struct RoleRow {
     pub(super) role: String,
-    pub(super) runs_as_session: bool,
     pub(super) inputs: Inputs,
-    pub(super) agent: Option<String>,
-    pub(super) demand: Option<String>,
-    pub(super) rules: Option<String>,
-    pub(super) conflict: Option<String>,
-    pub(super) oms_version: Option<i64>,
+    pub(super) agent: String,
+    pub(super) demand: String,
+    pub(super) rules: String,
+    pub(super) conflict: String,
+    pub(super) oms_version: i64,
     /// A comma list, or `None` for no skills.
     pub(super) skills: Option<String>,
 }
@@ -111,7 +109,7 @@ pub(super) fn read(
     )?;
     record.roles = rows(
         conn,
-        "SELECT role, runs_as_session, in_duration, in_budget, in_intelligence, in_autonomy,
+        "SELECT role, in_duration, in_budget, in_intelligence, in_autonomy,
                 in_reliability, in_consequence, in_verification, agent, demand, rules, conflict,
                 oms_version, skills
          FROM role WHERE job_id = ?1 ORDER BY rowid",
@@ -186,22 +184,21 @@ fn job_row(row: &Row<'_>) -> rusqlite::Result<JobRecord> {
 fn role_row(row: &Row<'_>) -> rusqlite::Result<RoleRow> {
     Ok(RoleRow {
         role: row.get(0)?,
-        runs_as_session: row.get(1)?,
         inputs: Inputs {
-            duration: stored_level(row, 2)?,
-            budget: stored_level(row, 3)?,
-            intelligence: stored_level(row, 4)?,
-            autonomy: stored_level(row, 5)?,
-            reliability: stored_level(row, 6)?,
-            consequence: stored_level(row, 7)?,
-            verification: stored_level(row, 8)?,
+            duration: stored_level(row, 1)?,
+            budget: stored_level(row, 2)?,
+            intelligence: stored_level(row, 3)?,
+            autonomy: stored_level(row, 4)?,
+            reliability: stored_level(row, 5)?,
+            consequence: stored_level(row, 6)?,
+            verification: stored_level(row, 7)?,
         },
-        agent: row.get(9)?,
-        demand: row.get(10)?,
-        rules: row.get(11)?,
-        conflict: row.get(12)?,
-        oms_version: row.get(13)?,
-        skills: row.get(14)?,
+        agent: row.get(8)?,
+        demand: row.get(9)?,
+        rules: row.get(10)?,
+        conflict: row.get(11)?,
+        oms_version: row.get(12)?,
+        skills: row.get(13)?,
     })
 }
 

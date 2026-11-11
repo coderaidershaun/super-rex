@@ -2,9 +2,12 @@
 
 For agent that runs orchestrator skill: session at step 7 of `.claude/skills/orchestration-builder/run.md`. Uses words of `.claude/skills/orchestration-builder/SKILL.md`, and words below.
 
+## Words
+
 - `JOB_DIR`: Absolute path where job branch is checked out. `.claude/skills/rex-deliver/start.md` gives it.
 - Tag block: First lines of brief: `Rex-Job: <job ID>`, `Rex-Role: <role>`, then one blank line.
 - Lead skill: Reusable file for lead: `<role>.md` in folder of orchestrator skill.
+- Output file: File where one sub-agent writes its full report: `<HOME_DIR>/.rex/plans/<job ID>/<role>.md`. IF that file exists, THEN `<role>-<n>.md`, with lowest free `<n>` from 2. Example: second run of `reviewer` writes `reviewer-2.md`. Parallel writer: `<role>--<unit>.md` (`.claude/skills/rex-deliver/parallel-writers.md`), so writers of one role get distinct files. Never overwrite output file. Store folder, not in Git. This is the one home of this rule.
 
 ## Briefs
 
@@ -13,18 +16,20 @@ Each brief starts with tag block, as its first characters. Hooks read it to reco
 - [ ] Nothing before tag block: no heading, quote mark, or code fence. One space after each colon.
 - [ ] `Rex-Job`: copy it from tag block of your own brief. Session copies `job=` that `rex job create` printed.
 - [ ] `Rex-Role`: role of new sub-agent, as role table names it.
-- [ ] Session agent: tag block is only source of its role.
 - [ ] Do not tell agents to correct tags of brief already sent, or to send it again.
 - [ ] Paths in brief are absolute. Git worktree does not hold files that Git ignores. Skill paths start at `HOME_DIR`, never at `JOB_DIR`: most repos ignore `.claude/skills/` and `.rex/skills/`. Exception: path of new skill that `.claude/skills/orchestration-builder/stages/1-skills/write-skill.md` wrote at `JOB_DIR` starts at `JOB_DIR`.
 - [ ] Writer in Git repo: IF job works in job worktree, THEN brief gives `JOB_DIR`.
 - [ ] Parallel writer: its lines come from `.claude/skills/rex-deliver/parallel-writers.md`.
 - [ ] Task detail from work breakdown goes in brief.
-- [ ] Skills in brief: only `Skills` of task of that agent, from its row in work breakdown. Path of skill = its `Path` in skill list. Path of sibling file `<skill>/<file>.md` = folder of that `Path` + `<file>.md`. Agent reads these first. It also reads a sibling file when a `SKILL.md` that it read sends it there.
-- [ ] Agent of lead, or of role with no task (`—` in `Tasks`): skills of its role, from role table.
-- [ ] Lead: brief gives rows of tasks that it leads, with their Skills. Each worker brief of lead names only skills + sibling files of that worker's task.
+- [ ] Skills in brief: only `Skills` + `Open when` of task of that agent, from its row in work breakdown. Path of skill = its `Path` in skill list. Path of sibling file `<skill>/<file>.md` = folder of that `Path` + `<file>.md`.
+- [ ] Agent reads `Skills` first. It opens an `Open when` item only IF its work reaches that case. Each read stays in its context, and cache gives it again on each later call.
+- [ ] Brief lists each `Open when` item as name + case + absolute path. Template line below.
+- [ ] Agent of lead, or of role with no task (`—` in `Tasks`): `Skills` + `Open when` of its role, from role table.
+- [ ] Lead: brief gives rows of tasks that it leads, with their `Skills` + `Open when`. Each worker brief of lead names only skills + sibling files of that worker's task.
 - [ ] Grid agent has no Skill tool. It reads only files that its brief names, by absolute path. Write that in brief: template line below.
 - [ ] Lead gets path of its lead skill in brief. Lead reads it IN FULL. Plain file read, not Skill tool.
 - [ ] Brief is for agent with no context: full sentences.
+- [ ] Brief names output file of agent. Agent that needs report of other agent gets path of its output file, never text.
 
 Template:
 
@@ -34,10 +39,10 @@ Rex-Role: <role>
 
 Outcome: <one deliverable, and why it matters>.
 Scope: <the files and state that you own, the prerequisites, the starting revision, and the edits or failures that exist already>.
-Context: <the requirements, interfaces, decisions, and locations of artifacts that apply>. <Grid agent: You have no Skill tool.> Read these files in full with the Read tool, one file for each call, before you start: <absolute paths of the skills and sibling files of your task, or of your role>. Also read a sibling file when one of these SKILL.md files sends you there. A path that starts with `.rex/skills/` or `.claude/skills/` starts at <HOME_DIR>.
+Context: <the requirements, interfaces, decisions, and locations of artifacts that apply>. <Grid agent: You have no Skill tool.> Read these files in full with the Read tool, one file for each call, before you start: <absolute paths of the Skills of your task, or of your role>. Also read a sibling file when one of these SKILL.md files sends you there. Open each of these files only when your work reaches its case: <each Open when item of your task, or of your role, as name — case — absolute path, or leave this sentence out when Open when is —>. A skill that a SKILL.md names, such as a sister skill, is not a file to read: open it only when this brief lists it. A path that starts with `.rex/skills/` or `.claude/skills/` starts at <HOME_DIR>.
 Acceptance: <the evidence that you must show to pass>.
 Limits: <the time and effort, the concurrency, and when to escalate>.
-Return: Give a short verdict and references: paths and commits. Map each acceptance criterion to its evidence. List the open issues. End the report with one state: done, partial, awaiting decision, or blocked.
+Return: Write your full report to <output file>: a short verdict, references (paths and commits), each acceptance criterion with its evidence, and the open issues. If that file exists, write to the same name with -2, -3, and so on, before .md: the lowest number that is free. Your final message has at most 2,000 characters: the path of the file that you wrote, a summary of at most 5 lines, and one state: done, partial, awaiting decision, or blocked.
 ```
 
 ## Limits of Claude Code
@@ -48,7 +53,7 @@ Read `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md` bef
 
 Guidance, not rules. Orchestrator can do different.
 
-- [ ] Short reports. Sub-agent returns short verdict + references (paths, commits). No long report, no chatter.
+- [ ] Short reports. Sub-agent writes full report to its output file. Final message: path + summary, max 2,000 characters. `rex job close` names each run whose final message is longer. No chatter.
 - [ ] Report ends with one of four states: `done`, `partial`, `awaiting decision`, `blocked`.
 - [ ] "How is it going?" from person or agent: answer from `REX_STORE="$HOME_DIR/.rex" rex status <job-id>`. Sub-agent can run it also.
 - [ ] `rex status` prints one header line for job: ID, status, counts `open`, `finished`, `unconfirmed`. Then one line for each run: agent ID, role, agent type, duration, tokens.

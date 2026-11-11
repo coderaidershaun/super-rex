@@ -3,9 +3,10 @@
 Read this file when you start parallel writers in a repo. You = agent that starts them: session or lead. Whoever fans out, fans in.
 This file uses `## Words`, `## Rules` and `## Inputs` of `.claude/skills/rex-deliver/SKILL.md`. Read that file in full first. Two of its lines apply to each step here: `$NAME` in `## Words`, and the CAUTION about the main checkout in `## Rules`, because `PARENT_DIR` can be the main checkout.
 - `JOB`: job ID. `REPO_DIR`: absolute path of repo root. `CHECKS`: commands that prove work (build, test). IF empty, THEN run no check.
-- `PARENT`: your own branch. `PARENT_DIR`: absolute path where `PARENT` is checked out. A lead gets all five in its brief.
+- `PARENT`: your own branch. `PARENT_DIR`: absolute path where `PARENT` is checked out. A lead gets all five + `HOME_DIR` in its brief.
 - Unit: one piece of work for one parallel writer. Name: 1 to 3 lower-case words joined by single hyphens, `a-z 0-9 -`. Unique in job. `root` + `review` are reserved.
 - Unit branch: `$PARENT--<unit>` (two hyphens). Never a slash: Git cannot hold `a/b` and `a/b/c` together.
+- `OUTPUT_FILE`: `$HOME_DIR/.rex/plans/$JOB/<role>--<unit>.md`, where writer puts its full report. Unit name is unique in job, so each writer gets its own file. Naming rule: `## Words` of `.claude/skills/orchestration-builder/stages/3-orchestration/briefs.md`.
 - Unit worktree: `$REPO_DIR/.rex/worktrees/$JOB/<all text of unit branch after "$JOB--">`. Example: `feature/csv-export-0g4cbf7k2q--parser--lexer` is in `.rex/worktrees/0g4cbf7k2q/parser--lexer`.
 - [ ] Never use Claude Code `isolation: "worktree"` for writers. Its names carry no job ID, so clean-up cannot find them. Its guard also refuses writes to main checkout.
 - [ ] Never rebase. Merge only.
@@ -35,6 +36,7 @@ Commit only on <UNIT_BRANCH>. Do not switch branches, rebase, amend a pushed com
 If the repo has a remote, push with `git -C <UNIT_DIR> push origin <UNIT_BRANCH>`. Never use `git push -u`.
 If a push prints "could not lock config file", the push is still complete.
 Do not remove the worktree or delete the branch. Commit all of your work before you report.
+Write your full report to <OUTPUT_FILE>. Your final message has at most 2,000 characters: that path, the commit hashes, a summary of at most 5 lines, and one state: done, partial, awaiting decision, or blocked.
 ```
 5. After writer reports: IF `git -C "$UNIT_DIR" status --porcelain` prints text, THEN writer left uncommitted work. DO resume writer to commit it UNTIL status prints nothing OR 2 tries done. IF status still prints text, THEN report `blocked` to agent that started you, with that status output.
 6. Merge each unit branch: `git -C "$PARENT_DIR" merge --no-ff --no-edit "$UNIT_BRANCH"`.

@@ -19,7 +19,8 @@ const DELIVER: &str = ".claude/skills/rex-deliver/SKILL.md";
 const FEEDBACK: &str = ".claude/skills/rex-feedback/SKILL.md";
 const CAUSE: &str = ".claude/skills/rex-feedback/cause.md";
 
-/// A plan with a capped role, a session role, and skills for two roles.
+/// A plan with a capped role, the decision-maker that the builder adds, and
+/// skills for two roles.
 const PLAN: &str = r#"{
   "orchestrator": "pipeline",
   "skills": ["rex-code-tdd", "rex-code-philosophy"],
@@ -27,7 +28,7 @@ const PLAN: &str = r#"{
   "roles": [
     {"role": "engineer", "intelligence": "high", "reliability": "high", "consequence": "high", "verification": "low", "skills": ["rex-code-tdd", "rex-code-philosophy"]},
     {"role": "reviewer", "intelligence": "medium", "reliability": "medium", "consequence": "medium", "verification": "high", "skills": ["rex-code-philosophy"]},
-    {"role": "decision-maker", "session": true}
+    {"role": "decision-maker", "intelligence": "high", "reliability": "medium", "consequence": "high", "verification": "medium"}
   ]
 }"#;
 
@@ -112,19 +113,28 @@ impl World {
         value(&created, "job").to_owned()
     }
 
-    /// One engineer run that opened one of its two skills.
+    /// One engineer run that opened one of its two skills, and `alpha`, which
+    /// it was not given, and that returned a final message of 2,500
+    /// characters. A second engineer run returned a short one.
     fn add_run(&self, job: &str) {
         Store::open(&self.paths)
             .unwrap()
             .write(|tx| {
                 tx.execute(
                     "INSERT INTO sub_agent_run (job_id, session_id, agent_id, depth, role,
-                                                skills_opened, first_seen_at, started_at, stopped_at)
-                     VALUES (?1, 'contract-session', 'a1b8', 1, 'engineer', 'rex-code-tdd',
+                                                skills_opened, final_message, first_seen_at,
+                                                started_at, stopped_at)
+                     VALUES (?1, 'contract-session', 'a1b8', 1, 'engineer', 'alpha,rex-code-tdd',
+                             ?2,
+                             strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                             strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                             strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                            (?1, 'contract-session', 'a1b9', 1, 'engineer', 'rex-code-tdd',
+                             'Done. Report: /repo/.rex/plans/job/engineer.md',
                              strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                              strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                              strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
-                    [job],
+                    [job, &"x".repeat(2500)],
                 )
                 .map_err(StoreError::from)
             })
@@ -310,6 +320,16 @@ fn each_key_the_skills_copy_is_in_the_real_output() {
         deliveries,
     );
     gaps.extend(unprinted(RUN, &block(RUN, "missed_skills=<n>"), &closed));
+    // `alpha` has 16 words in its `SKILL.md`. The assigned skill is not listed.
+    assert!(
+        closed.contains("\nextra_skills=1\nextra_skill.1=engineer alpha skill_md_words=16\n"),
+        "{closed}"
+    );
+    // Only the long final message is flagged, with its role and its length.
+    assert!(
+        closed.ends_with("\nlong_messages=1\nlong_message.1=engineer a1b8 chars=2500\n"),
+        "{closed}"
+    );
     let feedback = world.rex(
         &[
             "feedback",

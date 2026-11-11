@@ -11,6 +11,7 @@ use rusqlite::Connection;
 use crate::capture::{
     CaptureError, Cost, JobRuns, Run, RunState, TokenTotal, job_runs, last_activity_ms,
 };
+use crate::commands::gate::SpendLimit;
 use crate::commands::stdout::print_line_to_stdout;
 use crate::commands::token_text::{cost_text, split_text};
 use crate::error::{CommandError, RexError};
@@ -20,7 +21,7 @@ use crate::store::{JobId, Store, StoreError, StorePaths};
 /// Arguments of `rex status`.
 #[derive(clap::Args)]
 #[command(
-    after_help = "Exits 0 also when no job is open, with the line `no open job`. Tokens are `in` (input), `cache-w` (cache writes), `cache-r` (cache reads) and `out` (output); `hit` is the share of prompt tokens read from the cache; the dollar figure is their cost at list prices, `≥` when some requests ran on a model with no price. A `~` at the end means the counts can still grow."
+    after_help = "Exits 0 also when no job is open, with the line `no open job`. Tokens are `in` (input), `cache-w` (cache writes), `cache-r` (cache reads) and `out` (output); `hit` is the share of prompt tokens read from the cache; the dollar figure is their cost at list prices, `≥` when some requests ran on a model with no price. A `~` at the end means the counts can still grow. From 80% of the spend limit of a job that is created or planned, a `warning:` line follows the header (see `rex limit`)."
 )]
 pub struct StatusOptions {
     /// The job to show. Without it, every job that is created or planned.
@@ -105,7 +106,8 @@ where
     })
 }
 
-/// The header of a job and its sections, one line each.
+/// The header of a job, the warning near its spend limit, and its sections, one
+/// line each.
 fn job_lines(
     store: &Store,
     now: SystemTime,
@@ -122,6 +124,13 @@ fn job_lines(
     };
     let now_ms = millis(now);
     let mut lines = vec![header(job, stored, runs)];
+    // The gate checks only an open job, so a closed one gets no warning.
+    if matches!(stored, Status::Created | Status::Planned) {
+        let spent = runs.cost.unwrap_or_default();
+        if let Some(warning) = SpendLimit::of(store, job)?.warning(job, &spent) {
+            lines.push(warning);
+        }
+    }
     for (state, name) in [
         (RunState::Open, "open"),
         (RunState::Finished, "finished"),
