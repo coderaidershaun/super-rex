@@ -63,6 +63,9 @@ When you explore codebase, use domain words that code uses. Purpose: test names 
 
 Before you write any code:
 
+IF you are sub-agent, THEN never ask person direct. Take interface + behaviors from plan or brief. IF one is missing, THEN send `STATUS: QUESTIONS` to caller. Below, "user" = caller.
+
+
 - [ ] Confirm with user what interface changes to make
 - [ ] Confirm with user which behaviors to test (prioritize)
 - [ ] Identify opportunities for deep modules (small interface, deep implementation)

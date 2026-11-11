@@ -22,7 +22,7 @@ Rot = code that was right when written and is wrong now. Nobody edited it. World
 | deprecated API | build warnings with `deprecated`, `grep -rn 'allow(deprecated)'` | replacement exists? removal in next major? | `-D deprecated` in hook |
 | test that does not run | `grep -rn '#\[ignore'` | reason still holds? `cargo test -- --ignored` still passes? | `#[ignore = "reason"]`. Ignored test with no reason = finding |
 | half migration | names with `_old`/`_new`/`legacy`/`v2`, two impls of one job | both paths still have callers? | finish or revert. Two live paths = two places for every fix |
-| unused or stale dep | `cargo machete`, `cargo tree -d`, `cargo outdated` IF installed | dep still used? major versions behind? | dep check in pre-push hook |
+| unused or stale dep | `cargo machete`, `cargo tree -d`, `cargo outdated` IF installed | dep still used? major versions behind? | remove or bump dep (`rex-code-external-libraries`) |
 | dead cfg | `#[cfg(feature = "x")]`, x not in `[features]` | rustc `unexpected_cfgs` warning | keep `unexpected_cfgs` at warn or deny |
 | stale doc example or path | commands, flags, paths in README + doc comments | `cargo test --doc` passes? command in `--help`? each path → `test -e` | doc tests run in hook. Prefer doc test to prose example |
 

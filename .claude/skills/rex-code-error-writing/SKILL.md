@@ -117,7 +117,7 @@ Each layer add specific context. Do not repeat parent.
 - **`anyhow::Error` in lib pub fn return.** Bin only.
 - **String-only errors (`Result<T, String>`).** No source chain. No match.
 - **Stringly-typed match.** `if e.to_string().contains("not found")`. Use variant.
-- **Swallow w/ `let _ = ...`.** Log it or handle. Never silent drop.
+- **Swallow w/ `let _ = ...`.** Return it with `?`, or handle it. Log alone is not handle: supervisor acts on its failure class (`rex-code-failure-policy`). Never silent drop.
 - **`println!` instead of return.** Library not own stdout.
 - **Catch-all `Other(String)` variant.** Forces stringly-typed match. Define variant or wrap concrete.
 

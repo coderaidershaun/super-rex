@@ -4,6 +4,12 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+### Changed
+
+- Eleven places where two skills told an agent different things now agree, each settled by the skill whose whole subject it is. An error that is only logged is not handled (`rex-code-failure-policy`). Doc comments are for the public API of a library and never restate the name (`rex-code-commenting`). A file's top comment names no other file, and the crate root may add the priority block. A `SMELL` flag stays until the commit that fixes its problem. A `TODO` is fixed, deleted, or made a `SMELL` flag. "Seam" has one meaning. Prototype first when the domain is unknown, test first when the plan gives the interface. No mock of your own code. A sub-agent that runs TDD asks its caller, never the person. Pre-release crates are tried in a spike outside the repo. Unused crates are removed, found with `cargo machete`.
+- "Core rules", which the orchestration skills used without defining, now names the skills: `rex-code-philosophy` and `rex-code-commenting` for every language, `rex-code-ergonomics` and `rex-code-error-writing` for Rust, and one skill for each kind of work. Stage 1 puts them in the skill list of a job that writes code.
+- `rex-code-external-libraries` has the rule again that a crate's types stay out of your public API unless that crate is part of your contract.
+
 ## 0.2.0 - 2026-11-11
 
 ### Added

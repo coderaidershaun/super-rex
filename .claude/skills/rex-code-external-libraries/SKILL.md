@@ -115,12 +115,13 @@ One version. One feature set. No drift between members.
 
 - **`*` or unbounded version.** Pin caret semver.
 - **Yanked version.** Bump.
-- **Pre-release in main branch.** Spike branch only, w/ warning comment that gives reason.
+- **Pre-release version.** Try it in spike (`rex-code-spike`): scratch dir outside repo. Never in source tree.
 - **Default features when subset suffices.** Audit + trim.
 - **Two TLS backends linked.** Pick one.
 - **`git = "..."` dep w/o pinned `rev`.** Floating git = surprise breakage. Pin SHA or use crates.io.
-- **Crate that someone added "to try" and never removed.** Dead deps rot. `cargo machete` periodically.
+- **Unused crate.** Dead deps rot. Remove it. `cargo machete` finds them: run it before commit IF installed. IF repo runs checks as git hooks, THEN add it to pre-push.
 - **New crate for one fn that std already has.** Use std first.
+- **Crate type in your `pub` API** when crate is not part of your contract. Its major bump becomes yours. Convert to own type at edge.
 
 ## Anti-patterns
 

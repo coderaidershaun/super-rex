@@ -43,6 +43,7 @@ Decision agent (`correct.md`):
 - Builder: Agent that obeys `orchestration-builder`.
 - Decision agent: Sub-agent of builder that does stages 1 to 3. It made decision. It examines findings + corrects decision.
 - Decision: Output of three stages: skill list, work breakdown, orchestrator skill, role table.
+- Core rules: Skills that each task that writes code reads. Each language: `rex-code-philosophy`, `rex-code-commenting`. Rust adds `rex-code-ergonomics`, `rex-code-error-writing`. Kind of work adds its skill: tests → `rex-code-tdd` OR skill of that test kind (`rex-code-tests-*`). New, split, or moved file → `rex-code-folder-management`. Crate added → `rex-code-external-libraries`. Outside input, retry, or main loop → `rex-code-failure-policy`.
 - Decision block: Text form of decision. Decision agent gives it. Builder copies it into brief of challenger.
 - Challenger: Fresh sub-agent that checks decision. It made no part of decision. Role `decision-challenger`.
 - Skill list: Skills this job uses. Output of stage 1.
@@ -72,7 +73,7 @@ Skills (most important):
 - [ ] Each skill in skill list: IF no task and no role gets it, THEN finding. Included is not sufficient. An agent must read it.
 - [ ] Each task: IF it needs a skill that its `Skills` do not give, THEN finding. Example: build task gets `rex-code-tdd`, test task does not.
 - [ ] Each lead, and each role with no task: IF its job needs a skill that it does not get, THEN finding.
-- [ ] Task that writes code: IF its `Skills` do not give core rulebooks for its language and its kind of work, THEN finding.
+- [ ] Task that writes code: IF its `Skills` do not give core rules for its language and its kind of work, THEN finding.
 - [ ] Language other than `rust`: IF no gap skill covers it, THEN finding.
 - [ ] Lesson of recall output that names a skill: IF decision ignores it, THEN finding.
 - [ ] Skill in list that job does not need, OR skill of a task that task does not need: finding, severity `MINOR`. Each loaded skill costs context.

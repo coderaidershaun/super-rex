@@ -43,7 +43,7 @@ Sister skills:
 | Shared data | Types that 2+ jobs use. Example: format saved on disk. |
 | Leaf | Module that imports no other module of crate. |
 | Interface | Names that root file exports. All that caller must know. |
-| Seam | Trait with 2+ adapters. Example: live adapter + test adapter. |
+| Seam | Place where module's interface lives: behavior changes there with no edit there. Real seam = trait with 2+ adapters. Example: live adapter + test adapter. Full words: `.claude/skills/rex-code-improve-codebase-architecture/LANGUAGE.md`. |
 | Joint | Place where file divides clean: one unit, one caller, small interface. |
 | Move | Change of path with no change of code. |
 | Hidden behavior | Behavior that depends on path or comment. Compiler does not see change. |
@@ -88,8 +88,8 @@ Sister skills:
 - [ ] Types file = noun (`reply`). Calls file = verb (`transcribe`).
 - [ ] Forbidden names: `utils`, `helpers`, `common`, `misc`, `shared`, `stuff`, `manager`.
 - [ ] Name must not promise more than file holds.
-- [ ] IF file holds part of decision, THEN `//!` tells which part + where rest lives in plain words.
-- [ ] Each module starts with `//!`, 1 to 2 lines: why module exists.
+- [ ] IF file holds part of decision, THEN `//!` tells which part, in plain words. No path to other file: tree shows where rest lives (`rex-code-commenting`).
+- [ ] Each module starts with `//!`, 1 to 2 lines: why module exists. Crate root can add priority block after it (`rex-code-priorities`).
 - [ ] After each move, make sure each `//!` is true.
 
 ## RULES: imports + visibility

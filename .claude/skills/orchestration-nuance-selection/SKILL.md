@@ -39,6 +39,7 @@ Settle which skills this job uses. Ask for new skill only IF test of step 3 pass
 - Skill list: Skills this job uses. Output of stage 1.
 - Nuanced skill: Skill for something particular to repo or to kind of work, that no other skill covers.
 - Gap skill: Nuanced skill for one language. It covers what Rust gives by default and that language does not.
+- Core rules: Skills that each task that writes code reads. Each language: `rex-code-philosophy`, `rex-code-commenting`. Rust adds `rex-code-ergonomics`, `rex-code-error-writing`. Kind of work adds its skill: tests → `rex-code-tdd` OR skill of that test kind (`rex-code-tests-*`). New, split, or moved file → `rex-code-folder-management`. Crate added → `rex-code-external-libraries`. Outside input, retry, or main loop → `rex-code-failure-policy`.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
 - `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
 - Brief: Prompt that sub-agent gets.
@@ -73,6 +74,7 @@ From request, classification, lessons of recall output, and look at repo: find w
 - [ ] For each need: find skill in list that covers it.
 - [ ] IF skill covers need, THEN add that skill to skill list. Write nothing new.
 - [ ] IF no skill covers need, THEN do step 3 for it.
+- [ ] Job writes code: add core rules of each language and each kind of work of job to skill list.
 - [ ] For each language in classification that is not `rust`: do `## Gap skill`.
 - [ ] Plan job (`.claude/skills/orchestration-builder/plan-jobs.md`): add `rex-codex-adversarial-review` to skill list.
 

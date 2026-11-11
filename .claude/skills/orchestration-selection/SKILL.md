@@ -79,7 +79,7 @@ For each role, define:
 - [ ] Job: one primary job.
 - [ ] Tasks: tasks of work breakdown that role does. Each task gets one role that does it. Lead: tasks that it leads. Role that only checks work of other roles (example: `reviewer`, `verifier`): `—`.
 - [ ] Skills of role that does tasks: union of Skills of its tasks.
-- [ ] Skills of lead, and of role with `—`: skills it reads for its own job, from skill list: core rules + skills for its job. Gap skill of each language that role writes.
+- [ ] Skills of lead, and of role with `—`: skills it reads for its own job, from skill list: core rules (Words of `.claude/skills/orchestration-nuance-selection/SKILL.md`) + skills for its job. Gap skill of each language that role writes.
 - [ ] Skills that orchestrator skill gives a role: add them to Skills of each task of that role, and to skill list with their `Path` (`path=` line of `rex skills list`).
 - [ ] Reuse: roles come from reused file. Give tasks + skills the same way.
 

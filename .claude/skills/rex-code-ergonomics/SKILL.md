@@ -138,7 +138,7 @@ Unit tests inline in `#[cfg(test)] mod tests`: `.claude/skills/rex-code-tests-un
 Per `rex-code-commenting`: default no comment. Rust-specific:
 
 - **No `// returns user` on `fn -> User`.** Type say it.
-- **`///` doc comment on pub item.** Lint (`missing_docs`) requires it. Write WHY, example, panics, errors.
+- **`///` doc comment on public API of library crate.** IF crate sets `missing_docs`, THEN lint requires it. Write what name + type cannot say: WHY, example, panics, errors. Doc that restates name = delete (`rex-code-commenting`).
 - **`//` inline comment only when WHY non-obvious.** Lifetime quirk, perf hack, vendor bug.
 
 ## Checklist before commit
@@ -148,7 +148,7 @@ Per `rex-code-commenting`: default no comment. Rust-specific:
 - [ ] Newtype around domain primitives
 - [ ] Methods on types, not free fns in `_utils` modules
 - [ ] No lifetime annotation in struct unless necessary
-- [ ] `///` docs on every `pub` item
+- [ ] `///` docs on public API of library crate. None that restate name or type
 - [ ] More than 3 args -> struct or builder
 - [ ] Error rules → `rex-code-error-writing` checklist
 - [ ] Comment rules → `rex-code-commenting` ergonomics check

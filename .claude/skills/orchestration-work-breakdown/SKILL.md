@@ -28,6 +28,7 @@ IF job has one outcome, THEN write one task and go to step 6.
 
 - Decision agent: Sub-agent of builder that does stages 1 to 3. Its brief gives input of each stage.
 - Skill list: Skills this job uses. Output of stage 1.
+- Core rules: Skills that each task that writes code reads. Each language: `rex-code-philosophy`, `rex-code-commenting`. Rust adds `rex-code-ergonomics`, `rex-code-error-writing`. Kind of work adds its skill: tests → `rex-code-tdd` OR skill of that test kind (`rex-code-tests-*`). New, split, or moved file → `rex-code-folder-management`. Crate added → `rex-code-external-libraries`. Outside input, retry, or main loop → `rex-code-failure-policy`.
 - Task: One outcome of job, with evidence that shows it is complete.
 - Dependency: Task T2 uses output of task T1. Then T2 depends on T1.
 - Shared contract: Interface, data form, or decision that 2 or more tasks use.

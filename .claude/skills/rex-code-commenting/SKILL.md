@@ -69,7 +69,7 @@ This skill document uses compressed words to save tokens. Comments in code do NO
 - **Stale comments.** Lie silently for years. Worse than nothing. Wrong > missing.
 - **Commented-out code.** Git remember. Delete. No "backup" blocks. No "old version below".
 - **History comments.** `// 2024-03: added PayPal`. Use `git log` + commit message.
-- **TODO/FIXME drift.** Vague promise = abandoned. File ticket OR fix now. No middle.
+- **TODO/FIXME drift.** Vague promise = abandoned. Fix now, delete it, OR make it SMELL flag with reason (whitelist #7). Repo with issue tracker: ticket ref also OK (whitelist #4). No middle.
 - **Design band-aid.** IF comment explain why code weird, THEN refactor code, not annotate. Exception: IF refactor truly not possible now, THEN flag it as code smell (whitelist #7). Flag REQUIRED then, not forbidden.
 - **Section dividers in long fns.** `// --- validation ---`. Function too long. Extract instead.
 - **AI-generated noise.** LLM produce verbose what-comments. Strip ruthlessly on commit.
@@ -90,6 +90,7 @@ Rules for every language:
 - [ ] IF file has license header, THEN write license first, then blank line, then module comment.
 - [ ] Nothing else comes before comment. Only lines in column "Allowed before comment" of `module-comments.md` + directive lines.
 - [ ] No tag (example: `@file`, `@brief`) comes before first sentence.
+- [ ] Exception to 1-2 lines: crate root can hold priority block after first sentence, max 8 lines (`rex-code-priorities`).
 
 ## Permitted — narrow whitelist
 
@@ -103,7 +104,7 @@ Rules for every language:
 
 That is all. Nothing else.
 
-**Whitelist entries 2 and 7 are permanent.** ALWAYS include + keep warnings, code-smell flags, hazard notes, `SAFETY:` blocks, known-limitation notes. Cleanup passes, comment sweeps, and AI hygiene passes must never delete them. Tighten wording. Never remove flag. Removal of one = new silent trap.
+**Whitelist entries 2 and 7 are permanent.** ALWAYS include + keep warnings, code-smell flags, hazard notes, `SAFETY:` blocks, known-limitation notes. Cleanup passes, comment sweeps, and AI hygiene passes must never delete them. Tighten wording. Never remove flag while its problem is in code. Removal of one = new silent trap. Remove flag only in commit that fixes problem it names.
 
 ## Self-document first (try in order)
 
@@ -125,7 +126,8 @@ Want add comment?
   ├─ Code self-evident to a stranger? -> No comment. Best comment = no comment.
   ├─ Restating what code do? -> DELETE. No comment.
   ├─ Can rename/extract/refactor remove need? -> DO THAT. No comment.
-  ├─ History/TODO? -> git/ticket. No comment.
+  ├─ History? -> git. No comment.
+  ├─ TODO? -> fix now, delete, or SMELL flag with reason.
   ├─ About the plan, the task, or another file? -> DELETE, or rewrite as the plain constraint.
   ├─ Code smell / hazard you cannot fix now? -> FLAG IT. Required. Permanent.
   ├─ WHY non-obvious / warning / edge / ref / public API? -> WRITE. One or two plain sentences.

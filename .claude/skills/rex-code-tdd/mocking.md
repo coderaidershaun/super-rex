@@ -1,6 +1,8 @@
 # When to Mock
 
-Mock at **system boundaries** only:
+Mock at **system boundaries** only, and only IF no real or local stand-in exists (test DB, temp dir, sandbox, clock that test passes in). In Rust: stand-in = coarse test adapter behind trait, in contract or integration test. Never mock in unit test (`rex-code-tests-unit-testing`).
+
+System boundaries:
 
 - External APIs (payment, email, etc.)
 - Databases (sometimes - prefer test DB)

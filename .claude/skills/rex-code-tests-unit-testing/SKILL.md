@@ -19,7 +19,7 @@ Sister skills:
 - `rex-code-tests-contract-seams` — module-to-module
 - `rex-code-tests-integration-testing` — outside world
 - `rex-code-tests-fitness-functions` — immortal invariants (promotion target)
-- `rex-code-philosophy` — integration > unit, no mock unless forced
+- `rex-code-philosophy` — integration > unit, no mock of own code
 - `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-commenting`
 
 ## Iron rule

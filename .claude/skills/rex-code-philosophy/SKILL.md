@@ -86,9 +86,9 @@ Rules for each kind of test: `rex-code-tdd` + `rex-code-tests-*` skills.
 - **Integration test = sweet spot.** High enough = correctness. Low enough = see what break.
 - **Few e2e.** Curated. Hard debug.
 - **Unit test = rare.** Refactor break them. Limited long-term value.
-- **No mock unless forced.** Coarse only. Mocked pass + prod fail = worst.
+- **No mock of own code.** Outside world: real or local stand-in first (test DB, temp dir, sandbox). IF forced, THEN one coarse test adapter behind seam, never per-call expectations. Mocked pass + prod fail = worst.
 - **Bug found → regression test first → fix.** Always.
-- **Test after prototype.** Domain first. Test second.
+- **Domain unknown → prototype first, test second.** Prototype = spike (`rex-code-spike`), thrown away. Domain known (interface in plan) → test first, red-green (`rex-code-tdd`).
 
 ## Refactoring + piecemeal growth
 
