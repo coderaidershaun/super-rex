@@ -1,82 +1,26 @@
-//! Cuts the output of one test run to what an agent needs: the summary when
-//! the run passed, and every line except the proven passing ones when it failed.
+//! Cuts the output of one test run to what an agent needs: every line except
+//! the ones proven to report a passing test or a build step.
 
-use super::command::STATUS_MARKER;
-
-/// The exit status when the output has no status line, so the run cannot be
-/// known to have passed.
-const UNKNOWN_STATUS: u8 = 1;
-
-/// The text to print for `output`, and the exit status to end with.
-/// `see_every_line` ends each note and tells where the whole output is.
-pub(super) fn cut(output: &str, see_every_line: &str) -> (String, u8) {
-    let Some((body, status)) = split_status(output) else {
-        let note = "rex test-filter: the exit status of the command was not found, so every line is shown.";
-        return (format!("{output}{note}\n"), UNKNOWN_STATUS);
-    };
-    let lines: Vec<&str> = body.lines().collect();
-    let text = if status == 0 {
-        summary(&lines, see_every_line)
-    } else {
-        failures(&lines, status, see_every_line)
-    };
-    (text, status)
-}
-
-/// True when `line` ends with the status line that the changed command prints
-/// after the test command.
-pub(super) fn is_status_line(line: &str) -> bool {
-    split_status(line).is_some()
-}
-
-/// The output before the status, and the status. `None` when the output does
-/// not end with the status marker and a number from 0 to 255.
-fn split_status(output: &str) -> Option<(&str, u8)> {
-    let without_end = output.strip_suffix('\n').unwrap_or(output);
-    // The marker can follow test output that had no line end of its own.
-    let (body, status) = without_end.rsplit_once(STATUS_MARKER)?;
-    Some((body, status.parse().ok()?))
-}
-
-fn summary(lines: &[&str], see_every_line: &str) -> String {
-    let mut kept: Vec<&str> = lines
-        .iter()
-        .copied()
-        .filter(|line| is_summary(line))
-        .collect();
-    if kept.is_empty() {
-        let mut last: Vec<&str> = lines
-            .iter()
-            .rev()
-            .copied()
-            .filter(|line| !line.trim().is_empty())
-            .take(3)
-            .collect();
-        last.reverse();
-        kept = last;
-    }
-    let note = format!(
-        "rex test-filter: exit status 0; kept {} of {} lines, the summary. {see_every_line}",
-        kept.len(),
-        lines.len()
-    );
-    with_note(&kept, &note)
-}
-
-fn failures(lines: &[&str], status: u8, see_every_line: &str) -> String {
+/// The text to print for `output`. A line is left out only when it is in the
+/// exact form a runner prints for a passing test or a build step, so no line
+/// of a failure is ever cut, whether the run passed or not. The filter cannot
+/// see the exit status of the test command: `set -o pipefail` gives it to the
+/// shell. `see_every_line` ends the note and tells where the whole output is.
+pub(super) fn cut(output: &str, see_every_line: &str) -> String {
+    let lines: Vec<&str> = output.lines().collect();
     let mut kept: Vec<&str> = Vec::new();
-    let mut left_out = 0;
     let mut place = Place::BeforeTests;
-    for line in lines {
+    for line in &lines {
         place = place.after(line);
-        if place != Place::InFailureReport && is_passing(line, place) {
-            left_out += 1;
-        } else {
+        let is_cut =
+            place != Place::InFailureReport && is_passing(line, place) && !is_summary(line);
+        if !is_cut {
             kept.push(line);
         }
     }
     let note = format!(
-        "rex test-filter: exit status {status}; left out {left_out} passing lines of {}. {see_every_line}",
+        "rex test-filter: left out {} passing lines of {}. {see_every_line}",
+        lines.len() - kept.len(),
         lines.len()
     );
     with_note(&kept, &note)
@@ -132,8 +76,8 @@ fn with_note(lines: &[&str], note: &str) -> String {
 }
 
 /// True for a line that reports the totals of a run of one of the runners named
-/// below. Only a passing run is cut to these lines; a run of another runner
-/// shows its last lines instead.
+/// below. Such a line is always kept, also when it has the form of a passing
+/// line, such as go's `ok` line of a package.
 fn is_summary(line: &str) -> bool {
     let line = line.trim();
     let pytest_totals = line.starts_with('=')

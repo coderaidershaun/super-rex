@@ -266,22 +266,24 @@ source=set
 
 `source` is `default` or `set`. Spend leaves out requests on a model with no price, so it is a lower bound. When the gate refuses a new sub-agent, the job stays open: the builder starts no agent, tells you the spend, the limit and the `rex limit <job> --set <dollars>` command, and goes on with the same job (resuming each stopped lead) after you run it. Only if you decline does the job close `blocked`. The dollars for each agent do not change with the model tier, so a job on the `xhigh` tier can pass its limit before it reaches its agent cap.
 
-**`rex test-hook`** and **`rex test-filter`**: they keep the long output of test runs out of an agent's context. `rex test-hook` is called by Claude Code, not by people. `rex init` registers it for `PreToolUse` with matcher `Bash`, and writes the allow rule `Bash(rex test-filter)`:
+**`rex test-hook`** and **`rex test-filter`**: they keep the long output of test runs out of an agent's context. `rex test-hook` is called by Claude Code, not by people. `rex init` registers it for `PreToolUse` with matcher `Bash`, and writes the allow rules `Bash(rex test-filter)` and `Bash(set -o pipefail)`:
 
 ```
 rex test-hook 2>/dev/null || true
 ```
 
-When the Bash command of any session in the repo (the main session or a sub-agent) is a plain test command, such as `cargo test`, `cargo nextest run`, `pytest -q` or `go test ./...`, the hook runs it as a group, `{ cargo test`, a new line, `echo "rex-test-exit-status=$?"; } 2>&1 | rex test-filter`. `rex test-filter` reads the output on stdin and exits with the test command's status. A command with a `cd`, a pipe, a redirect, `;`, `&`, `$(`, a backtick or `exit`, and any command that is not a test command, runs as before. The person sees the changed command in a permission prompt and in the transcript.
+When the Bash command of any session in the repo (the main session or a sub-agent) is a plain test command, such as `cargo test`, `cargo nextest run`, `pytest -q` or `go test ./...`, the hook runs it as `set -o pipefail; cargo test 2>&1 | rex test-filter`. `rex test-filter` reads the output on stdin and always exits with 0, so `pipefail` ends the command with the test command's own status. The form has no braces, quotes or subshell, because Claude Code's check of a Bash command refuses those in the default permission mode. A command with a `cd`, a pipe, a redirect, `;`, `&`, `&&`, `#`, `$(`, a backtick or `exit`, and any command that is not a test command, runs as before. The person sees the changed command in a permission prompt and in the transcript.
 
 ```console
-$ printf 'running 2 tests\ntest a ... ok\ntest b ... ok\n\ntest result: ok. 2 passed; 0 failed\nrex-test-exit-status=0\n' | rex test-filter
+$ printf 'running 2 tests\ntest a ... ok\ntest b ... ok\n\ntest result: ok. 2 passed; 0 failed\n' | rex test-filter
 rex test-filter: every line of this run goes to /tmp/claude-501/rex-test-output-73691-1794402279206894000.log as it comes.
+running 2 tests
+
 test result: ok. 2 passed; 0 failed
-rex test-filter: exit status 0; kept 1 of 4 lines, the summary. To see every line, read the file named on the first line.
+rex test-filter: left out 2 passing lines of 5. To see every line, read the file named on the first line.
 ```
 
-`rex test-filter` first prints the path of a file and writes every line of the run there as it arrives, so you can read all of it. A passing run then shows the summary lines only. A failing run shows every line except the lines that a runner prints in its exact passing form, then `rex test-filter: exit status 101; left out 1 passing lines of 8. To see every line, read the file named on the first line.`, and exits with that status. Summary lines are known for cargo, cargo nextest, go, pytest, jest, vitest, mocha, rspec, mix, ctest, dotnet and Maven. Passing lines are known for cargo (test lines, and the build steps before the tests), nextest, go, pytest, jest, vitest, mocha and dotnet. For another runner, a pass shows its last 3 lines that are not blank, and a failure keeps every line. The file is named `<TMPDIR>/rex-test-output-<pid>-<nanos>.log`, has mode 0600 (only you can read it), and a later run removes such files older than 24 hours. A command is left unchanged, so it prints in full, when it holds a `cd`, a backslash, a pipe, a redirect, `;`, `&`, `$(`, a backtick or `exit`; an output flag (`--nocapture`, `--show-output`, `--list`, `--help`, `--version`, `-s`, `-v`, `--verbose`, `--collect-only`, `--no-run` and a few more); or when the call asks to run outside the sandbox. In auto mode, Claude Code can still deny a changed call if a hook changed an earlier call in the same response. The grid agents still load `CLAUDE.md` and `AGENTS.md` (`omitClaudeMd` stays off), so the rules of your repo reach them.
+`rex test-filter` first prints the path of a file and writes every line of the run there as it arrives, so you can read all of it. Then it shows every line except the lines that a runner prints in its exact passing form, whether the run passed or failed, so no line of a failure is cut. A summary line is always kept. The note at the end gives the count: `rex test-filter: left out 2 passing lines of 5.` Summary lines are known for cargo, cargo nextest, go, pytest, jest, vitest, mocha, rspec, mix, ctest, dotnet and Maven. Passing lines are known for cargo (test lines, and the build steps before the tests), nextest, go, pytest, jest, vitest, mocha and dotnet. For another runner, every line is kept. The file is named `<TMPDIR>/rex-test-output-<pid>-<nanos>.log`, has mode 0600 (only you can read it), and a later run removes such files older than 24 hours. A command is left unchanged, so it prints in full, when it holds a `cd`, a backslash, a pipe, a redirect, `;`, `&`, `$(`, a backtick or `exit`; an output flag (`--nocapture`, `--show-output`, `--list`, `--help`, `--version`, `-s`, `-v`, `--verbose`, `--collect-only`, `--no-run` and a few more); or when the call asks to run outside the sandbox. In auto mode, Claude Code can still deny a changed call if a hook changed an earlier call in the same response. The grid agents still load `CLAUDE.md` and `AGENTS.md` (`omitClaudeMd` stays off), so the rules of your repo reach them.
 
 **`rex status [<job>]`**: print where a job stands, for agents: one header line, then the runs under `open`, `finished` and `unconfirmed`. With no job, every `created` or `planned` job; `no open job` if there is none.
 
@@ -594,10 +596,10 @@ Run `rex skills list` to see each skill's description and when to use it. No lib
 - A request that Claude Code bills but writes to no transcript is not counted in the tokens, so a total can be lower than Claude Code's own figure.
 - A session started in a worktree outside the main checkout's folder is not tested. Start the session in the main checkout.
 - `rex smells` reads Rust files only.
-- A test output line that ends with `rex-test-exit-status=<n>` ends the reading of a filtered run early. No runner prints that word.
+- A filtered test run ends when its output ends. A test that leaves a child process running with the output still open makes the run wait for that child, as `cargo test | tail` would.
 - An existing `.rex/rex.db` from an earlier build has the old role table: delete it and run `rex init` again.
 - The spend limit stops new sub-agents only. Agents that already run keep spending, so a job can end over its limit. A job whose requests all ran on models with no price never reaches it. The default limits are estimates from list prices, not measured costs. `rex gate` and `rex test-hook` come from the hooks in `.claude/settings.local.json`: a `rex` on `PATH` older than your repo's setup has neither command, and then the hooks do nothing.
-- The change that `rex test-hook` makes to a test command was not seen in a session in the default permission mode. If a permission prompt still shows for it, the `{ …; }` group is the cause. If `rex` is on the hook's `PATH` but not on the shell's, the changed command fails with 127 and its output is lost.
+- The changed test command was run with `claude -p` in the default permission mode, with an allow rule for the test command: it ran with no prompt. `set -o pipefail` is set in the shell of that one Bash call. If `rex` is on the hook's `PATH` but not on the shell's, the changed command fails with 127 and its output is lost.
 
 ## Development
 

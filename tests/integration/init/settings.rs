@@ -23,15 +23,15 @@ const HOOKS: &str = r#"{
     ]
 }"#;
 
-/// The allow rule that `rex init` writes beside the hooks, so a test command
+/// The allow rules that `rex init` writes beside the hooks, so a test command
 /// piped into the filter needs no rule beyond the test command's own.
-const FILTER_RULE: &str = "Bash(rex test-filter)";
+const FILTER_RULES: [&str; 2] = ["Bash(rex test-filter)", "Bash(set -o pipefail)"];
 
 /// `settings` with the hooks and the filter's allow rule that `rex init`
 /// writes unless the hooks are left out.
 fn hooked(mut settings: Value) -> Value {
     settings["hooks"] = serde_json::from_str(HOOKS).expect("hooks JSON");
-    settings["permissions"]["allow"] = json!([FILTER_RULE]);
+    settings["permissions"]["allow"] = json!(FILTER_RULES);
     settings
 }
 
@@ -172,7 +172,9 @@ fn fresh_settings_hold_the_safety_settings_and_the_hooks() {
     // so the rule is there once.
     rex_init_ok(&repo, &[]);
     assert_eq!(read_settings(&repo), text);
-    assert_eq!(text.matches(FILTER_RULE).count(), 1);
+    for rule in FILTER_RULES {
+        assert_eq!(text.matches(rule).count(), 1, "{rule}");
+    }
 
     let written: Value = serde_json::from_str(&text).expect("settings JSON");
     let parent = written["permissions"]["additionalDirectories"][0]
@@ -245,7 +247,7 @@ fn a_settings_file_the_user_has_keeps_its_keys() {
             "deny": "Bash(sudo *)",
             "additionalDirectories": [parent_of(&with_hooks)],
             "blockWritesOutsideWorkingDirectories": true,
-            "allow": [FILTER_RULE]
+            "allow": FILTER_RULES
         },
         "sandbox": safety["sandbox"]
     });

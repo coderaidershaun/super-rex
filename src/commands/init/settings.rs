@@ -13,7 +13,7 @@ use super::file_change::FileChange;
 use super::print_line_to_stderr;
 use crate::capture::{REX_COMMANDS, hook_registration};
 use crate::commands::links::is_symlink;
-use crate::commands::test_output::FILTER_COMMAND;
+use crate::commands::test_output::{FILTER_COMMAND, PIPEFAIL_COMMAND};
 use crate::error::RexError;
 
 /// The settings file, as every message names it.
@@ -86,11 +86,14 @@ fn settings_to_add(cwd: &Path, options: InitOptions) -> Result<Map<String, Value
     let mut settings = safety_settings(parent.as_deref(), options.is_strict);
     if !options.is_without_hooks {
         settings.insert("hooks".into(), hook_registration());
-        // The test hook pipes a test command into the filter. Claude Code checks
-        // each part of a piped command against the allow rules, so without
-        // this rule each test run would ask the person again.
+        // The test hook puts `set -o pipefail;` in front of a test command and
+        // pipes it into the filter. Claude Code checks each part of such a
+        // command against the allow rules, so without these two rules each
+        // test run would ask the person again.
         if let Some(Value::Object(permissions)) = settings.get_mut("permissions") {
-            permissions.insert("allow".into(), json!([format!("Bash({FILTER_COMMAND})")]));
+            let allow =
+                [FILTER_COMMAND, PIPEFAIL_COMMAND].map(|command| format!("Bash({command})"));
+            permissions.insert("allow".into(), json!(allow));
         }
     }
     Ok(settings)

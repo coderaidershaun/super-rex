@@ -4,7 +4,7 @@
 mod command;
 mod filter;
 
-pub use command::{FILTER_COMMAND, OUTPUT_FLAGS, TEST_COMMANDS};
+pub use command::{FILTER_COMMAND, OUTPUT_FLAGS, PIPEFAIL_COMMAND, TEST_COMMANDS};
 
 use std::env;
 use std::fs::{self, File, OpenOptions};
@@ -72,14 +72,14 @@ pub fn hook_output(event: &Value) -> Option<Value> {
 #[derive(clap::Args)]
 pub struct FilterOptions {}
 
-/// Reads a test run's output on standard input and exits with the test
-/// command's exit status. That status is not one of the exit codes the other
-/// commands use, so the caller passes it on as it is.
+/// Reads a test run's output on standard input and always exits with 0, so that
+/// `set -o pipefail` in front of the pipe ends it with the exit status of the
+/// test command.
 ///
 /// It first prints the name of a file and writes each line to that file as the
 /// line arrives. A run that is stopped before it ends, such as at the time limit
 /// of the shell tool, then still leaves every line it printed. After the run it
-/// prints the summary or the failures.
+/// prints every line except the proven passing ones.
 pub fn run_filter(_options: FilterOptions) -> ExitCode {
     let mut copy = EveryLine::create();
     let see_every_line = match &copy {
@@ -102,15 +102,11 @@ pub fn run_filter(_options: FilterOptions) -> ExitCode {
         match stdin.read_until(b'\n', &mut input) {
             Ok(0) => break,
             Ok(_) => {}
-            Err(_) => return ExitCode::FAILURE,
+            // What was read is still shown below, so nothing is hidden.
+            Err(_) => break,
         }
         if let Some(every_line) = &mut copy {
             every_line.write(&input[start..]);
-        }
-        // A process that the test left running can hold the pipe open long
-        // after the run ended, so reading stops at the status line.
-        if filter::is_status_line(&String::from_utf8_lossy(&input[start..])) {
-            break;
         }
     }
 
@@ -120,10 +116,10 @@ pub fn run_filter(_options: FilterOptions) -> ExitCode {
     let cut = panic::catch_unwind(|| filter::cut(&output, see_every_line));
     panic::set_hook(default_hook);
     // A filter that broke shows every line, so no failure is hidden.
-    let (text, status) = cut.unwrap_or_else(|_| (output.to_string(), 1));
+    let text = cut.unwrap_or_else(|_| output.to_string());
     // A reader that cannot take the text leaves no one to tell.
     let _printed = print_to_stdout(&text);
-    ExitCode::from(status)
+    ExitCode::SUCCESS
 }
 
 /// The start and end of the name of each file that gets every line of a run.
