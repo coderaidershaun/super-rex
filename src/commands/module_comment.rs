@@ -32,7 +32,7 @@ pub(super) const C: Syntax = Syntax {
     ..SLASH
 };
 pub(super) const SCRIPT: Syntax = Syntax {
-    before: &["\"use ", "'use "],
+    before: &["#!", "\"use ", "'use "],
     ..SLASH
 };
 pub(super) const KOTLIN: Syntax = Syntax {
@@ -116,11 +116,12 @@ const LICENCE_STARTS: &[&str] = &[
     "this file is part of",
 ];
 
-// SMELL: a file that starts with a byte order mark gets no sentence, and nor
-// does a JavaScript or TypeScript file that starts with a `#!` line.
 /// The first sentence of the comment that opens a file, if it has one. `head`
 /// is the start of the file.
 pub(super) fn leading_sentence(head: &str, syntax: &Syntax) -> Option<String> {
+    // Some editors start a file with a byte order mark, which is not part of
+    // its first line.
+    let head = head.strip_prefix('\u{feff}').unwrap_or(head);
     let mut sentence = String::new();
     let mut is_licence = false;
     let mut closer = None;

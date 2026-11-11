@@ -109,6 +109,11 @@ fn codebase_with_context_reads_the_opening_comment_of_each_language() {
         ("tool_eslint_strict.js", b"/* eslint-disable */\n\"use strict\";\n// Draws the chart.\n", Some("Draws the chart.")),
         ("tool_pragma.h", b"#pragma once\n// Declares the reader.\n", Some("Declares the reader.")),
         ("tool_spdx.c", b"// SPDX-License-Identifier: MIT\n// Reads the feed.\n", Some("Reads the feed.")),
+        ("tool_shebang.js", b"#!/usr/bin/env node\n// Draws the chart.\n", Some("Draws the chart.")),
+        ("tool_shebang.ts", b"#!/usr/bin/env -S deno run\n/** Draws the chart. */\n", Some("Draws the chart.")),
+        // A byte order mark at the start of the file is passed over.
+        ("mark_first.rs", b"\xEF\xBB\xBF//! Reads the feed.\nfn main() {}\n", Some("Reads the feed.")),
+        ("mark_first.cs", b"\xEF\xBB\xBF// Reads the feed.\nusing System;\n", Some("Reads the feed.")),
         // Code before the comment: no sentence.
         ("code_first_package.go", b"package feed\n\n// Reads the feed.\n", None),
         ("code_first_include.c", b"#include <stdio.h>\n// Reads the feed.\n", None),
