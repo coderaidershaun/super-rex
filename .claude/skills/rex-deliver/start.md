@@ -28,7 +28,7 @@ BASE=$(git -C "$REPO_DIR" rev-parse "origin/$MAIN")   # mode local: "$MAIN" for 
 BRANCH="<type>/$SLUG-$JOB"                            # for example feature/csv-export-0g4cbf7k2q
 ```
 5. IF main checkout is clean AND `git -C "$REPO_DIR" branch --show-current` prints `$MAIN`, THEN job works in main checkout. `JOB_DIR="$REPO_DIR"`. After `rex init`, main checkout is clean only when user committed `AGENTS.md`, `.gitignore`, `.pre-commit-config.yaml`.
-6. ELSE job works in job worktree. Do not touch main checkout at all. Before first worktree in repo: IF `git -C "$REPO_DIR" check-ignore -q .rex` fails, THEN append `.rex/`: `printf '.rex/\n' >> "$REPO_DIR/.git/info/exclude"` (local file, not committed).
+6. ELSE job works in job worktree. Do not touch main checkout at all. Before first worktree in repo: IF `git -C "$REPO_DIR" check-ignore -q .rex/rex.db` fails, THEN append `/.rex/*`: `printf '/.rex/*\n' >> "$REPO_DIR/.git/info/exclude"` (local file, not committed). `/.rex/*`, not `.rex/`: a repo can then re-include `.rex/skills/` in `.gitignore`.
 ```sh
 git -C "$REPO_DIR" switch -c "$BRANCH" --no-track "$BASE"         # step 5
 JOB_DIR="$REPO_DIR/.rex/worktrees/$JOB/root"                      # step 6

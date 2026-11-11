@@ -4,6 +4,16 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+### Added
+
+- `rex-rules`, a router skill. A session that writes or reviews code without the builder reads the four core rulebooks through it, then the rows of the assignment table that fit its work.
+
+### Changed
+
+- The 22 skills that are only read by path, never started by a person, now live in `.rex/skills/`, the skill library: the 19 `rex-code-*` rulebooks, `rex-skill-language`, `rex-mermaid-diagrams` and `rex-codex-adversarial-review`. Claude Code no longer lists them in every session. `.claude/skills/` keeps the 6 that a person or a session starts: `orchestration-builder`, `rex-deliver`, `rex-feedback`, `rex-pr-review`, `rex-grill-me` and `rex-rules`. The rulebooks' `/name` commands are gone.
+- `rex init` installs the library into `.rex/skills/`. `rex skills list` shows its skills as `source=library`. `rex skills check` B4 knows both folders and names the right one for a path to the wrong folder. A read below `.rex/skills/<name>/` counts as opening `<name>` in the job record. A new skill that stage 1 writes goes into the library.
+- `rex-deliver` keeps the store out of Git with `/.rex/*` in `.git/info/exclude`, tested on `.rex/rex.db`, so a repo can still track `.rex/skills/`.
+
 ### Removed
 
 - All backward compatibility, because no repo uses SuperRex yet. The store's schema is version 1 again, with `role.skills` part of it, and has no upgrade path: a store made by 0.3.0 is refused, so delete its `.rex/rex.db` and run `rex init`. `rex init` no longer names old stage-skill folders. `rex codebase --rust-only` is gone; use `--only rust`.

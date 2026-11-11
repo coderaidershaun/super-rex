@@ -12,7 +12,7 @@ This file uses `## Words`, `## Rules` and `## Inputs` of `.claude/skills/rex-del
 - [ ] Never remove a unit worktree or delete a unit branch here. Session removes them in clean-up, after merge.
 
 1. Commit your own work first. Each unit starts from last commit of `PARENT`.
-2. Before first worktree in repo: IF `git -C "$REPO_DIR" check-ignore -q .rex` fails, THEN append `.rex/`: `printf '.rex/\n' >> "$REPO_DIR/.git/info/exclude"`.
+2. Before first worktree in repo: IF `git -C "$REPO_DIR" check-ignore -q .rex/rex.db` fails, THEN append `/.rex/*`: `printf '/.rex/*\n' >> "$REPO_DIR/.git/info/exclude"`.
 3. For each unit, create branch + worktree from a commit hash, with no tracking:
 ```sh
 TIP=$(git -C "$REPO_DIR" rev-parse "refs/heads/$PARENT")
