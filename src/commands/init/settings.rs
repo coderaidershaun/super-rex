@@ -39,16 +39,14 @@ const TRIVY_CACHE: &str = "~/.cache/trivy";
 /// files, and no setting narrows that. These commands must write them: a Git
 /// checkout of a repo that tracks those folders, and `rex init` itself. Each
 /// still goes through the permission flow. `git commit` and `git push` are not
-/// here, because their hooks run code that an agent can change.
-const COMMANDS_OUTSIDE_SANDBOX: [&str; 9] = [
+/// here, because their hooks run code that an agent can change. Claude Code
+/// takes a git command out of the sandbox only when its paths are relative,
+/// with no `..`, so `git -C /abs/path ...` stays sandboxed whatever the entry.
+const COMMANDS_OUTSIDE_SANDBOX: [&str; 5] = [
     "git worktree *",
-    "git -C * worktree *",
     "git merge *",
-    "git -C * merge *",
     "git pull *",
-    "git -C * pull *",
     "git switch *",
-    "git -C * switch *",
     "rex init*",
 ];
 

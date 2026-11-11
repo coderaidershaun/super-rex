@@ -55,15 +55,11 @@ fn parent_of(repo: &Repo) -> String {
 /// The safety settings `rex init` writes for `repo`, in their order.
 /// The commands that `rex init` lets run outside the sandbox, except with
 /// `--strict`.
-const OUTSIDE_SANDBOX: [&str; 9] = [
+const OUTSIDE_SANDBOX: [&str; 5] = [
     "git worktree *",
-    "git -C * worktree *",
     "git merge *",
-    "git -C * merge *",
     "git pull *",
-    "git -C * pull *",
     "git switch *",
-    "git -C * switch *",
     "rex init*",
 ];
 
@@ -167,13 +163,9 @@ const EXAMPLE_AFTER: &str = r#"{
     },
     "excludedCommands": [
       "git worktree *",
-      "git -C * worktree *",
       "git merge *",
-      "git -C * merge *",
       "git pull *",
-      "git -C * pull *",
       "git switch *",
-      "git -C * switch *",
       "rex init*"
     ]
   },
