@@ -4,6 +4,7 @@ mod close;
 mod create;
 mod error;
 mod input;
+mod missed;
 mod plan;
 mod record;
 mod show;

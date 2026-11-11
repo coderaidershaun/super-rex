@@ -28,6 +28,9 @@ pub(super) struct RoleEntry {
     reliability: Option<Rating>,
     consequence: Option<Rating>,
     verification: Option<Rating>,
+    /// Each name is also in the job's `skills`.
+    #[serde(default)]
+    pub(super) skills: Vec<String>,
 }
 
 /// A role input as the plan file writes it.
@@ -52,11 +55,7 @@ pub(super) fn check(plan: &PlanFile, path: &Path) -> Result<(), JobError> {
             path,
         });
     }
-    if let Some(name) = plan
-        .skills
-        .iter()
-        .find(|name| name.is_empty() || name.contains(|c: char| c == ',' || c.is_whitespace()))
-    {
+    if let Some(name) = plan.skills.iter().find(|name| !is_skill_name(name)) {
         return Err(JobError::BadSkillName {
             name: name.clone(),
             path,
@@ -80,6 +79,40 @@ pub(super) fn check(plan: &PlanFile, path: &Path) -> Result<(), JobError> {
             });
         }
         entry.ratings()?;
+        check_role_skills(entry, &plan.skills, &path)?;
+    }
+    Ok(())
+}
+
+/// A role's skills are valid names, each in the job's skills, each given once.
+fn check_role_skills(
+    entry: &RoleEntry,
+    job_skills: &[String],
+    path: &Path,
+) -> Result<(), JobError> {
+    let mut seen = BTreeSet::new();
+    for name in &entry.skills {
+        let path = path.to_path_buf();
+        if !is_skill_name(name) {
+            return Err(JobError::BadSkillName {
+                name: name.clone(),
+                path,
+            });
+        }
+        if !job_skills.contains(name) {
+            return Err(JobError::RoleSkillNotInJob {
+                role: entry.role.clone(),
+                name: name.clone(),
+                path,
+            });
+        }
+        if !seen.insert(name.as_str()) {
+            return Err(JobError::RoleSkillTwice {
+                role: entry.role.clone(),
+                name: name.clone(),
+                path,
+            });
+        }
     }
     Ok(())
 }
@@ -129,6 +162,12 @@ impl Rating {
             Rating::None => None,
         }
     }
+}
+
+/// A skill name: not empty, with no comma or space, because the store keeps a
+/// list of names as one comma list.
+fn is_skill_name(text: &str) -> bool {
+    !text.is_empty() && !text.contains(|c: char| c == ',' || c.is_whitespace())
 }
 
 /// A role or orchestrator name: lower-case letters, digits and `-`.

@@ -161,6 +161,7 @@ fn record_roles(
         let role = PlannedRole {
             name: entry.role.clone(),
             selection,
+            skills: entry.skills.clone(),
         };
         insert_role(tx, job, &role, preferences)?;
         roles.push(role);
@@ -168,8 +169,9 @@ fn record_roles(
     Ok(roles)
 }
 
-/// Writes one role row. The job's three preferences are stored on every role,
-/// and the selection function's answer only on a role not run as the session.
+/// Writes one role row. The job's three preferences and the role's skills are
+/// stored on every role, and the selection function's answer only on a role not
+/// run as the session.
 fn insert_role(
     tx: &Transaction<'_>,
     job: &JobId,
@@ -178,11 +180,12 @@ fn insert_role(
 ) -> rusqlite::Result<()> {
     let selection = role.selection.as_ref();
     let inputs = selection.map(|chosen| chosen.inputs);
+    let skills = (!role.skills.is_empty()).then(|| role.skills.join(","));
     tx.execute(
         "INSERT INTO role (job_id, role, runs_as_session, in_duration, in_budget, in_autonomy,
                            in_intelligence, in_reliability, in_consequence, in_verification,
-                           agent, demand, rules, conflict, oms_version)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+                           agent, demand, rules, conflict, oms_version, skills)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
         params![
             job.as_str(),
             role.name,
@@ -199,6 +202,7 @@ fn insert_role(
             selection.map(|chosen| rule_ids(&chosen.rules).join(",")),
             selection.map(|chosen| conflict_text(&chosen.conflict)),
             selection.map(|_| oms::VERSION),
+            skills,
         ],
     )?;
     Ok(())
