@@ -4,7 +4,7 @@
 
 # SuperRex
 
-This is version 0.1.0 of SuperRex.
+This is version 0.2.0 of SuperRex.
 
 SuperRex is two things that work together inside your repo:
 
@@ -27,7 +27,7 @@ cd super-rex
 cargo install --path .
 ```
 
-The binary is `rex`. rex-skills installs a binary named `rex` too: if it is installed, run `cargo uninstall rex-skills` first, and make sure that the `rex` first on your `PATH` is this one (`rex --version` prints `rex 0.1.0`).
+The binary is `rex`. rex-skills installs a binary named `rex` too: if it is installed, run `cargo uninstall rex-skills` first, and make sure that the `rex` first on your `PATH` is this one (`rex --version` prints `rex 0.2.0`).
 
 | Need | Why |
 | --- | --- |
@@ -46,7 +46,7 @@ Run it yourself, in your own shell, in the root of the main checkout (the folder
 $ cd ~/code/shop
 $ rex init
 rex init: .claude/settings.local.json created
-rex init: 64 written, 0 skipped
+rex init: 147 written, 0 skipped
 rex init: AGENTS.md created
 rex init: .gitignore created
 rex init: .rex/ created
@@ -59,7 +59,7 @@ What it writes:
 
 | Path | What | In Git |
 | --- | --- | --- |
-| `.claude/skills/` | The 28 skills (section "Skills and the agent grid"). | No |
+| `.claude/skills/` | The 31 skills (section "Skills and the agent grid"). | No |
 | `.claude/agents/` | The 20 grid agents. | No |
 | `.claude/settings.local.json` | The hooks and the safety settings, merged into your file. | No |
 | `.rex/` | The store `rex.db`, and the empty library folder `orchestrators/`. | No |
@@ -456,12 +456,12 @@ An agent reads all of `SKILL.md`, so it holds only the rules an agent needs ever
 
 ## Skills and the agent grid
 
-`rex init` installs 30 skills:
+`rex init` installs 31 skills:
 
 - **The builder:** `orchestration-builder` (the entry skill) and its three stages `orchestration-nuance-selection`, `orchestration-work-breakdown` and `orchestration-selection`. `orchestration-decision-challenge` checks the decision of the stages before work starts.
 - **Delivery:** `rex-deliver`, `rex-pr-review` and `rex-feedback`.
 - **Plan review:** `rex-codex-adversarial-review`, which every plan job runs before its plan is final. You can also ask for it on a plan or a code change ("codex review", "challenge this design").
-- **Rulebooks:** 18 `rex-code-*` skills for writing code, mostly Rust: philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four kinds of test, design sketch, spike, validation plan and priorities. Two utilities go with them: `rex-grill-me` and `rex-mermaid-diagrams`. Run `rex skills list` to see each one's description and when to use it.
+- **Rulebooks:** 19 `rex-code-*` skills for writing code, mostly Rust: philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four kinds of test, design sketch, spike, validation plan, priorities and latency. `rex-code-latency` is a reference for hot paths that run in nanoseconds to microseconds: an agent measures first, then reads only the one or two files for its problem. Two utilities go with them: `rex-grill-me` and `rex-mermaid-diagrams`. Run `rex skills list` to see each one's description and when to use it.
 - **`rex-skill-language`:** the language every skill and agent instruction is written in.
 
 **The grid** is 20 agents in `.claude/agents/`, named `model-<low|medium|high|xhigh>-effort-<low|medium|high|xhigh|max>`. The tiers are `haiku`, `sonnet`, `opus` and `fable`. An agent runs with exactly the model and effort in its file.

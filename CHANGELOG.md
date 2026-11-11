@@ -4,8 +4,11 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.2.0 - 2026-11-11
+
 ### Added
 
+- The skill `rex-code-latency`, a reference for latency in Rust code that runs in nanoseconds to tens of microseconds. Its `SKILL.md` is a router: measure first, then a table from what you see to the one or two files to read. It covers the operating system, CPU caches and branches, allocation and reclamation, atomics and queues, the network receive path, and how to measure without changing the result. Each topic has a rules file of at most 900 words and a code file that an agent opens only when it writes that code.
 - A paired challenger checks the builder's decision before any work starts. The new skill `orchestration-decision-challenge` has a fresh grid agent (`model-high-effort-high`, or `model-xhigh-effort-high` for a large or high-consequence job) look for important skills that were left out or not given to a role, and for gaps in the breakdown, the orchestrator and the ratings. The builder corrects what holds before `rex job plan`, and the work breakdown records the check.
 - Plan jobs. A request for a plan writes `.rex/plans/<job-id>/plan.md` and changes no file in the repo. A later run of `orchestration-builder` with "Execute plan <path>" does the work. `orchestration-selection` now says how to build an orchestrator for planning.
 - The skill `rex-codex-adversarial-review`. Every plan job runs it before its plan is final: the Codex CLI challenges the plan read-only, the runner checks each finding, and there is one rebuttal round. Without Codex, a grid agent of `model-high-effort-high` or above is the challenger.
