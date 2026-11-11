@@ -58,7 +58,9 @@ const KNOWN_KEYS: [&str; 20] = [
     "compatibility",
 ];
 
+/// The two folders of a repo that hold skills, as a skill's text names them.
 const SKILLS_FOLDER_TEXT: &str = ".claude/skills/";
+const LIBRARY_FOLDER_TEXT: &str = ".rex/skills/";
 
 /// One rule of a skill. The order is the order findings are given in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -96,9 +98,10 @@ pub enum Rule {
     /// Each link to a Markdown file points to a file in the skills folder. A
     /// link out of that folder breaks once the skill is installed in another repo.
     B3,
-    /// Each `.claude/skills/<name>/<file>.md` names a Markdown file of a known
-    /// skill: its `SKILL.md`, or a file in its folder or below it. An agent
-    /// told to read a file that is not there goes on without it.
+    /// Each `.claude/skills/<name>/<file>.md` and `.rex/skills/<name>/<file>.md`
+    /// names a Markdown file of a known skill in that folder: its `SKILL.md`,
+    /// or a file in its folder or below it. An agent told to read a file that
+    /// is not there goes on without it.
     B4,
     /// The text after the header of `SKILL.md` has at most 1,500 words. An
     /// agent reads all of `SKILL.md`, so the text for one step or one case
@@ -160,10 +163,13 @@ pub struct Skill {
 /// What exists around the skill being checked.
 #[derive(Debug, Clone, Default)]
 pub struct KnownSkills {
-    /// Each Markdown file of each skill that a path may name, relative to the
-    /// skills folder that holds the skill, such as `rex-deliver/SKILL.md`. A
-    /// skill is known when its `SKILL.md` is here (rule B4).
+    /// Each Markdown file of each skill that a `.claude/skills/` path may name,
+    /// relative to that folder, such as `rex-deliver/SKILL.md`. A skill is
+    /// known when its `SKILL.md` is here (rule B4).
     pub skill_paths: BTreeSet<PathBuf>,
+    /// The same for the skill library, which a `.rex/skills/` path names, such
+    /// as `rex-code-tdd/SKILL.md`.
+    pub library_paths: BTreeSet<PathBuf>,
     /// Each Markdown file in the skills folder, relative to it, such as
     /// `rex-code-tdd/SKILL.md`. A link may point into another skill (rule B3).
     pub files: BTreeSet<PathBuf>,
@@ -198,7 +204,7 @@ pub fn check_skill(skill: &Skill, known: &KnownSkills) -> Vec<Finding> {
         for message in broken_links(&in_skills_folder, &file.text, &known.files) {
             finding(&file.path, Rule::B3, message);
         }
-        for message in unknown_skill_paths(&file.text, &known.skill_paths) {
+        for message in unknown_skill_paths(&file.text, known) {
             finding(&file.path, Rule::B4, message);
         }
     }
@@ -421,13 +427,31 @@ fn resolve(from: &Path, target: &str) -> Option<PathBuf> {
     Some(resolved)
 }
 
-/// A message for each `.claude/skills/<name>/<file>.md` in `text` that is not
-/// in `known`. A placeholder such as `<name>` or `<file>` makes the path a
-/// template, which names no file, so it is not checked.
-fn unknown_skill_paths(text: &str, known: &BTreeSet<PathBuf>) -> Vec<String> {
-    let mut messages = Vec::new();
-    for (at, _) in text.match_indices(SKILLS_FOLDER_TEXT) {
-        let after = &text[at + SKILLS_FOLDER_TEXT.len()..];
+/// A message for each `.claude/skills/<name>/<file>.md` and
+/// `.rex/skills/<name>/<file>.md` in `text` that names no file of a known
+/// skill in that folder, in the order they appear.
+fn unknown_skill_paths(text: &str, known: &KnownSkills) -> Vec<String> {
+    let skills = (SKILLS_FOLDER_TEXT, &known.skill_paths);
+    let library = (LIBRARY_FOLDER_TEXT, &known.library_paths);
+    let mut problems = folder_problems(text, skills, library);
+    problems.extend(folder_problems(text, library, skills));
+    problems.sort_by_key(|(at, _)| *at);
+    problems.into_iter().map(|(_, message)| message).collect()
+}
+
+/// Each path below `folder` in `text` that names no file of a skill known
+/// there, with the place it starts. A path that names a skill of `other`
+/// instead is in the wrong folder. A placeholder such as `<name>` or
+/// `<file>` makes the path a template, which names no file, so it is not
+/// checked.
+fn folder_problems(
+    text: &str,
+    (folder, known): (&str, &BTreeSet<PathBuf>),
+    (other, other_known): (&str, &BTreeSet<PathBuf>),
+) -> Vec<(usize, String)> {
+    let mut problems = Vec::new();
+    for (at, _) in text.match_indices(folder) {
+        let after = &text[at + folder.len()..];
         let name_length = after
             .bytes()
             .take_while(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
@@ -446,17 +470,21 @@ fn unknown_skill_paths(text: &str, known: &BTreeSet<PathBuf>) -> Vec<String> {
             continue;
         }
 
-        let written = format!("{SKILLS_FOLDER_TEXT}{name}/{file}");
+        let written = format!("{folder}{name}/{file}");
         let skill_file = Path::new(name).join(SKILL_FILE);
-        if !known.contains(&skill_file) {
-            messages.push(if file == SKILL_FILE {
-                format!("{written} is not a known skill")
-            } else {
-                format!("{written} is in `{name}`, which is not a known skill")
-            });
-        } else if !resolve(&skill_file, file).is_some_and(|target| known.contains(&target)) {
-            messages.push(format!("{written} is not a file of the skill `{name}`"));
-        }
+        let message = if known.contains(&skill_file) {
+            if resolve(&skill_file, file).is_some_and(|target| known.contains(&target)) {
+                continue;
+            }
+            format!("{written} is not a file of the skill `{name}`")
+        } else if other_known.contains(&skill_file) {
+            format!("{written} names `{name}`, a skill in {other}; write {other}{name}/{file}")
+        } else if file == SKILL_FILE {
+            format!("{written} is not a known skill")
+        } else {
+            format!("{written} is in `{name}`, which is not a known skill")
+        };
+        problems.push((at, message));
     }
-    messages
+    problems
 }

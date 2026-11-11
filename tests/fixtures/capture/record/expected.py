@@ -187,12 +187,13 @@ def tool_calls(records):
     return calls
 
 
-SKILL_ROOTS = [(".claude", "skills"), (".rex", "orchestrators")]
+SKILL_ROOTS = [(".claude", "skills"), (".rex", "skills"), (".rex", "orchestrators")]
 
 
 def skill_of_read(file_path):
     """The folder name of a SKILL.md; for another .md file, the name of the skill folder in a
-    skills folder or the orchestrator library that holds it, at any depth; else None."""
+    skills folder, the skill library or the orchestrator library that holds it, at any depth;
+    else None."""
     path = Path(file_path)
     if path.name == "SKILL.md":
         return path.parent.name or None

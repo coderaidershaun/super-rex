@@ -54,9 +54,8 @@ fn skills_finishes_the_whole_install_when_stdout_is_closed() {
     let output = run_with_closed_stdout(&["init"], &repo);
 
     assert_clean_exit(&output);
-    let marker = format!(".claude/{SKILL_MARKER}");
     for installed in [
-        marker.as_str(),
+        SKILL_MARKER,
         "AGENTS.md",
         ".gitignore",
         ".pre-commit-config.yaml",

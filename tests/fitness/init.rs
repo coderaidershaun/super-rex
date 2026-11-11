@@ -12,29 +12,33 @@ fn grid_agent_paths() -> Vec<PathBuf> {
     MODEL_TIERS
         .iter()
         .flat_map(|tier| {
-            EFFORT_LEVELS
-                .iter()
-                .map(move |level| PathBuf::from(format!("agents/model-{tier}-effort-{level}.md")))
+            EFFORT_LEVELS.iter().map(move |level| {
+                PathBuf::from(format!(".claude/agents/model-{tier}-effort-{level}.md"))
+            })
         })
         .collect()
 }
 
 // This test must never be deleted. A file like .claude/settings.local.json
-// can be hidden from `git status` by the user's global git ignore rules,
-// so it could end up embedded in the published crate without ever
-// showing up as a change. This is the only check that would catch it.
+// or the store in .rex can be hidden from `git status` by the user's global
+// git ignore rules, so it could end up embedded in the published crate
+// without ever showing up as a change. This is the only check that would
+// catch it.
 #[test]
 fn bundle_contains_only_skill_and_agent_paths() {
     let entries = super_rex::bundle::walk();
     assert!(!entries.is_empty(), "embedded bundle must not be empty");
 
-    let has_marker = entries
-        .iter()
-        .any(|(path, _)| path == Path::new("skills/rex-skill-language/SKILL.md"));
-    assert!(
-        has_marker,
-        "embedded bundle must contain skills/rex-skill-language/SKILL.md"
-    );
+    let markers = [
+        ".claude/skills/rex-deliver/SKILL.md",
+        ".rex/skills/rex-skill-language/SKILL.md",
+    ];
+    for marker in markers {
+        assert!(
+            entries.iter().any(|(path, _)| path == Path::new(marker)),
+            "embedded bundle must contain {marker}"
+        );
+    }
 
     let agents = grid_agent_paths();
     for agent in &agents {
@@ -45,22 +49,28 @@ fn bundle_contains_only_skill_and_agent_paths() {
         );
     }
 
+    let skill_roots = [".claude/skills", ".rex/skills"];
     for (path, _) in &entries {
+        let skill_root = skill_roots.iter().find(|root| path.starts_with(root));
         assert!(
-            path.starts_with("skills") || agents.contains(path),
-            "every embedded path must start with skills/ or be a grid agent, found {}",
+            skill_root.is_some() || agents.contains(path),
+            "every embedded path must start with .claude/skills/ or .rex/skills/, or be a grid agent, found {}",
             path.display()
         );
 
-        if path.starts_with("skills") {
+        let below_root = match skill_root {
+            Some(root) => path.strip_prefix(root).expect("path is below its root"),
+            None => path.strip_prefix(".claude/agents").expect("agent path"),
+        };
+        if skill_root.is_some() {
             assert!(
-                path.components().count() >= 3,
-                "every skill file must sit in a skill folder (skills/<skill>/<file>), found {}",
+                below_root.components().count() >= 2,
+                "every skill file must sit in a skill folder (<root>/<skill>/<file>), found {}",
                 path.display()
             );
         }
 
-        let hidden = path.components().find(|component| {
+        let hidden = below_root.components().find(|component| {
             matches!(component, Component::Normal(name) if name.to_string_lossy().starts_with('.'))
         });
         assert!(

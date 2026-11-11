@@ -1,5 +1,5 @@
-//! Writes the embedded skills and agents into a folder: the files that are missing,
-//! and the ones that differ when the caller asks for it.
+//! Writes the embedded skills, agents and skill library into a repo: the files that
+//! are missing, and the ones that differ when the caller asks for it.
 
 use std::fs;
 use std::io::{self, ErrorKind};
@@ -21,15 +21,15 @@ pub(super) struct InstallCounts {
     differing: u32,
 }
 
-/// Write each bundle file that is not on disk yet under `target_root`. A file
-/// that is there but differs from the bundle is overwritten only when
-/// `is_forced`.
+/// Write each bundle file that is not on disk yet under `target_root`, the
+/// repo root. A file that is there but differs from the bundle is overwritten
+/// only when `is_forced`.
 ///
 /// A file is never written through a symbolic link, with or without `is_forced`,
 /// because the write would land on whatever the link points at. That covers the
-/// file itself and every folder between it and its root folder, `skills` or
-/// `agents`. The root folders are followed, because people link a shared one on
-/// purpose.
+/// file itself and every folder between it and its root folder, `.claude/skills`,
+/// `.claude/agents` or `.rex/skills`. The root folders are followed, because
+/// people link a shared one on purpose.
 ///
 /// A file that is there but cannot be read is left alone and named on stderr.
 /// Its contents are unknown, so rex can neither call it up to date nor replace
@@ -76,10 +76,11 @@ pub(super) fn install_bundle(
 }
 
 /// The folder under `target_root` that holds the bundle file at `bundle_path`:
-/// `skills` or `agents`, the first part of every bundle path.
+/// one of the bundle's root folders.
 fn root_folder(target_root: &Path, bundle_path: &Path) -> PathBuf {
-    let first_part = bundle_path.iter().next().unwrap_or_default();
-    target_root.join(first_part)
+    // A path under no root cannot come from the bundle. Taking the repo root
+    // for it only checks more folders for links, never fewer.
+    target_root.join(bundle::root_of(bundle_path).unwrap_or_default())
 }
 
 /// True when `dest`, or a folder between it and `root_folder`, is a symbolic
@@ -117,7 +118,7 @@ fn write_file(dest: &Path, contents: &[u8]) -> Result<(), RexError> {
     })
 }
 
-/// The one line `rex init` prints for the skills and agents. The note about
+/// The one line `rex init` prints for the skills, agents and library. The note about
 /// files that differ is added only when some do.
 pub(super) fn summary(counts: InstallCounts) -> String {
     let InstallCounts {

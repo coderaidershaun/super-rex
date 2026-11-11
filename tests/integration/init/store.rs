@@ -10,11 +10,12 @@ use super::support::{ONE_STEP_FAILED, SKILL_MARKER, installed, repo, rex_init_fa
 #[test]
 fn a_store_that_cannot_be_set_up_is_reported_after_the_rest_is_done() {
     let repo = repo();
+    fs::create_dir_all(repo.path().join(".rex")).expect("make .rex");
     fs::write(
-        repo.path().join(".rex"),
-        "a file where the store folder goes\n",
+        repo.path().join(".rex/orchestrators"),
+        "a file where the orchestrator folder goes\n",
     )
-    .expect("write .rex file");
+    .expect("write orchestrators file");
 
     let printed = rex_init_failed(&repo, &[]);
 

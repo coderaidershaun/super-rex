@@ -51,6 +51,7 @@ impl ListFixture {
         let temp = tempfile::tempdir().expect("temp dir");
         let root = temp.path().canonicalize().expect("canonical temp dir");
         let repo_skills = root.join("repo/.claude/skills");
+        let library = root.join("repo/.rex/skills");
         let user_skills = root.join("home/.claude/skills");
         fs::create_dir_all(root.join("repo/.git")).expect("make .git");
         fs::create_dir_all(root.join("repo/sub")).expect("make sub-folder");
@@ -72,6 +73,14 @@ impl ListFixture {
         write(
             &repo_skills.join("empty/reference.md"),
             "No SKILL.md here.\n",
+        );
+        write(
+            &library.join("delta/SKILL.md"),
+            "---\nname: delta\ndescription: Library delta.\nwhen_to_use: Use when an agent reads delta.\n---\nBody.\n",
+        );
+        write(
+            &library.join("gamma/SKILL.md"),
+            "---\nname: gamma\ndescription: Library gamma.\n---\nBody.\n",
         );
         write(
             &user_skills.join("beta/SKILL.md"),
@@ -100,6 +109,10 @@ impl ListFixture {
         )
     }
 
+    fn library_skill(&self, name: &str) -> String {
+        format!("{}/repo/.rex/skills/{name}/SKILL.md", self.root.display())
+    }
+
     fn user_skill(&self, name: &str) -> String {
         format!(
             "{}/home/.claude/skills/{name}/SKILL.md",
@@ -108,8 +121,10 @@ impl ListFixture {
     }
 }
 
+// A library skill that has the name of a user skill is not shadowed, because
+// Claude Code does not load the library; an agent reads it by its path.
 #[test]
-fn skills_list_prints_repo_then_user_skills() {
+fn skills_list_prints_repo_then_library_then_user_skills() {
     let fixture = ListFixture::new();
 
     let stdout = stdout_of_success(&fixture.cwd(), &fixture.home(), &["list"]);
@@ -136,6 +151,20 @@ fn skills_list_prints_repo_then_user_skills() {
          shadowed=no\n\
          path={}\n\
          \n\
+         name=delta\n\
+         description=Library delta.\n\
+         when_to_use=Use when an agent reads delta.\n\
+         source=library\n\
+         shadowed=no\n\
+         path={}\n\
+         \n\
+         name=gamma\n\
+         description=Library gamma.\n\
+         when_to_use=\n\
+         source=library\n\
+         shadowed=no\n\
+         path={}\n\
+         \n\
          name=beta\n\
          description=User beta.\n\
          when_to_use=Use when the user needs beta.\n\
@@ -152,6 +181,8 @@ fn skills_list_prints_repo_then_user_skills() {
         fixture.repo_skill("alpha"),
         fixture.repo_skill("beta"),
         fixture.repo_skill("broken"),
+        fixture.library_skill("delta"),
+        fixture.library_skill("gamma"),
         fixture.user_skill("beta"),
         fixture.user_skill("gamma"),
     );
@@ -165,10 +196,10 @@ fn skills_list_json_has_the_same_fields() {
     let stdout = stdout_of_success(&fixture.cwd(), &fixture.home(), &["list", "--json"]);
 
     let entry = |name: &str, description: &str, when: &str, source: &str, shadowed: bool| {
-        let path = if source == "repo" {
-            fixture.repo_skill(name)
-        } else {
-            fixture.user_skill(name)
+        let path = match source {
+            "repo" => fixture.repo_skill(name),
+            "library" => fixture.library_skill(name),
+            _ => fixture.user_skill(name),
         };
         format!(
             r#"{{"name":"{name}","description":"{description}","when_to_use":"{when}","source":"{source}","shadowed":{shadowed},"path":"{path}"}}"#
@@ -190,6 +221,14 @@ fn skills_list_json_has_the_same_fields() {
             true,
         ),
         entry("broken", "", "", "repo", false),
+        entry(
+            "delta",
+            "Library delta.",
+            "Use when an agent reads delta.",
+            "library",
+            false,
+        ),
+        entry("gamma", "Library gamma.", "", "library", false),
         entry(
             "beta",
             "User beta.",
@@ -258,8 +297,13 @@ const CLEAN_SKILL: &str = "---\nname: clean\ndescription: A skill that breaks no
 const CLEAN_REFERENCE: &str =
     "Back to [the skill](SKILL.md). See [the web](https://example.com/page.md).\n";
 
-/// A repo whose skills folder holds the skill `clean`, and an empty home
-/// folder. Commands run from the repo root.
+const LIBRARY_SKILL: &str = "---\nname: lib\ndescription: A library skill that breaks no rule.\n\
+    when_to_use: >\n  Use when a test needs a library skill.\n---\n\
+    Read [the reference](reference.md), `.rex/skills/lib/reference.md` and \
+    `.claude/skills/clean/SKILL.md`.\n";
+
+/// A repo whose skills folder holds the skill `clean` and whose library holds
+/// the skill `lib`, and an empty home folder. Commands run from the repo root.
 struct CheckFixture {
     _temp: tempfile::TempDir,
     root: PathBuf,
@@ -274,6 +318,9 @@ impl CheckFixture {
         let fixture = CheckFixture { _temp: temp, root };
         fixture.add("clean/SKILL.md", CLEAN_SKILL);
         fixture.add("clean/reference.md", CLEAN_REFERENCE);
+        let library = fixture.repo().join(".rex/skills/lib");
+        write(&library.join("SKILL.md"), LIBRARY_SKILL);
+        write(&library.join("reference.md"), CLEAN_REFERENCE);
         fixture
     }
 
@@ -302,12 +349,16 @@ impl CheckFixture {
 fn skills_check_prints_ok_for_a_skill_that_passes() {
     let fixture = CheckFixture::new();
 
-    let output = fixture.check(&[".claude/skills/clean", ".claude/skills/clean/SKILL.md"]);
+    let output = fixture.check(&[
+        ".claude/skills/clean",
+        ".claude/skills/clean/SKILL.md",
+        ".rex/skills/lib",
+    ]);
 
     assert_eq!(text_of(&output.stderr), "");
     assert_eq!(
         text_of(&output.stdout),
-        "ok .claude/skills/clean\nok .claude/skills/clean/SKILL.md\n"
+        "ok .claude/skills/clean\nok .claude/skills/clean/SKILL.md\nok .rex/skills/lib\n"
     );
     assert_eq!(output.status.code(), Some(0));
 }
@@ -384,6 +435,11 @@ fn bad_skills() -> Vec<BadSkill> {
             "B4",
             good("bad-b4") + "Read `.claude/skills/no-such-skill/SKILL.md`.\n",
         ),
+        one(
+            "bad-b4-folder",
+            "B4",
+            good("bad-b4-folder") + "Read `.claude/skills/lib/SKILL.md`.\n",
+        ),
         BadSkill {
             folder: "bad-b4-file",
             rule: "B4",
@@ -397,22 +453,27 @@ fn bad_skills() -> Vec<BadSkill> {
 }
 
 /// Paths to files of skills that are right: one folder down in this skill, in
-/// another skill of the repo, in a bundled skill that the repo does not hold,
-/// and a template. The one wrong path, at the end of a sentence, names a file
-/// that `clean` does not have.
+/// another skill of the repo, in the repo's library, in a bundled skill and a
+/// bundled library skill that the repo does not hold, and a template. The one
+/// wrong path, at the end of a sentence, names a file that `clean` does not
+/// have.
 fn paths_to_skill_files() -> String {
-    let bundled = super_rex::bundle::walk()
-        .into_iter()
-        .find_map(|(path, _)| {
-            let file = path.strip_prefix("skills").ok()?;
-            let is_sibling = file.extension()? == "md" && file.file_name()? != "SKILL.md";
-            is_sibling.then(|| file.display().to_string())
-        })
-        .expect("a bundled skill has a Markdown file besides SKILL.md");
+    let bundled = |root: &str| {
+        super_rex::bundle::walk()
+            .into_iter()
+            .find_map(|(path, _)| {
+                let file = path.strip_prefix(root).ok()?;
+                let is_sibling = file.extension()? == "md" && file.file_name()? != "SKILL.md";
+                is_sibling.then(|| path.display().to_string())
+            })
+            .unwrap_or_else(|| panic!("a skill in {root} has a Markdown file besides SKILL.md"))
+    };
     format!(
         "Read `.claude/skills/bad-b4-file/os/notes.md`, `.claude/skills/clean/reference.md`, \
-         `.claude/skills/{bundled}` and `.claude/skills/<name>/<file>.md`.\n\
-         Then read .claude/skills/clean/gone.md.\n"
+         `.rex/skills/lib/reference.md`, `{}`, `{}` and `.claude/skills/<name>/<file>.md`.\n\
+         Then read .claude/skills/clean/gone.md.\n",
+        bundled(".claude/skills"),
+        bundled(".rex/skills"),
     )
 }
 
@@ -458,12 +519,20 @@ fn skills_check_names_the_rule_each_bad_skill_breaks() {
     let every_path: Vec<&str> = every_path.iter().map(String::as_str).collect();
     let output = fixture.check(&every_path);
 
-    assert_eq!(text_of(&output.stdout).lines().count(), 16);
+    assert_eq!(text_of(&output.stdout).lines().count(), 17);
     assert_eq!(
         text_of(&output.stderr),
-        "error: 15 findings in 15 of 16 skills\n"
+        "error: 16 findings in 16 of 17 skills\n"
     );
     assert_eq!(output.status.code(), Some(1));
+
+    let output = fixture.check(&[".claude/skills/bad-b4-folder"]);
+    assert_eq!(
+        text_of(&output.stdout),
+        ".claude/skills/bad-b4-folder/SKILL.md: B4: .claude/skills/lib/SKILL.md names `lib`, \
+         a skill in .rex/skills/; write .rex/skills/lib/SKILL.md\n",
+        "a path to the wrong folder says which folder holds the skill"
+    );
 }
 
 #[test]

@@ -38,7 +38,7 @@ pub struct SkillsOptions {
 pub enum SkillsCommand {
     /// Print each skill's name, description and when to use it.
     #[command(
-        after_help = "Looks in the repo's .claude/skills and in $HOME/.claude/skills. shadowed=yes marks a repo skill that a user skill of the same name replaces."
+        after_help = "Looks in the repo's .claude/skills (source=repo), the repo's skill library in .rex/skills (source=library), and $HOME/.claude/skills (source=user). shadowed=yes marks a repo skill that a user skill of the same name replaces; a library skill is never shadowed."
     )]
     List {
         /// Print the list as one JSON line.

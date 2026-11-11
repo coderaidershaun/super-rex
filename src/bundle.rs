@@ -1,23 +1,40 @@
-//! The skills and the agent grid that `rex init` installs, embedded in the
-//! binary so that it needs no network or source checkout.
+//! The skills, the agent grid and the skill library that `rex init` installs,
+//! embedded in the binary so that it needs no network or source checkout.
 
 use std::path::{Path, PathBuf};
 
 use include_dir::{Dir, include_dir};
 
-// Two roots, not one of all of `.claude`, so that nothing else in that folder,
-// such as a local settings file, can be embedded.
+// Three roots, not all of `.claude` and `.rex`, so that nothing else in those
+// folders, such as a local settings file or the store, can be embedded.
 static EMBEDDED_SKILLS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/skills");
 static EMBEDDED_AGENTS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/agents");
+static EMBEDDED_LIBRARY: Dir = include_dir!("$CARGO_MANIFEST_DIR/.rex/skills");
+
+/// The folder, relative to the repo root, of each embedded root: the skills
+/// Claude Code lists, the agent grid, and the library of skills that agents
+/// read by path.
+pub const SKILLS_ROOT: &str = ".claude/skills";
+pub const AGENTS_ROOT: &str = ".claude/agents";
+pub const LIBRARY_ROOT: &str = ".rex/skills";
+pub const ROOTS: [&str; 3] = [SKILLS_ROOT, AGENTS_ROOT, LIBRARY_ROOT];
+
+/// The one of [`ROOTS`] that holds `path`, a path as [`walk`] gives it.
+#[must_use]
+pub fn root_of(path: &Path) -> Option<&'static str> {
+    ROOTS.into_iter().find(|root| path.starts_with(root))
+}
 
 /// List every embedded file, paired with its contents, as a path relative to
-/// `.claude`: `skills/<skill>/<file>` or `agents/<file>`. A file or folder
-/// whose name starts with `.` is left out, at any depth.
+/// the repo root: `.claude/skills/<skill>/<file>`, `.claude/agents/<file>` or
+/// `.rex/skills/<skill>/<file>`. A file or folder whose name starts with `.`
+/// is left out, at any depth below its root.
 #[must_use]
 pub fn walk() -> Vec<(PathBuf, &'static [u8])> {
     let mut entries = Vec::new();
-    walk_dir(&EMBEDDED_SKILLS, Path::new("skills"), &mut entries);
-    walk_dir(&EMBEDDED_AGENTS, Path::new("agents"), &mut entries);
+    walk_dir(&EMBEDDED_SKILLS, Path::new(SKILLS_ROOT), &mut entries);
+    walk_dir(&EMBEDDED_AGENTS, Path::new(AGENTS_ROOT), &mut entries);
+    walk_dir(&EMBEDDED_LIBRARY, Path::new(LIBRARY_ROOT), &mut entries);
     entries
 }
 
@@ -68,14 +85,14 @@ mod tests {
     #[test]
     fn walk_skips_hidden_files_and_folders_at_any_depth() {
         let mut entries = Vec::new();
-        walk_dir(&ROOT, Path::new("skills"), &mut entries);
+        walk_dir(&ROOT, Path::new(LIBRARY_ROOT), &mut entries);
         let paths: Vec<PathBuf> = entries.into_iter().map(|(path, _)| path).collect();
 
         assert_eq!(
             paths,
             [
-                PathBuf::from("skills/README.md"),
-                PathBuf::from("skills/skill/SKILL.md")
+                PathBuf::from(".rex/skills/README.md"),
+                PathBuf::from(".rex/skills/skill/SKILL.md")
             ]
         );
     }

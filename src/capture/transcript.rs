@@ -12,8 +12,12 @@ use super::error::CaptureError;
 use super::tokens::TokenCounts;
 
 /// The folders whose sub-folders are skills, as the two last parts of their paths: the
-/// skills folders of Claude Code, and the orchestrator library of rex.
-const SKILL_ROOTS: [(&str, &str); 2] = [(".claude", "skills"), (".rex", "orchestrators")];
+/// skills folders of Claude Code, and the skill and orchestrator libraries of rex.
+const SKILL_ROOTS: [(&str, &str); 3] = [
+    (".claude", "skills"),
+    (".rex", "skills"),
+    (".rex", "orchestrators"),
+];
 
 /// What one transcript says about its run.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

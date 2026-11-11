@@ -8,9 +8,10 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use super::list;
+use super::list::{self, Source};
 use super::rules::{KnownSkills, Skill, SkillFile, check_skill};
 use super::{SKILL_FILE, SkillsError};
+use crate::bundle::{self, LIBRARY_ROOT, SKILLS_ROOT};
 use crate::commands::stdout::print_line_to_stdout;
 
 /// One skill read from disk, with the paths to print it by.
@@ -35,6 +36,19 @@ impl LoadedSkill {
             files.push(SkillFile { path: file, text });
         }
         let skills_folder = folder.parent().unwrap_or(&folder);
+        let mut neighbours = KnownSkills {
+            files: markdown_files(skills_folder)?.into_iter().collect(),
+            ..KnownSkills::default()
+        };
+        // Any skills folder that is not a skill library counts as a
+        // `.claude/skills/`, so a skill checked outside a repo still knows
+        // its neighbours.
+        let neighbour_paths = skill_paths(skills_folder)?;
+        if skills_folder.ends_with(LIBRARY_ROOT) {
+            neighbours.library_paths = neighbour_paths;
+        } else {
+            neighbours.skill_paths = neighbour_paths;
+        }
 
         Ok(LoadedSkill {
             written: written.to_path_buf(),
@@ -43,10 +57,7 @@ impl LoadedSkill {
                 folder: file_name(&folder),
                 files,
             },
-            neighbours: KnownSkills {
-                skill_paths: skill_paths(skills_folder)?,
-                files: markdown_files(skills_folder)?.into_iter().collect(),
-            },
+            neighbours,
         })
     }
 }
@@ -156,20 +167,28 @@ fn skill_paths(skills_folder: &Path) -> Result<BTreeSet<PathBuf>, SkillsError> {
 }
 
 /// [`skill_paths`] of the skills that `rex skills list` finds from `cwd`, and
-/// of the skills in the bundle that `rex init` installs.
-fn skill_paths_outside(cwd: &Path) -> Result<BTreeSet<PathBuf>, SkillsError> {
-    let mut paths = BTreeSet::new();
+/// of the skills in the bundle that `rex init` installs, each in the set of
+/// its folder: the library's, or that of a `.claude/skills/`.
+fn skill_paths_outside(cwd: &Path) -> Result<KnownSkills, SkillsError> {
+    let mut known = KnownSkills::default();
     for place in list::places(cwd)? {
-        paths.extend(skill_paths(&place.folder)?);
-    }
-    for (path, _) in crate::bundle::walk() {
-        if let Ok(in_skills_folder) = path.strip_prefix("skills")
-            && in_skills_folder.extension() == Some(OsStr::new("md"))
-        {
-            paths.insert(in_skills_folder.to_path_buf());
+        let paths = skill_paths(&place.folder)?;
+        match place.source {
+            Source::Library => known.library_paths.extend(paths),
+            Source::Repo | Source::User => known.skill_paths.extend(paths),
         }
     }
-    Ok(paths)
+    for (path, _) in bundle::walk() {
+        if path.extension() != Some(OsStr::new("md")) {
+            continue;
+        }
+        if let Ok(in_library) = path.strip_prefix(LIBRARY_ROOT) {
+            known.library_paths.insert(in_library.to_path_buf());
+        } else if let Ok(in_skills_folder) = path.strip_prefix(SKILLS_ROOT) {
+            known.skill_paths.insert(in_skills_folder.to_path_buf());
+        }
+    }
+    Ok(known)
 }
 
 /// Check each skill in `paths` and print one `ok` line for each skill that
@@ -186,7 +205,7 @@ pub(super) fn run(cwd: &Path, paths: &[PathBuf]) -> Result<(), SkillsError> {
     for path in paths {
         skills.push(LoadedSkill::load(cwd, path)?);
     }
-    let skill_paths_outside = skill_paths_outside(cwd)?;
+    let outside = skill_paths_outside(cwd)?;
 
     let mut findings = 0;
     let mut skills_with_findings = 0;
@@ -194,7 +213,10 @@ pub(super) fn run(cwd: &Path, paths: &[PathBuf]) -> Result<(), SkillsError> {
         let mut known = loaded.neighbours.clone();
         known
             .skill_paths
-            .extend(skill_paths_outside.iter().cloned());
+            .extend(outside.skill_paths.iter().cloned());
+        known
+            .library_paths
+            .extend(outside.library_paths.iter().cloned());
         let found = check_skill(&loaded.skill, &known);
         if found.is_empty() {
             print_line_to_stdout(&format!("ok {}", loaded.written.display()))?;
