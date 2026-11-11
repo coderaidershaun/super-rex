@@ -8,8 +8,7 @@ use std::path::Path;
 use serde_json::{Value, json};
 
 use super::support::{
-    ONE_STEP_FAILED, Repo, SKILL_MARKER, installed, repo, rex_init_command, rex_init_failed,
-    rex_init_ok, settings_path,
+    ONE_STEP_FAILED, Repo, repo, rex_init_command, rex_init_failed, rex_init_ok, settings_path,
 };
 
 /// The `hooks` value that `rex init` writes, word for word.
