@@ -14,6 +14,18 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 - `rex init` installs the library into `.rex/skills/`. `rex skills list` shows its skills as `source=library`. `rex skills check` B4 knows both folders and names the right one for a path to the wrong folder. A read below `.rex/skills/<name>/` counts as opening `<name>` in the job record. A new skill that stage 1 writes goes into the library.
 - `rex-deliver` keeps the store out of Git with `/.rex/*` in `.git/info/exclude`, tested on `.rex/rex.db`, so a repo can still track `.rex/skills/`.
 
+### Fixed
+
+- `rex init` ignores `/.rex/*`, not `/.rex/`, like `rex-deliver`, so a repo can track `.rex/skills/` with `!/.rex/skills/`. This repo has its own ignore block, so `rex init` here no longer hides new skill and agent files from Git.
+- A worker in a job worktree is told that skill paths start at the main checkout, and the parallel-writer brief lets it read its skill files outside its worktree.
+- `skills_opened` is `[]` when the run's transcript was read and it opened no skill, and `null` when no transcript was read. `rex-feedback` compares it with each role's `skills`.
+- `rex skills list` in a linked worktree also lists the main checkout's library. `rex skills check` takes the bundled skills as known only for a folder the repo does not have. `rex job plan` refuses a skill name that is not a folder name, such as `rex-code-tdd/mocking.md`.
+- The skills: full paths in the assignment table, one home each for the core rulebooks, the `SLUG` form and the sandbox brief text, gap skills named `rex-gap-<language>`, the plan writer gets the skill list, a pull request review on request runs in a fresh agent, and text of earlier designs is gone (the builder branch for a sub-agent, "stage sub-agents", the unused mermaid `README.md`).
+
+### Added
+
+- Tests that every skill, file and section that the assignment table or a skill names resolves, that the keys the skills copy from `rex` output are in the real output, and that each grid agent runs the model and effort its name says.
+
 ### Removed
 
 - All backward compatibility, because no repo uses SuperRex yet. The store's schema is version 1 again, with `role.skills` part of it, and has no upgrade path: a store made by 0.3.0 is refused, so delete its `.rex/rex.db` and run `rex init`. `rex init` no longer names old stage-skill folders. `rex codebase --rust-only` is gone; use `--only rust`.
