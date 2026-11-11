@@ -1,5 +1,5 @@
 //! `rex jobs`: lists jobs for scripts and agents. `rex watch` builds its job
-//! list with [`load_summaries`], the same function, so the screen and
+//! list with `load_summaries`, the same function, so the screen and
 //! `rex jobs --json` cannot drift apart.
 
 mod select;
