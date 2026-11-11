@@ -135,7 +135,9 @@ pub(super) fn recover(store: &mut Store, session_id: &str) -> Result<Recovery, C
 /// the session that was open at its transcript's first record. A run with no such
 /// job is left out.
 // SMELL: a run that started while no job was open never gets a row, so every read of
-// the session's jobs opens its transcript again to find that out.
+// the session's jobs opens its transcript again to find that out, which costs one
+// first line for each such run. Remembering those runs needs saved state and a write
+// in a call that otherwise only reads, so it is not done while that cost is small.
 fn unrecorded_runs(
     store: &Store,
     session_id: &str,
