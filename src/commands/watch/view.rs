@@ -12,11 +12,12 @@ use ratatui::widgets::{
 
 use super::model::{Screen, State};
 use super::theme;
-use crate::capture::TokenTotal;
-use crate::commands::jobs::{JobSummary, RunCounts, TokenSummary};
+use crate::capture::{TokenCounts, TokenTotal};
+use crate::commands::jobs::{JobSummary, RunCounts};
+use crate::commands::token_text::{hit_text, short_count, split_text};
 
 /// One line of the job list: the columns of the plain `rex jobs` line, then
-/// the run counts and the token text.
+/// the run counts and the token texts.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JobListRow {
     pub id: String,
@@ -28,7 +29,12 @@ pub struct JobListRow {
     pub created_at: String,
     pub excerpt: String,
     pub runs: RunCounts,
-    pub tokens: String,
+    /// The new tokens (not cache reads), with `~` while the total can grow.
+    /// Empty when the tokens are unknown.
+    pub new_tokens: String,
+    pub hit: String,
+    /// The four counts and the hit % on one line, for the job panel.
+    pub split: String,
 }
 
 impl JobListRow {
@@ -43,9 +49,65 @@ impl JobListRow {
             created_at: summary.created_at.clone(),
             excerpt: summary.excerpt_on_one_line(),
             runs: summary.runs,
-            tokens: summary.tokens.as_ref().map(tokens_text).unwrap_or_default(),
+            new_tokens: summary
+                .tokens
+                .map(|tokens| {
+                    marked(
+                        &short_count(tokens.counts().new_tokens()),
+                        tokens.provisional,
+                    )
+                })
+                .unwrap_or_default(),
+            hit: summary
+                .tokens
+                .map(|tokens| hit_text(&tokens.counts()))
+                .unwrap_or_default(),
+            split: summary
+                .tokens
+                .map(|tokens| marked(&split_text(&tokens.counts()), tokens.provisional))
+                .unwrap_or_default(),
         }
     }
+}
+
+/// The token columns of one tree row. Every text is empty when the tokens are unknown.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct TokenTexts {
+    pub input: String,
+    pub cache_write: String,
+    pub cache_read: String,
+    /// With `~` while the total can grow.
+    pub output: String,
+    pub hit: String,
+}
+
+impl TokenTexts {
+    pub fn of(total: &TokenTotal) -> TokenTexts {
+        let (counts, provisional) = match total {
+            TokenTotal::Unknown => return TokenTexts::default(),
+            TokenTotal::Provisional(counts) => (counts, true),
+            TokenTotal::Final(counts) => (counts, false),
+        };
+        let TokenCounts {
+            input,
+            output,
+            cache_read,
+            cache_creation,
+        } = *counts;
+        TokenTexts {
+            input: short_count(input),
+            cache_write: short_count(cache_creation),
+            cache_read: short_count(cache_read),
+            output: marked(&short_count(output), provisional),
+            hit: hit_text(counts),
+        }
+    }
+}
+
+/// `text` with `~` after it when the total can still grow.
+fn marked(text: &str, provisional: bool) -> String {
+    let mark = if provisional { "~" } else { "" };
+    format!("{text}{mark}")
 }
 
 /// One sub-agent run in the tree, shown at `depth` levels below the top.
@@ -56,11 +118,11 @@ pub struct TreeRow {
     /// The model that ran, else `-`.
     pub model: String,
     pub effort: String,
+    /// `-` on the row of the main session, which has no run state.
     pub state: &'static str,
     /// `-` when the run has no duration yet.
     pub duration: String,
-    /// Empty when the tokens are unknown.
-    pub tokens: String,
+    pub tokens: TokenTexts,
     /// The job named by the run's own tag, when it differs from the job shown.
     pub tag_job: Option<String>,
 }
@@ -70,32 +132,6 @@ pub struct TreeRow {
 pub struct ViewModel {
     pub jobs: Vec<JobListRow>,
     pub tree: Vec<TreeRow>,
-}
-
-/// `950`, `61.0k`, `1.2M`, with `~` after the number when the total can still
-/// grow. The column header names the unit. Counts are cut, not rounded, so
-/// `999999` never shows as `1000.0k`.
-pub fn tokens_text(summary: &TokenSummary) -> String {
-    let sum = summary.sum();
-    let number = if sum < 1_000 {
-        sum.to_string()
-    } else if sum < 1_000_000 {
-        let tenths = sum / 100;
-        format!("{}.{}k", tenths / 10, tenths % 10)
-    } else {
-        let tenths = sum / 100_000;
-        format!("{}.{}M", tenths / 10, tenths % 10)
-    };
-    let mark = if summary.provisional { "~" } else { "" };
-    format!("{number}{mark}")
-}
-
-/// [`tokens_text`] of a run's total; empty when the total is unknown.
-pub fn total_text(total: &TokenTotal) -> String {
-    TokenSummary::of(total)
-        .as_ref()
-        .map(tokens_text)
-        .unwrap_or_default()
 }
 
 /// `41s`, `2m05s`, `1h02m`. `-` when the run has no duration.
@@ -284,7 +320,7 @@ fn runs_line(runs: RunCounts) -> Line<'static> {
     }
 }
 
-/// The token count, with the `~` of a total that can still grow in amber.
+/// A token figure, with the `~` of a total that can still grow in amber.
 fn tokens_line(text: &str, selected: bool) -> Line<'_> {
     if text.is_empty() {
         return Line::styled("–", theme::faint());
@@ -327,12 +363,13 @@ fn draw_jobs(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
                 Cell::from(Span::styled(job.languages.as_str(), theme::dim())),
                 Cell::from(Span::styled(created_text(&job.created_at), theme::dim())),
                 Cell::from(runs_line(job.runs)),
-                Cell::from(tokens_line(&job.tokens, selected)),
+                Cell::from(tokens_line(&job.new_tokens, selected)),
+                Cell::from(tokens_line(&job.hit, selected)),
                 Cell::from(Span::styled(job.excerpt.as_str(), plain(selected))),
             ])
         })
         .collect();
-    // The fixed columns fit in 110 terminal columns; the request takes the rest.
+    // The fixed columns fit in 120 terminal columns; the request takes the rest.
     let widths = [
         Constraint::Length(10),
         Constraint::Length(11),
@@ -343,6 +380,7 @@ fn draw_jobs(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
         Constraint::Length(16),
         Constraint::Length(10),
         Constraint::Length(7),
+        Constraint::Length(4),
         Constraint::Fill(1),
     ];
     let header = [
@@ -354,7 +392,8 @@ fn draw_jobs(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
         "languages",
         "created",
         "runs",
-        "tokens",
+        "new",
+        "hit",
         "request",
     ];
     let table = styled_table(rows, &widths, &header, block);
@@ -383,13 +422,22 @@ fn job_details(job: &JobListRow) -> Paragraph<'_> {
         Span::styled(created_text(&job.created_at), theme::dim()),
     ]);
     let request = Line::from(job.excerpt.as_str());
+    let tokens = if job.split.is_empty() {
+        Line::styled("tokens unknown", theme::faint())
+    } else {
+        Line::from(vec![
+            Span::styled("tokens  ", theme::dim()),
+            Span::raw(job.split.as_str()),
+            Span::styled("  (runs + session)", theme::faint()),
+        ])
+    };
     let title = Line::from(vec![
         Span::raw(" "),
         Span::styled("job ", theme::accent()),
         Span::styled(job.id.as_str(), theme::id()),
         Span::raw(" "),
     ]);
-    Paragraph::new(vec![facts, request])
+    Paragraph::new(vec![facts, tokens, request])
         .wrap(Wrap { trim: true })
         .block(panel(title))
 }
@@ -397,9 +445,9 @@ fn job_details(job: &JobListRow) -> Paragraph<'_> {
 fn draw_tree(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
     let area = match view.jobs.get(state.job) {
         Some(job) => {
-            // Two border lines, the facts line, and two lines of request.
+            // Two border lines, the facts and tokens lines, and two lines of request.
             let [details, runs] =
-                Layout::vertical([Constraint::Length(5), Constraint::Min(3)]).areas(area);
+                Layout::vertical([Constraint::Length(6), Constraint::Min(3)]).areas(area);
             frame.render_widget(job_details(job), details);
             runs
         }
@@ -443,24 +491,38 @@ fn draw_tree(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
                     run.effort.as_str(),
                     theme::effort(&run.effort),
                 )),
-                Cell::from(Span::styled(format!("{glyph} {}", run.state), state_style)),
+                Cell::from(if run.state == "-" {
+                    Span::styled("-", theme::faint())
+                } else {
+                    Span::styled(format!("{glyph} {}", run.state), state_style)
+                }),
                 Cell::from(Span::styled(run.duration.as_str(), duration_style)),
-                Cell::from(tokens_line(&run.tokens, selected)),
+                Cell::from(tokens_line(&run.tokens.input, selected)),
+                Cell::from(tokens_line(&run.tokens.cache_write, selected)),
+                Cell::from(tokens_line(&run.tokens.cache_read, selected)),
+                Cell::from(tokens_line(&run.tokens.output, selected)),
+                Cell::from(tokens_line(&run.tokens.hit, selected)),
                 Cell::from(tag_job),
             ])
         })
         .collect();
+    // The fixed columns fit in 120 terminal columns; the tag job takes the rest.
     let widths = [
-        Constraint::Length(28),
-        Constraint::Length(16),
+        Constraint::Length(24),
+        Constraint::Length(11),
         Constraint::Length(6),
         Constraint::Length(13),
         Constraint::Length(6),
         Constraint::Length(7),
+        Constraint::Length(7),
+        Constraint::Length(7),
+        Constraint::Length(7),
+        Constraint::Length(4),
         Constraint::Fill(1),
     ];
     let header = [
-        "role", "model", "effort", "state", "time", "tokens", "tag job",
+        "role", "model", "effort", "state", "time", "in", "cache w", "cache r", "out", "hit",
+        "tag job",
     ];
     let table = styled_table(rows, &widths, &header, block);
     let mut table_state = TableState::default().with_selected(Some(state.tree_row));

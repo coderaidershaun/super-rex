@@ -78,6 +78,11 @@ fn plain_text(record: &JobRecord, shown: Shown, view: &JobRuns) -> String {
     for (number, delivery) in record.deliveries.iter().enumerate() {
         lines.push(delivery_line(number + 1, delivery));
     }
+    lines.push(format!(
+        "session {} provisional={}",
+        token_pairs(view.session_tokens),
+        yes_no(is_provisional(view.session_tokens)),
+    ));
     lines.extend(view.runs.iter().map(run_line));
     lines.extend(long_field_lines(record));
     lines.push(String::new());
@@ -86,7 +91,7 @@ fn plain_text(record: &JobRecord, shown: Shown, view: &JobRuns) -> String {
 
 /// One `key=value` line for each single value, `outcome` last.
 fn scalar_lines(record: &JobRecord, shown: Shown, view: &JobRuns) -> Vec<String> {
-    let scalars = [
+    let mut scalars = vec![
         ("job", record.id.clone()),
         ("status", shown.to_string()),
         ("stored_status", record.status.to_string()),
@@ -125,14 +130,16 @@ fn scalar_lines(record: &JobRecord, shown: Shown, view: &JobRuns) -> Vec<String>
         ("skills", or_none(record.skills.as_deref()).to_owned()),
         ("created_at", record.created_at.clone()),
         ("updated_at", record.updated_at.clone()),
-        ("tokens", plain_total(view.tokens)),
+    ];
+    scalars.extend(TOKEN_SCALARS.into_iter().zip(token_values(view.tokens)));
+    scalars.extend([
         (
             "tokens_provisional",
             yes_no(is_provisional(view.tokens)).to_owned(),
         ),
         ("incomplete", yes_no(view.incomplete).to_owned()),
         ("outcome", record.outcome.clone().unwrap_or_default()),
-    ];
+    ]);
     scalars
         .into_iter()
         .map(|(key, value)| format!("{key}={value}"))
@@ -173,7 +180,7 @@ fn run_line(run: &Run) -> String {
         Some(skills) => skills.join(","),
     };
     format!(
-        "run.{}={} parent={} role={} agent={} ran={}/{} skills={skills} tokens={} provisional={}",
+        "run.{}={} parent={} role={} agent={} ran={}/{} skills={skills} {} provisional={}",
         run.agent_id,
         state_name(run.state),
         run.parent_agent_id.as_deref().unwrap_or("main"),
@@ -181,7 +188,7 @@ fn run_line(run: &Run) -> String {
         or_none(run.agent_type.as_deref()),
         or_none(run.model_ran.as_deref()),
         or_none(run.effort_ran.as_deref()),
-        plain_total(run.tokens),
+        token_pairs(run.tokens),
         yes_no(is_provisional(run.tokens)),
     )
 }
@@ -367,14 +374,43 @@ fn json_total(total: TokenTotal) -> Value {
     })
 }
 
-/// A total in plain text: the sum of the four counts, or `none`.
-fn plain_total(total: TokenTotal) -> String {
+/// The keys of a total's figures, in their order.
+const TOKEN_KEYS: [&str; 5] = ["input", "cache_write", "cache_read", "output", "cache_hit"];
+
+/// The same keys as job scalars.
+const TOKEN_SCALARS: [&str; 5] = [
+    "tokens_input",
+    "tokens_cache_write",
+    "tokens_cache_read",
+    "tokens_output",
+    "tokens_cache_hit",
+];
+
+/// A total's figures in the order of [`TOKEN_KEYS`]: the four counts and the
+/// hit % (`90%`, `none` with no prompt token). All `none` when the total is unknown.
+fn token_values(total: TokenTotal) -> [String; 5] {
     match total {
-        TokenTotal::Unknown => "none".to_owned(),
-        TokenTotal::Provisional(counts) | TokenTotal::Final(counts) => {
-            (counts.input + counts.output + counts.cache_read + counts.cache_creation).to_string()
-        }
+        TokenTotal::Unknown => ["none"; 5].map(str::to_owned),
+        TokenTotal::Provisional(counts) | TokenTotal::Final(counts) => [
+            counts.input.to_string(),
+            counts.cache_creation.to_string(),
+            counts.cache_read.to_string(),
+            counts.output.to_string(),
+            counts
+                .cache_hit_percent()
+                .map_or_else(|| "none".to_owned(), |percent| format!("{percent}%")),
+        ],
     }
+}
+
+/// `input=30 cache_write=78405 cache_read=762619 output=13483 cache_hit=90%`.
+fn token_pairs(total: TokenTotal) -> String {
+    TOKEN_KEYS
+        .into_iter()
+        .zip(token_values(total))
+        .map(|(key, value)| format!("{key}={value}"))
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// Only a provisional total may still grow. An unknown total is not provisional, as in `rex jobs --json`.

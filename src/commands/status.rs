@@ -9,9 +9,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use rusqlite::Connection;
 
 use crate::capture::{
-    CaptureError, JobRuns, Run, RunState, TokenCounts, TokenTotal, job_runs, last_activity_ms,
+    CaptureError, JobRuns, Run, RunState, TokenTotal, job_runs, last_activity_ms,
 };
 use crate::commands::stdout::print_line_to_stdout;
+use crate::commands::token_text::split_text;
 use crate::error::{CommandError, RexError};
 use crate::store::status::{Shown, Status};
 use crate::store::{JobId, Store, StoreError, StorePaths};
@@ -19,7 +20,7 @@ use crate::store::{JobId, Store, StoreError, StorePaths};
 /// Arguments of `rex status`.
 #[derive(clap::Args)]
 #[command(
-    after_help = "Exits 0 also when no job is open, with the line `no open job`. A `~` after `tokens` means the count can still grow."
+    after_help = "Exits 0 also when no job is open, with the line `no open job`. Tokens are `in` (input), `cache w` (cache writes), `cache r` (cache reads) and `out` (output); `hit` is the share of prompt tokens read from the cache. A `~` at the end means the counts can still grow."
 )]
 pub struct StatusOptions {
     /// The job to show. Without it, every job that is created or planned.
@@ -154,7 +155,7 @@ fn job_lines(
 }
 
 /// The job's ID and stored status, `(running)` when it applies, the three counts,
-/// and `incomplete` when the flag is set.
+/// `incomplete` when the flag is set, and the job's tokens (runs and session).
 fn header(job: &JobId, stored: Status, runs: &JobRuns) -> String {
     let mut header = format!("job {job}  {stored}");
     if Shown::of(stored, runs.open) == Shown::Running {
@@ -166,6 +167,9 @@ fn header(job: &JobId, stored: Status, runs: &JobRuns) -> String {
     ));
     if runs.incomplete {
         header.push_str("  incomplete");
+    }
+    if let Some(tokens) = tokens_text(runs.tokens) {
+        header.push_str(&format!("  {tokens}"));
     }
     header
 }
@@ -237,34 +241,13 @@ fn duration_text(ms: u64) -> String {
     }
 }
 
-/// `950 tokens`, `61.0k tokens` or `1.2M tokens`, with `~` after the word while the
-/// total may still grow. `None` when the total is not known.
+/// `in 30  cache w 78.4k  cache r 762.6k  out 13.4k  hit 90%`, with `~` at the end
+/// while the total may still grow. `None` when the total is not known.
 fn tokens_text(total: TokenTotal) -> Option<String> {
     let (counts, mark) = match total {
         TokenTotal::Unknown => return None,
         TokenTotal::Provisional(counts) => (counts, "~"),
         TokenTotal::Final(counts) => (counts, ""),
     };
-    let TokenCounts {
-        input,
-        output,
-        cache_read,
-        cache_creation,
-    } = counts;
-    let sum = [input, output, cache_read, cache_creation]
-        .iter()
-        .fold(0_u64, |sum, count| sum.saturating_add(*count));
-    Some(format!("{} tokens{mark}", count_text(sum)))
-}
-
-fn count_text(count: u64) -> String {
-    let thousands_tenths = count.saturating_add(50) / 100;
-    if count < 1000 {
-        count.to_string()
-    } else if thousands_tenths < 10_000 {
-        format!("{}.{}k", thousands_tenths / 10, thousands_tenths % 10)
-    } else {
-        let millions_tenths = count.saturating_add(50_000) / 100_000;
-        format!("{}.{}M", millions_tenths / 10, millions_tenths % 10)
-    }
+    Some(format!("{}{mark}", split_text(&counts)))
 }

@@ -210,7 +210,7 @@ missed_skill.1=engineer rex-code-philosophy
 
 When a role has skills, the close compares them with the skills its runs opened: a run opens a skill when it loads it with the Skill tool, reads its `SKILL.md`, or reads another `.md` file below `.claude/skills/<name>/` or `.rex/skills/<name>/`. `missed_skills=<n>` counts the `missed_skill.<i>=<role> <skill>` lines that follow, one for each skill that no run of the role opened. A role with skills and no run at all gets one `role_not_run.<i>=<role>` line instead. A role run as the session is not checked, because the session's own reads are not recorded. `missed_skills_incomplete=yes` means the record of the runs misses facts, so the list may be wrong. `--json` gives the same as `"missed_skills": [{"role": ..., "skill": ...}]`, `"roles_not_run": [...]` and `"missed_skills_incomplete": true|false`. A missed skill never changes the status or the exit code.
 
-**`rex job show [<job>] [--json]`**: print one job's record: classification, preferences, merge answer, plan, roles with their model selection and skills (`skills=none`, or `[]` in `--json`, for none), deliveries, sub-agent runs with the skills each opened, tokens, request, breakdown and the recalled experience. A run's `skills_opened` in `--json` is `[]` when its transcript was read and it opened no skill, and `null` when no transcript was read; the text form prints `skills=none` for both. With no job, it shows the open job of `$CLAUDE_CODE_SESSION_ID`. `--json` adds the transitions, each run's brief and final message, and the feedback.
+**`rex job show [<job>] [--json]`**: print one job's record: classification, preferences, merge answer, plan, roles with their model selection and skills (`skills=none`, or `[]` in `--json`, for none), deliveries, sub-agent runs with the skills each opened and their tokens, the main session's tokens (`session` line), request, breakdown and the recalled experience. A run's `skills_opened` in `--json` is `[]` when its transcript was read and it opened no skill, and `null` when no transcript was read; the text form prints `skills=none` for both. With no job, it shows the open job of `$CLAUDE_CODE_SESSION_ID`. `--json` adds the transitions, each run's brief and final message, and the feedback.
 
 ```console
 $ rex job show 0g51g6fykv
@@ -239,7 +239,7 @@ finished
   a0c8cde396de066a3  reader  model-medium-effort-low  1m12s
 ```
 
-Each run line gives the agent ID, the role, the agent type, the duration, `bg` for a background run, `<parent` when a sub-agent started it, and the tokens. This run had no transcript, so it has no tokens and the job shows `incomplete`.
+Each run line gives the agent ID, the role, the agent type, the duration, `bg` for a background run, `<parent` when a sub-agent started it, and the tokens: `in`, `cache w`, `cache r`, `out` and `hit` (see [Tokens](#tokens)). The header gives the job's tokens, runs and main session together. This run had no transcript, so it has no tokens and the job shows `incomplete`.
 
 **`rex oms`**: print the grid agent for a set of inputs. Flags `--duration`, `--budget`, `--intelligence`, `--autonomy`, `--reliability`, `--consequence`, `--verification`, each `low|medium|high|none` (a flag left out is `none`), and `--json`. `inputs` gives the seven ratings in that order, `-` for none.
 
@@ -300,7 +300,7 @@ $ rex jobs --search parser
 0g51g6fykv analyzed fix small medium rust 2026-11-10T18:16:54.174Z Make the order parser reject a quantity of zero.
 ```
 
-**`rex watch`**: a live dashboard for people, redrawn every 2 seconds. The first screen is the job list, with the columns of `rex jobs`, the run counts and the tokens. Enter on a job switches to the second screen, its tree of sub-agent runs with each run's role, model, effort, duration and tokens (`~` marks a provisional total); Enter switches back. Up and Down move the selection, `q` quits. Without a terminal it exits 1: `error: rex watch needs a terminal; run it without redirecting its output`.
+**`rex watch`**: a live dashboard for people, redrawn every 2 seconds. The first screen is the job list, with the columns of `rex jobs`, the run counts, the new tokens and the cache hit % (see [Tokens](#tokens)). Enter on a job switches to the second screen: the job's facts and its tokens in full, then the main session's row and the tree of sub-agent runs with each run's role, model, effort, duration and `in`, `cache w`, `cache r`, `out` and `hit` (`~` marks a provisional total). The rows add up to the job's tokens. Enter switches back. Up and Down move the selection, `q` quits. Without a terminal it exits 1: `error: rex watch needs a terminal; run it without redirecting its output`.
 
 **`rex feedback <job> --verdict accepted|rejected (--said <text> | --said-file <path>)`**: record what the user said about a finished job, and move its status. With `rejected` it also takes `--cause` (repeatable: `human-error`, `missing-context`, `agent-skill`, `agent-model-effort`, `agent-orchestration`), `--lesson <text>` or `--lesson-file <path>` (at most 600 characters), `--evidence <text>`, `--changed-skill <name>` and `--changed-orchestrator <name>`. A cause needs a lesson, and a lesson needs a cause. `--by <who>` defaults to `user`. The `rex-feedback` skill calls it; you rarely need to.
 
@@ -385,6 +385,21 @@ A run record holds the sub-agent's ID and its parent, its role (from the brief's
 Tokens are summed from the transcripts, never from the hook: input, output, cache read and cache creation. A total is **provisional** (`~`) while it may still grow. It becomes final only after the job is closed and two later reads, at least 10 seconds apart, find the transcript unchanged. A job's total includes the main session's own share, counted from its requests between `rex job create` and the close.
 
 A run is **open** while it shows activity in the last 15 minutes, **finished** when its stop is known, and **unconfirmed** when it is neither. A job is **incomplete** when its record may miss facts: a run is unconfirmed, a finished run has no tokens, a transcript was damaged or could not be read, or the main session's tokens are unknown.
+
+### Tokens
+
+Every API call sends the whole conversation again, and most of it comes from the prompt cache. So a long run reads its context again on each call, and cache reads make up most of its tokens. They cost about a tenth of the input price. `rex` keeps the four counts that Claude Code writes apart, and never adds them into one figure:
+
+| Shown as | `rex job show` key | What it counts |
+| --- | --- | --- |
+| `in` | `input` | Prompt tokens sent without the cache. |
+| `cache w` | `cache_write` | Prompt tokens written to the cache. |
+| `cache r` | `cache_read` | Prompt tokens read from the cache, once for each call. |
+| `out` | `output` | Tokens the model wrote. |
+| `hit` | `cache_hit` | `cache r` as a whole percent of all prompt tokens (`in` + `cache w` + `cache r`), cut, not rounded; `–` or `none` with no prompt token. |
+| `new` | - | `in` + `cache w` + `out`: the tokens that were not cache reads. The job list of `rex watch` shows it. |
+
+A job's tokens are its runs and its main session together. `--json` gives the four counts as `input`, `output`, `cache_read` and `cache_creation`.
 
 To turn telemetry off, run `rex init --no-hooks` in a new repo. In a repo that has the hooks, delete the three entries that run `rex hook` from `.claude/settings.local.json`. Jobs are still recorded; `running` is then never shown.
 

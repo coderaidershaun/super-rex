@@ -34,5 +34,6 @@ pub mod skills;
 pub mod smells;
 pub mod status;
 mod stdout;
+mod token_text;
 mod walk;
 pub mod watch;

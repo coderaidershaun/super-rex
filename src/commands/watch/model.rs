@@ -6,8 +6,8 @@ use std::time::SystemTime;
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
 
-use super::view::{JobListRow, TreeRow, ViewModel, duration_text, total_text};
-use crate::capture::{JobRuns, Run, RunState};
+use super::view::{JobListRow, TokenTexts, TreeRow, ViewModel, duration_text};
+use crate::capture::{JobRuns, Run, RunState, TokenTotal};
 use crate::commands::jobs::{JobFilter, JobSummary, JobsError, load_summaries};
 use crate::store::Store;
 
@@ -152,7 +152,12 @@ impl Snapshot {
             tree: self
                 .jobs
                 .get(selected)
-                .map(|(_, runs)| build_tree(&runs.runs))
+                .map(|(summary, runs)| {
+                    let has_session =
+                        !runs.runs.is_empty() || runs.session_tokens != TokenTotal::Unknown;
+                    let session = has_session.then(|| session_row(summary, runs));
+                    session.into_iter().chain(build_tree(&runs.runs)).collect()
+                })
                 .unwrap_or_default(),
         }
     }
@@ -204,6 +209,21 @@ pub fn build_tree(runs: &[Run]) -> Vec<TreeRow> {
     rows
 }
 
+/// The main session as the first row, so the rows add up to the job's total.
+fn session_row(summary: &JobSummary, runs: &JobRuns) -> TreeRow {
+    let dash = || "-".to_owned();
+    TreeRow {
+        depth: 0,
+        role: "session".to_owned(),
+        model: summary.builder_model.clone().unwrap_or_else(dash),
+        effort: summary.builder_effort.clone().unwrap_or_else(dash),
+        state: "-",
+        duration: dash(),
+        tokens: TokenTexts::of(&runs.session_tokens),
+        tag_job: None,
+    }
+}
+
 fn tree_row(run: &Run, depth: usize) -> TreeRow {
     let dash = || "-".to_owned();
     TreeRow {
@@ -217,7 +237,7 @@ fn tree_row(run: &Run, depth: usize) -> TreeRow {
             RunState::Unconfirmed => "unconfirmed",
         },
         duration: duration_text(run.duration_ms),
-        tokens: total_text(&run.tokens),
+        tokens: TokenTexts::of(&run.tokens),
         tag_job: run.tag_job.clone(),
     }
 }
@@ -296,12 +316,12 @@ mod tests {
         assert_eq!(ids, ["0g4bbbbbb2", "0g4aaaaaa1"]);
         assert_eq!(view.jobs[1].status, "planned");
 
-        // Hand-built runs: nesting, the provisional mark and the tag job.
+        // Hand-built runs: nesting, the token split, the provisional mark and the tag job.
         let counts = TokenCounts {
-            input: 61_000,
-            output: 0,
-            cache_read: 0,
-            cache_creation: 0,
+            input: 30,
+            output: 13_483,
+            cache_read: 762_619,
+            cache_creation: 78_405,
         };
         let mut lead = run("lead", None, "2026-11-10T10:00:00.000Z");
         lead.tokens = TokenTotal::Provisional(counts);
@@ -316,13 +336,42 @@ mod tests {
         let grandchild = run("c", Some("a"), "2026-11-10T10:02:30.000Z");
         let mut hand_built = watched.jobs[0].1.clone();
         hand_built.runs = vec![later_child, orphan, grandchild, lead, first_child];
+        // A session with no prompt token has no hit %.
+        hand_built.session_tokens = TokenTotal::Final(TokenCounts::default());
         let with_runs = Snapshot::of(vec![(watched.jobs[0].0.clone(), hand_built)]);
 
         let rows = with_runs.view(0).tree;
         let shape: Vec<_> = rows.iter().map(|row| row.depth).collect();
-        assert_eq!(shape, [0, 1, 2, 1, 0]);
-        assert_eq!(rows[0].tokens, "61.0k~");
-        assert_eq!(rows[0].duration, "41s");
-        assert_eq!(rows[4].tag_job.as_deref(), Some("0g4cbf7k2q"));
+        assert_eq!(shape, [0, 0, 1, 2, 1, 0], "the session row comes first");
+        assert_eq!((rows[0].role.as_str(), rows[0].state), ("session", "-"));
+        assert_eq!(rows[0].tokens.hit, "–");
+        let lead_tokens = &rows[1].tokens;
+        assert_eq!(
+            [
+                &lead_tokens.input,
+                &lead_tokens.cache_write,
+                &lead_tokens.cache_read,
+                &lead_tokens.output,
+                &lead_tokens.hit,
+            ],
+            ["30", "78.4k", "762.6k", "13.4k~", "90%"]
+        );
+        assert_eq!(rows[1].duration, "41s");
+        assert_eq!(
+            rows[2].tokens,
+            TokenTexts::default(),
+            "unknown tokens show nothing"
+        );
+        assert_eq!(rows[5].tag_job.as_deref(), Some("0g4cbf7k2q"));
+
+        // Counts are cut, never rounded up, and a hit % of huge counts does not overflow.
+        assert_eq!(crate::commands::token_text::short_count(999_999), "999.9k");
+        let huge = TokenCounts {
+            input: u64::MAX,
+            output: 0,
+            cache_read: u64::MAX,
+            cache_creation: 0,
+        };
+        assert_eq!(huge.cache_hit_percent(), Some(50));
     }
 }

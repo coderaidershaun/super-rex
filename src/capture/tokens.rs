@@ -13,6 +13,30 @@ pub struct TokenCounts {
     pub cache_creation: u64,
 }
 
+/// Every call re-reads its cached context and counts it as `cache_read` again, so
+/// cache reads dominate a long run. These views keep them apart from the rest.
+impl TokenCounts {
+    /// The tokens that were not cache reads: input, cache writes and output.
+    pub fn new_tokens(&self) -> u64 {
+        self.input
+            .saturating_add(self.cache_creation)
+            .saturating_add(self.output)
+    }
+
+    /// The whole percent of prompt tokens served from the cache, cut, not
+    /// rounded. `None` when there was no prompt token.
+    pub fn cache_hit_percent(&self) -> Option<u64> {
+        let prompt = [self.input, self.cache_creation, self.cache_read]
+            .into_iter()
+            .map(u128::from)
+            .sum::<u128>();
+        (prompt > 0).then(|| {
+            let percent = u128::from(self.cache_read) * 100 / prompt;
+            u64::try_from(percent).unwrap_or(100)
+        })
+    }
+}
+
 /// The counts come from files that anyone can write, so a sum stops at the largest
 /// count instead of overflowing.
 impl AddAssign for TokenCounts {

@@ -91,12 +91,14 @@ impl TokenSummary {
         })
     }
 
-    /// The sum of the four counts, saturating.
-    pub fn sum(&self) -> u64 {
-        self.input
-            .saturating_add(self.output)
-            .saturating_add(self.cache_read)
-            .saturating_add(self.cache_creation)
+    /// The four counts, for the shared token text.
+    pub fn counts(&self) -> TokenCounts {
+        TokenCounts {
+            input: self.input,
+            output: self.output,
+            cache_read: self.cache_read,
+            cache_creation: self.cache_creation,
+        }
     }
 }
 

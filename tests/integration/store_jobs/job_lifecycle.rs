@@ -215,8 +215,9 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
              autonomy=high\nmerge_agreed=yes\nsession={SESSION}\nasked_by=human\n\
              builder_model=none\nbuilder_effort=none\norchestrator=pipeline\n\
              orchestrator_version=1\nskills=rex-code-philosophy,rex-code-tdd\n\
-             created_at={created_at}\nupdated_at={updated_at}\ntokens=none\n\
-             tokens_provisional=no\nincomplete=yes\noutcome=Zero is rejected\n\
+             created_at={created_at}\nupdated_at={updated_at}\ntokens_input=none\n\
+             tokens_cache_write=none\ntokens_cache_read=none\ntokens_output=none\n\
+             tokens_cache_hit=none\ntokens_provisional=no\nincomplete=yes\noutcome=Zero is rejected\n\
              role.engineer=model-medium-effort-high inputs=-LHHHHL demand=model-xhigh-effort-max \
              rules=T1,T2,E1,E2,E4,C1,C2,F1 conflict=budget oms_version=1 \
              skills=rex-code-tdd,rex-code-philosophy\n\
@@ -226,8 +227,11 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
              role.skill-writer=session skills=rex-code-tdd\n\
              delivery.1=merged branch=agent-a1b8 pr=none merge_agreed=yes merge_commit={COMMIT} \
              repo={}\n\
+             session input=none cache_write=none cache_read=none output=none cache_hit=none \
+             provisional=no\n\
              run.a1b8=finished parent=main role=engineer agent=none ran=none/none \
-             skills=rex-code-tdd tokens=none provisional=no\n\
+             skills=rex-code-tdd input=none cache_write=none cache_read=none output=none \
+             cache_hit=none provisional=no\n\
              request:\n  Reject a quantity of zero.\nbreakdown:\n  1. Reject zero.\n  2. Test it.\n\
              experience_recalled:\n  {recalled}\n",
             main.display()

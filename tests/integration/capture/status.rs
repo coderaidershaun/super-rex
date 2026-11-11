@@ -82,56 +82,47 @@ fn status_prints_runs() {
     assert_eq!(lines.len(), 8, "header, section name, six runs:\n{text}");
     assert_eq!(
         lines[0],
-        "job k3x9p2m7qd  created  0 open  6 finished  0 unconfirmed"
+        "job k3x9p2m7qd  created  0 open  6 finished  0 unconfirmed  \
+         in 40  cache w 58.1k  cache r 221.6k  out 3.0k  hit 79%~",
+        "the job's tokens are the runs and the session"
     );
     assert_eq!(lines[1], "finished");
-    let expected_runs: [(&str, &[&str]); 6] = [
+    // The words after the agent ID and the duration: role, type, marks, then the tokens.
+    let expected_runs: [(&str, &str); 6] = [
         (
             BG,
-            &[
-                "background-worker",
-                "model-low-effort-medium",
-                "bg",
-                "60.4k",
-                "tokens~",
-            ],
+            "background-worker model-low-effort-medium bg \
+             in 10 cache w 6.5k cache r 53.0k out 798 hit 88%~",
         ),
         (
             LEAD,
-            &["lead", "model-medium-effort-low", "52.9k", "tokens~"],
+            "lead model-medium-effort-low in 8 cache w 14.0k cache r 38.2k out 545 hit 73%~",
         ),
         (
             BG_CHILD,
-            &[
-                "worker",
-                "model-low-effort-low",
-                "<a70d8a0f630d8701c",
-                "24.1k",
-                "tokens~",
-            ],
+            "worker model-low-effort-low <a70d8a0f630d8701c \
+             in 4 cache w 5.3k cache r 18.6k out 100 hit 77%~",
         ),
         (
             WORKER,
-            &[
-                "worker",
-                "model-low-effort-low",
-                "<acefc7f2b8d9b97bf",
-                "24.4k",
-                "tokens~",
-            ],
+            "worker model-low-effort-low <acefc7f2b8d9b97bf \
+             in 4 cache w 5.5k cache r 18.6k out 231 hit 77%~",
         ),
         (
             REVIEWER,
-            &["reviewer", "model-high-effort-low", "24.1k", "tokens~"],
+            "reviewer model-high-effort-low in 4 cache w 12.8k cache r 11.1k out 99 hit 46%~",
         ),
-        (PLAIN, &["-", "general-purpose", "11.5k", "tokens~"]),
+        (
+            PLAIN,
+            "- general-purpose in 2 cache w 4.4k cache r 7.0k out 10 hit 61%~",
+        ),
     ];
     for (line, (agent, rest)) in lines[2..].iter().zip(expected_runs) {
         assert!(line.starts_with(&format!("  {agent}  ")), "{line}");
         let mut words: Vec<&str> = line.split_whitespace().skip(1).collect();
         let duration = words.remove(2);
         assert!(is_duration(duration), "{duration} in {line}");
-        assert_eq!(words, rest, "{line}");
+        assert_eq!(words.join(" "), rest, "{line}");
     }
     let type_offsets: Vec<usize> = lines[2..]
         .iter()
@@ -228,7 +219,8 @@ fn open_and_unconfirmed_runs_are_shown() {
     assert_eq!(lines.len(), 11, "{text}");
     assert_eq!(
         lines[0],
-        "job k3x9p2m7qd  planned (running)  1 open  4 finished  1 unconfirmed  incomplete"
+        "job k3x9p2m7qd  planned (running)  1 open  4 finished  1 unconfirmed  incomplete  \
+         in 40  cache w 58.1k  cache r 221.6k  out 3.0k  hit 79%~"
     );
     assert_eq!(lines[1], "open");
     let open: Vec<&str> = lines[2].split_whitespace().collect();
@@ -238,7 +230,11 @@ fn open_and_unconfirmed_runs_are_shown() {
         "{text}"
     );
     assert!(is_duration(open[3]), "{text}");
-    assert_eq!(open[4..], ["24.1k", "tokens~"], "{text}");
+    assert_eq!(
+        open[4..].join(" "),
+        "in 4 cache w 12.8k cache r 11.1k out 99 hit 46%~",
+        "{text}"
+    );
     assert_eq!(lines[3], "finished");
     assert_eq!(lines[8], "unconfirmed");
     let plain: Vec<&str> = lines[9].split_whitespace().collect();
@@ -263,6 +259,10 @@ fn open_and_unconfirmed_runs_are_shown() {
         "quiet {} is not the time since the transcript was written: {text}",
         plain[7]
     );
-    assert_eq!(plain[8..], ["11.5k", "tokens~"], "{text}");
+    assert_eq!(
+        plain[8..].join(" "),
+        "in 2 cache w 4.4k cache r 7.0k out 10 hit 61%~",
+        "{text}"
+    );
     assert_eq!(lines[10], "event log: 1 damaged lines");
 }

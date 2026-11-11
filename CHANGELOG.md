@@ -4,6 +4,14 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+### Changed
+
+- Tokens show as four counts and the cache hit %: `in`, `cache w`, `cache r`, `out` and `hit`, in `rex watch`, `rex status` and `rex job show`, instead of one sum of the four. Cache reads are counted again on each call, so the sum was mostly cache reads. The job list of `rex watch` shows `new` (input, cache writes and output) and `hit`. `rex job show` prints `tokens_input`, `tokens_cache_write`, `tokens_cache_read`, `tokens_output` and `tokens_cache_hit` in place of `tokens`, and the same keys without `tokens_` on each run line.
+
+### Added
+
+- The main session's tokens: a `session` row first in the run tree of `rex watch`, a `session` line in `rex job show`, and the job total in the `rex status` header and the job panel of `rex watch`, so the rows add up to the job.
+
 ## 0.4.0 - 2026-11-11
 
 ### Added
