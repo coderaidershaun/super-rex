@@ -1,6 +1,6 @@
 # Build new orchestrator skill
 
-Steps 2 + 5 of `.claude/skills/orchestration-selection/SKILL.md`, when its step 1 finds none to reuse. Uses words of that file, and words below.
+Steps 2 + 5 of `.claude/skills/orchestration-builder/stages/3-orchestration/stage.md`, when its step 1 finds none to reuse. Uses words of that file, and words below.
 
 - Requester: User or agent that gave request.
 - Merge agreement: Answer of requester: merge work to main, yes or no.
@@ -55,7 +55,7 @@ Methods combine. Parallel leads can each run sequential workers. Sequential stag
 - [ ] Lead can do small task itself. Keep hierarchy shallow: add layer only IF it has concrete job.
 - [ ] New lead for each separate feature. Keep lead across tasks only IF its domain context is worth its cost.
 
-**Limits of Claude Code.** Read `.claude/skills/orchestration-selection/limits.md` before you add a lead, or IF orchestrator skill runs below level 1.
+**Limits of Claude Code.** Read `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md` before you add a lead, or IF orchestrator skill runs below level 1.
 
 **Load of each agent.**
 
@@ -85,8 +85,8 @@ Contents:
 - [ ] Skills that each role reads.
 - [ ] Checks: how agents examine work.
 - [ ] One rule (below).
-- [ ] Tag block: each brief starts with it (`.claude/skills/orchestration-selection/briefs.md`).
-- [ ] Each role that starts agents: what it does when it has no Agent tool. Facts: `.claude/skills/orchestration-selection/limits.md`.
+- [ ] Tag block: each brief starts with it (`.claude/skills/orchestration-builder/stages/3-orchestration/briefs.md`).
+- [ ] Each role that starts agents: what it does when it has no Agent tool. Facts: `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md`.
 
 Form: like any skill. Header, then `## Words`, flow block, sections. Header:
 

@@ -2,7 +2,7 @@
 name: rex-code-priorities
 description: >
   Hard rules for a repo's priority block: ranked qualities and Never lines in
-  the crate-root `//!` comment. Agents use it to break ties.
+  the root file's opening comment. Agents use it to break ties.
 when_to_use: >
   Use when an orchestrator starts work on a repo, a plan or architecture decision has
   a tie, the priority block is missing, or the user says "repo priorities",
@@ -22,17 +22,18 @@ Sister skills:
 - `rex-code-design-sketch` — first reader of priority block.
 - `rex-code-failure-policy` — each Never line gets HALT class.
 - `rex-code-tests-fitness-functions` — each Never line is fitness candidate.
-- `rex-code-commenting` — law for `//!` lines.
+- `rex-code-commenting` — law for module comment: comment that opens each file.
 
 ## Words
 
 | Term | Meaning |
 | --- | --- |
-| Priority block | The `//!` lines in crate root that hold Priority line + Never lines. |
+| Priority block | Lines in module comment of root file that hold Priority line + Never lines. |
+| Module comment | Comment that opens file. Form for each language: `.claude/skills/rex-code-commenting/module-comments.md` (`//!` in Rust). |
 | Priority line | Ranked list of qualities. First = most important. |
 | Never line | One thing system must never do. |
 | Quality | Property of system: correctness, time to ship, extensibility, latency, throughput, cost, ease of operation. |
-| Crate root | `lib.rs`. IF crate has no `lib.rs`, THEN `main.rs`. |
+| Root file | Root file of each package or program. Rust: `lib.rs`, ELSE `main.rs`. Go: file with package comment of `main` package. Python: `__init__.py` of top package (docstring). JavaScript, TypeScript: entry file of package. Other language: entry file. |
 | Caller | Agent or person that started you. |
 
 ## Shape
@@ -45,7 +46,17 @@ Sister skills:
 //! Never: lose a saved invoice.
 ```
 
-- [ ] First `//!` line: why crate exists. Plain English.
+Same lines in other language, in form of its module comment. Python:
+
+```python
+"""Sends invoices and collects payments for small shops.
+
+Priorities, in order: correctness, time to ship, extensibility (new payment providers).
+Never: charge a customer twice.
+"""
+```
+
+- [ ] First line: why package or program exists. Plain English.
 - [ ] Priority line starts with `Priorities, in order:`. Exact words. Agents grep for them.
 - [ ] Each Never line starts with `Never:`.
 - [ ] 2 to 4 qualities. Ranked. No ties. No "all equal".
@@ -53,7 +64,7 @@ Sister skills:
 - [ ] IF lower quality has a floor, THEN give number: `latency (under 5 ms per message)`.
 - [ ] 0 to 3 Never lines. Each one = fact that a test can prove.
 - [ ] Priority block: max 8 lines. More = style guide. Skills already hold style.
-- [ ] Workspace: one priority block in each crate root that has different ranking. ELSE one block in main binary crate.
+- [ ] Repo with many packages (Rust workspace, monorepo): one priority block in root file of each package that has different ranking. ELSE one block in root file of main program.
 
 ## WRITE: orchestrator only
 
@@ -65,7 +76,7 @@ CAUTION: Do not change a priority block without an instruction from the user. A 
 ## READ: all other agents
 
 ```
-grep -rn 'Priorities, in order:' --include=lib.rs --include=main.rs .
+git grep -n 'Priorities, in order:'
 ```
 
 - [ ] IF no priority block AND decision depends on ranking, THEN stop. Send `STATUS: QUESTIONS` to caller. Never guess ranking.
@@ -94,7 +105,7 @@ IF ranking does not divide options, THEN pick simpler option.
 
 ## Checklist
 
-- [ ] Priority block in crate root, max 8 lines
+- [ ] Priority block in root file, max 8 lines
 - [ ] `Priorities, in order:` with 2 to 4 ranked qualities, no ties
 - [ ] Each Never line is testable
 - [ ] No CONTEXT.md, no docs folder, no ADR made for this

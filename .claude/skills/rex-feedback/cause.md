@@ -25,7 +25,7 @@ Do checks in this order. Stop at first check that is true. Only check 4 points a
    - A role with `session` = `true` has no `agent`: skip check 1 for it.
    - IF `model_ran` or `effort_ran` is `null`, THEN write it under EMPTY FIELDS. Go to check 2.
 2. IF `rules` has `C1`, `C2` or `C3`, THEN user's budget or duration capped choice. Lesson is about that preference.
-3. IF `inputs` were wrong (for example, hard role rated low intelligence), THEN lesson belongs to builder rating. Home = `orchestration-selection`.
+3. IF `inputs` were wrong (for example, hard role rated low intelligence), THEN lesson belongs to builder rating. Home = `.claude/skills/orchestration-builder/stages/3-orchestration/stage.md`.
 4. ELSE mapping is suspect. List missed jobs (below). DO read `roles[].rules` of next one, newest first, UNTIL all read OR 20 read. One job is not enough. IF same `rules` set fails on several jobs, THEN propose a mapping change in report. Only a `rex` release makes one.
 
 ```sh

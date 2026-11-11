@@ -6,9 +6,9 @@ description: >
   challenger checks it. It records the plan, then runs, delivers, and closes
   the job.
 when_to_use: >
-  Use when a user or agent requests substantial work, a plan, or work that
-  must have a record. Not for a one-line fix.
-disable-model-invocation: false
+  Use when a person runs `/orchestration-builder` for substantial work, a
+  plan, work that must have a record, or `Execute plan <path>`.
+disable-model-invocation: true
 user-invocable: true
 ---
 
@@ -17,8 +17,9 @@ user-invocable: true
 You = builder. After you record plan, you = orchestrator.
 You run at model + effort of your session.
 
+Person starts builder: `/orchestration-builder <request>`, or `/orchestration-builder Execute plan <path>` for saved plan. No agent can load it with Skill tool. Agent reads this file only IF its brief gives path.
+
 ```
-IF `Rex-Role` of your brief = `decision-maker`, `decision-challenger`, `skill-writer`, or `plan-reviewer`, THEN obey your brief only. Obey nothing else in this skill. Decision agent: do stages only, start no decision agent.
 IF your brief starts with tag block that holds `Rex-Job:`, THEN read `.claude/skills/orchestration-builder/open-job.md`. Obey it in place of steps 2 to 9. It names each step that you do.
 1. Classify request. IF job = plan job OR plan execution, THEN read `.claude/skills/orchestration-builder/plan-jobs.md` also.
 2. Settle merge agreement with requester.
@@ -27,7 +28,7 @@ IF your brief starts with tag block that holds `Rex-Job:`, THEN read `.claude/sk
 5. Decide: read `.claude/skills/orchestration-builder/decide.md`. Decision agent does three stages. Paired challenger checks decision. Decision agent corrects it.
 6. Record plan.
 7. Run: read `.claude/skills/orchestration-builder/run.md`. You = orchestrator. Obey orchestrator skill on job branch.
-8. Deliver: `rex-deliver`, for each repo with job branch.
+8. Deliver: for each repo with job branch, as `.claude/skills/orchestration-builder/run.md` says.
 9. Close job. Tell requester result.
 ```
 
@@ -53,7 +54,7 @@ IF your brief starts with tag block that holds `Rex-Job:`, THEN read `.claude/sk
 - Task: One outcome of job, with evidence that shows it is complete.
 - Work breakdown: Tasks of job, their dependencies, and groups that run in parallel. Output of stage 2.
 - Role: Named part in orchestrator skill. Example: `engineer`.
-- Grid agent: One of 20 agent definitions in `.claude/agents/`. Name: `model-<tier>-effort-<level>`.
+- Grid agent: One of 20 agent definitions in `.claude/agents/`. Name: `model-<tier>-effort-<level>`. It has no Skill tool.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
 - `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
 - `JOB_DIR`: Absolute path where job branch is checked out. `.claude/skills/rex-deliver/start.md` gives it.

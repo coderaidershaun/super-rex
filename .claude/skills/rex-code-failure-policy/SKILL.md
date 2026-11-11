@@ -14,6 +14,8 @@ user-invocable: true
 
 # Failure Policy — Hard Rules
 
+Other language: apply intent of each rule in idiom of that language. IF language lacks Rust feature that a rule relies on, THEN obey gap skill of that language: skill for what Rust gives by default and that language does not.
+
 `rex-code-error-writing` = how error is written. This skill = what system does next.
 
 Same error, same reaction, everywhere in repo. Reaction is decided one time, in code, not at each call site.

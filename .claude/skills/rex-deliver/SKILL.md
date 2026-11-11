@@ -4,11 +4,10 @@ description: >
   Git delivery of one job per repo: job branch, pull request, squash merge
   only when agreed, guarded clean-up.
 when_to_use: >
-  Use when `orchestration-builder` delivers a job: before first write in a Git
-  repo, and when work is done. Also when an agent starts parallel writers, or
-  a person asks for delivery or for clean-up after they merged a blocked pull
-  request.
-disable-model-invocation: false
+  Use when a person runs `/rex-deliver` for delivery of a job, or for clean-up
+  after they merged a blocked pull request. The builder and a lead of parallel
+  writers read its files by path.
+disable-model-invocation: true
 user-invocable: true
 ---
 
@@ -26,7 +25,7 @@ Read this file in full first. Then read file of your phase. Each phase name belo
 | END | When work is done. | `.claude/skills/rex-deliver/end.md` | End 1 pull request, No merge agreed, Merge main in, Result |
 | LATER | Job stops without END, or a person merged a blocked pull request. | `.claude/skills/rex-deliver/stopped-or-blocked-job.md` | Stopped or blocked job |
 
-A person can start this skill directly, for END or for LATER. Get `JOB` from that person first. All rules stay the same.
+Only a person starts this skill: `/rex-deliver`, for END or for LATER. Get `JOB` from that person first. All rules stay the same. Builder and lead of parallel writers read its files by path, with Read tool.
 
 Other files. Read one only when a step sends you there:
 

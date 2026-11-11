@@ -1,5 +1,5 @@
-//! The skills embedded in the binary are checked with the same rules as
-//! `rex skills check`, so that `rex init` never installs a broken skill.
+//! The skills and agents embedded in the binary are checked with the same
+//! rules as `rex skills check`, so that `rex init` never installs a broken one.
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -48,6 +48,58 @@ fn bundle_skills() -> (Vec<Skill>, KnownSkills) {
     (skills, known)
 }
 
+/// The most words a stage file of the builder may hold, counted as `wc -w`
+/// counts them. The decision agent reads each stage file in full, like a
+/// `SKILL.md`, so it has the same limit.
+const MAX_STAGE_WORDS: usize = 1500;
+
+/// Each stage file of the builder, `stages/<stage>/stage.md`, that holds more
+/// than `MAX_STAGE_WORDS` words, as `<skill>/<file>: <count> words`.
+fn long_stage_files(skills: &[Skill]) -> Vec<String> {
+    skills
+        .iter()
+        .filter(|skill| skill.folder == "orchestration-builder")
+        .flat_map(|skill| skill.files.iter().map(move |file| (skill, file)))
+        .filter(|(_, file)| {
+            file.path.starts_with("stages") && file.path.file_name() == Some("stage.md".as_ref())
+        })
+        .filter_map(|(skill, file)| {
+            let words = file.text.split_whitespace().count();
+            (words > MAX_STAGE_WORDS).then(|| {
+                format!(
+                    "{}/{}: {words} words, more than {MAX_STAGE_WORDS}",
+                    skill.folder,
+                    file.path.display()
+                )
+            })
+        })
+        .collect()
+}
+
+/// Each bundled agent whose header does not take the Skill tool away, by path.
+/// The bundle must hold at least one agent.
+fn agents_with_the_skill_tool() -> Vec<String> {
+    let agents: Vec<(PathBuf, String)> = walk()
+        .into_iter()
+        .filter(|(path, _)| path.starts_with("agents"))
+        .map(|(path, bytes)| {
+            let text = String::from_utf8(bytes.to_vec())
+                .unwrap_or_else(|_| panic!("{} is not UTF-8", path.display()));
+            (path, text)
+        })
+        .collect();
+    assert!(!agents.is_empty(), "the bundle must hold agents");
+
+    agents
+        .into_iter()
+        .filter(|(_, text)| {
+            let mut header = text.lines().skip(1).take_while(|line| *line != "---");
+            !header.any(|line| line == "disallowedTools: Skill")
+        })
+        .map(|(path, _)| format!("{}: no `disallowedTools: Skill`", path.display()))
+        .collect()
+}
+
 /// Each finding of one of `rules`, as `<skill>/<file>: <rule>: <message>`.
 fn findings_of(skills: &[Skill], known: &KnownSkills, rules: &[Rule]) -> Vec<String> {
     skills
@@ -72,10 +124,12 @@ fn findings_of(skills: &[Skill], known: &KnownSkills, rules: &[Rule]) -> Vec<Str
 // This test must never be deleted. A skill whose name does not match its
 // folder, whose description is missing, or whose header or text breaks
 // another rule is skipped or cut short by Claude Code, and nothing reports it.
-// A skill over a word limit fills the context of every agent that loads it.
-// It also fails on an empty bundle, which would pass every other check.
+// A skill or a stage file of the builder over a word limit fills the context
+// of every agent that reads it. An agent that keeps the Skill tool can load
+// skills its brief never gave it. It also fails on an empty bundle, which
+// would pass every other check.
 #[test]
-fn every_skill_has_a_name_that_is_its_folder_and_a_description() {
+fn every_skill_and_agent_of_the_bundle_obeys_its_rules() {
     let (skills, known) = bundle_skills();
     assert!(!skills.is_empty(), "the bundle must hold skills");
 
@@ -93,10 +147,12 @@ fn every_skill_has_a_name_that_is_its_folder_and_a_description() {
         Rule::B4,
         Rule::B5,
     ];
-    let findings = findings_of(&skills, &known, &rules);
+    let mut findings = findings_of(&skills, &known, &rules);
+    findings.extend(long_stage_files(&skills));
+    findings.extend(agents_with_the_skill_tool());
     assert!(
         findings.is_empty(),
-        "the bundled skills break these rules:\n{}",
+        "the bundled skills and agents break these rules:\n{}",
         findings.join("\n")
     );
 }

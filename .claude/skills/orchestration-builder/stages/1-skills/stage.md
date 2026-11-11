@@ -1,22 +1,10 @@
----
-name: orchestration-nuance-selection
-description: >
-  Stage 1 of the orchestration builder. It lists the available skills and
-  selects the skills that a job uses. It asks for a new skill only when a
-  three-part test passes. Usual result: no new skill.
-when_to_use: >
-  Use when the decision agent of `orchestration-builder` reaches stage 1.
-disable-model-invocation: true
-user-invocable: false
----
+# Stage 1 — Skills
 
-# Nuance Selection
-
-Settle which skills this job uses. Ask for new skill only IF test of step 3 passes. Default result: no new skill.
+Settle which skills this job uses. Start from assignment table. Ask for new skill only IF test of step 3 passes. Default result: no new skill.
 
 ```
 1. Run `rex skills list`.
-2. Find needs of job. IF skill in list covers need, THEN add that skill to skill list.
+2. Read assignment table. Add skills of each row that fits job. Find other needs. IF skill in list covers need, THEN add that skill to skill list.
 3. Test each need that no skill covers. IF test fails, THEN write no skill.
 4. IF test passes, THEN put need under NEW SKILLS. Builder has session agent write it.
 5. Builder does skill check on each new skill.
@@ -25,7 +13,8 @@ Settle which skills this job uses. Ask for new skill only IF test of step 3 pass
 
 | File | Read when |
 | --- | --- |
-| `.claude/skills/orchestration-nuance-selection/write-skill.md` | Builder: decision block lists NEW SKILLS. Steps 4 + 5. |
+| `.claude/skills/orchestration-builder/stages/1-skills/assign.md` | Step 2. Assignment table. Also stages 2 + 3 and challenger. |
+| `.claude/skills/orchestration-builder/stages/1-skills/write-skill.md` | Builder: decision block lists NEW SKILLS. Steps 4 + 5. |
 
 ## Words
 
@@ -39,7 +28,7 @@ Settle which skills this job uses. Ask for new skill only IF test of step 3 pass
 - Skill list: Skills this job uses. Output of stage 1.
 - Nuanced skill: Skill for something particular to repo or to kind of work, that no other skill covers.
 - Gap skill: Nuanced skill for one language. It covers what Rust gives by default and that language does not.
-- Core rules: Skills that each task that writes code reads. Each language: `rex-code-philosophy`, `rex-code-commenting`. Rust adds `rex-code-ergonomics`, `rex-code-error-writing`. Kind of work adds its skill: tests → `rex-code-tdd` OR skill of that test kind (`rex-code-tests-*`). New, split, or moved file → `rex-code-folder-management`. Crate added → `rex-code-external-libraries`. Outside input, retry, or main loop → `rex-code-failure-policy`.
+- Assignment table: `.claude/skills/orchestration-builder/stages/1-skills/assign.md`. One home of which skills each kind of work gets.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
 - `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
 - Brief: Prompt that sub-agent gets.
@@ -71,12 +60,13 @@ path=<absolute path of SKILL.md>
 
 From request, classification, lessons of recall output, and look at repo: find what this job needs that changes what agents do.
 
-- [ ] For each need: find skill in list that covers it.
+- [ ] Read assignment table IN FULL. For each row that fits job: add its skills to skill list.
+- [ ] For each other need: find skill in list that covers it.
 - [ ] IF skill covers need, THEN add that skill to skill list. Write nothing new.
 - [ ] IF no skill covers need, THEN do step 3 for it.
-- [ ] Job writes code: add core rules of each language and each kind of work of job to skill list.
 - [ ] For each language in classification that is not `rust`: do `## Gap skill`.
-- [ ] Plan job (`.claude/skills/orchestration-builder/plan-jobs.md`): add `rex-codex-adversarial-review` to skill list.
+- [ ] Skill that table does not give: one-line reason in `Why`, starts `Not in table:`.
+- [ ] Skill that table gives and job does not get: one `Left out` line (`## Output`).
 
 Examples of need: ergonomics are very important in this repo. Repo is very large, and architecture must get attention after work. Skill in list can cover each one already. Then add nothing new.
 
@@ -94,7 +84,7 @@ IF one is false, THEN write no skill. Content that only this job needs goes in b
 IF in doubt, THEN write no skill. Add skill only IF it is necessary.
 Never add rule to skill that exists. Only `rex-feedback` does that.
 
-IF all three are true, THEN put need under NEW SKILLS (`## Output`). Do not write skill yourself. Builder does steps 4 + 5 (`.claude/skills/orchestration-nuance-selection/write-skill.md`), and gives you path + check result of each new skill.
+IF all three are true, THEN put need under NEW SKILLS (`## Output`). Do not write skill yourself. Builder does steps 4 + 5 (`.claude/skills/orchestration-builder/stages/1-skills/write-skill.md`), and gives you path + check result of each new skill.
 
 ## Gap skill
 
@@ -113,6 +103,7 @@ SKILL LIST: one table. Columns, in this sequence: `Skill / Path / Why this job n
 - [ ] Mark each new skill in `Skill` column: `<name>` (`new`).
 - [ ] `Path` column: `path=` line of that skill in output of `rex skills list`. New skill: path of its `SKILL.md`, OR `pending` until builder gives it.
 - [ ] Default: no row is `new`.
+- [ ] Below table: `Left out: <skill> — <one-line reason>`, one line for each skill that assignment table gives and job does not get. OR `Left out: none`.
 - [ ] Builder records skill list with plan.
 
 NEW SKILLS: one table, OR `none`. One row for each need that passes test of step 3. Columns, in this sequence: `Name / Need / Reason / Gap language`.

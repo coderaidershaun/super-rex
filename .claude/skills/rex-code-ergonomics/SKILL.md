@@ -14,7 +14,9 @@ user-invocable: true
 
 # Rust Ergonomics — Hard Rules
 
-These rules HARD. No compromise. Apply every Rust file.
+Other language: apply intent of each rule in idiom of that language. IF language lacks Rust feature that a rule relies on, THEN obey gap skill of that language: skill for what Rust gives by default and that language does not.
+
+These rules HARD. No compromise. Apply every code file.
 
 Sister skills:
 - `rex-code-philosophy` — why (complexity-averse, habitability)

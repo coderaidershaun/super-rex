@@ -90,7 +90,7 @@ Rules for every language:
 - [ ] IF file has license header, THEN write license first, then blank line, then module comment.
 - [ ] Nothing else comes before comment. Only lines in column "Allowed before comment" of `module-comments.md` + directive lines.
 - [ ] No tag (example: `@file`, `@brief`) comes before first sentence.
-- [ ] Exception to 1-2 lines: crate root can hold priority block after first sentence, max 8 lines (`rex-code-priorities`).
+- [ ] Exception to 1-2 lines: root file of package or program can hold priority block after first sentence, max 8 lines (`rex-code-priorities`).
 
 ## Permitted — narrow whitelist
 

@@ -1,22 +1,10 @@
----
-name: orchestration-selection
-description: >
-  Stage 3 of the orchestration builder. It reuses or builds an orchestrator
-  skill for the work breakdown, gives each task a role, defines the roles, and
-  rates the seven inputs that select a model for each role.
-when_to_use: >
-  Use when the decision agent of `orchestration-builder` reaches stage 3.
-disable-model-invocation: true
-user-invocable: false
----
-
-# Orchestration Selection
+# Stage 3 — Orchestration
 
 Select or build orchestrator skill that suits work breakdown. Give each role its agent.
 
 ```
 1. Reuse. IF orchestrator skill in recall output suits work breakdown, THEN reuse it, do steps 3 + 4, give output.
-2. ELSE select method: read `.claude/skills/orchestration-selection/build-new.md`.
+2. ELSE select method: read `.claude/skills/orchestration-builder/stages/3-orchestration/build-new.md`.
 3. Define roles, tasks + skills of each role.
 4. For each role: rate inputs, run `rex oms`, read `demand` + `conflict`. OR give role session agent.
 5. New only: write orchestrator skill + lead skills (`build-new.md`). Run `rex skills check` on its folder.
@@ -25,25 +13,25 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 
 | File | Read when |
 | --- | --- |
-| `.claude/skills/orchestration-selection/build-new.md` | Step 1 finds none to reuse. Steps 2 + 5. |
-| `.claude/skills/orchestration-selection/plan-jobs.md` | Job = plan job. |
-| `.claude/skills/orchestration-selection/model-function.md` | You must know why `rex oms` gave its output. |
-| `.claude/skills/orchestration-selection/limits.md` | Orchestration has a lead, OR orchestrator skill runs below level 1. |
+| `.claude/skills/orchestration-builder/stages/3-orchestration/build-new.md` | Step 1 finds none to reuse. Steps 2 + 5. |
+| `.claude/skills/orchestration-builder/stages/3-orchestration/plan-jobs.md` | Job = plan job. |
+| `.claude/skills/orchestration-builder/stages/3-orchestration/model-function.md` | You must know why `rex oms` gave its output. |
+| `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md` | Orchestration has a lead, OR orchestrator skill runs below level 1. |
+
 ## Words
 
-- Session: Claude Code conversation that loaded builder. It has one session ID.
+- Session: Claude Code conversation that runs builder.
 - Builder: Agent that obeys `orchestration-builder`.
 - Decision agent: Sub-agent of builder that does stages 1 to 3. Its brief gives input.
-- Job: One request that SuperRex handles. It has one job ID.
 - Classification: Four fields of job: work type, size, consequence, languages.
 - Preference: Duration, budget, or autonomy that user stated in request.
 - Skill list: Skills this job uses. Output of stage 1.
-- Nuanced skill: Skill for something particular to repo or to kind of work, that no other skill covers.
-- Gap skill: Nuanced skill for one language. It covers what Rust gives by default and that language does not.
+- Gap skill: Skill for one language. It covers what Rust gives by default and that language does not.
+- Assignment table: `.claude/skills/orchestration-builder/stages/1-skills/assign.md`. Which skills each kind of work gets.
 - Task: One outcome of job, with evidence that shows it is complete.
 - Work breakdown: Tasks of job, their dependencies, and groups that run in parallel. Output of stage 2.
 - Role: Named part in orchestrator skill. Example: `engineer`.
-- Grid agent: One of 20 agent definitions in `.claude/agents/`. Name: `model-<tier>-effort-<level>`.
+- Grid agent: One of 20 agent definitions in `.claude/agents/`. Name: `model-<tier>-effort-<level>`. It has no Skill tool.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
 - `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and skills (`.claude/skills/`) of session. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
 - Role table: For one job: tasks, skills, inputs, and agent of each role. Output of stage 3.
@@ -79,11 +67,11 @@ For each role, define:
 - [ ] Job: one primary job.
 - [ ] Tasks: tasks of work breakdown that role does. Each task gets one role that does it. Lead: tasks that it leads. Role that only checks work of other roles (example: `reviewer`, `verifier`): `—`.
 - [ ] Skills of role that does tasks: union of Skills of its tasks.
-- [ ] Skills of lead, and of role with `—`: skills it reads for its own job, from skill list: core rules (Words of `.claude/skills/orchestration-nuance-selection/SKILL.md`) + skills for its job. Gap skill of each language that role writes.
+- [ ] Skills of lead, and of role with `—`: skills it reads for its own job, from skill list: rows of assignment table that fit its job + other skills for its job. Gap skill of each language that role writes.
 - [ ] Skills that orchestrator skill gives a role: add them to Skills of each task of that role, and to skill list with their `Path` (`path=` line of `rex skills list`).
 - [ ] Reuse: roles come from reused file. Give tasks + skills the same way.
 
-Skills are files. Agent first reads, IN FULL, `SKILL.md` of each skill of its task and each sibling file that its task row names (lead, or role with `—`: skills of its role). It also reads a sibling file when a `SKILL.md` sends it there. Its brief gives absolute paths.
+Skills are files. Agent first reads, IN FULL, `SKILL.md` of each skill of its task and each sibling file that its task row names (lead, or role with `—`: skills of its role). It also reads a sibling file when a `SKILL.md` sends it there. Its brief gives absolute paths. Grid agent has no Skill tool: only skills that its brief names reach it.
 
 ## Step 4 — Model for each role
 
@@ -128,14 +116,12 @@ Output = six `key=value` lines, in fixed order. Write `agent` in role table.
 | `inputs` | Seven inputs as seven characters: duration, budget, intelligence, autonomy, reliability, consequence, verification. `L`, `M`, `H`, or `-` for `none`. |
 | `version` | Function version, whole number. |
 
-Grid: tiers `low`, `medium`, `high`, `xhigh`. Levels `low`, `medium`, `high`, `xhigh`, `max`. Grid agent runs at model + effort of its definition.
-
 - [ ] Orchestrator = session. It runs at model + effort of session. Run no `rex oms` for it.
 - [ ] Role that must run as session does: run no `rex oms`. Write `session agent` in `Agent` column, and `—` in each input column. In plan file, it is `"session": true`.
 
 ## Output
 
-Paired challenger checks both first (`orchestration-decision-challenge`). Then builder records both with `rex job plan`.
+Paired challenger checks both first (`.claude/skills/orchestration-builder/stages/challenge/stage.md`). Then builder records both with `rex job plan`.
 
 ```
 ORCHESTRATOR: <name> | <path> | new OR reused
@@ -143,7 +129,5 @@ ROLE TABLE:
 | Role | Tasks | Skills | Intelligence | Reliability | Consequence | Verification | Agent |
 | <role> | <task IDs> OR — | <skill names> | <v> | <v> | <v> | <v> | <grid agent> OR session agent |
 ```
-
-Role with `session agent` has `—` in each input.
 
 - [ ] Give work breakdown again, with Skills as step 3 changed them.

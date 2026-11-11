@@ -14,7 +14,7 @@ Case "inside open job": sign 1, OR sign 2 when you are sub-agent.
 3. Take from output: `duration`, `budget`, `autonomy` (`none` = not stated), `merge_agreed`, `experience_recalled` (= recall output for decision agent).
 4. Do step 1 for your part of work. Record nothing.
 5. Do step 5 for your part: read `.claude/skills/orchestration-builder/decide.md`. Recall output = `experience_recalled`. Orchestrator level = your level. Do not do step 6. Then run your part with roles of role table, as step 7 of `.claude/skills/orchestration-builder/run.md` says, with no START.
-6. IF you have no Agent tool, THEN start no decision agent. Do stages yourself: for each row of `### Stages` in `decide.md`, read its file IN FULL, do it, keep its output. Then do `.claude/skills/orchestration-decision-challenge/start.md`: it skips challenge. Then do each task yourself, in order of work breakdown.
+6. IF you have no Agent tool, THEN start no decision agent. Do stages yourself: for each row of `### Stages` in `decide.md`, read its file IN FULL, do it, keep its output. Then do `.claude/skills/orchestration-builder/stages/challenge/start.md`: it skips challenge. Then do each task yourself, in order of work breakdown.
 7. Start each role with agent of `Agent` column of role table (`agent` line of `rex oms`): there is no plan.
 8. Work on branch that your brief gives. Copy `Rex-Job` of your brief into tag block of each brief that you write.
 9. IF you start parallel writers, THEN read `.claude/skills/rex-deliver/SKILL.md`, then `.claude/skills/rex-deliver/parallel-writers.md`.

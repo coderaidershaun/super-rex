@@ -14,6 +14,8 @@ user-invocable: true
 
 # Folder Management — Hard Rules
 
+Other language: apply intent of each rule in idiom of that language. IF language lacks Rust feature that a rule relies on, THEN obey gap skill of that language: skill for what Rust gives by default and that language does not.
+
 Tree = first document. Reader sees tree before code.
 Tree must tell: jobs of crate, order of work, home of each concept.
 
@@ -21,7 +23,7 @@ Sister skills:
 
 - `rex-code-improve-codebase-architecture` — finds what to move. This skill tells where it goes. Holds deletion test.
 - `rex-code-smells` — finds smells inside files.
-- `rex-code-commenting` — law for `//!` lines.
+- `rex-code-commenting` — law for module comment: comment that opens each file.
 - `rex-code-philosophy` — complexity rules.
 
 ## Files of this skill
@@ -58,7 +60,7 @@ Sister skills:
 - [ ] Max 3 folder levels below `src/`.
 - [ ] Max 12 children in one folder. IF more, THEN group children that have one caller.
 - [ ] Max 500 lines in one code file. No exceptions. IF file > 400 lines, THEN find joint now.
-- [ ] Root file holds: `//!` line, `mod` lines, re-exports, entry items of module. Nothing else.
+- [ ] Root file holds: module comment, `mod` lines, re-exports, entry items of module. Nothing else.
 - [ ] Asset (prompt, fixture, schema) lives beside file that loads it. 2+ assets = own subfolder.
 - [ ] List of children reads as steps of job.
 - [ ] One order for `mod` lines + `use` lines in whole crate.
@@ -88,9 +90,9 @@ Sister skills:
 - [ ] Types file = noun (`reply`). Calls file = verb (`transcribe`).
 - [ ] Forbidden names: `utils`, `helpers`, `common`, `misc`, `shared`, `stuff`, `manager`.
 - [ ] Name must not promise more than file holds.
-- [ ] IF file holds part of decision, THEN `//!` tells which part, in plain words. No path to other file: tree shows where rest lives (`rex-code-commenting`).
-- [ ] Each module starts with `//!`, 1 to 2 lines: why module exists. Crate root can add priority block after it (`rex-code-priorities`).
-- [ ] After each move, make sure each `//!` is true.
+- [ ] IF file holds part of decision, THEN module comment tells which part, in plain words. No path to other file: tree shows where rest lives (`rex-code-commenting`).
+- [ ] Each file starts with module comment, 1 to 2 lines: why file exists. Form for each language: `.claude/skills/rex-code-commenting/module-comments.md` (`//!` in Rust). Root file of package or program can add priority block after it (`rex-code-priorities`).
+- [ ] After each move, make sure each module comment is true.
 
 ## RULES: imports + visibility
 
@@ -102,7 +104,7 @@ Sister skills:
 - [ ] Path style: `super::` for parent or sibling in same folder. `crate::` for all else.
 - [ ] Visibility: narrowest that compiles. Order: private, `pub(super)`, `pub(crate)`, `pub`.
 - [ ] Crate root re-exports all that caller needs for main jobs.
-- [ ] Stand-in for seam imports from named sub-path. Tell this in crate `//!`.
+- [ ] Stand-in for seam imports from named sub-path. Tell this in module comment of crate root.
 - [ ] No re-export that has no user. No `#[allow(unused)]` to hide one.
 
 ## ONE-CHILD FIX

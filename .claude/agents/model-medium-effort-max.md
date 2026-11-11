@@ -3,4 +3,5 @@ name: model-medium-effort-max
 description: For when deterministic model and effort/thinking level are required. Parent agent assigns skills.
 model: sonnet
 effort: max
+disallowedTools: Skill
 ---

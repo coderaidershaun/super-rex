@@ -14,6 +14,8 @@ user-invocable: true
 
 # Rust Error Writing — Hard Rules
 
+Other language: apply intent of each rule in idiom of that language. IF language lacks Rust feature that a rule relies on, THEN obey gap skill of that language: skill for what Rust gives by default and that language does not.
+
 These rules HARD. No compromise. Every Rust error in this repo obey them.
 
 Sister skills: `rex-code-philosophy` (errors carry context = habitability), `rex-code-ergonomics` (Result patterns), `rex-code-commenting` (doc errors on pub fn), `rex-code-failure-policy` (what system does after error).

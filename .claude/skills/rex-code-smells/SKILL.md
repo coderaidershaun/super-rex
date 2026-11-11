@@ -14,6 +14,8 @@ user-invocable: true
 
 # Smell, Brittleness + Rot Detection
 
+Other language: apply intent of each rule in idiom of that language. IF language lacks Rust feature that a rule relies on, THEN obey gap skill of that language: skill for what Rust gives by default and that language does not.
+
 This skill FINDS problems. Never fixes them. Output = findings report, file:line + evidence.
 Fix rules live in sisters:
 

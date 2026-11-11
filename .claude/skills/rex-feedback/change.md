@@ -11,9 +11,10 @@ GENERAL test: remove names of this job from lesson (files, repo, feature, people
 | Cause | Home |
 | --- | --- |
 | `agent-skill` | That skill: file in `.claude/skills/<name>/` that holds the rule. `SKILL.md` or a sibling file. |
-| `agent-skill`, brief did not name sibling file that holds rule | `orchestration-work-breakdown` (it lists skills + sibling files of each task) |
+| `agent-skill`, task did not get skill or sibling file that holds rule | `.claude/skills/orchestration-builder/stages/1-skills/assign.md` (assignment table: skills + sibling files of each kind of work) |
+| `agent-skill`, table gave it, brief did not name it | `.claude/skills/orchestration-builder/stages/2-work-breakdown/stage.md` (it gives skills of each task) |
 | `agent-orchestration` | Orchestrator file, or its lead skill, in `.rex/orchestrators/<name>/` |
-| `agent-model-effort`, check 3 | `orchestration-selection`, only IF lesson is general |
+| `agent-model-effort`, check 3 | `.claude/skills/orchestration-builder/stages/3-orchestration/stage.md`, only IF lesson is general |
 | `agent-model-effort`, checks 1, 2, 4 | No file |
 
 CAUTION: You cannot undo an edit to a skill or an orchestrator. These files are not in Git. Before you change a file, read the whole file. Copy the old text of each line that you change into the report.

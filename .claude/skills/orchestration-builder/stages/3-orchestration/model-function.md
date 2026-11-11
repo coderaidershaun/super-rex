@@ -1,6 +1,8 @@
 # How `rex oms` selects
 
-Step 4 of `.claude/skills/orchestration-selection/SKILL.md`. Read IF you must know why `rex oms` gave its output.
+Step 4 of `.claude/skills/orchestration-builder/stages/3-orchestration/stage.md`. Read IF you must know why `rex oms` gave its output.
+
+Grid: tiers `low`, `medium`, `high`, `xhigh`. Levels `low`, `medium`, `high`, `xhigh`, `max`. Grid agent runs at model + effort of its definition.
 
 How function acts (function version 1). Stakes = higher of reliability and consequence.
 

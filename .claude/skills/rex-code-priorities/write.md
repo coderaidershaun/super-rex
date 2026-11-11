@@ -1,6 +1,6 @@
 # WRITE: orchestrator only
 
-Words (priority block, Priority line, Never line, quality, crate root), Shape of block, and CAUTION about change of block are in `.claude/skills/rex-code-priorities/SKILL.md`.
+Words (priority block, Priority line, Never line, quality, root file), Shape of block, and CAUTION about change of block are in `.claude/skills/rex-code-priorities/SKILL.md`.
 
 Ask user these questions one time, with other up-front questions. Give recommended answer for each, from task + code.
 
@@ -11,5 +11,5 @@ Ask user these questions one time, with other up-front questions. Give recommend
 
 Then:
 
-- [ ] Write priority block in crate root.
+- [ ] Write priority block in module comment of root file.
 - [ ] Read it back to user in report.
