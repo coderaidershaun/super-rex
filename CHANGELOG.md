@@ -4,8 +4,11 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.5.0 - 2026-11-11
+
 ### Changed
 
+- Library paths moved in a code tidy: `commands::smells::{run, SmellsOptions}` is now `commands::codebase::{run_smells, SmellsOptions}`, `gate::run` takes `GateOptions` and `test_output::run_hook` takes `TestHookOptions`. Output of every command is the same. `rex job create`, `rex status` and `rex recall` share one open-job rule, and an unfinished last log line no longer makes a read take the write lock.
 - `rex oms` is version 2: a role gets the `xhigh` tier only when its consequence is `high`. With a lower consequence the tier stops at `high` and rule `T3` shows in `rules`. `rex job show` prints `oms_version=2` on each role. The builder now starts its decision agent, challenger, skill writer and pull request reviewer on a grid agent from `rex oms`, not on the session's model or a fixed agent, and a plan job gets one adversarial review only. The role form `"session": true` is gone from `rex job plan` and `rex job show`, and the store schema changed with it: delete `.rex/rex.db` and run `rex init` again.
 - `rex job close` prints `extra_skills=<n>` and `extra_skill.<i>=<role> <skill> skill_md_words=<words>` lines after the missed-skill lines: the skills a run opened that its role was not given, with the length of each `SKILL.md`. The key `missed_skills_incomplete` is now `skills_incomplete` (and `"skills_incomplete"` in `--json`, which also gains `"extra_skills"`). Change any script that reads the old key. The work breakdown and the role table have an `Open when` column: `Skills` holds at most 6 skills that an agent reads first, and `Open when` holds the ones it opens only when its work reaches their case.
 - Stage 3 caps the sub-agents of a job by its size: 5 for a small job, 6 for a medium one, 10 for a large one, shown as `AGENTS: <count> of max <max>` in the decision. The challenger reports a plan over the cap as a `MAJOR` finding. Stage 2 builds each code feature in one task, and splits code only where files and outcomes are independent.
