@@ -272,3 +272,13 @@ impl JobBuilder<'_> {
         self.id
     }
 }
+
+/// The IDs of the jobs that the tests insert.
+pub(super) const JOB_A: &str = "0g4aaaaaa1";
+pub(super) const JOB_B: &str = "0g4bbbbbb2";
+pub(super) const JOB_C: &str = "0g4cccccc3";
+pub(super) const JOB_D: &str = "0g4dddddd4";
+pub(super) const JOB_E: &str = "0g4eeeeee5";
+pub(super) const JOB_F: &str = "0g4ffffff6";
+pub(super) const JOB_G: &str = "0g4gggggg7";
+pub(super) const JOB_H: &str = "0g4hhhhhh8";
