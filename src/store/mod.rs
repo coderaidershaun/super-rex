@@ -16,7 +16,6 @@ pub use paths::StorePaths;
 use std::fs;
 use std::time::Duration;
 
-use rusqlite::types::Type;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction, TransactionBehavior};
 
 const SCHEMA: &str = include_str!("schema.sql");
@@ -160,17 +159,14 @@ impl Store {
     /// [`StoreError::Sqlite`] if the read fails, or if the stored ID is not a
     /// job ID.
     pub fn open_job_for_session(&self, session_id: &str) -> Result<Option<JobId>, StoreError> {
-        let id: Option<String> = self
-            .conn
+        self.conn
             .query_row(
                 "SELECT id FROM job WHERE session_id = ?1 AND status IN ('created', 'planned')",
                 [session_id],
                 |row| row.get(0),
             )
             .optional()
-            .map_err(StoreError::sqlite(&self.paths.db))?;
-        id.map(|id| id.parse().map_err(stored_id_error(&self.paths)))
-            .transpose()
+            .map_err(StoreError::sqlite(&self.paths.db))
     }
 }
 
@@ -181,16 +177,6 @@ fn configure(conn: &Connection, paths: &StorePaths) -> Result<(), StoreError> {
         .map_err(StoreError::sqlite(&paths.db))?;
     conn.execute_batch("PRAGMA foreign_keys = ON; PRAGMA recursive_triggers = ON;")
         .map_err(StoreError::sqlite(&paths.db))
-}
-
-/// A job ID in the store that is not of the job ID form, reported as SQLite's
-/// own failure to convert a stored value.
-fn stored_id_error(paths: &StorePaths) -> impl FnOnce(JobIdError) -> StoreError {
-    let db = paths.db.clone();
-    move |error| {
-        let source = rusqlite::Error::FromSqlConversionFailure(0, Type::Text, Box::new(error));
-        StoreError::sqlite(&db)(source)
-    }
 }
 
 fn schema_version(conn: &Connection, paths: &StorePaths) -> Result<i64, StoreError> {

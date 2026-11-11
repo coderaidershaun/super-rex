@@ -4,7 +4,6 @@ use std::cmp::max;
 use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::path::Path;
-use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusqlite::Connection;
@@ -82,29 +81,15 @@ fn open_jobs(conn: &Connection) -> rusqlite::Result<Vec<JobId>> {
     let mut query = conn.prepare(
         "SELECT id FROM job WHERE status IN ('created', 'planned') ORDER BY created_at, id",
     )?;
-    query
-        .query_map([], |row| parse_column(&row.get::<_, String>(0)?))?
-        .collect()
+    query.query_map([], |row| row.get(0))?.collect()
 }
 
 fn stored_status(conn: &Connection, job: &JobId) -> rusqlite::Result<Status> {
-    let text: String = conn.query_row(
+    conn.query_row(
         "SELECT status FROM job WHERE id = ?1",
         [job.as_str()],
         |row| row.get(0),
-    )?;
-    parse_column(&text)
-}
-
-/// Reads a stored text as a typed value, failing as SQLite does for a column it cannot convert.
-fn parse_column<T>(text: &str) -> rusqlite::Result<T>
-where
-    T: FromStr,
-    T::Err: std::error::Error + Send + Sync + 'static,
-{
-    text.parse().map_err(|error| {
-        rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(error))
-    })
+    )
 }
 
 /// The header of a job, the warning near its spend limit, and its sections, one

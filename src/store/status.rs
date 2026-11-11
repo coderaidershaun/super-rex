@@ -5,7 +5,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use rusqlite::types::Type;
+use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ValueRef};
 use rusqlite::{OptionalExtension, Transaction, params};
 
 use super::error::{Accepts, StoreError};
@@ -178,21 +178,16 @@ fn steps(job: &JobId, previous: Status, event: Event) -> Result<Vec<Status>, Sto
 }
 
 fn stored_status(tx: &Transaction<'_>, job: &JobId) -> Result<Status, StoreError> {
-    let text: Option<String> = tx
+    let status: Option<Status> = tx
         .query_row(
             "SELECT status FROM job WHERE id = ?1",
             [job.as_str()],
             |row| row.get(0),
         )
         .optional()?;
-    let Some(text) = text else {
-        return Err(StoreError::JobNotFound {
-            job: job.to_string(),
-            store: store_dir(tx),
-        });
-    };
-    text.parse().map_err(|error: StatusError| {
-        rusqlite::Error::FromSqlConversionFailure(0, Type::Text, Box::new(error)).into()
+    status.ok_or_else(|| StoreError::JobNotFound {
+        job: job.to_string(),
+        store: store_dir(tx),
     })
 }
 
@@ -239,6 +234,14 @@ impl FromStr for Status {
         .ok_or_else(|| StatusError {
             text: text.to_owned(),
         })
+    }
+}
+
+/// A stored text that is not one of the nine statuses fails the read of its column.
+impl FromSql for Status {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Status> {
+        let status = value.as_str()?.parse();
+        status.map_err(|error: StatusError| FromSqlError::Other(Box::new(error)))
     }
 }
 

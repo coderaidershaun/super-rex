@@ -1,7 +1,6 @@
 //! Reads one job's stored record, from all the tables that hold a part of it,
 //! for `rex job show` to print.
 
-use rusqlite::types::Type;
 use rusqlite::{Connection, OptionalExtension, Row};
 
 use super::JobError;
@@ -145,13 +144,9 @@ fn rows<T>(
 }
 
 fn job_row(row: &Row<'_>) -> rusqlite::Result<JobRecord> {
-    let status: String = row.get("status")?;
-    let status = status.parse().map_err(|error| {
-        rusqlite::Error::FromSqlConversionFailure(0, Type::Text, Box::new(error))
-    })?;
     Ok(JobRecord {
         id: row.get("id")?,
-        status,
+        status: row.get("status")?,
         request: row.get("request")?,
         asked_by: row.get("asked_by")?,
         class_version: row.get("class_version")?,

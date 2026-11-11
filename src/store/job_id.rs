@@ -8,6 +8,8 @@ use std::sync::OnceLock;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ValueRef};
+
 use super::error::StoreError;
 
 const LENGTH: usize = 10;
@@ -91,6 +93,14 @@ impl FromStr for JobId {
             });
         }
         Ok(JobId(text.to_owned()))
+    }
+}
+
+/// A stored ID that is not of the job ID form fails the read of its column.
+impl FromSql for JobId {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<JobId> {
+        let id = value.as_str()?.parse();
+        id.map_err(|error: JobIdError| FromSqlError::Other(Box::new(error)))
     }
 }
 
