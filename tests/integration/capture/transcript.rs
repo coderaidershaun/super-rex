@@ -5,7 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
-use super_rex::capture::{TokenCounts, TranscriptFacts, read_transcript};
+use super_rex::capture::{Cost, TokenCounts, TranscriptFacts, read_transcript};
 
 use super::{count, fixture, read_json, sum_over_models};
 
@@ -34,6 +34,7 @@ fn transcript_totals_match_recorded_session() {
     let expected = read_json(&fixture("tree/expected.json"));
     let session_id = expected["session_id"].as_str().unwrap();
     let mut by_model: BTreeMap<String, TokenCounts> = BTreeMap::new();
+    let mut cost_by_model: BTreeMap<String, Cost> = BTreeMap::new();
     let mut runs_with_repeated_ids = 0;
     let mut background_runs = 0;
 
@@ -76,6 +77,9 @@ fn transcript_totals_match_recorded_session() {
             background_runs += 1;
         }
         *by_model.entry(facts.model.clone().unwrap()).or_default() += facts.tokens;
+        *cost_by_model
+            .entry(facts.model.clone().unwrap())
+            .or_default() += facts.cost;
     }
     assert!(
         runs_with_repeated_ids > 0,
@@ -88,6 +92,9 @@ fn transcript_totals_match_recorded_session() {
 
     let main = facts_of(&fixture(&format!("tree/transcripts/{session_id}.jsonl")));
     *by_model.entry(main.model.clone().unwrap()).or_default() += main.tokens;
+    *cost_by_model
+        .entry(main.model.clone().unwrap())
+        .or_default() += main.cost;
 
     let results = read_json(&fixture("tree/result.json"));
     let model_usage = results.as_array().unwrap().last().unwrap()["modelUsage"]
@@ -106,6 +113,35 @@ fn transcript_totals_match_recorded_session() {
         })
         .collect();
     assert_eq!(by_model, reported);
+
+    // The cost of each model matches Claude Code's own, to a billionth of a dollar
+    // (Claude Code adds floating-point figures).
+    let reported_cost: BTreeMap<String, Cost> = model_usage
+        .iter()
+        .map(|(model, usage)| {
+            let dollars = usage["costUSD"].as_f64().unwrap();
+            let nanodollars = (dollars * 1e9).round() as u64;
+            let cost = Cost {
+                nanodollars,
+                unpriced_requests: 0,
+            };
+            (model.clone(), cost)
+        })
+        .collect();
+    assert_eq!(
+        cost_by_model.keys().collect::<Vec<_>>(),
+        reported_cost.keys().collect::<Vec<_>>()
+    );
+    for (model, cost) in &cost_by_model {
+        let reported = reported_cost[model];
+        assert_eq!(cost.unpriced_requests, 0, "{model} has a price");
+        assert!(
+            cost.nanodollars.abs_diff(reported.nanodollars) <= 1,
+            "cost of {model}: {} nanodollars, Claude Code says {}",
+            cost.nanodollars,
+            reported.nanodollars
+        );
+    }
 
     let skills = read_json(&fixture("skills/expected.json"));
     let skills_session = skills["session_id"].as_str().unwrap();

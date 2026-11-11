@@ -219,7 +219,7 @@ fn session_row(summary: &JobSummary, runs: &JobRuns) -> TreeRow {
         effort: summary.builder_effort.clone().unwrap_or_else(dash),
         state: "-",
         duration: dash(),
-        tokens: TokenTexts::of(&runs.session_tokens),
+        tokens: TokenTexts::of(&runs.session_tokens, runs.session_cost),
         tag_job: None,
     }
 }
@@ -237,7 +237,7 @@ fn tree_row(run: &Run, depth: usize) -> TreeRow {
             RunState::Unconfirmed => "unconfirmed",
         },
         duration: duration_text(run.duration_ms),
-        tokens: TokenTexts::of(&run.tokens),
+        tokens: TokenTexts::of(&run.tokens, run.cost),
         tag_job: run.tag_job.clone(),
     }
 }
@@ -245,7 +245,7 @@ fn tree_row(run: &Run, depth: usize) -> TreeRow {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::capture::{TokenCounts, TokenTotal};
+    use crate::capture::{Cost, TokenCounts, TokenTotal};
     use crate::store::StorePaths;
 
     fn run(id: &str, parent: Option<&str>, started: &str) -> Run {
@@ -270,6 +270,7 @@ mod tests {
             final_message: None,
             skills_opened: None,
             tokens: TokenTotal::Unknown,
+            cost: None,
         }
     }
 
@@ -325,6 +326,10 @@ mod tests {
         };
         let mut lead = run("lead", None, "2026-11-10T10:00:00.000Z");
         lead.tokens = TokenTotal::Provisional(counts);
+        lead.cost = Some(Cost {
+            nanodollars: 441_392_000,
+            unpriced_requests: 0,
+        });
         let mut orphan = run(
             "orphan",
             Some("started-before-the-job"),
@@ -353,8 +358,9 @@ mod tests {
                 &lead_tokens.cache_read,
                 &lead_tokens.output,
                 &lead_tokens.hit,
+                &lead_tokens.cost,
             ],
-            ["30", "78.4k", "762.6k", "13.4k~", "90%"]
+            ["30", "78.4k", "762.6k", "13.4k", "90%", "$0.441~"]
         );
         assert_eq!(rows[1].duration, "41s");
         assert_eq!(
@@ -366,6 +372,20 @@ mod tests {
 
         // Counts are cut, never rounded up, and a hit % of huge counts does not overflow.
         assert_eq!(crate::commands::token_text::short_count(999_999), "999.9k");
+        let costs = [
+            (0, 0),
+            (999_999, 0),
+            (4_200_000, 0),
+            (123_456_789_000, 0),
+            (12_345_678_900, 2),
+        ]
+        .map(|(nanodollars, unpriced_requests)| {
+            crate::commands::token_text::cost_text(&Cost {
+                nanodollars,
+                unpriced_requests,
+            })
+        });
+        assert_eq!(costs, ["$0", "<$0.001", "$0.004", "$123", "≥$12.34"]);
         let huge = TokenCounts {
             input: u64::MAX,
             output: 0,

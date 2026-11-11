@@ -210,7 +210,7 @@ missed_skill.1=engineer rex-code-philosophy
 
 When a role has skills, the close compares them with the skills its runs opened: a run opens a skill when it loads it with the Skill tool, reads its `SKILL.md`, or reads another `.md` file below `.claude/skills/<name>/` or `.rex/skills/<name>/`. `missed_skills=<n>` counts the `missed_skill.<i>=<role> <skill>` lines that follow, one for each skill that no run of the role opened. A role with skills and no run at all gets one `role_not_run.<i>=<role>` line instead. A role run as the session is not checked, because the session's own reads are not recorded. `missed_skills_incomplete=yes` means the record of the runs misses facts, so the list may be wrong. `--json` gives the same as `"missed_skills": [{"role": ..., "skill": ...}]`, `"roles_not_run": [...]` and `"missed_skills_incomplete": true|false`. A missed skill never changes the status or the exit code.
 
-**`rex job show [<job>] [--json]`**: print one job's record: classification, preferences, merge answer, plan, roles with their model selection and skills (`skills=none`, or `[]` in `--json`, for none), deliveries, sub-agent runs with the skills each opened and their tokens, the main session's tokens (`session` line), request, breakdown and the recalled experience. A run's `skills_opened` in `--json` is `[]` when its transcript was read and it opened no skill, and `null` when no transcript was read; the text form prints `skills=none` for both. With no job, it shows the open job of `$CLAUDE_CODE_SESSION_ID`. `--json` adds the transitions, each run's brief and final message, and the feedback.
+**`rex job show [<job>] [--json]`**: print one job's record: classification, preferences, merge answer, plan, roles with their model selection and skills (`skills=none`, or `[]` in `--json`, for none), deliveries, sub-agent runs with the skills each opened and their tokens and cost, the main session's tokens and cost (`session` line), request, breakdown and the recalled experience. A run's `skills_opened` in `--json` is `[]` when its transcript was read and it opened no skill, and `null` when no transcript was read; the text form prints `skills=none` for both. With no job, it shows the open job of `$CLAUDE_CODE_SESSION_ID`. `--json` adds the transitions, each run's brief and final message, and the feedback.
 
 ```console
 $ rex job show 0g51g6fykv
@@ -239,7 +239,7 @@ finished
   a0c8cde396de066a3  reader  model-medium-effort-low  1m12s
 ```
 
-Each run line gives the agent ID, the role, the agent type, the duration, `bg` for a background run, `<parent` when a sub-agent started it, and the tokens: `in`, `cache w`, `cache r`, `out` and `hit` (see [Tokens](#tokens)). The header gives the job's tokens, runs and main session together. This run had no transcript, so it has no tokens and the job shows `incomplete`.
+Each run line gives the agent ID, the role, the agent type, the duration, `bg` for a background run, `<parent` when a sub-agent started it, and the tokens: `in`, `cache w`, `cache r`, `out`, `hit` and the cost in dollars (see [Tokens](#tokens)). The header gives the job's tokens and cost, runs and main session together. This run had no transcript, so it has no tokens and the job shows `incomplete`.
 
 **`rex oms`**: print the grid agent for a set of inputs. Flags `--duration`, `--budget`, `--intelligence`, `--autonomy`, `--reliability`, `--consequence`, `--verification`, each `low|medium|high|none` (a flag left out is `none`), and `--json`. `inputs` gives the seven ratings in that order, `-` for none.
 
@@ -293,14 +293,14 @@ unused=1
 unused name=research-panel version=1 path=/home/ana/code/shop/.rex/orchestrators/research-panel/SKILL.md description=Three readers compare options and one writer recommends.
 ```
 
-**`rex jobs [--json] [--search <text>]... [--since <date>] [--until <date>]`**: list jobs, newest first, one line each. `--search` matches the request text, ignoring case; repeat it to require several. Dates are `YYYY-MM-DD`, UTC, both ends included. `--json` adds deliveries, run counts, tokens and `has_feedback`.
+**`rex jobs [--json] [--search <text>]... [--since <date>] [--until <date>]`**: list jobs, newest first, one line each. `--search` matches the request text, ignoring case; repeat it to require several. Dates are `YYYY-MM-DD`, UTC, both ends included. `--json` adds deliveries, run counts, tokens, cost and `has_feedback`.
 
 ```console
 $ rex jobs --search parser
 0g51g6fykv analyzed fix small medium rust 2026-11-10T18:16:54.174Z Make the order parser reject a quantity of zero.
 ```
 
-**`rex watch`**: a live dashboard for people, redrawn every 2 seconds. The first screen is the job list, with the columns of `rex jobs`, the run counts, the new tokens and the cache hit % (see [Tokens](#tokens)). Enter on a job switches to the second screen: the job's facts and its tokens in full, then the main session's row and the tree of sub-agent runs with each run's role, model, effort, duration and `in`, `cache w`, `cache r`, `out` and `hit` (`~` marks a provisional total). The rows add up to the job's tokens. Enter switches back. Up and Down move the selection, `q` quits. Without a terminal it exits 1: `error: rex watch needs a terminal; run it without redirecting its output`.
+**`rex watch`**: a live dashboard for people, redrawn every 2 seconds. The first screen is the job list, with the columns of `rex jobs`, the run counts, the cost and the cache hit % (see [Tokens](#tokens)). Enter on a job switches to the second screen: the job's facts and its tokens in full, then the main session's row and the tree of sub-agent runs with each run's role, model, effort, duration and `in`, `cache w`, `cache r`, `out`, `hit` and `cost` (`~` marks a provisional total). The rows add up to the job's tokens and cost. Enter switches back. Up and Down move the selection, `q` quits. Without a terminal it exits 1: `error: rex watch needs a terminal; run it without redirecting its output`.
 
 **`rex feedback <job> --verdict accepted|rejected (--said <text> | --said-file <path>)`**: record what the user said about a finished job, and move its status. With `rejected` it also takes `--cause` (repeatable: `human-error`, `missing-context`, `agent-skill`, `agent-model-effort`, `agent-orchestration`), `--lesson <text>` or `--lesson-file <path>` (at most 600 characters), `--evidence <text>`, `--changed-skill <name>` and `--changed-orchestrator <name>`. A cause needs a lesson, and a lesson needs a cause. `--by <who>` defaults to `user`. The `rex-feedback` skill calls it; you rarely need to.
 
@@ -397,9 +397,11 @@ Every API call sends the whole conversation again, and most of it comes from the
 | `cache r` | `cache_read` | Prompt tokens read from the cache, once for each call. |
 | `out` | `output` | Tokens the model wrote. |
 | `hit` | `cache_hit` | `cache r` as a whole percent of all prompt tokens (`in` + `cache w` + `cache r`), cut, not rounded; `–` or `none` with no prompt token. |
-| `new` | - | `in` + `cache w` + `out`: the tokens that were not cache reads. The job list of `rex watch` shows it. |
+| `cost` / `$…` | `cost_usd` | The tokens' cost in US dollars at Anthropic's list prices, each request at the price of the model that ran it. `≥` in front, and `unpriced_requests` above 0, when some requests ran on a model with no price in `rex`, so the figure leaves them out. |
 
-A job's tokens are its runs and its main session together. `--json` gives the four counts as `input`, `output`, `cache_read` and `cache_creation`.
+A job's tokens and cost are its runs and its main session together. `--json` gives the four counts as `input`, `output`, `cache_read` and `cache_creation`, and the cost as `{"usd": …, "unpriced_requests": …}`.
+
+The cost is what the requests would cost on the Claude API, whatever plan pays for them; on a subscription it is a measure, not a bill. The prices are in `src/capture/price.rs`: per model, the input and output price, the cache read price, and cache writes at 1.25 times the input price for 5 minutes and 2 times for 1 hour, as each request's usage splits them; fast mode doubles them, and Claude Haiku 5.5 has a second rate card above 100,000 prompt tokens. Claude Code writes no cost per sub-agent, so `rex` works it out from each request's usage. A test checks it against the cost Claude Code reports for a recorded session.
 
 To turn telemetry off, run `rex init --no-hooks` in a new repo. In a repo that has the hooks, delete the three entries that run `rex hook` from `.claude/settings.local.json`. Jobs are still recorded; `running` is then never shown.
 

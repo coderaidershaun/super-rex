@@ -7,6 +7,7 @@ use std::path::Path;
 use serde_json::Value;
 
 use super::error::CaptureError;
+use super::price::{Cost, cost_of};
 use super::runs::MainFacts;
 use super::tokens::TokenCounts;
 use super::transcript::{blocks_of, content_text, read_file, records, text_at, usage_of};
@@ -34,6 +35,7 @@ pub(super) fn read_main_transcript(
         to,
         facts: MainFacts {
             tokens: TokenCounts::default(),
+            cost: Cost::default(),
             damaged_lines: 0,
             bytes: contents.len() as u64,
             builder_model: None,
@@ -84,6 +86,7 @@ impl MainReader<'_> {
             };
             if self.message_ids.insert(id.to_owned()) && self.is_inside(at) {
                 self.facts.tokens += usage_of(message);
+                self.facts.cost += cost_of(message);
             }
         }
         for block in blocks_of(message) {

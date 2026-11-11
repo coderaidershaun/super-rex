@@ -7,6 +7,7 @@ use rusqlite::{Connection, OptionalExtension, Row};
 
 use super::integer::unsigned;
 use super::readings::Judged;
+use crate::capture::price::Cost;
 use crate::capture::tokens::{Reading, TokenCounts, TokenTotal};
 use crate::store::JobId;
 
@@ -57,6 +58,8 @@ pub(crate) struct StoredRun {
 pub(crate) struct StoredTotal {
     /// `None` while no reading was stored.
     pub(crate) counts: Option<TokenCounts>,
+    /// `None` while no reading was stored.
+    pub(crate) cost: Option<Cost>,
     pub(crate) is_final: bool,
     pub(crate) bytes: Option<u64>,
     pub(crate) damaged_lines: Option<u64>,
@@ -133,7 +136,8 @@ pub(crate) fn runs(conn: &Connection, job: &JobId) -> rusqlite::Result<Vec<Store
                 duration_ms, tool_uses, lines_added, lines_removed, final_message, transcript_path,
                 tokens_input, tokens_output, tokens_cache_read, tokens_cache_creation,
                 tokens_provisional, transcript_bytes, transcript_damaged_lines, tokens_read_at,
-                CAST(ROUND((julianday(tokens_read_at) - 2440587.5) * 86400000) AS INTEGER)
+                CAST(ROUND((julianday(tokens_read_at) - 2440587.5) * 86400000) AS INTEGER),
+                cost_nanodollars, cost_unpriced_requests
          FROM sub_agent_run WHERE job_id = ?1
          ORDER BY started_at, agent_id",
     )?;
@@ -175,7 +179,8 @@ pub(crate) fn session_total(
     conn.query_row(
         "SELECT tokens_input, tokens_output, tokens_cache_read, tokens_cache_creation,
                 tokens_provisional, transcript_bytes, transcript_damaged_lines, tokens_read_at,
-                CAST(ROUND((julianday(tokens_read_at) - 2440587.5) * 86400000) AS INTEGER)
+                CAST(ROUND((julianday(tokens_read_at) - 2440587.5) * 86400000) AS INTEGER),
+                cost_nanodollars, cost_unpriced_requests
          FROM session_tokens WHERE job_id = ?1",
         [job.as_str()],
         |row| total_from(row, 0),
@@ -183,8 +188,9 @@ pub(crate) fn session_total(
     .optional()
 }
 
-/// The nine token columns that start at `first`: the four counts, the provisional
-/// flag, the bytes, the damaged lines, the read time and that time in milliseconds.
+/// The eleven token columns that start at `first`: the four counts, the provisional
+/// flag, the bytes, the damaged lines, the read time, that time in milliseconds, and
+/// the two cost columns.
 fn total_from(row: &Row<'_>, first: usize) -> rusqlite::Result<StoredTotal> {
     let counts = [
         unsigned(row, first)?,
@@ -200,8 +206,14 @@ fn total_from(row: &Row<'_>, first: usize) -> rusqlite::Result<StoredTotal> {
         cache_read: cache_read.unwrap_or(0),
         cache_creation: cache_creation.unwrap_or(0),
     });
+    let unpriced_requests = unsigned(row, first + 10)?.unwrap_or(0);
+    let cost = unsigned(row, first + 9)?.map(|nanodollars| Cost {
+        nanodollars,
+        unpriced_requests,
+    });
     Ok(StoredTotal {
         counts,
+        cost,
         is_final: !is_provisional,
         bytes: unsigned(row, first + 5)?,
         damaged_lines: unsigned(row, first + 6)?,

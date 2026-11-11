@@ -22,6 +22,7 @@ impl Read<'_> {
         let session_tokens = session
             .as_ref()
             .map_or(TokenTotal::Unknown, StoredTotal::total);
+        let session_cost = session.as_ref().and_then(|session| session.cost);
         let runs: Vec<Run> = stored_runs
             .iter()
             .map(|run| {
@@ -40,6 +41,15 @@ impl Read<'_> {
             || has_unsure_run
             || (!runs.is_empty() && session_tokens == TokenTotal::Unknown);
         let tokens = sum(runs.iter().map(|run| run.tokens).chain([session_tokens]));
+        let cost = runs
+            .iter()
+            .map(|run| run.cost)
+            .chain([session_cost])
+            .flatten()
+            .reduce(|mut sum, part| {
+                sum += part;
+                sum
+            });
         let count = |state: RunState| {
             let count = runs.iter().filter(|run| run.state == state).count();
             u32::try_from(count).unwrap_or(u32::MAX)
@@ -50,6 +60,8 @@ impl Read<'_> {
             unconfirmed: count(RunState::Unconfirmed),
             tokens,
             session_tokens,
+            cost,
+            session_cost,
             incomplete,
             damaged_log_lines: rows::damaged_lines(conn)?,
             runs,
@@ -90,6 +102,7 @@ fn run_of(run: &StoredRun, state: RunState) -> Run {
                 .collect()
         }),
         tokens: run.total.total(),
+        cost: run.total.cost,
     }
 }
 

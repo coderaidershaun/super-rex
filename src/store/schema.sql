@@ -144,6 +144,10 @@ CREATE TABLE sub_agent_run (
     tokens_output            INTEGER,
     tokens_cache_read        INTEGER,
     tokens_cache_creation    INTEGER,
+    -- The tokens' cost at list prices, in billionths of a dollar, and the count of
+    -- requests on a model with no price, whose cost it leaves out.
+    cost_nanodollars         INTEGER,
+    cost_unpriced_requests   INTEGER,
     tokens_provisional       INTEGER NOT NULL DEFAULT 1 CHECK (tokens_provisional IN (0, 1)),
     transcript_bytes         INTEGER,
     transcript_damaged_lines INTEGER,
@@ -178,6 +182,8 @@ CREATE TABLE session_tokens (
     tokens_output            INTEGER,
     tokens_cache_read        INTEGER,
     tokens_cache_creation    INTEGER,
+    cost_nanodollars         INTEGER,
+    cost_unpriced_requests   INTEGER,
     tokens_provisional       INTEGER NOT NULL DEFAULT 1 CHECK (tokens_provisional IN (0, 1)),
     transcript_bytes         INTEGER,
     transcript_damaged_lines INTEGER,

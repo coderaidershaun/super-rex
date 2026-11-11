@@ -1,11 +1,12 @@
 //! One job as `rex jobs` shows it: the summary, its JSON document and its
 //! plain line. `rex watch` fills its job list from the same summary.
 
-use serde::Serialize;
+use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 
 use super::JobsError;
 use super::select::{DeliveryRow, JobRow};
-use crate::capture::{JobRuns, TokenCounts, TokenTotal};
+use crate::capture::{Cost, JobRuns, TokenCounts, TokenTotal};
 use crate::store::status::Shown;
 
 /// How many characters of the request a summary keeps.
@@ -34,6 +35,8 @@ pub struct JobSummary {
     pub deliveries: Vec<DeliverySummary>,
     pub runs: RunCounts,
     pub tokens: Option<TokenSummary>,
+    /// The cost of `tokens` at list prices; `None` while they are unknown.
+    pub cost: Option<CostSummary>,
     pub incomplete: bool,
     pub has_feedback: bool,
 }
@@ -102,6 +105,19 @@ impl TokenSummary {
     }
 }
 
+/// A cost as JSON: `{"usd": 0.113724, "unpriced_requests": 0}`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CostSummary(pub Cost);
+
+impl Serialize for CostSummary {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut cost = serializer.serialize_struct("CostSummary", 2)?;
+        cost.serialize_field("usd", &self.0.dollars())?;
+        cost.serialize_field("unpriced_requests", &self.0.unpriced_requests)?;
+        cost.end()
+    }
+}
+
 impl JobSummary {
     pub fn new(
         row: JobRow,
@@ -146,6 +162,7 @@ impl JobSummary {
                 unconfirmed: runs.unconfirmed,
             },
             tokens: TokenSummary::of(&runs.tokens),
+            cost: runs.cost.map(CostSummary),
             incomplete: runs.incomplete,
             has_feedback,
         }

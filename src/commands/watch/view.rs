@@ -12,9 +12,9 @@ use ratatui::widgets::{
 
 use super::model::{Screen, State};
 use super::theme;
-use crate::capture::{TokenCounts, TokenTotal};
+use crate::capture::{Cost, TokenCounts, TokenTotal};
 use crate::commands::jobs::{JobSummary, RunCounts};
-use crate::commands::token_text::{hit_text, short_count, split_text};
+use crate::commands::token_text::{cost_text, hit_text, short_count, split_text};
 
 /// One line of the job list: the columns of the plain `rex jobs` line, then
 /// the run counts and the token texts.
@@ -29,11 +29,11 @@ pub struct JobListRow {
     pub created_at: String,
     pub excerpt: String,
     pub runs: RunCounts,
-    /// The new tokens (not cache reads), with `~` while the total can grow.
-    /// Empty when the tokens are unknown.
-    pub new_tokens: String,
+    /// The cost at list prices, with `~` while the total can grow. Empty when the
+    /// tokens are unknown.
+    pub cost: String,
     pub hit: String,
-    /// The four counts and the hit % on one line, for the job panel.
+    /// The four counts, the hit % and the cost on one line, for the job panel.
     pub split: String,
 }
 
@@ -49,14 +49,10 @@ impl JobListRow {
             created_at: summary.created_at.clone(),
             excerpt: summary.excerpt_on_one_line(),
             runs: summary.runs,
-            new_tokens: summary
+            cost: summary
                 .tokens
-                .map(|tokens| {
-                    marked(
-                        &short_count(tokens.counts().new_tokens()),
-                        tokens.provisional,
-                    )
-                })
+                .zip(summary.cost)
+                .map(|(tokens, cost)| marked(&cost_text(&cost.0), tokens.provisional))
                 .unwrap_or_default(),
             hit: summary
                 .tokens
@@ -64,7 +60,14 @@ impl JobListRow {
                 .unwrap_or_default(),
             split: summary
                 .tokens
-                .map(|tokens| marked(&split_text(&tokens.counts()), tokens.provisional))
+                .zip(summary.cost)
+                .map(|(tokens, cost)| {
+                    let split = split_text(&tokens.counts());
+                    marked(
+                        &format!("{split}  cost {}", cost_text(&cost.0)),
+                        tokens.provisional,
+                    )
+                })
                 .unwrap_or_default(),
         }
     }
@@ -76,13 +79,15 @@ pub struct TokenTexts {
     pub input: String,
     pub cache_write: String,
     pub cache_read: String,
-    /// With `~` while the total can grow.
     pub output: String,
     pub hit: String,
+    /// The cost at list prices, with `~` while the total can grow.
+    pub cost: String,
 }
 
 impl TokenTexts {
-    pub fn of(total: &TokenTotal) -> TokenTexts {
+    /// `cost` is the cost of `total`, `None` when it is unknown.
+    pub fn of(total: &TokenTotal, cost: Option<Cost>) -> TokenTexts {
         let (counts, provisional) = match total {
             TokenTotal::Unknown => return TokenTexts::default(),
             TokenTotal::Provisional(counts) => (counts, true),
@@ -98,8 +103,9 @@ impl TokenTexts {
             input: short_count(input),
             cache_write: short_count(cache_creation),
             cache_read: short_count(cache_read),
-            output: marked(&short_count(output), provisional),
+            output: short_count(output),
             hit: hit_text(counts),
+            cost: cost.map_or_else(String::new, |cost| marked(&cost_text(&cost), provisional)),
         }
     }
 }
@@ -363,7 +369,7 @@ fn draw_jobs(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
                 Cell::from(Span::styled(job.languages.as_str(), theme::dim())),
                 Cell::from(Span::styled(created_text(&job.created_at), theme::dim())),
                 Cell::from(runs_line(job.runs)),
-                Cell::from(tokens_line(&job.new_tokens, selected)),
+                Cell::from(tokens_line(&job.cost, selected)),
                 Cell::from(tokens_line(&job.hit, selected)),
                 Cell::from(Span::styled(job.excerpt.as_str(), plain(selected))),
             ])
@@ -392,7 +398,7 @@ fn draw_jobs(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
         "languages",
         "created",
         "runs",
-        "new",
+        "cost",
         "hit",
         "request",
     ];
@@ -502,27 +508,29 @@ fn draw_tree(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
                 Cell::from(tokens_line(&run.tokens.cache_read, selected)),
                 Cell::from(tokens_line(&run.tokens.output, selected)),
                 Cell::from(tokens_line(&run.tokens.hit, selected)),
+                Cell::from(tokens_line(&run.tokens.cost, selected)),
                 Cell::from(tag_job),
             ])
         })
         .collect();
     // The fixed columns fit in 120 terminal columns; the tag job takes the rest.
     let widths = [
-        Constraint::Length(24),
-        Constraint::Length(11),
+        Constraint::Length(20),
+        Constraint::Length(10),
         Constraint::Length(6),
         Constraint::Length(13),
         Constraint::Length(6),
+        Constraint::Length(5),
         Constraint::Length(7),
         Constraint::Length(7),
-        Constraint::Length(7),
-        Constraint::Length(7),
+        Constraint::Length(6),
         Constraint::Length(4),
+        Constraint::Length(8),
         Constraint::Fill(1),
     ];
     let header = [
         "role", "model", "effort", "state", "time", "in", "cache w", "cache r", "out", "hit",
-        "tag job",
+        "cost", "tag job",
     ];
     let table = styled_table(rows, &widths, &header, block);
     let mut table_state = TableState::default().with_selected(Some(state.tree_row));

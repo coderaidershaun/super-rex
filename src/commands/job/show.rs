@@ -10,8 +10,9 @@ use super::JobError;
 use super::input::non_empty_var;
 use super::record::{self, DeliveryRow, FeedbackRow, JobRecord, RoleRow};
 use super::value::value_name;
-use crate::capture::{self, JobRuns, Run, RunState, TokenTotal};
+use crate::capture::{self, Cost, JobRuns, Run, RunState, TokenTotal};
 use crate::commands::stdout::print_to_stdout;
+use crate::commands::token_text::cost_usd;
 use crate::oms::Level;
 use crate::store::status::Shown;
 use crate::store::{JobId, Store, StoreError, StorePaths};
@@ -80,7 +81,7 @@ fn plain_text(record: &JobRecord, shown: Shown, view: &JobRuns) -> String {
     }
     lines.push(format!(
         "session {} provisional={}",
-        token_pairs(view.session_tokens),
+        token_pairs(view.session_tokens, view.session_cost),
         yes_no(is_provisional(view.session_tokens)),
     ));
     lines.extend(view.runs.iter().map(run_line));
@@ -131,7 +132,11 @@ fn scalar_lines(record: &JobRecord, shown: Shown, view: &JobRuns) -> Vec<String>
         ("created_at", record.created_at.clone()),
         ("updated_at", record.updated_at.clone()),
     ];
-    scalars.extend(TOKEN_SCALARS.into_iter().zip(token_values(view.tokens)));
+    scalars.extend(
+        TOKEN_SCALARS
+            .into_iter()
+            .zip(token_values(view.tokens, view.cost)),
+    );
     scalars.extend([
         (
             "tokens_provisional",
@@ -188,7 +193,7 @@ fn run_line(run: &Run) -> String {
         or_none(run.agent_type.as_deref()),
         or_none(run.model_ran.as_deref()),
         or_none(run.effort_ran.as_deref()),
-        token_pairs(run.tokens),
+        token_pairs(run.tokens, run.cost),
         yes_no(is_provisional(run.tokens)),
     )
 }
@@ -234,6 +239,8 @@ fn json_record(record: &JobRecord, shown: Shown, view: &JobRuns) -> Value {
         "runs": view.runs.iter().map(json_run).collect::<Vec<_>>(),
         "tokens": json_total(view.tokens),
         "session_tokens": json_total(view.session_tokens),
+        "cost": json_cost(view.cost),
+        "session_cost": json_cost(view.session_cost),
         "incomplete": view.incomplete,
         "damaged_log_lines": view.damaged_log_lines,
         "feedback": record.feedback.iter().map(json_feedback).collect::<Vec<_>>(),
@@ -350,6 +357,7 @@ fn json_run(run: &Run) -> Value {
         "skills_opened": run.skills_opened,
         "final_message": run.final_message,
         "tokens": json_total(run.tokens),
+        "cost": json_cost(run.cost),
     })
 }
 
@@ -374,40 +382,65 @@ fn json_total(total: TokenTotal) -> Value {
     })
 }
 
+/// `{"usd": 0.113724, "unpriced_requests": 0}`, or `null` while the tokens are unknown.
+fn json_cost(cost: Option<Cost>) -> Value {
+    cost.map_or(Value::Null, |cost| {
+        json!({
+            "usd": cost.dollars(),
+            "unpriced_requests": cost.unpriced_requests,
+        })
+    })
+}
+
 /// The keys of a total's figures, in their order.
-const TOKEN_KEYS: [&str; 5] = ["input", "cache_write", "cache_read", "output", "cache_hit"];
+const TOKEN_KEYS: [&str; 7] = [
+    "input",
+    "cache_write",
+    "cache_read",
+    "output",
+    "cache_hit",
+    "cost_usd",
+    "unpriced_requests",
+];
 
 /// The same keys as job scalars.
-const TOKEN_SCALARS: [&str; 5] = [
+const TOKEN_SCALARS: [&str; 7] = [
     "tokens_input",
     "tokens_cache_write",
     "tokens_cache_read",
     "tokens_output",
     "tokens_cache_hit",
+    "cost_usd",
+    "cost_unpriced_requests",
 ];
 
-/// A total's figures in the order of [`TOKEN_KEYS`]: the four counts and the
-/// hit % (`90%`, `none` with no prompt token). All `none` when the total is unknown.
-fn token_values(total: TokenTotal) -> [String; 5] {
-    match total {
-        TokenTotal::Unknown => ["none"; 5].map(str::to_owned),
-        TokenTotal::Provisional(counts) | TokenTotal::Final(counts) => [
-            counts.input.to_string(),
-            counts.cache_creation.to_string(),
-            counts.cache_read.to_string(),
-            counts.output.to_string(),
-            counts
-                .cache_hit_percent()
-                .map_or_else(|| "none".to_owned(), |percent| format!("{percent}%")),
-        ],
-    }
+/// A total's figures in the order of [`TOKEN_KEYS`]: the four counts, the hit %
+/// (`90%`, `none` with no prompt token), the cost in dollars and the requests it
+/// leaves out for want of a price. All `none` when the total is unknown.
+fn token_values(total: TokenTotal, cost: Option<Cost>) -> [String; 7] {
+    let (TokenTotal::Provisional(counts) | TokenTotal::Final(counts)) = total else {
+        return ["none"; 7].map(str::to_owned);
+    };
+    let none = || "none".to_owned();
+    [
+        counts.input.to_string(),
+        counts.cache_creation.to_string(),
+        counts.cache_read.to_string(),
+        counts.output.to_string(),
+        counts
+            .cache_hit_percent()
+            .map_or_else(none, |percent| format!("{percent}%")),
+        cost.as_ref().map_or_else(none, cost_usd),
+        cost.map_or_else(none, |cost| cost.unpriced_requests.to_string()),
+    ]
 }
 
-/// `input=30 cache_write=78405 cache_read=762619 output=13483 cache_hit=90%`.
-fn token_pairs(total: TokenTotal) -> String {
+/// `input=30 cache_write=78405 cache_read=762619 output=13483 cache_hit=90%
+/// cost_usd=0.441392 unpriced_requests=0`.
+fn token_pairs(total: TokenTotal, cost: Option<Cost>) -> String {
     TOKEN_KEYS
         .into_iter()
-        .zip(token_values(total))
+        .zip(token_values(total, cost))
         .map(|(key, value)| format!("{key}={value}"))
         .collect::<Vec<_>>()
         .join(" ")

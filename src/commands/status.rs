@@ -9,10 +9,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use rusqlite::Connection;
 
 use crate::capture::{
-    CaptureError, JobRuns, Run, RunState, TokenTotal, job_runs, last_activity_ms,
+    CaptureError, Cost, JobRuns, Run, RunState, TokenTotal, job_runs, last_activity_ms,
 };
 use crate::commands::stdout::print_line_to_stdout;
-use crate::commands::token_text::split_text;
+use crate::commands::token_text::{cost_text, split_text};
 use crate::error::{CommandError, RexError};
 use crate::store::status::{Shown, Status};
 use crate::store::{JobId, Store, StoreError, StorePaths};
@@ -20,7 +20,7 @@ use crate::store::{JobId, Store, StoreError, StorePaths};
 /// Arguments of `rex status`.
 #[derive(clap::Args)]
 #[command(
-    after_help = "Exits 0 also when no job is open, with the line `no open job`. Tokens are `in` (input), `cache w` (cache writes), `cache r` (cache reads) and `out` (output); `hit` is the share of prompt tokens read from the cache. A `~` at the end means the counts can still grow."
+    after_help = "Exits 0 also when no job is open, with the line `no open job`. Tokens are `in` (input), `cache w` (cache writes), `cache r` (cache reads) and `out` (output); `hit` is the share of prompt tokens read from the cache; the dollar figure is their cost at list prices, `≥` when some requests ran on a model with no price. A `~` at the end means the counts can still grow."
 )]
 pub struct StatusOptions {
     /// The job to show. Without it, every job that is created or planned.
@@ -168,7 +168,7 @@ fn header(job: &JobId, stored: Status, runs: &JobRuns) -> String {
     if runs.incomplete {
         header.push_str("  incomplete");
     }
-    if let Some(tokens) = tokens_text(runs.tokens) {
+    if let Some(tokens) = tokens_text(runs.tokens, runs.cost) {
         header.push_str(&format!("  {tokens}"));
     }
     header
@@ -225,7 +225,7 @@ fn run_line(run: &Run, time: &str, role_width: usize, type_width: usize) -> Stri
     if let Some(parent) = &run.parent_agent_id {
         line.push_str(&format!("  <{parent}"));
     }
-    if let Some(tokens) = tokens_text(run.tokens) {
+    if let Some(tokens) = tokens_text(run.tokens, run.cost) {
         line.push_str(&format!("  {tokens}"));
     }
     line
@@ -241,13 +241,14 @@ fn duration_text(ms: u64) -> String {
     }
 }
 
-/// `in 30  cache w 78.4k  cache r 762.6k  out 13.4k  hit 90%`, with `~` at the end
-/// while the total may still grow. `None` when the total is not known.
-fn tokens_text(total: TokenTotal) -> Option<String> {
+/// `in 30  cache w 78.4k  cache r 762.6k  out 13.4k  hit 90%  $0.42`, with `~` at
+/// the end while the total may still grow. `None` when the total is not known.
+fn tokens_text(total: TokenTotal, cost: Option<Cost>) -> Option<String> {
     let (counts, mark) = match total {
         TokenTotal::Unknown => return None,
         TokenTotal::Provisional(counts) => (counts, "~"),
         TokenTotal::Final(counts) => (counts, ""),
     };
-    Some(format!("{}{mark}", split_text(&counts)))
+    let cost = cost.map_or_else(String::new, |cost| format!("  {}", cost_text(&cost)));
+    Some(format!("{}{cost}{mark}", split_text(&counts)))
 }

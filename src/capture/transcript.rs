@@ -9,6 +9,7 @@ use std::path::Path;
 use serde_json::Value;
 
 use super::error::CaptureError;
+use super::price::{Cost, cost_of};
 use super::tokens::TokenCounts;
 
 /// The folders whose sub-folders are skills, as the two last parts of their paths: the
@@ -24,6 +25,8 @@ const SKILL_ROOTS: [(&str, &str); 3] = [
 pub struct TranscriptFacts {
     /// Each message ID counted one time, all models added up.
     pub tokens: TokenCounts,
+    /// The same requests at list prices, each at the price of its own model.
+    pub cost: Cost,
     /// Count of distinct message IDs.
     pub requests: u64,
     pub tool_uses: u64,
@@ -139,6 +142,7 @@ impl Tally {
             && self.message_ids.insert(id.to_owned())
         {
             self.facts.tokens += usage_of(message);
+            self.facts.cost += cost_of(message);
         }
         for block in blocks_of(message) {
             match text_at(block, "type") {

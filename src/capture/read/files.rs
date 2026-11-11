@@ -189,6 +189,7 @@ impl Read<'_> {
         RunReading {
             reading: Reading {
                 tokens: facts.tokens,
+                cost: facts.cost,
                 bytes: facts.bytes,
                 damaged_lines: facts.damaged_lines,
                 read_ms: self.now_ms,

@@ -1,7 +1,7 @@
 //! The values that capture hands to its callers: the runs of one job, and the facts
 //! read from a main session's transcript.
 
-use super::{TokenCounts, TokenTotal};
+use super::{Cost, TokenCounts, TokenTotal};
 
 /// The runs of one job as they stand at one moment, with the job's totals.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,6 +15,10 @@ pub struct JobRuns {
     pub tokens: TokenTotal,
     /// The main session alone, inside the job's time.
     pub session_tokens: TokenTotal,
+    /// The cost of `tokens` and of `session_tokens` at list prices. `None` while
+    /// those tokens are unknown. Final or provisional as the tokens are.
+    pub cost: Option<Cost>,
+    pub session_cost: Option<Cost>,
     /// True when the history of the job may miss facts.
     pub incomplete: bool,
     pub damaged_log_lines: u64,
@@ -52,6 +56,8 @@ pub struct Run {
     /// when no transcript was read.
     pub skills_opened: Option<Vec<String>>,
     pub tokens: TokenTotal,
+    /// The cost of `tokens` at list prices. `None` while the tokens are unknown.
+    pub cost: Option<Cost>,
 }
 
 /// Where a run stands at the moment of the read.
@@ -67,6 +73,7 @@ pub enum RunState {
 pub struct MainFacts {
     /// The requests inside the time window.
     pub tokens: TokenCounts,
+    pub cost: Cost,
     /// Includes records whose `timestamp` is not of the store's form.
     pub damaged_lines: u64,
     pub bytes: u64,

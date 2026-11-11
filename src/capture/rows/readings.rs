@@ -6,12 +6,14 @@
 use rusqlite::{Connection, named_params, params};
 
 use super::integer::signed;
+use crate::capture::price::Cost;
 use crate::capture::tokens::TokenCounts;
 
 /// What one parse of a transcript found, read at `read_ms`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Reading {
     pub(crate) tokens: TokenCounts,
+    pub(crate) cost: Cost,
     pub(crate) bytes: u64,
     pub(crate) damaged_lines: u64,
     pub(crate) read_ms: u64,
@@ -47,6 +49,7 @@ pub(crate) fn store_run_reading(
         "UPDATE sub_agent_run SET
              tokens_input = :input, tokens_output = :output,
              tokens_cache_read = :cache_read, tokens_cache_creation = :cache_creation,
+             cost_nanodollars = :cost, cost_unpriced_requests = :unpriced,
              transcript_bytes = :bytes, transcript_damaged_lines = :damaged,
              tokens_read_at = strftime('%Y-%m-%dT%H:%M:%fZ', :read_ms / 1000.0, 'unixepoch'),
              skills_opened = :skills,
@@ -58,6 +61,8 @@ pub(crate) fn store_run_reading(
             ":input": signed(reading.tokens.input), ":output": signed(reading.tokens.output),
             ":cache_read": signed(reading.tokens.cache_read),
             ":cache_creation": signed(reading.tokens.cache_creation),
+            ":cost": signed(reading.cost.nanodollars),
+            ":unpriced": signed(reading.cost.unpriced_requests),
             ":bytes": signed(reading.bytes), ":damaged": signed(reading.damaged_lines),
             ":read_ms": signed(reading.read_ms), ":skills": run.skills_opened,
             ":tool_uses": signed(run.tool_uses), ":lines_added": signed(run.lines_added),
@@ -141,14 +146,17 @@ pub(crate) fn store_session_reading(
 ) -> rusqlite::Result<()> {
     conn.execute(
         "INSERT INTO session_tokens (job_id, tokens_input, tokens_output, tokens_cache_read,
-                                     tokens_cache_creation, transcript_bytes,
+                                     tokens_cache_creation, cost_nanodollars,
+                                     cost_unpriced_requests, transcript_bytes,
                                      transcript_damaged_lines, tokens_read_at)
-         VALUES (:job, :input, :output, :cache_read, :cache_creation, :bytes, :damaged,
-                 strftime('%Y-%m-%dT%H:%M:%fZ', :read_ms / 1000.0, 'unixepoch'))
+         VALUES (:job, :input, :output, :cache_read, :cache_creation, :cost, :unpriced,
+                 :bytes, :damaged, strftime('%Y-%m-%dT%H:%M:%fZ', :read_ms / 1000.0, 'unixepoch'))
          ON CONFLICT(job_id) DO UPDATE SET
              tokens_input = excluded.tokens_input, tokens_output = excluded.tokens_output,
              tokens_cache_read = excluded.tokens_cache_read,
              tokens_cache_creation = excluded.tokens_cache_creation,
+             cost_nanodollars = excluded.cost_nanodollars,
+             cost_unpriced_requests = excluded.cost_unpriced_requests,
              transcript_bytes = excluded.transcript_bytes,
              transcript_damaged_lines = excluded.transcript_damaged_lines,
              tokens_read_at = excluded.tokens_read_at
@@ -158,6 +166,8 @@ pub(crate) fn store_session_reading(
             ":input": signed(reading.tokens.input), ":output": signed(reading.tokens.output),
             ":cache_read": signed(reading.tokens.cache_read),
             ":cache_creation": signed(reading.tokens.cache_creation),
+            ":cost": signed(reading.cost.nanodollars),
+            ":unpriced": signed(reading.cost.unpriced_requests),
             ":bytes": signed(reading.bytes), ":damaged": signed(reading.damaged_lines),
             ":read_ms": signed(reading.read_ms),
         },

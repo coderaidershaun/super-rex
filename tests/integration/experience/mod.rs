@@ -266,6 +266,7 @@ fn jobs_json_keeps_its_fixed_shape() {
             "deliveries",
             "runs",
             "tokens",
+            "cost",
             "incomplete",
             "has_feedback",
         ]
@@ -290,6 +291,7 @@ fn jobs_json_keeps_its_fixed_shape() {
         serde_json::json!({"open": 0, "finished": 0, "unconfirmed": 0})
     );
     assert_eq!(delivered["tokens"], serde_json::Value::Null);
+    assert_eq!(delivered["cost"], serde_json::Value::Null);
     assert_eq!(delivered["has_feedback"], false);
 
     // A long request is cut at 200 characters and says so.
