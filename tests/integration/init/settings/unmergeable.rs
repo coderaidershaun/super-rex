@@ -3,8 +3,8 @@
 
 use std::fs;
 
-use super::settings::{read_settings, write_settings};
-use super::support::{
+use super::expected::{read_settings, write_settings};
+use crate::init::support::{
     ONE_STEP_FAILED, SKILL_MARKER, installed, repo, rex_init_failed, settings_path,
 };
 

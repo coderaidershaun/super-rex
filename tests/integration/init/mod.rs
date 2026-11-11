@@ -12,7 +12,6 @@ mod store;
 mod support;
 #[cfg(unix)]
 mod test_output;
-mod unmergeable_settings;
 #[cfg(unix)]
 mod unreadable;
 mod update;
