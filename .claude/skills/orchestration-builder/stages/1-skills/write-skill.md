@@ -29,7 +29,7 @@ Rex-Role: skill-writer
 Write one new skill. Its name is <name>. The skill must make agents do this: <need>.
 The reason: <why this job needs it, and why later jobs need it also>.
 
-1. Read <HOME_DIR>/.claude/skills/rex-skill-language/SKILL.md in full. Obey it in every line.
+1. Read <HOME_DIR>/.rex/skills/rex-skill-language/SKILL.md in full. Obey it in every line.
 2. Write the file <root>/.claude/skills/<name>/SKILL.md with the Write tool.
    A shell command cannot write below .claude/skills/.
 3. Start the file with this header:

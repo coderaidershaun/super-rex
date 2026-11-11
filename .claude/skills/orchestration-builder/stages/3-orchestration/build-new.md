@@ -76,7 +76,7 @@ Fact: duration caps effort only. How long job takes depends most on how much run
 
 ## Step 5 — Write orchestrator
 
-Only IF step 1 found none. Write it yourself. First read `.claude/skills/rex-skill-language/SKILL.md` IN FULL. Write in that language.
+Only IF step 1 found none. Write it yourself. First read `.rex/skills/rex-skill-language/SKILL.md` IN FULL. Write in that language.
 
 Contents:
 

@@ -263,18 +263,18 @@ description=Throwaway code in a scratch folder that answers one yes/no question 
 when_to_use=Use when plan or sketch lists an unknown, an engineer doubts an approach, crate, or outside service, or user says "spike this", "prove it works first", "quick experiment", "scratch test", "will this even work".
 source=repo
 shadowed=no
-path=/home/ana/code/shop/.claude/skills/rex-code-spike/SKILL.md
+path=/home/ana/code/shop/.rex/skills/rex-code-spike/SKILL.md
 ...
 ```
 
 **`rex skills check <path>...`**: check skill folders or `SKILL.md` files against the rules in "Reference". It prints `ok <path>` or one line per finding, and exits 1 on any finding.
 
 ```console
-$ rex skills check .claude/skills/shop-notes .claude/skills/rex-code-tdd
+$ rex skills check .claude/skills/shop-notes .rex/skills/rex-code-tdd
 .claude/skills/shop-notes/SKILL.md: H4: description holds `Use when`; move the "use when" text into when_to_use
 .claude/skills/shop-notes/SKILL.md: H5: when_to_use is missing
 .claude/skills/shop-notes/SKILL.md: B4: .claude/skills/shop-style/SKILL.md is not a known skill
-ok .claude/skills/rex-code-tdd
+ok .rex/skills/rex-code-tdd
 error: 3 findings in 1 of 2 skills
 ```
 

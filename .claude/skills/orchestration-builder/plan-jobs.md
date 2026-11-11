@@ -11,7 +11,7 @@ For person, planning has two stages. Run 1 = plan job: it writes plan file. Pers
 - [ ] Plan file: `$HOME_DIR/.rex/plans/<JOB>/plan.md`. Roles write only plan file + scratch files.
 - [ ] Skill list: row `Plan job` of assignment table (`.claude/skills/orchestration-builder/stages/1-skills/assign.md`), + skills that subject of plan needs.
 - [ ] Orchestrator skill is built for planning: `.claude/skills/orchestration-builder/stages/3-orchestration/plan-jobs.md`.
-- [ ] Before plan is final: adversarial review. Agent that wrote no part of plan reads `.claude/skills/rex-codex-adversarial-review/SKILL.md` IN FULL and obeys it.
+- [ ] Before plan is final: adversarial review. Agent that wrote no part of plan reads `.rex/skills/rex-codex-adversarial-review/SKILL.md` IN FULL and obeys it.
 - [ ] Challenger = Codex. IF Codex is not available, THEN grid agent `model-high-effort-high` or above, by complexity. That skill gives choice.
 - [ ] Author changes plan for each `upheld` finding. Each `contested` finding goes into `Open questions` of plan, with both positions.
 - [ ] One review for each plan. IF revision changes approach of plan, THEN review again. Max 2 reviews for each job.
