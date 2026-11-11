@@ -105,7 +105,7 @@ impl Group {
             Ok(Status::Rejected | Status::Analyzed | Status::Failed) => self.missed += 1,
             _ => {}
         }
-        let is_open = matches!(status, Ok(Status::Created | Status::Planned));
+        let is_open = status.is_ok_and(Status::is_open);
         if let Some(spent) = spent.filter(|_| !is_open) {
             self.spent.add(spent);
             self.cost_per_job = self.spent.cost_per_job();

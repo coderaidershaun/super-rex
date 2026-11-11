@@ -15,7 +15,7 @@ use crate::commands::gate::SpendLimit;
 use crate::commands::stdout::print_line_to_stdout;
 use crate::commands::token_text::{cost_text, split_text};
 use crate::error::{CommandError, RexError};
-use crate::store::status::{Shown, Status};
+use crate::store::status::{OPEN_STATUSES_SQL, Shown, Status};
 use crate::store::{JobId, Store, StoreError, StorePaths};
 
 /// Arguments of `rex status`.
@@ -78,9 +78,9 @@ pub fn run(cwd: &Path, options: StatusOptions) -> Result<(), StatusError> {
 
 /// The jobs that are created or planned, oldest first.
 fn open_jobs(conn: &Connection) -> rusqlite::Result<Vec<JobId>> {
-    let mut query = conn.prepare(
-        "SELECT id FROM job WHERE status IN ('created', 'planned') ORDER BY created_at, id",
-    )?;
+    let mut query = conn.prepare(&format!(
+        "SELECT id FROM job WHERE status IN {OPEN_STATUSES_SQL} ORDER BY created_at, id"
+    ))?;
     query.query_map([], |row| row.get(0))?.collect()
 }
 
@@ -111,7 +111,7 @@ fn job_lines(
     let now_ms = millis(now);
     let mut lines = vec![header(job, stored, runs)];
     // The gate checks only an open job, so a closed one gets no warning.
-    if matches!(stored, Status::Created | Status::Planned) {
+    if stored.is_open() {
         let spent = runs.cost.unwrap_or_default();
         if let Some(warning) = SpendLimit::of(store, job)?.warning(job, &spent) {
             lines.push(warning);

@@ -1,12 +1,12 @@
-//! The one place where a job's stored status changes after it is created, so
-//! that every command that moves a job follows the same table.
+//! The one place where a job's stored status changes after it is created, and
+//! where an open job is defined, so that every command follows the same table.
 
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, ValueRef};
-use rusqlite::{OptionalExtension, Transaction, params};
+use rusqlite::{Connection, OptionalExtension, Transaction, params};
 
 use super::error::{Accepts, StoreError};
 use super::job_id::JobId;
@@ -28,6 +28,11 @@ pub enum Status {
     Analyzed,
     Cancelled,
 }
+
+/// The statuses of an open job, as the list of an SQL `IN`. An open job still
+/// takes new sub-agents, and a session has at most one, which the unique index
+/// of the schema enforces with the same list.
+pub(crate) const OPEN_STATUSES_SQL: &str = "('created', 'planned')";
 
 /// The statuses that `rex job close` can give.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -177,6 +182,25 @@ fn steps(job: &JobId, previous: Status, event: Event) -> Result<Vec<Status>, Sto
     }
 }
 
+/// The open job of `session_id` and its status, if the session has one. It
+/// takes a connection, so it also runs inside a [`crate::store::Store::write`].
+///
+/// # Errors
+/// The read fails, or the stored ID or status is not one rex writes.
+pub(crate) fn open_job(
+    conn: &Connection,
+    session_id: &str,
+) -> rusqlite::Result<Option<(JobId, Status)>> {
+    conn.query_row(
+        &format!(
+            "SELECT id, status FROM job WHERE session_id = ?1 AND status IN {OPEN_STATUSES_SQL}"
+        ),
+        [session_id],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )
+    .optional()
+}
+
 fn stored_status(tx: &Transaction<'_>, job: &JobId) -> Result<Status, StoreError> {
     let status: Option<Status> = tx
         .query_row(
@@ -198,6 +222,23 @@ fn store_dir(tx: &Transaction<'_>) -> PathBuf {
 }
 
 impl Status {
+    const ALL: [Status; 9] = [
+        Status::Created,
+        Status::Planned,
+        Status::Blocked,
+        Status::Failed,
+        Status::Delivered,
+        Status::Accepted,
+        Status::Rejected,
+        Status::Analyzed,
+        Status::Cancelled,
+    ];
+
+    /// True for a job that is created or planned, and so still open.
+    pub fn is_open(self) -> bool {
+        matches!(self, Status::Created | Status::Planned)
+    }
+
     fn as_str(self) -> &'static str {
         match self {
             Status::Created => "created",
@@ -225,15 +266,12 @@ impl FromStr for Status {
     /// # Errors
     /// [`StatusError`] unless `text` is one of the nine lower-case names.
     fn from_str(text: &str) -> Result<Status, StatusError> {
-        use Status::*;
-        [
-            Created, Planned, Blocked, Failed, Delivered, Accepted, Rejected, Analyzed, Cancelled,
-        ]
-        .into_iter()
-        .find(|status| status.as_str() == text)
-        .ok_or_else(|| StatusError {
-            text: text.to_owned(),
-        })
+        Status::ALL
+            .into_iter()
+            .find(|status| status.as_str() == text)
+            .ok_or_else(|| StatusError {
+                text: text.to_owned(),
+            })
     }
 }
 
@@ -300,5 +338,20 @@ impl fmt::Display for Shown {
             Shown::Stored(status) => status.fmt(f),
             Shown::Running => f.write_str("running"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn open_statuses_are_one_list_in_rust_and_in_the_schema() {
+        for status in Status::ALL {
+            let is_listed = OPEN_STATUSES_SQL.contains(&format!("'{status}'"));
+            assert_eq!(is_listed, status.is_open(), "{status}");
+        }
+        let one_open_job_index = format!("WHERE status IN {OPEN_STATUSES_SQL};");
+        assert!(include_str!("schema.sql").contains(&one_open_job_index));
     }
 }

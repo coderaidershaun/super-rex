@@ -16,7 +16,7 @@ pub use paths::StorePaths;
 use std::fs;
 use std::time::Duration;
 
-use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction, TransactionBehavior};
+use rusqlite::{Connection, OpenFlags, Transaction, TransactionBehavior};
 
 const SCHEMA: &str = include_str!("schema.sql");
 const SCHEMA_VERSION: i64 = 1;
@@ -159,14 +159,9 @@ impl Store {
     /// [`StoreError::Sqlite`] if the read fails, or if the stored ID is not a
     /// job ID.
     pub fn open_job_for_session(&self, session_id: &str) -> Result<Option<JobId>, StoreError> {
-        self.conn
-            .query_row(
-                "SELECT id FROM job WHERE session_id = ?1 AND status IN ('created', 'planned')",
-                [session_id],
-                |row| row.get(0),
-            )
-            .optional()
-            .map_err(StoreError::sqlite(&self.paths.db))
+        let open =
+            status::open_job(&self.conn, session_id).map_err(StoreError::sqlite(&self.paths.db))?;
+        Ok(open.map(|(job, _)| job))
     }
 }
 

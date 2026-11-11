@@ -3,6 +3,7 @@
 
 use rusqlite::{Connection, OptionalExtension, named_params};
 
+use super::stored::closed_at_sql;
 use crate::store::integer::signed_or_null;
 
 /// A time as a log line or a transcript gives it: milliseconds from the hook, or the
@@ -59,29 +60,25 @@ pub(crate) fn session_has_job(conn: &Connection, session_id: &str) -> rusqlite::
 }
 
 /// The job of the session that was open at `at`: created at or before it, and not
-/// closed at or before it. A job's close time is its first transition to a status
-/// that is not `created` or `planned`.
-// SMELL: the rule for a job's close time is written in two statements of this folder,
-// here and in the read of one job; a change to the open statuses must change both.
+/// closed at or before it. A job that is still open has no close time.
 pub(crate) fn job_open_at(
     conn: &Connection,
     session_id: &str,
     at: &TieTime,
 ) -> rusqlite::Result<Option<String>> {
+    let closed_at = closed_at_sql();
     conn.query_row(
-        "WITH tie (at) AS (
-             SELECT COALESCE(strftime('%Y-%m-%dT%H:%M:%fZ', :ms / 1000.0, 'unixepoch'),
-                             strftime('%Y-%m-%dT%H:%M:%fZ', :text)))
-         SELECT job.id FROM job, tie
-         WHERE job.session_id = :session
-           AND job.created_at <= tie.at
-           AND NOT EXISTS (
-               SELECT 1 FROM job_transition
-               WHERE job_transition.job_id = job.id
-                 AND job_transition.to_status NOT IN ('created', 'planned')
-                 AND job_transition.at <= tie.at)
-         ORDER BY job.created_at DESC
-         LIMIT 1",
+        &format!(
+            "WITH tie (at) AS (
+                 SELECT COALESCE(strftime('%Y-%m-%dT%H:%M:%fZ', :ms / 1000.0, 'unixepoch'),
+                                 strftime('%Y-%m-%dT%H:%M:%fZ', :text)))
+             SELECT job.id FROM job, tie
+             WHERE job.session_id = :session
+               AND job.created_at <= tie.at
+               AND COALESCE({closed_at} > tie.at, 1)
+             ORDER BY job.created_at DESC
+             LIMIT 1"
+        ),
         named_params! {
             ":ms": signed_or_null(at.ms()), ":text": at.text(), ":session": session_id,
         },

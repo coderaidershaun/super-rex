@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::builder::NonEmptyStringValueParser;
-use rusqlite::{OptionalExtension, Transaction, params};
+use rusqlite::{Transaction, params};
 use serde_json::json;
 
 use super::JobError;
@@ -14,6 +14,7 @@ use super::value::value_name;
 use crate::commands::stdout::print_to_stdout;
 use crate::oms::Level;
 use crate::store::class::{Consequence, Size, WorkType};
+use crate::store::status::{self, Status};
 use crate::store::{JobId, Store, StorePaths};
 
 /// The classification scheme that `rex job create` writes.
@@ -108,8 +109,8 @@ enum DurationLevel {
 
 /// The job this call gives: one it opened, or the session's open job.
 struct Given {
-    job: String,
-    status: String,
+    job: JobId,
+    status: Status,
     is_existing: bool,
 }
 
@@ -172,8 +173,8 @@ fn output_text(given: &Given, is_json: bool) -> String {
     if is_json {
         let line = json!({
             "schema": 1,
-            "job": given.job,
-            "status": given.status,
+            "job": given.job.as_str(),
+            "status": given.status.to_string(),
             "existing": given.is_existing,
         });
         return format!("{line}\n");
@@ -192,17 +193,7 @@ fn open_or_give_existing(
     options: &CreateOptions,
     new_job: &NewJob,
 ) -> Result<Given, JobError> {
-    // SMELL: the rule that an open job is created or planned is also written in
-    // `Store::open_job_for_session` and in the schema's unique index. The store
-    // has no call that works inside a write, so this copy stays until it has one.
-    let open: Option<(String, String)> = tx
-        .query_row(
-            "SELECT id, status FROM job WHERE session_id = ?1 AND status IN ('created', 'planned')",
-            [&new_job.session],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .optional()?;
-    if let Some((job, status)) = open {
+    if let Some((job, status)) = status::open_job(tx, &new_job.session)? {
         return Ok(Given {
             job,
             status,
@@ -220,8 +211,8 @@ fn open_or_give_existing(
         params![job.as_str(), now],
     )?;
     Ok(Given {
-        job: job.to_string(),
-        status: "created".to_owned(),
+        job,
+        status: Status::Created,
         is_existing: false,
     })
 }

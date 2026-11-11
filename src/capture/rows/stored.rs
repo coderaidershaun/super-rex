@@ -10,6 +10,7 @@ use crate::capture::price::Cost;
 use crate::capture::tokens::{Reading, TokenCounts, TokenTotal};
 use crate::store::JobId;
 use crate::store::integer::unsigned;
+use crate::store::status::OPEN_STATUSES_SQL;
 
 /// The facts of a job that capture uses.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -100,17 +101,28 @@ impl StoredTotal {
     }
 }
 
+/// The SQL of a job's close time, for a statement that reads `job`: the time of
+/// its first transition to a status that is not open, and NULL while it is open.
+pub(super) fn closed_at_sql() -> String {
+    format!(
+        "(SELECT MIN(at) FROM job_transition
+          WHERE job_transition.job_id = job.id
+            AND job_transition.to_status NOT IN {OPEN_STATUSES_SQL})"
+    )
+}
+
 /// The job `job`, IF the store has it.
 pub(crate) fn job(conn: &Connection, job: &JobId) -> rusqlite::Result<Option<StoredJob>> {
+    let closed_at = closed_at_sql();
     conn.query_row(
-        "SELECT session_id, created_at, closed_at,
-                CAST(ROUND((julianday(closed_at) - 2440587.5) * 86400000) AS INTEGER),
-                builder_model, builder_effort
-         FROM (SELECT session_id, created_at, builder_model, builder_effort,
-                      (SELECT MIN(at) FROM job_transition
-                       WHERE job_transition.job_id = job.id
-                         AND to_status NOT IN ('created', 'planned')) AS closed_at
-               FROM job WHERE id = ?1)",
+        &format!(
+            "SELECT session_id, created_at, closed_at,
+                    CAST(ROUND((julianday(closed_at) - 2440587.5) * 86400000) AS INTEGER),
+                    builder_model, builder_effort
+             FROM (SELECT session_id, created_at, builder_model, builder_effort,
+                          {closed_at} AS closed_at
+                   FROM job WHERE id = ?1)"
+        ),
         [job.as_str()],
         |row| {
             Ok(StoredJob {
