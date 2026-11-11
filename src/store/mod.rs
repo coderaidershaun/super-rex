@@ -3,6 +3,7 @@
 
 pub mod class;
 mod error;
+pub(crate) mod integer;
 mod job_id;
 pub mod orchestrator;
 mod paths;

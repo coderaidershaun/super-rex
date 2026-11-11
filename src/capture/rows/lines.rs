@@ -6,8 +6,8 @@
 
 use rusqlite::{Connection, named_params};
 
-use super::integer::{signed, signed_or_null};
 use super::tie::TieTime;
+use crate::store::integer::{signed, signed_or_null};
 
 /// What every line that names a run brings, besides its own columns.
 pub(crate) struct RunLine<'a> {

@@ -1,7 +1,6 @@
 //! Every SQL statement of capture lives in this folder. Rust hands times in and gets
 //! them back as milliseconds since the epoch; SQLite turns them into the store's text.
 
-mod integer;
 mod lines;
 mod meta;
 mod readings;

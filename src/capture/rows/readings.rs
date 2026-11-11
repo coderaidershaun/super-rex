@@ -5,9 +5,9 @@
 
 use rusqlite::{Connection, named_params, params};
 
-use super::integer::signed;
 use crate::capture::price::Cost;
 use crate::capture::tokens::TokenCounts;
+use crate::store::integer::signed;
 
 /// What one parse of a transcript found, read at `read_ms`.
 #[derive(Debug, Clone, PartialEq, Eq)]

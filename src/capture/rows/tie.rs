@@ -3,7 +3,7 @@
 
 use rusqlite::{Connection, OptionalExtension, named_params};
 
-use super::integer::signed_or_null;
+use crate::store::integer::signed_or_null;
 
 /// A time as a log line or a transcript gives it: milliseconds from the hook, or the
 /// `timestamp` text of a transcript record.

@@ -5,6 +5,7 @@ use rusqlite::{OptionalExtension, Row, Transaction, named_params};
 
 use super::report::{Group, Lesson, Spent, Unused, skill_path};
 use crate::capture::{Cost, TokenCounts};
+use crate::store::integer::unsigned;
 use crate::store::{JobId, StoreError, StorePaths};
 
 /// A job is similar when at least this many of the four fields are equal.
@@ -71,19 +72,6 @@ const SCORED_JOBS: &str = "
                s.nanodollars, s.unpriced, s.input, s.output, s.cache_read, s.cache_creation
         FROM job j LEFT JOIN spent s ON s.job_id = j.id
         WHERE j.id <> :job)";
-
-/// A stored count. The store never holds a negative one, so a negative value
-/// is an error.
-// SMELL: a copy of the check that the capture code uses on the same columns.
-// It stays a copy until that check is shared with the commands.
-fn unsigned(row: &Row<'_>, index: usize) -> rusqlite::Result<Option<u64>> {
-    let value: Option<i64> = row.get(index)?;
-    value
-        .map(|value| {
-            u64::try_from(value).map_err(|_| rusqlite::Error::IntegralValueOutOfRange(index, value))
-        })
-        .transpose()
-}
 
 /// The six spend columns of `scored`, from `first`. `None` when the job has
 /// no stored cost.

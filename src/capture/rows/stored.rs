@@ -5,11 +5,11 @@ use std::time::{Duration, SystemTime};
 
 use rusqlite::{Connection, OptionalExtension, Row};
 
-use super::integer::unsigned;
 use super::readings::Judged;
 use crate::capture::price::Cost;
 use crate::capture::tokens::{Reading, TokenCounts, TokenTotal};
 use crate::store::JobId;
+use crate::store::integer::unsigned;
 
 /// The facts of a job that capture uses.
 #[derive(Debug, Clone, PartialEq, Eq)]
