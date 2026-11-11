@@ -4,6 +4,8 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.3.0 - 2026-11-11
+
 ### Added
 
 - One assignment table, `.claude/skills/orchestration-builder/stages/1-skills/assign.md`, says which skills each kind of work gets. The decision agent starts from it and gives a reason for each skill it adds or leaves out, and the challenger checks the decision against it.
