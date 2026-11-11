@@ -17,10 +17,9 @@ user-invocable: true
 You = builder. After you record plan, you = orchestrator.
 You run at model + effort of your session.
 
-Person starts builder: `/orchestration-builder <request>`, or `/orchestration-builder Execute plan <path>` for saved plan. No agent can load it with Skill tool. Agent reads this file only IF its brief gives path.
+Person starts builder: `/orchestration-builder <request>`, or `/orchestration-builder Execute plan <path>` for saved plan. No agent can load it with Skill tool.
 
 ```
-IF your brief starts with tag block that holds `Rex-Job:`, THEN read `.claude/skills/orchestration-builder/open-job.md`. Obey it in place of steps 2 to 9. It names each step that you do.
 1. Classify request. IF job = plan job OR plan execution, THEN read `.claude/skills/orchestration-builder/plan-jobs.md` also.
 2. Settle merge agreement with requester.
 3. Open job. IF output gives `existing=yes`, THEN read `.claude/skills/orchestration-builder/open-job.md`.
@@ -37,7 +36,7 @@ IF your brief starts with tag block that holds `Rex-Job:`, THEN read `.claude/sk
 | `.claude/skills/orchestration-builder/classify.md` | Step 1: definition of each value, fill rules. |
 | `.claude/skills/orchestration-builder/decide.md` | Steps 5 + 6. |
 | `.claude/skills/orchestration-builder/run.md` | Steps 7 to 9, after `rex job plan`. Also `## Sandbox` there: IF command fails because host name lookup or connection fails. |
-| `.claude/skills/orchestration-builder/open-job.md` | Brief holds `Rex-Job`, OR `rex job create` prints `existing=yes`. |
+| `.claude/skills/orchestration-builder/open-job.md` | `rex job create` prints `existing=yes`. |
 | `.claude/skills/orchestration-builder/plan-jobs.md` | Job = plan job OR plan execution. |
 
 ## Words
@@ -154,6 +153,6 @@ REX_STORE="$HOME_DIR/.rex" rex recall <job-id>
 
 ## On request
 
-- [ ] IF requester asks for review of pull request, THEN read `.claude/skills/rex-pr-review/SKILL.md` IN FULL and obey it.
+- [ ] IF requester asks for review of pull request, THEN start fresh grid agent `model-high-effort-high`, role `pr-reviewer`. It wrote no part of change. Brief: tag block, `PR` or `BASE` + `HEAD`, `JOB`, and absolute path of `.claude/skills/rex-pr-review/SKILL.md` to read IN FULL and obey. Give its verdict to requester.
 - [ ] IF requester asks for feedback on job, THEN read `.claude/skills/rex-feedback/SKILL.md` IN FULL and obey it.
 - [ ] Requester can give other instructions at any time. Obey them.

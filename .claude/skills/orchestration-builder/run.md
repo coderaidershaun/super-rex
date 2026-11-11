@@ -1,6 +1,6 @@
 # Run, deliver, close
 
-Steps 7 to 9 of `.claude/skills/orchestration-builder/SKILL.md`. Uses its words and rules. Read after `rex job plan`.
+Steps 7 to 9 of `.claude/skills/orchestration-builder/SKILL.md`. Uses its words and rules. Read after `rex job plan`. Exception: builder reads `## Sandbox` before, for brief of decision agent (`.claude/skills/orchestration-builder/decide.md`).
 
 ## Step 7 — Run
 
@@ -10,7 +10,7 @@ Now you = orchestrator. Hold these values under these exact names. `rex-deliver`
 | --- | --- |
 | `JOB` | Job ID. |
 | `WORK_TYPE` | Work type of classification. |
-| `SLUG` | 2 to 5 words of `a-z 0-9` from request, joined by single hyphens. Max 40 characters. Pattern `^[a-z0-9]+(-[a-z0-9]+){1,4}$`. Same in every repo. |
+| `SLUG` | Words of request. Form: row `SLUG` of `## Inputs` in `.claude/skills/rex-deliver/SKILL.md`. |
 | `MERGE` | `yes` or `no`, for each repo (step 2). |
 | `HOME_DIR` | See `## Words`. |
 | `REPO_DIR` | Absolute path of main checkout root of each repo that job changes. |
@@ -20,12 +20,12 @@ You make `SLUG` only. You name no branch and no worktree.
 
 1. Read orchestrator skill IN FULL, at path of `ORCHESTRATOR` in decision block. Obey it. This is plain file read.
 2. IF job changes no file in Git repo, THEN do not read `rex-deliver`. Job has no branch.
-3. ELSE read `.claude/skills/rex-deliver/SKILL.md`, then `.claude/skills/rex-deliver/start.md`, with Read tool, after plan, before first agent writes file in Git repo. Skill tool cannot load `rex-deliver`: only a person starts it.
+3. ELSE read `.claude/skills/rex-deliver/SKILL.md`, then `.claude/skills/rex-deliver/start.md`, with Read tool, after plan, before first agent writes file in Git repo. Exception: new skill that repo tracks starts START before plan (`.claude/skills/orchestration-builder/stages/1-skills/write-skill.md`). Skill tool cannot load `rex-deliver`: only a person starts it.
 4. Do START one time for each repo, as soon as you know that repo changes. Never work on main.
 5. Start each role with agent that `rex job plan` printed. `role.<name>=<grid agent>`: `subagent_type` = that grid agent.
 6. `role.<name>=session`: start session agent.
 7. Each brief starts with tag block. Form: `.claude/skills/orchestration-builder/stages/3-orchestration/briefs.md`. Read it IN FULL before you write first brief.
-8. IF job works in job worktree, THEN put `JOB_DIR` in brief of each writer. Writer uses absolute paths below it, in each shell command and each file tool.
+8. IF job works in job worktree, THEN put `JOB_DIR` in brief of each writer. Writer writes files only below it, and names it in each shell command. Skill paths start at `HOME_DIR`.
 9. Use no `isolation: "worktree"` for writers.
 10. Lead that starts parallel writers: tell it to read `<HOME_DIR>/.claude/skills/rex-deliver/SKILL.md`, then `<HOME_DIR>/.claude/skills/rex-deliver/parallel-writers.md`. Give it `JOB`, `REPO_DIR`, its branch, absolute path where that branch is checked out, and `CHECKS`.
 11. Lead that starts workers: give it in its brief:

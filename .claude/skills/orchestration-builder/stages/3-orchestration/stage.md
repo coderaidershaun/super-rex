@@ -16,7 +16,7 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 | `.claude/skills/orchestration-builder/stages/3-orchestration/build-new.md` | Step 1 finds none to reuse. Steps 2 + 5. |
 | `.claude/skills/orchestration-builder/stages/3-orchestration/plan-jobs.md` | Job = plan job. |
 | `.claude/skills/orchestration-builder/stages/3-orchestration/model-function.md` | You must know why `rex oms` gave its output. |
-| `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md` | Orchestration has a lead, OR orchestrator skill runs below level 1. |
+| `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md` | Orchestration has a lead. |
 
 ## Words
 
@@ -42,7 +42,7 @@ Select or build orchestrator skill that suits work breakdown. Give each role its
 
 ## Input
 
-Work breakdown, skill list, classification, preferences, recall output. Level at which orchestrator skill runs.
+Work breakdown, skill list, classification, preferences, recall output.
 
 ## Step 1 — Reuse
 
@@ -96,7 +96,6 @@ Who selects agent:
 
 - [ ] Job with plan: `rex job plan` selects agent of each role from same inputs. Builder starts each role with agent that `rex job plan` printed.
 - [ ] Run `rex oms` for each role in this step. Read `demand` + `conflict` before you fix roles: job gets one plan only.
-- [ ] Builder inside open job has no plan. It starts each role with agent of `agent` line of `rex oms`.
 
 Run:
 

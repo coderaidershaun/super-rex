@@ -36,7 +36,7 @@ git -C "$REPO_DIR" worktree add -b "$BRANCH" "$JOB_DIR" "$BASE"   # step 6
 ```
    Start each branch from a commit hash. A remote-tracking start point makes Git write `.git/config`, and sandbox blocks that.
 7. IF mode ≠ `local`, THEN `git -C "$JOB_DIR" push origin "$BRANCH"`.
-8. IF job works in job worktree, THEN put `JOB_DIR` in brief of each writer. Writer uses absolute paths under `JOB_DIR` in each shell command and each file tool.
+8. IF job works in job worktree, THEN put `JOB_DIR` in brief of each writer. Writer writes files only under `JOB_DIR`, and names it in each shell command. Skill files that writer reads are outside it, at `HOME_DIR`.
 9. Before first write, state these values: mode, `REPO`, `MAIN`, `BASE`, `BRANCH`, `JOB_DIR`. IF a value did not come from steps 1 to 6, THEN you skipped a step: do it now. Mode decides whether job gets a pull request.
 
 ## Work — commit + push

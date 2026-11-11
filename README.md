@@ -141,11 +141,11 @@ Start Claude Code in the main checkout and give it a request with `/orchestratio
    If only you can answer a question, the decision agent asks it through the session, at most twice.
 6. **Challenges the decision.** A paired challenger, a fresh sub-agent that made no part of it, checks the skill list, the work breakdown, the orchestrator and the role table before any work starts (`stages/challenge/stage.md`). It checks the decision against the assignment table, and looks most for important skills that were left out or not given to a task or a role. The session passes the findings to the decision agent, which checks each one against the real files, corrects what holds, and records the check in the work breakdown.
 7. **Records the plan** with `rex job plan`, with the skills of each role. `rex` picks the grid agent for each role.
-8. **Runs** the orchestrator on a job branch, never on main. Leads and workers are Claude Code sub-agents; the hooks record each one. Each agent's brief names only the skills of its own task, and a grid agent has no Skill tool, so it reads those files and no others.
+8. **Runs** the orchestrator on a job branch, never on main. Leads and workers are Claude Code sub-agents; the hooks record each one. Each agent's brief names only the skills of its own task, by absolute path in the main checkout, since a Git worktree holds no file that Git ignores. A grid agent has no Skill tool, so it reads those files and no others.
 9. **Delivers** each changed repo with the steps of `rex-deliver`, which the session reads by path: pull request, and a squash merge if one was agreed.
 10. **Closes** the job with `rex job close`, then tells you the result in a few lines: what was done, and for each repo whether it was merged, left as an open pull request, kept locally, or blocked, with what you must do.
 
-The session is the orchestrator and runs at your model and effort. A small job can be one task and one worker. If a brief inside a job tells an agent to read the builder, no second job opens: its work is recorded under the open one.
+The session is the orchestrator and runs at your model and effort. A small job can be one task and one worker.
 
 ### Plan first, then build
 
@@ -400,7 +400,7 @@ To turn telemetry off, run `rex init --no-hooks` in a new repo. In a repo that h
 - Failing checks are fixed on the job branch and main is merged in (never a rebase), for at most 3 rounds, with at most 30 minutes of waiting for checks in each round. Past that the outcome is `blocked`.
 - With no remote, or no `gh`, the same steps run without a pull request and end in a local squash merge, again only when a merge was agreed.
 
-Only a person can start `/rex-deliver`, for example for the clean-up after a person merged a blocked pull request; the builder and the leads of parallel writers read its files by path. Two more skills can be called by hand: `/rex-pr-review` (an optional review of a pull request by an agent that wrote none of it; it posts one comment with the verdict PASS or FIX and changes nothing), and `/rex-feedback`.
+Only a person can start `/rex-deliver`, for example for the clean-up after a person merged a blocked pull request; the builder and the leads of parallel writers read its files by path. Two more skills can be called by hand: `/rex-pr-review` (an optional review of a pull request by an agent that wrote none of it; it posts one comment with the verdict PASS or FIX and changes nothing), and `/rex-feedback`. Ask the builder for a review and it starts a fresh grid agent that reads `rex-pr-review`.
 
 ## Reference
 
@@ -475,7 +475,7 @@ In `.claude/skills/`:
 
 In the skill library, `.rex/skills/`:
 
-- **Rulebooks:** 19 `rex-code-*` skills for writing code. Most are written for Rust, and they apply to every language: an agent applies the intent of each rule in that language's idiom, and a gap skill covers what the language lacks. They cover philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four kinds of test, design sketch, spike, validation plan, priorities and latency. `rex-code-latency` is a reference for hot paths that run in nanoseconds to microseconds: an agent measures first, then reads only the one or two files for its problem.
+- **Rulebooks:** 19 `rex-code-*` skills for writing code. Most are written for Rust, and they apply to every language: an agent applies the intent of each rule in that language's idiom, and a gap skill covers what the language lacks. A gap skill is named `rex-gap-<language>`, with the `--only` name of `rex codebase` (`rex-gap-go`, `rex-gap-cpp`), and a job that needs one and finds none can have it written in `.rex/skills/`. They cover philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four kinds of test, design sketch, spike, validation plan, priorities and latency. `rex-code-latency` is a reference for hot paths that run in nanoseconds to microseconds: an agent measures first, then reads only the one or two files for its problem.
 - **Plan review:** `rex-codex-adversarial-review`, which every plan job runs before its plan is final. Outside a job, ask the session to read `.rex/skills/rex-codex-adversarial-review/SKILL.md` and run it on a plan or a code change.
 - **`rex-mermaid-diagrams`:** how to draw diagrams in Mermaid.
 - **`rex-skill-language`:** the language every skill and agent instruction is written in.

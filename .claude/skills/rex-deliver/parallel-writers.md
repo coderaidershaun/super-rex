@@ -30,7 +30,7 @@ Rex-Role: <role>
 
 You work in the Git worktree at <UNIT_DIR>, on the branch <UNIT_BRANCH>.
 Your shell does not start there. Use this absolute path in every command, for example `git -C <UNIT_DIR> status` or `cd <UNIT_DIR> && <command>`.
-Give the file tools absolute paths under <UNIT_DIR> only.
+Write files only under <UNIT_DIR>. The skill files that you read are outside it.
 Commit only on <UNIT_BRANCH>. Do not switch branches, rebase, amend a pushed commit, or force-push.
 If the repo has a remote, push with `git -C <UNIT_DIR> push origin <UNIT_BRANCH>`. Never use `git push -u`.
 If a push prints "could not lock config file", the push is still complete.

@@ -10,7 +10,6 @@ Builder: steps 1 + 2 of `.claude/skills/orchestration-builder/stages/challenge/s
 | Size large, OR consequence high. | `model-xhigh-effort-high` |
 
 - [ ] Start it with Agent tool. `subagent_type` = that grid agent.
-- [ ] IF you have no Agent tool (last level of sub-agents), THEN skip challenge. Write `DECISION CHECK: skipped, no Agent tool` in work breakdown. Tell agent that started you.
 
 ## Builder — brief
 

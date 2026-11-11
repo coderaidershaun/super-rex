@@ -36,8 +36,7 @@ Decision agent makes decision. It reads stage files and does three stages. You n
 
 - [ ] Each job, small job also. Small job: stages are short. Output can be one task + one worker.
 - [ ] One challenge round only.
-- [ ] Stage sub-agents that start before you record plan do not change job status.
-- [ ] Inside open job (`.claude/skills/orchestration-builder/open-job.md`): decide your part the same way, before work of your part starts.
+- [ ] Agents that start before you record plan do not change job status.
 
 ### Stages
 
@@ -51,14 +50,14 @@ Decision agent does them in sequence. For each stage: read its file IN FULL, do 
 
 ### Decision agent brief
 
-Brief = text for agent with no context: full sentences. Replace each `<…>`. Write each path absolute. Lines in `<…>` that start with "Plan job" go in only for plan job or plan execution. Where `<A | B>` gives two choices, write the one that applies.
+Brief = text for agent with no context: full sentences. Replace each `<…>`. `<brief text of ## Sandbox>` = brief text of `## Sandbox` in `.claude/skills/orchestration-builder/run.md`, unchanged. Write each path absolute. Lines in `<…>` that start with "Plan job" go in only for plan job or plan execution. Where `<A | B>` gives two choices, write the one that applies.
 Each brief that you write in step 5 starts with tag block, as its first characters. Nothing before tag block: no heading, quote mark, or code fence. One space after each colon.
 
 ```
 Rex-Job: <job ID>
 Rex-Role: decision-maker
 
-Outcome: Make the decision for this job: the skill list, the work breakdown, the orchestrator skill, and the role table. <The builder records it as the plan of the job, and then runs the work. | Inside an open job: The builder records no plan. It runs its part of the work with this decision.> You make the decision only. Do not start the work of the request.
+Outcome: Make the decision for this job: the skill list, the work breakdown, the orchestrator skill, and the role table. The builder records it as the plan of the job, and then runs the work. You make the decision only. Do not start the work of the request.
 Context: Do three stages in this order. For each stage, read its file in full with the Read tool, one file for each call, do it, and keep its output:
 1. <HOME_DIR>/.claude/skills/orchestration-builder/stages/1-skills/stage.md
 2. <HOME_DIR>/.claude/skills/orchestration-builder/stages/2-work-breakdown/stage.md
@@ -69,8 +68,7 @@ The request: <request text, unchanged>
 Classification: <work type, size, consequence, languages>. Job kind: <normal job, plan job, or plan execution of the plan file <absolute path>>.
 Preferences that the user stated: <duration, budget, autonomy, or none>.
 Output of rex recall: <whole output, unchanged>
-The orchestrator skill runs at <level 1, the main session | level <n>, a sub-agent>.
-Limits: Start no agent. Write files only below <HOME_DIR>/.rex/orchestrators/. Run no other command that writes. Shell commands run in a sandbox that reaches the network only through its proxy. If a command fails because its program opens its own network connection (a host name lookup or a connection fails, but `curl` reaches the same host), run that one command again with `dangerouslyDisableSandbox: true`. Do this for no other cause, and never because the sandbox refused a write. In your report, name each command that ran outside the sandbox. If stage 1 finds that a new skill must be written, do not write it: put it under NEW SKILLS. If only the requester can answer a question, put it under QUESTIONS, with options and a recommendation, and end with the state awaiting decision. After 2 rounds of questions, decide with what you have, and list each assumption under REPORT.
+Limits: Start no agent. Write files only below <HOME_DIR>/.rex/orchestrators/. Run no other command that writes. <brief text of ## Sandbox> If stage 1 finds that a new skill must be written, do not write it: put it under NEW SKILLS. If only the requester can answer a question, put it under QUESTIONS, with options and a recommendation, and end with the state awaiting decision. After 2 rounds of questions, decide with what you have, and list each assumption under REPORT.
 Return: One decision block in the form below. Each part has the form of the section "Output" of its stage file. Write none for a part that is empty. End the report with one state: done, or awaiting decision.
 
 DECISION: <job ID> | first OR corrected

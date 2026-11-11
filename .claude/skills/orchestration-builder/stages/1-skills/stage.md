@@ -26,8 +26,7 @@ Settle which skills this job uses. Start from assignment table. Ask for new skil
 - Job: One request that SuperRex handles. It has one job ID.
 - Classification: Four fields of job: work type, size, consequence, languages.
 - Skill list: Skills this job uses. Output of stage 1.
-- Nuanced skill: Skill for something particular to repo or to kind of work, that no other skill covers.
-- Gap skill: Nuanced skill for one language. It covers what Rust gives by default and that language does not.
+- Gap skill: Skill for one language. It covers what Rust gives by default and that language does not. Name: `rex-gap-<language>` (`## Output`).
 - Assignment table: `.claude/skills/orchestration-builder/stages/1-skills/assign.md`. One home of which skills each kind of work gets.
 - Session agent: `general-purpose` sub-agent that you start with no model. It runs at model + effort of session.
 - Skill library: Folder `.rex/skills/` in `HOME_DIR`. Skills that agents read by path. Claude Code does not list them. Skill tool cannot load them.
@@ -89,9 +88,9 @@ IF all three are true, THEN put need under NEW SKILLS (`## Output`). Do not writ
 
 ## Gap skill
 
-IF job writes code in language that is not `rust`, THEN find skill in list for gaps of that language.
+IF job writes code in language that is not `rust`, THEN find skill `rex-gap-<language>` of that language in list.
 
-- [ ] IF skill covers gaps of that language, THEN add it to skill list.
+- [ ] IF list has it, THEN add it to skill list.
 - [ ] ELSE gap skill = need. It must pass test of step 3 also.
 - [ ] Content: each protection that Rust gives by default and that language does not give, as rule that gives same protection.
 - [ ] Code examples: Rust (reference) beside that language.
@@ -112,4 +111,5 @@ NEW SKILLS: one table, OR `none`. One row for each need that passes test of step
 - [ ] Name: short lower-case words with hyphens. Name = folder name. No skill in list of step 1 has that name.
 - [ ] Need: what skill must make agents do. Reason: why this job needs it, and why later jobs need it also.
 - [ ] Gap language: language of gap skill, OR `—`.
+- [ ] Gap skill name: `rex-gap-<language>`. `<language>` = `--only` name of that language in `rex codebase`. Examples: `rex-gap-go`, `rex-gap-python`, `rex-gap-cpp`. IF `rex codebase` has no `--only` name for it, THEN `<language>` = its classification value.
 - [ ] Default: `none`.

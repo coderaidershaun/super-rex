@@ -55,7 +55,7 @@ Methods combine. Parallel leads can each run sequential workers. Sequential stag
 - [ ] Lead can do small task itself. Keep hierarchy shallow: add layer only IF it has concrete job.
 - [ ] New lead for each separate feature. Keep lead across tasks only IF its domain context is worth its cost.
 
-**Limits of Claude Code.** Read `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md` before you add a lead, or IF orchestrator skill runs below level 1.
+**Limits of Claude Code.** Read `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md` before you add a lead.
 
 **Load of each agent.**
 

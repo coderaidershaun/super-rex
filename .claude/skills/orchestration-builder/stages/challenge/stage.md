@@ -43,7 +43,7 @@ Decision agent (`correct.md`):
 ## Rules
 
 - [ ] Challenge runs for each job, before `rex job plan`. Job gets one plan only, so correct decision first.
-- [ ] Challenger made no part of decision. Never builder, never decision agent, never stage sub-agent.
+- [ ] Challenger made no part of decision. Never builder, never decision agent.
 - [ ] Challenger only reads. It changes no file and runs no command that writes.
 - [ ] One round. Builder does not send decision back for second check.
 - [ ] Classification stays. Builder and decision agent never edit it. Challenger can name doubt about it.
@@ -61,7 +61,7 @@ Skills (most important). Read assignment table IN FULL first.
 - [ ] Each skill in skill list: IF no task and no role gets it, THEN finding. Included is not sufficient. An agent must read it.
 - [ ] Each task: IF it needs a skill that its `Skills` do not give, THEN finding. Example: build task gets `rex-code-tdd`, test task does not.
 - [ ] Each lead, and each role with no task: IF its job needs a skill that it does not get, THEN finding.
-- [ ] Language other than `rust`: IF no gap skill covers it, THEN finding.
+- [ ] Language other than `rust`: IF skill list has no gap skill `rex-gap-<language>` of it (`## Output` of `.claude/skills/orchestration-builder/stages/1-skills/stage.md`), THEN finding.
 - [ ] Lesson of recall output that names a skill: IF decision ignores it, THEN finding.
 - [ ] Skill in list that job does not need, OR skill of a task that task does not need: finding, severity `MINOR`. Each loaded skill costs context.
 

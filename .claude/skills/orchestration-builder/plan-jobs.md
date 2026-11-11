@@ -16,7 +16,7 @@ For person, planning has two stages. Run 1 = plan job: it writes plan file. Pers
 - [ ] Author changes plan for each `upheld` finding. Each `contested` finding goes into `Open questions` of plan, with both positions.
 - [ ] One review for each plan. IF revision changes approach of plan, THEN review again. Max 2 reviews for each job.
 - [ ] Plan is final only after review. Plan writer writes first line of plan file in revision task: `Status: final. Reviewed by <challenger>.`
-- [ ] Brief of plan writer gives absolute path of plan file, plan file sections (below), and rule of `Status` line.
+- [ ] Brief of plan writer gives absolute path of plan file, plan file sections (below), rule of `Status` line, and `SKILL LIST` of decision block (names + `Path`).
 - [ ] Close job: `--status delivered`, no deliveries file. `--outcome` names plan file.
 - [ ] Tell requester: path of plan file, open questions, and next step: "To execute this plan, run `/orchestration-builder Execute plan <absolute path of plan file>`."
 

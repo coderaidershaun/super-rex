@@ -1,6 +1,6 @@
 # Briefs and guidance
 
-For agent that runs orchestrator skill: session at step 7 of `.claude/skills/orchestration-builder/run.md`, or builder inside open job. Uses words of `.claude/skills/orchestration-builder/SKILL.md`, and words below.
+For agent that runs orchestrator skill: session at step 7 of `.claude/skills/orchestration-builder/run.md`. Uses words of `.claude/skills/orchestration-builder/SKILL.md`, and words below.
 
 - `JOB_DIR`: Absolute path where job branch is checked out. `.claude/skills/rex-deliver/start.md` gives it.
 - Tag block: First lines of brief: `Rex-Job: <job ID>`, `Rex-Role: <role>`, then one blank line.
@@ -15,7 +15,7 @@ Each brief starts with tag block, as its first characters. Hooks read it to reco
 - [ ] `Rex-Role`: role of new sub-agent, as role table names it.
 - [ ] Session agent: tag block is only source of its role.
 - [ ] Do not tell agents to correct tags of brief already sent, or to send it again.
-- [ ] Paths in brief are absolute. Git worktree does not hold files that Git ignores. Skill paths start at `HOME_DIR`, never at `JOB_DIR`: most repos ignore `.claude/skills/` and `.rex/skills/`.
+- [ ] Paths in brief are absolute. Git worktree does not hold files that Git ignores. Skill paths start at `HOME_DIR`, never at `JOB_DIR`: most repos ignore `.claude/skills/` and `.rex/skills/`. Exception: path of new skill that `.claude/skills/orchestration-builder/stages/1-skills/write-skill.md` wrote at `JOB_DIR` starts at `JOB_DIR`.
 - [ ] Writer in Git repo: IF job works in job worktree, THEN brief gives `JOB_DIR`.
 - [ ] Parallel writer: its lines come from `.claude/skills/rex-deliver/parallel-writers.md`.
 - [ ] Task detail from work breakdown goes in brief.
@@ -34,7 +34,7 @@ Rex-Role: <role>
 
 Outcome: <one deliverable, and why it matters>.
 Scope: <the files and state that you own, the prerequisites, the starting revision, and the edits or failures that exist already>.
-Context: <the requirements, interfaces, decisions, and locations of artifacts that apply>. <Grid agent: You have no Skill tool.> Read these files in full with the Read tool, one file for each call, before you start: <absolute paths of the skills and sibling files of your task, or of your role>. Also read a sibling file when one of these SKILL.md files sends you there.
+Context: <the requirements, interfaces, decisions, and locations of artifacts that apply>. <Grid agent: You have no Skill tool.> Read these files in full with the Read tool, one file for each call, before you start: <absolute paths of the skills and sibling files of your task, or of your role>. Also read a sibling file when one of these SKILL.md files sends you there. A path that starts with `.rex/skills/` or `.claude/skills/` starts at <HOME_DIR>.
 Acceptance: <the evidence that you must show to pass>.
 Limits: <the time and effort, the concurrency, and when to escalate>.
 Return: Give a short verdict and references: paths and commits. Map each acceptance criterion to its evidence. List the open issues. End the report with one state: done, partial, awaiting decision, or blocked.
@@ -42,7 +42,7 @@ Return: Give a short verdict and references: paths and commits. Map each accepta
 
 ## Limits of Claude Code
 
-Read `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md` before you start first lead, OR IF you are sub-agent.
+Read `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md` before you start first lead.
 
 ## Guidance
 
