@@ -49,11 +49,11 @@ pub fn cost_usd(cost: &Cost) -> String {
     format!("{}.{:06}", micro / 1_000_000, micro % 1_000_000)
 }
 
-/// `in 30  cache w 78.4k  cache r 762.6k  out 13.5k  hit 90%`, the one-line
+/// `in 30  cache-w 78.4k  cache-r 762.6k  out 13.5k  hit 90%`, the one-line
 /// form of `rex status` and the job panel of `rex watch`.
 pub fn split_text(counts: &TokenCounts) -> String {
     format!(
-        "in {}  cache w {}  cache r {}  out {}  hit {}",
+        "in {}  cache-w {}  cache-r {}  out {}  hit {}",
         short_count(counts.input),
         short_count(counts.cache_creation),
         short_count(counts.cache_read),

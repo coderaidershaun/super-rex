@@ -239,7 +239,7 @@ finished
   a0c8cde396de066a3  reader  model-medium-effort-low  1m12s
 ```
 
-Each run line gives the agent ID, the role, the agent type, the duration, `bg` for a background run, `<parent` when a sub-agent started it, and the tokens: `in`, `cache w`, `cache r`, `out`, `hit` and the cost in dollars (see [Tokens](#tokens)). The header gives the job's tokens and cost, runs and main session together. This run had no transcript, so it has no tokens and the job shows `incomplete`.
+Each run line gives the agent ID, the role, the agent type, the duration, `bg` for a background run, `<parent` when a sub-agent started it, and the tokens: `in`, `cache-w`, `cache-r`, `out`, `hit` and the cost in dollars (see [Tokens](#tokens)). The header gives the job's tokens and cost, runs and main session together. This run had no transcript, so it has no tokens and the job shows `incomplete`.
 
 **`rex oms`**: print the grid agent for a set of inputs. Flags `--duration`, `--budget`, `--intelligence`, `--autonomy`, `--reliability`, `--consequence`, `--verification`, each `low|medium|high|none` (a flag left out is `none`), and `--json`. `inputs` gives the seven ratings in that order, `-` for none.
 
@@ -300,7 +300,7 @@ $ rex jobs --search parser
 0g51g6fykv analyzed fix small medium rust 2026-11-10T18:16:54.174Z Make the order parser reject a quantity of zero.
 ```
 
-**`rex watch`**: a live dashboard for people, redrawn every 2 seconds. The first screen is the job list, with the columns of `rex jobs`, the run counts, the cost and the cache hit % (see [Tokens](#tokens)). Enter on a job switches to the second screen: the job's facts and its tokens in full, then the main session's row and the tree of sub-agent runs with each run's role, model, effort, duration and `in`, `cache w`, `cache r`, `out`, `hit` and `cost` (`~` marks a provisional total). The rows add up to the job's tokens and cost. Enter switches back. Up and Down move the selection, `q` quits. Without a terminal it exits 1: `error: rex watch needs a terminal; run it without redirecting its output`.
+**`rex watch`**: a live dashboard for people, redrawn every 2 seconds. The first screen is the job list, with the columns of `rex jobs`, the run counts, the cost and the cache hit % (see [Tokens](#tokens)). Enter on a job switches to the second screen: the job's facts and its tokens in full, then the runs, titled with the job's orchestrator skill and version (such as `pipeline v1`): the main session's row and the tree of sub-agent runs with each run's role, model, effort, duration and `in`, `cache-w`, `cache-r`, `out`, `hit` and `cost` (`~` marks a provisional total). The rows add up to the job's tokens and cost. Enter switches back. Up and Down move the selection, `q` quits. Without a terminal it exits 1: `error: rex watch needs a terminal; run it without redirecting its output`.
 
 **`rex feedback <job> --verdict accepted|rejected (--said <text> | --said-file <path>)`**: record what the user said about a finished job, and move its status. With `rejected` it also takes `--cause` (repeatable: `human-error`, `missing-context`, `agent-skill`, `agent-model-effort`, `agent-orchestration`), `--lesson <text>` or `--lesson-file <path>` (at most 600 characters), `--evidence <text>`, `--changed-skill <name>` and `--changed-orchestrator <name>`. A cause needs a lesson, and a lesson needs a cause. `--by <who>` defaults to `user`. The `rex-feedback` skill calls it; you rarely need to.
 
@@ -393,10 +393,10 @@ Every API call sends the whole conversation again, and most of it comes from the
 | Shown as | `rex job show` key | What it counts |
 | --- | --- | --- |
 | `in` | `input` | Prompt tokens sent without the cache. |
-| `cache w` | `cache_write` | Prompt tokens written to the cache. |
-| `cache r` | `cache_read` | Prompt tokens read from the cache, once for each call. |
+| `cache-w` | `cache_write` | Prompt tokens written to the cache. |
+| `cache-r` | `cache_read` | Prompt tokens read from the cache, once for each call. |
 | `out` | `output` | Tokens the model wrote. |
-| `hit` | `cache_hit` | `cache r` as a whole percent of all prompt tokens (`in` + `cache w` + `cache r`), cut, not rounded; `–` or `none` with no prompt token. |
+| `hit` | `cache_hit` | `cache-r` as a whole percent of all prompt tokens (`in` + `cache-w` + `cache-r`), cut, not rounded; `–` or `none` with no prompt token. |
 | `cost` / `$…` | `cost_usd` | The tokens' cost in US dollars at Anthropic's list prices, each request at the price of the model that ran it. `≥` in front, and `unpriced_requests` above 0, when some requests ran on a model with no price in `rex`, so the figure leaves them out. |
 
 A job's tokens and cost are its runs and its main session together. `--json` gives the four counts as `input`, `output`, `cache_read` and `cache_creation`, and the cost as `{"usd": …, "unpriced_requests": …}`.

@@ -20,7 +20,7 @@ use crate::store::{JobId, Store, StoreError, StorePaths};
 /// Arguments of `rex status`.
 #[derive(clap::Args)]
 #[command(
-    after_help = "Exits 0 also when no job is open, with the line `no open job`. Tokens are `in` (input), `cache w` (cache writes), `cache r` (cache reads) and `out` (output); `hit` is the share of prompt tokens read from the cache; the dollar figure is their cost at list prices, `≥` when some requests ran on a model with no price. A `~` at the end means the counts can still grow."
+    after_help = "Exits 0 also when no job is open, with the line `no open job`. Tokens are `in` (input), `cache-w` (cache writes), `cache-r` (cache reads) and `out` (output); `hit` is the share of prompt tokens read from the cache; the dollar figure is their cost at list prices, `≥` when some requests ran on a model with no price. A `~` at the end means the counts can still grow."
 )]
 pub struct StatusOptions {
     /// The job to show. Without it, every job that is created or planned.
@@ -241,7 +241,7 @@ fn duration_text(ms: u64) -> String {
     }
 }
 
-/// `in 30  cache w 78.4k  cache r 762.6k  out 13.4k  hit 90%  $0.42`, with `~` at
+/// `in 30  cache-w 78.4k  cache-r 762.6k  out 13.4k  hit 90%  $0.42`, with `~` at
 /// the end while the total may still grow. `None` when the total is not known.
 fn tokens_text(total: TokenTotal, cost: Option<Cost>) -> Option<String> {
     let (counts, mark) = match total {

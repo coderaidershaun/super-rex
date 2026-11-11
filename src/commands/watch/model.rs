@@ -246,6 +246,7 @@ fn tree_row(run: &Run, depth: usize) -> TreeRow {
 mod tests {
     use super::*;
     use crate::capture::{Cost, TokenCounts, TokenTotal};
+    use crate::commands::jobs::OrchestratorRef;
     use crate::store::StorePaths;
 
     fn run(id: &str, parent: Option<&str>, started: &str) -> Run {
@@ -343,7 +344,18 @@ mod tests {
         hand_built.runs = vec![later_child, orphan, grandchild, lead, first_child];
         // A session with no prompt token has no hit %.
         hand_built.session_tokens = TokenTotal::Final(TokenCounts::default());
-        let with_runs = Snapshot::of(vec![(watched.jobs[0].0.clone(), hand_built)]);
+        let mut planned = watched.jobs[0].0.clone();
+        assert_eq!(
+            JobListRow::of(&planned).orchestrator,
+            "",
+            "no plan, no orchestrator"
+        );
+        planned.orchestrator = Some(OrchestratorRef {
+            name: "pipeline".into(),
+            version: 2,
+        });
+        assert_eq!(JobListRow::of(&planned).orchestrator, "pipeline v2");
+        let with_runs = Snapshot::of(vec![(planned, hand_built)]);
 
         let rows = with_runs.view(0).tree;
         let shape: Vec<_> = rows.iter().map(|row| row.depth).collect();

@@ -29,6 +29,9 @@ pub struct JobListRow {
     pub created_at: String,
     pub excerpt: String,
     pub runs: RunCounts,
+    /// The orchestrator skill that runs the job and its version, such as
+    /// `pipeline v1`; empty while the plan names none.
+    pub orchestrator: String,
     /// The cost at list prices, with `~` while the total can grow. Empty when the
     /// tokens are unknown.
     pub cost: String,
@@ -49,6 +52,11 @@ impl JobListRow {
             created_at: summary.created_at.clone(),
             excerpt: summary.excerpt_on_one_line(),
             runs: summary.runs,
+            orchestrator: summary
+                .orchestrator
+                .as_ref()
+                .map(|orchestrator| format!("{} v{}", orchestrator.name, orchestrator.version))
+                .unwrap_or_default(),
             cost: summary
                 .tokens
                 .zip(summary.cost)
@@ -448,6 +456,21 @@ fn job_details(job: &JobListRow) -> Paragraph<'_> {
         .block(panel(title))
 }
 
+/// `runs · orchestrator pipeline v1`: the runs, named by the orchestrator that ran them.
+fn runs_title(job: Option<&JobListRow>) -> Line<'_> {
+    let mut spans = vec![Span::raw(" "), Span::styled("runs", theme::accent())];
+    match job.map(|job| job.orchestrator.as_str()) {
+        Some("") => spans.push(Span::styled("  ·  no orchestrator", theme::faint())),
+        Some(orchestrator) => spans.extend([
+            Span::styled("  ·  orchestrator ", theme::dim()),
+            Span::styled(orchestrator, theme::accent()),
+        ]),
+        None => {}
+    }
+    spans.push(Span::raw(" "));
+    Line::from(spans)
+}
+
 fn draw_tree(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
     let area = match view.jobs.get(state.job) {
         Some(job) => {
@@ -459,7 +482,7 @@ fn draw_tree(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
         }
         None => area,
     };
-    let block = panel(panel_title("runs"));
+    let block = panel(runs_title(view.jobs.get(state.job)));
     if view.tree.is_empty() {
         frame.render_widget(empty_note("No sub-agent runs yet.").block(block), area);
         return;
@@ -529,8 +552,8 @@ fn draw_tree(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
         Constraint::Fill(1),
     ];
     let header = [
-        "role", "model", "effort", "state", "time", "in", "cache w", "cache r", "out", "hit",
-        "cost", "tag job",
+        "role", "model", "effort", "state", "time", "in", "cache-w", "cache-r", "out", "hit",
+        "cost", "tag-job",
     ];
     let table = styled_table(rows, &widths, &header, block);
     let mut table_state = TableState::default().with_selected(Some(state.tree_row));
