@@ -2,6 +2,7 @@
 
 use std::cmp::max;
 use std::collections::HashMap;
+use std::fmt::Write as _;
 use std::path::Path;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -170,15 +171,16 @@ fn header(job: &JobId, stored: Status, runs: &JobRuns) -> String {
     if Shown::of(stored, runs.open) == Shown::Running {
         header.push_str(" (running)");
     }
-    header.push_str(&format!(
+    let _ = write!(
+        header,
         "  {} open  {} finished  {} unconfirmed",
         runs.open, runs.finished, runs.unconfirmed
-    ));
+    );
     if runs.incomplete {
         header.push_str("  incomplete");
     }
     if let Some(tokens) = tokens_text(runs.tokens, runs.cost) {
-        header.push_str(&format!("  {tokens}"));
+        let _ = write!(header, "  {tokens}");
     }
     header
 }
@@ -232,10 +234,10 @@ fn run_line(run: &Run, time: &str, role_width: usize, type_width: usize) -> Stri
         line.push_str("  bg");
     }
     if let Some(parent) = &run.parent_agent_id {
-        line.push_str(&format!("  <{parent}"));
+        let _ = write!(line, "  <{parent}");
     }
     if let Some(tokens) = tokens_text(run.tokens, run.cost) {
-        line.push_str(&format!("  {tokens}"));
+        let _ = write!(line, "  {tokens}");
     }
     line
 }
