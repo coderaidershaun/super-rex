@@ -118,7 +118,7 @@ DO draw again UNTIL gate passes OR 3 rounds done.
 ## Do not
 
 - [ ] Do not write code in sketch. Signature of one interface = OK when it is extension point.
-- [ ] Do not keep sketch as doc in repo. Tree + module `//!` lines carry design after build.
+- [ ] Do not keep sketch as doc in repo. Tree + module comments carry design after build.
 - [ ] Do not sketch for small fix that touches one function.
 
 ## Checklist

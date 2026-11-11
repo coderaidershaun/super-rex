@@ -8,8 +8,8 @@ Facts first. No advice in this step.
 
 - [ ] Priority block: obey READ + USE in `rex-code-priorities`. IF block does not exist, THEN continue. Stop conditions in `SKILL.md` say when to stop.
 - [ ] Document that invocation names: spec, plan, goal. List what next work imports from this code.
-- [ ] `CODEBASE.md`, IF it exists. ELSE IF `rex` is on PATH, THEN run `rex codebase --rust-only --with-context`.
-- [ ] Entry files: `lib.rs`, `main.rs`, `Cargo.toml`.
+- [ ] `CODEBASE.md`, IF it exists. ELSE IF `rex` is on PATH, THEN run `rex codebase --only code --with-context`.
+- [ ] Entry files: Rust `lib.rs`, `main.rs`, `Cargo.toml`. Other language: its entry file + manifest (`go.mod`, `pyproject.toml`, `package.json`).
 
 ## 1.2 Baseline
 

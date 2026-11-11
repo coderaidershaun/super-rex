@@ -27,7 +27,7 @@ Side effects. Do each one now, not later:
 
 | Condition | Action |
 | --- | --- |
-| New module name = concept that code does not name | Take domain word from task. Put it in brief as module name + module `//!` line (`rex-code-commenting`). |
+| New module name = concept that code does not name | Take domain word from task. Put it in brief as module name + module comment (`rex-code-commenting`). |
 | Vague term gets sharp during design | Use sharp term in brief for each new name. |
 | Candidate rejected for load-bearing reason that next explorer needs | Put reason in brief as permanent warning comment for builder to write where it matters (`rex-code-commenting`, whitelist 2). Skip reasons that are obvious or short-lived. |
 | Stuck on trade-off | Second opinion. Not user. |
