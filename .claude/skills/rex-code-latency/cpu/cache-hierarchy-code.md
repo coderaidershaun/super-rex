@@ -12,7 +12,7 @@ thiserror = { version = "2.0.21", default-features = false }
 
 ## Software prefetch before a random lookup
 
-Compile-checked: cargo check, aarch64-apple-darwin and x86_64-unknown-linux-gnu.
+Compile-checked: cargo check and clippy, aarch64-apple-darwin, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu. Not run.
 
 Use it only for a lookup that is random by design, such as a directory indexed by an ID from the wire. The state is one aligned 64-byte line per instrument. The prefetch overlaps the memory fetch with work that does not need the state.
 

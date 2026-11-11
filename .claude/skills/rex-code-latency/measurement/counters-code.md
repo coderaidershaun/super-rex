@@ -129,6 +129,7 @@ pub fn counter_frequency_hz() -> u64 {
 Compile-checked: cargo check, x86_64-unknown-linux-gnu. Not run.
 
 - Gate with `#[cfg(all(target_os = "linux", target_arch = "x86_64"))]`.
+- Call `new()` on the thread you measure: each counter counts only the thread that opened it.
 - `new()` fails with `PmuError::Open` IF kernel refuses a counter (`perf_event_paranoid`, `CAP_PERFMON`).
 - `capture_hardware_state` fails with `PmuError::NoUserRead` IF a counter is off the PMU. It never returns a stale value.
 - Each `read_user()` reads the perf control page, runs `rdpmc`, and retries IF the page sequence changed. No syscall. Its cost is not measured: price it with the TSC probe.

@@ -4,7 +4,7 @@ Loom test set-up and a lock-free stack with a compare-and-swap (CAS) loop and ba
 
 ## Loom shim: one import point for atomics
 
-Compile-checked: cargo check, aarch64-apple-darwin, with and without `--cfg loom`.
+Compile-checked: cargo check + clippy, x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu and aarch64-apple-darwin, with and without `--cfg loom`.
 
 `Cargo.toml` lines:
 
@@ -42,10 +42,12 @@ Commands:
 
 - loom: `RUSTFLAGS="--cfg loom" cargo test --release --test <loom test file>`. IF a model runs too long, THEN set `LOOM_MAX_PREEMPTIONS=2` or `3`.
 - Miri: `cargo +nightly miri test`. Add `-Zmiri-many-seeds` to `MIRIFLAGS` to try many schedules. Cut loop counts under `cfg!(miri)`. Code under test stays stable Rust.
+- Miri cannot run `asm!`. Gate such code with `#[cfg(not(miri))]` in modules that Miri tests.
 
 Notes:
 
 - [ ] Every atomic, `Arc` and `spin_loop` in the crate comes from `crate::sync`. One import from `std` hides that access from loom.
+- [ ] Remove each name the crate does not use from both lists. With the stack below as the only user, `AtomicBool`, `Arc` and `spin_loop` give an unused-import warning.
 - [ ] `crossbeam_utils::Backoff` calls `std::hint::spin_loop`, not the loom one. OK in a CAS retry loop: each retry follows a success of another thread. Not OK in a loop that waits for another thread: loom does not end.
 
 ## Lock-free stack over a node pool: CAS loop with backoff
@@ -165,7 +167,7 @@ Notes:
 
 - [ ] Tag + index in one `AtomicU64`: the tag changes on each push and pop, so a stale head never matches (ABA). It wraps after 2^32 changes. ABA then needs one thread to stall across 2^32 operations.
 - [ ] Pool indices, not `AtomicPtr`: no `unsafe`, no reclamation scheme.
-- [ ] Pointer + tag in 16 bytes: `AtomicU128` is nightly only. `portable_atomic::AtomicU128` uses `cmpxchg16b` when built with `-C target-feature=+cmpxchg16b`.
+- [ ] Pointer + tag in 16 bytes: `std` `AtomicU128` is nightly only. `portable_atomic::AtomicU128` is lock-free on every aarch64 CPU. On x86_64 it detects `cmpxchg16b` at run time and takes a lock without it. `-C target-feature=+cmpxchg16b` removes the check.
 - [ ] `pop` uses `Acquire` on its load and on both CAS orders: it reads `next_node` and `order_id` that another core wrote.
 - [ ] CAUTION: Do not push a slot that is already on the stack. It corrupts the list. That is a logic bug, not undefined behavior, so Miri does not report it. The caller must own slot bookkeeping.
 - [ ] `Backoff::spin()` runs `1 << step.min(6)` calls of `spin_loop()`. Hand-written form: `for _ in 0..1u32 << failures.min(6) { std::hint::spin_loop(); }`.

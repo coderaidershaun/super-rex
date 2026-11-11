@@ -12,9 +12,10 @@ thiserror = { version = "2.0.21", default-features = false }
 
 ## Map, lock and pre-fault a 1 GB huge page arena
 
-Compile-checked: cargo check and clippy, x86_64-unknown-linux-gnu, in a module gated by `#[cfg(target_os = "linux")]`. Not run: no reserved 1 GB pages were available.
+Compile-checked as printed, as one file: cargo check and clippy, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu. On aarch64-apple-darwin the `cfg` line leaves the module empty. Not run: no reserved 1 GB pages were available.
 
 ```rust
+#![cfg(target_os = "linux")]
 use memmap2::{MmapMut, MmapOptions};
 use nix::sys::mman::{MlockAllFlags, mlockall};
 
@@ -72,6 +73,7 @@ fn execute_pre_fault_loop(memory_block: &mut [u8]) {
 }
 ```
 
+- The `cfg` line is needed: off Linux, `memmap2` makes `huge()` a no-op, and the map silently gets 4 KB pages.
 - Use on the pinned hotpath thread, after the pin and before the network connects: `let mut arena = ContiguousHugePageAllocator::claim_gigabyte_block()?;` then `secure_and_wire_arena(&mut arena)?;`. `MmapMut` derefs to `&mut [u8]`. Keep it alive for the life of the process.
 - `mlockall(MCL_CURRENT)` already faults in every mapped page, so the loop is a second guard. It still works IF the lock is skipped in a test build.
 - To fault the arena inside the map call instead, add `.populate()` before `.map_anon()`.
@@ -79,7 +81,7 @@ fn execute_pre_fault_loop(memory_block: &mut [u8]) {
 
 ## Carve the arena into struct-of-arrays slices
 
-Compile-checked: cargo check, aarch64-apple-darwin and x86_64-unknown-linux-gnu. A unit test on a 1 MB anonymous map passed on aarch64-apple-darwin.
+Compile-checked: cargo check and clippy, aarch64-apple-darwin, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu. A unit test on a 1 MB anonymous map passed on aarch64-apple-darwin: carve, write, too small and misaligned refused.
 
 ```rust
 use bytemuck::PodCastError;

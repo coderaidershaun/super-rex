@@ -154,12 +154,14 @@ fn drain_to_disk(mut consumer: Consumer<TelemetryEventBlock>, file: File) -> io:
 }
 ```
 
+Production code pins with `nix` `sched_setaffinity`, which returns the error: see `.claude/skills/rex-code-latency/os/cpu-isolation.md`. The listing uses `core_affinity` so that it also builds on macOS.
+
 ## Percentiles from tick pairs
 
-Compile-checked: cargo check, aarch64-apple-darwin and x86_64-unknown-linux-gnu. Run with synthetic pairs on aarch64-apple-darwin.
+Compile-checked: cargo check + clippy, x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu and aarch64-apple-darwin. Run with synthetic pairs on aarch64-apple-darwin: a 40 ms value records as the max, not clamped.
 
-- 1 ns to 10 ms, 3 significant digits. Memory is fixed after construction. `saturating_record` puts a value above 10 ms in the top bucket and never fails.
-- Pairs with end not after start are skipped.
+- 1 ns to 10 s, 3 significant digits: a major page fault of tens of ms still records. Memory is fixed after construction. `saturating_record` puts a value above 10 s in the top bucket and never fails.
+- Pairs with end not after start are skipped. Count `end < start` pairs before the call and report the count next to dropped: above 0 = pin failed.
 - In process: `to_nanos` = `|s, e| clock.delta_as_nanos(s, e)`.
 - For p99.99, add `h.value_at_quantile(0.9999)`. Report `samples` with the dropped count.
 
@@ -179,8 +181,8 @@ pub fn latency_report(
     pairs: impl IntoIterator<Item = (u64, u64)>,
     to_nanos: impl Fn(u64, u64) -> u64,
 ) -> Result<LatencyReport, CreationError> {
-    // 1 ns to 10 ms, 3 significant digits. Values above 10 ms clamp to the top bucket.
-    let mut h = Histogram::<u64>::new_with_bounds(1, 10_000_000, 3)?;
+    // 1 ns to 10 s, 3 significant digits. Values above 10 s clamp to the top bucket.
+    let mut h = Histogram::<u64>::new_with_bounds(1, 10_000_000_000, 3)?;
     for (start, end) in pairs {
         if end > start {
             h.saturating_record(to_nanos(start, end).max(1));

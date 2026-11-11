@@ -14,7 +14,7 @@ All code below is safe Rust.
 
 ## Padded counters for two writer cores
 
-Compile-checked: cargo check, aarch64-apple-darwin and x86_64-unknown-linux-gnu. Clippy clean.
+Compile-checked: cargo check and clippy, aarch64-apple-darwin, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu. Not run.
 
 ```rust
 use core::mem::{align_of, offset_of, size_of};
@@ -70,12 +70,12 @@ const _: () = {
 ```
 
 - Sizes on x86_64 and aarch64: `ImmuneEngineTelemetry` = 256 bytes, `VulnerableEngineTelemetry` = 16 bytes.
-- `assert_sync` is the std-only form of `static_assertions::assert_impl_all!(MatchingEngineMetrics: Sync)` (`static_assertions` 1.1.0).
-- `fetch_add` fits a counter with many writers. IF one core is the only writer, THEN `load` + `store` is cheaper: on x86_64 `fetch_add` is a `lock` instruction with any ordering.
+- `assert_sync` is the crate-free form of `static_assertions::assert_impl_all!(MatchingEngineMetrics: Sync)` (`static_assertions` 1.1.0).
+- Each counter here has one writer core. One writer can use a `Relaxed` load and a `Relaxed` store, which needs no locked instruction: `fetch_add` is a `lock` instruction on x86_64 at any ordering. `fetch_add` stays correct IF a second writer appears.
 
 ## Hot state packed into one aligned line
 
-Compile-checked: cargo check, aarch64-apple-darwin and x86_64-unknown-linux-gnu. Clippy clean.
+Compile-checked: cargo check and clippy, aarch64-apple-darwin, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu. Not run.
 
 Use this form when the bytes leave the process. IF no peer reads the bytes, THEN use the default repr with `#[repr(align(64))]` and the size and alignment asserts only.
 

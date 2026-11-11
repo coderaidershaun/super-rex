@@ -1,7 +1,7 @@
 # Kernel bypass code
 
-Three listings for `.claude/skills/rex-code-latency/network/kernel-bypass.md`.
-The AF_XDP loop imports the in-place patch of the second listing as `crate::turnaround`.
+Three listings for `.claude/skills/rex-code-latency/network/kernel-bypass.md`, then notes for `ef_vi` and a doorbell.
+The AF_XDP loop imports the in-place patch below as `crate::turnaround`.
 
 ```toml
 [dependencies]
@@ -23,15 +23,13 @@ panic = "abort"
 
 ## AF_XDP Run to Completion loop with `xsk-rs`
 
-Compile-checked: cargo check + clippy, x86_64-unknown-linux-gnu, against real `xsk-rs` 0.11.0, with check-only stubs for the C builds of `libbpf-sys` and `libxdp-sys`. Not run.
+Compile-checked: cargo check + clippy, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu, against real `xsk-rs` 0.11.0 and a check-only stand-in for `libxdp-sys` (same names and C types, no C build). Not run.
 
-- Pin thread to isolated core before call. Loop does not pin itself.
-- `Umem::new(.., true)` maps frames in huge pages. Reserve them first.
-- `FRAME_COUNT` = default size of each ring, so `produce` cannot fall short. IF you change a ring size, THEN keep each ring at `FRAME_COUNT` or more.
-- `XDP_ZEROCOPY` fails at bind IF driver has no zero-copy mode. Without flag: copy mode, slower.
-- `produce_and_wakeup` makes a `sendto` syscall when kernel asks for wakeup. `XDP_USE_NEED_WAKEUP` and `SO_PREFER_BUSY_POLL` make it rare.
-- 6 `unsafe` blocks: `xsk-rs` cannot check frame aliasing. Each frame is in one place only: RX batch, `send`, `recycle`, or one ring.
-- Completion ring to fill ring = TX completion. A sent frame goes back to RX only after kernel finished its read.
+- Pin the thread to an isolated core before the call. `Umem::new(.., true)` maps frames in huge pages: reserve them first.
+- Keep every ring at `FRAME_COUNT` or more.
+- `XDP_ZEROCOPY` fails at bind IF the driver has no zero-copy mode.
+- The loop calls no `spin_loop()`: it busy-polls an isolated core with SMT off and must react in the fewest cycles. IF SMT is on, THEN call `std::hint::spin_loop()` on an empty poll. Check on your host.
+- `XDP_USE_NEED_WAKEUP`: the kernel flags the TX and fill rings when the driver sleeps, and the loop makes a syscall only then: `sendto` for TX, `poll` for the fill ring, on each refill and on each empty RX poll. Without the bind flag no kick is made, and zero-copy TX waits for the driver's next poll. This follows from the `xsk-rs` 0.11.0 source and the kernel AF_XDP rules. It was not proved on hardware.
 
 ```rust
 //! Run to Completion turnaround over an AF_XDP socket with xsk-rs.
@@ -58,7 +56,7 @@ pub enum XdpError {
     Socket(#[from] SocketCreateError),
     #[error("socket came without a fill queue and a completion queue")]
     NoFillQueue,
-    #[error("TX wakeup failed: {0}")]
+    #[error("ring wakeup failed: {0}")]
     Wakeup(#[from] std::io::Error),
 }
 
@@ -71,7 +69,9 @@ pub fn run_xdp_turnaround(
     let frames = NonZeroU32::new(FRAME_COUNT).expect("FRAME_COUNT is not zero");
     let (umem, descs) = Umem::new(UmemConfig::default(), frames, true)?;
     let ifname = ifname.parse().map_err(|_| XdpError::BadInterface)?;
-    let config = SocketConfig::builder().bind_flags(BindFlags::XDP_ZEROCOPY).build();
+    let config = SocketConfig::builder()
+        .bind_flags(BindFlags::XDP_ZEROCOPY | BindFlags::XDP_USE_NEED_WAKEUP)
+        .build();
     // SAFETY: this UMEM is not shared with another socket, so the shared-UMEM rule does not apply.
     let (mut tx_q, mut rx_q, rings) = unsafe { Socket::new(config, &umem, &ifname, queue_id) }?;
     let (mut fill_q, mut comp_q) = rings.ok_or(XdpError::NoFillQueue)?;
@@ -86,6 +86,10 @@ pub fn run_xdp_turnaround(
     while session_active.load(Relaxed) {
         // SAFETY: the descriptors belong to this UMEM.
         let got = unsafe { rx_q.consume(&mut rx) };
+        if got == 0 && fill_q.needs_wakeup() {
+            // The driver sleeps until it is told that the fill ring has frames again.
+            fill_q.wakeup(rx_q.fd_mut(), 0)?;
+        }
         for desc in &mut rx[..got] {
             // SAFETY: the kernel gave this frame to us on the RX ring. Nothing else reads or
             // writes it until we put it on the TX ring or the fill ring.
@@ -106,7 +110,7 @@ pub fn run_xdp_turnaround(
             if !send.is_empty() {
                 tx_q.produce_and_wakeup(&send)?;
             }
-            fill_q.produce(&recycle);
+            fill_q.produce_and_wakeup(&recycle, rx_q.fd_mut(), 0)?;
         }
         send.clear();
         recycle.clear();
@@ -114,7 +118,7 @@ pub fn run_xdp_turnaround(
         // SAFETY: the descriptors belong to this UMEM; completed frames are ours again.
         unsafe {
             let finished = comp_q.consume(&mut done);
-            fill_q.produce(&done[..finished]);
+            fill_q.produce_and_wakeup(&done[..finished], rx_q.fd_mut(), 0)?;
         }
     }
     Ok(())
@@ -123,15 +127,11 @@ pub fn run_xdp_turnaround(
 
 ## In-place header patch with `zerocopy`
 
-Compile-checked: cargo check + clippy, aarch64-apple-darwin and x86_64-unknown-linux-gnu. A unit test on a built TCP frame passes. It asserts that both checksums are valid and that seq and ack moved.
+Compile-checked: cargo check + clippy, x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu and aarch64-apple-darwin. Tested on aarch64-apple-darwin with an independent checker, with and without IP and TCP options: both checksums, the new ack and the total length are right.
 
-- No `unsafe`. Each header split is checked. All checks run before first write, so a rejected frame is unchanged and can go back to RX.
-- Byte-order fields have alignment 1. Structs have no padding and need no `repr(packed)`.
-- Reads IHL and TCP data offset. IP and TCP options work.
-- Swap of addresses alone does not change either checksum: ones' complement sum is commutative. New payload and new length do. Recompute both, or offload them (DPDK notes below, `ef_vi` notes at end).
-- `ExchangeExecutionOrder` is an example. Use your venue's wire format. Venues send fixed-point integer prices, not `f64`.
-- Frame must already hold the order. Buffer does not grow.
-- For real orders, patch one pre-built frame per session. Market data comes as UDP multicast. Orders go on TCP to another gateway. A reflected market data frame is rarely a valid order frame.
+- No `unsafe`. All checks run before the first write, so a rejected frame is unchanged. IHL and TCP data offset are read, so options work.
+- A new payload and length change both checksums: recompute both, or offload them (DPDK notes below).
+- `ExchangeExecutionOrder` is an example. The frame must already hold the order. For real orders, patch one pre-built frame per session.
 
 ```rust
 //! In-place turnaround: the inbound TCP frame becomes the outbound order.
@@ -285,40 +285,23 @@ fn fold(mut acc: u32) -> u16 {
 Compile-checked: cargo check + clippy, x86_64-unknown-linux-gnu, against a hand-written `sys` stand-in with the same names and C types as the `bindgen` output.
 Not compile-checked against real `bindgen` output or against the C shim: needs DPDK. Not run.
 
-Declare module as `#[cfg(target_os = "linux")] mod dpdk;`. All DPDK `unsafe` stays in it. `sys` comes from `build.rs`:
+Declare the module as `#[cfg(target_os = "linux")] mod dpdk;`. `build.rs` makes `sys`:
 
-1. `pkg_config::probe_library("libdpdk")` prints link lines. Pass output of `pkg-config --cflags libdpdk` to `bindgen` and to `cc`.
-2. `bindgen` reads `wrapper.h` (`rte_eal.h`, `rte_errno.h`, `rte_ethdev.h`, `rte_mbuf.h`, shim header) with `.allowlist_function("rte_(eal|eth|pktmbuf|mempool)_.*|shim_.*")`, `.allowlist_type("rte_eth_conf")`, `.derive_default(true)`, `.wrap_static_fns(true)`.
-3. Give `bindgen` an absolute header path. Generated `static_fns.c` includes it from `OUT_DIR`.
-4. `cc` compiles `static_fns.c` and a C shim. `bindgen` binds no function-like macro, no thread-local, and gives anonymous-union fields `__bindgen_anon_N` names that change with DPDK version. Shim:
+1. `pkg_config::probe_library("libdpdk")`. Pass `pkg-config --cflags libdpdk` to `bindgen` and to `cc`.
+2. `bindgen` reads `wrapper.h` (`rte_eal.h`, `rte_errno.h`, `rte_ethdev.h`, `rte_mbuf.h`, shim header) by absolute path: `.allowlist_function("rte_(eal|eth|pktmbuf|mempool)_.*|shim_.*")`, `.allowlist_type("rte_eth_conf")`, `.derive_default(true)`, `.wrap_static_fns(true)`.
+3. `cc` compiles the generated `static_fns.c` and a C shim for function-like macros, thread-locals and anonymous-union fields:
    - `int shim_errno(void)`: returns `rte_errno`.
    - `uint8_t *shim_mbuf_data(struct rte_mbuf *m, uint16_t *len)`: sets `*len` from `rte_pktmbuf_data_len`, returns `rte_pktmbuf_mtod(m, uint8_t *)`.
    - `int shim_mbuf_set_len(struct rte_mbuf *m, uint16_t len)`: IF `nb_segs != 1` or `len > buf_len - data_off`, THEN returns -1. ELSE sets `data_len` and `pkt_len`.
 
-What the listing encodes:
+Notes:
 
-- `Mbuf` is `#[repr(transparent)]` over `NonNull<rte_mbuf>`. `ArrayVec<Mbuf, 32>` has layout of the C pointer array that `rte_eth_rx_burst` fills.
-- `tx_burst` calls `mem::forget` on each mbuf that driver accepted. PMD frees it after TX completion. Use after send and double free do not compile.
-- `PhantomData<&'p Mempool>` ties each mbuf and port to pool. Pool freed before port does not compile.
-- `rte_eal_init` runs once per process and can write its argv: static `AtomicBool`, owned writable buffers.
-- Zeroed `rte_eth_conf`. Current DPDK rejects a null config with `-EINVAL`.
-- Pool 16383 = 2^14 − 1. Ring under the pool has power-of-two size and keeps one slot empty.
-- Per-lcore cache 512: alloc and free are local pushes. Global ring takes only bulk moves.
-- Data room 2048 includes 128 bytes of default headroom: 1920 frame bytes. Private area 0 keeps payload cache-line aligned. 1024 descriptors per queue.
-- `Mbuf` is `!Send`: Run to Completion compiles as is. Pipeline model needs `unsafe impl Send for Mbuf<'_>`.
-
-Use:
-
-- EAL arguments: `-c <isolated core mask>`, `-n <memory channels>`, `--no-shconf` (no multi-process shared config, so no file system jitter).
-- Loop: `rx_burst`, then `drain(..)` the burst. Drop of an `Mbuf` recycles it. Push turned-around mbufs to a TX `Burst`, call `tx_burst`, then `clear()` it. Mbufs left after a full TX ring drop there: count them as drops.
-- Checksum offload: enable `RTE_ETH_TX_OFFLOAD_IPV4_CKSUM | RTE_ETH_TX_OFFLOAD_TCP_CKSUM` in `rte_eth_conf.txmode.offloads`. In the shim, set `RTE_MBUF_F_TX_IPV4 | RTE_MBUF_F_TX_IP_CKSUM | RTE_MBUF_F_TX_TCP_CKSUM`, `l2_len` and `l3_len` on the mbuf. Put the pseudo-header sum (`rte_ipv4_phdr_cksum`) in the TCP checksum field. This listing does not do it.
-
-Limits:
-
-- `wrap_static_fns` costs one call per burst and one per free that Rust cannot inline. Cross-language LTO removes it: build shim with clang of same LLVM version as rustc, pass `-Clinker-plugin-lto`.
-- `data_mut` gives first segment only. Chained or jumbo mbufs need a segment walk.
-- EAL is never cleaned up. It lives until process exit.
-- Sibling lcores: `rte_eal_remote_launch` takes `extern "C" fn(*mut c_void) -> c_int`. Pass closure as boxed raw pointer through a trampoline. That is one more `unsafe` point.
+- EAL arguments: `-c <isolated core mask>`, `-n <memory channels>`, `--no-shconf`. `rte_eal_init` pins its calling thread to the main lcore: the first core of the mask, or `--main-lcore`. Check on your host.
+- After `tx_burst`, `clear()` the `Burst`: mbufs that a full TX ring left drop there. Count them.
+- Data room 2048 includes 128 bytes of headroom: 1920 frame bytes, first segment only.
+- Checksum offload, not in this listing: test `rte_eth_dev_info.tx_offload_capa`, then enable `RTE_ETH_TX_OFFLOAD_IPV4_CKSUM | RTE_ETH_TX_OFFLOAD_TCP_CKSUM` in `txmode.offloads`. Per mbuf, in the shim: `ol_flags |= RTE_MBUF_F_TX_IPV4 | RTE_MBUF_F_TX_IP_CKSUM | RTE_MBUF_F_TX_TCP_CKSUM`, set `l2_len` and `l3_len`, IPv4 `hdr_checksum` = 0, TCP checksum = `rte_ipv4_phdr_cksum(ip, ol_flags)`.
+- `Mbuf` is `!Send`. A Pipeline model needs `unsafe impl Send for Mbuf<'_>`.
+- `wrap_static_fns` costs one call per burst and per free. Cross-language LTO removes it: shim built by clang of the rustc LLVM version, `-Clinker-plugin-lto`.
 
 ```rust
 //! Safe owner types over DPDK. Every unsafe call into DPDK lives in this module.
@@ -560,37 +543,24 @@ impl Drop for Port<'_> {
 
 ## `ef_vi` shim notes
 
-No listing. Facts that a C shim and a Rust owner over `ef_vi` need.
+No listing. Facts for a C shim and a Rust owner.
 
-- Headers: `<etherfabric/base.h>` (`ef_driver_open`), `<etherfabric/pd.h>`, `<etherfabric/memreg.h>`, `<etherfabric/vi.h>`.
-- Setup order: `ef_driver_open`, `ef_pd_alloc`, `ef_vi_alloc_from_pd`, `mmap` buffers with `MAP_HUGETLB`, `ef_memreg_alloc`, `ef_vi_receive_init` for each buffer, one `ef_vi_receive_push`. Teardown runs in reverse.
-- `ef_eventq_poll`, `ef_vi_receive_init`, `ef_vi_receive_push`, `ef_vi_transmit` are macros over `vi->ops`. `ef_event` is a C union read by `EF_EVENT_TYPE`, `EF_EVENT_RX_RQ_ID`, `EF_EVENT_RX_BYTES`. Wrap each in a plain C function. Declare the functions in an `unsafe extern "C"` block (edition 2024 rule).
-- RX test: `EF_EVENT_TYPE(ev) == EF_EVENT_TYPE_RX`. `EF_EVENT_RX_BYTES` includes RX prefix: subtract `ef_vi_receive_prefix_len`. Frame starts after prefix.
-- TX completion: on `EF_EVENT_TYPE_TX`, `ef_vi_transmit_unbundle` gives request ids. Repost only those buffers. On `EF_EVENT_TYPE_RX_DISCARD`, repost the buffer.
-- Make RX ring hold every buffer (ring of 2048 for 1024 buffers), so a repost never finds it full. IF TX ring is full, THEN repost that buffer to RX.
-- This model does not handle `EF_EVENT_TYPE_RX_MULTI` (high-throughput mode) or `EF_EVENT_TYPE_RX_REF` (X3 adapters, other buffer model).
-- `ef_vi` offloads TX checksums unless VI has `EF_VI_TX_IP_CSUM_DIS` or `EF_VI_TX_TCPUDP_CSUM_DIS`.
-- Rust owner: opaque `#[repr(C)]` struct with `_opaque: [u8; 0]` and `PhantomData<(*mut u8, PhantomPinned)>`, so it is not `Send` and not `Unpin`. Create it on the polling core. One VI per core. Free it in `Drop`.
-- Buffer ownership cannot be a type rule: ids come from NIC at run time. Keep it in `// SAFETY:` comments. A debug build can assert on a per-id ownership bitmap.
+- Headers: `<etherfabric/base.h>`, `<etherfabric/pd.h>`, `<etherfabric/memreg.h>`, `<etherfabric/vi.h>`.
+- Setup: `ef_driver_open`, `ef_pd_alloc`, `ef_vi_alloc_from_pd`, `mmap` buffers with `MAP_HUGETLB`, `ef_memreg_alloc`, `ef_vi_receive_init` per buffer, one `ef_vi_receive_push`. Teardown in reverse.
+- `ef_eventq_poll`, `ef_vi_receive_init`, `ef_vi_receive_push`, `ef_vi_transmit` and the `EF_EVENT_*` readers of the `ef_event` union are macros. Wrap each in a C function, declared in an `unsafe extern "C"` block.
+- RX: `EF_EVENT_TYPE_RX`. `EF_EVENT_RX_BYTES` includes the RX prefix: subtract `ef_vi_receive_prefix_len`.
+- `EF_EVENT_TYPE_TX`: `ef_vi_transmit_unbundle` gives the ids to repost. `EF_EVENT_TYPE_RX_DISCARD`: repost the buffer.
+- RX ring holds every buffer (2048 for 1024), so a repost never fails. Full TX ring: repost to RX.
+- Not handled: `EF_EVENT_TYPE_RX_MULTI`, `EF_EVENT_TYPE_RX_REF` (X3 adapters).
+- TX checksums are offloaded unless the VI has `EF_VI_TX_IP_CSUM_DIS` or `EF_VI_TX_TCPUDP_CSUM_DIS`.
+- Owner: opaque `#[repr(C)]` struct, `_opaque: [u8; 0]`, `PhantomData<(*mut u8, PhantomPinned)>`: `!Send`, `!Unpin`. One VI per core.
 
 ## Doorbell write notes
 
-No listing. `rte_eth_tx_burst`, `ef_vi_transmit` and the AF_XDP kernel driver ring the doorbell themselves. Write one only for a device with no driver.
+No listing. Write a doorbell only for a device with no driver. Order: `.claude/skills/rex-code-latency/network/kernel-bypass.md`.
 
-Order:
-
-1. Copy payload into DMA buffer with `copy_from_slice`. IF payload is larger than buffer, THEN return an error.
-2. `core::sync::atomic::fence(Release)`. It orders cacheable stores between cores only. It emits no instruction on x86_64 and `dmb ish` (inner shareable domain) on aarch64.
-3. Device store barrier:
-   - x86_64: `core::arch::x86_64::_mm_sfence()`. It orders write-combining stores and is also a compiler barrier. It is a `#[target_feature(enable = "sse")]` fn, so a call from a plain fn needs `unsafe` (error E0133), though SSE is in the x86_64 baseline.
-   - aarch64: `core::arch::asm!("dmb oshst", options(nostack, preserves_flags))`, in `unsafe`. The device is in the outer shareable domain. Give no `nomem` option, so the barrier also stops compiler reordering. `__dmb` and `__dsb` are nightly only. IF device must see stores complete, not only ordered, THEN use `dsb st`.
-4. `write_volatile` of the value to the doorbell register (`NonNull<u32>`), in `unsafe`. It stops the compiler from deleting the write. It is not atomic and gives no order between threads.
-
-Rules:
-
-- On x86_64, `compiler_fence(Release)` + `_mm_sfence` is enough. `fence(Release)` costs nothing there, so keep it for aarch64.
-- Make the constructor that takes the register pointer an `unsafe fn`. Caller promises an aligned, mapped 32-bit register that only this queue writes while it lives.
-- Map registers with `memmap2::MmapRaw` over the device file. Keep the map in the same struct as the pointer. Check that the offset is 4-byte aligned and inside the map.
-- `volatile` 0.6.1: `VolatilePtr` puts the `unsafe` in one constructor, and each later read and write is safe. Choose it when a device has more than one or two registers.
-- `NonNull<u32>` is not `Send`. Build the queue on the hotpath thread. No `unsafe impl Send` is necessary.
-- Never use `write_volatile` for sync between threads.
+- x86_64: `_mm_sfence()` is a `#[target_feature(enable = "sse")]` fn, so a call from a plain fn needs `unsafe` (error E0133).
+- aarch64: `asm!("dmb oshst", options(nostack, preserves_flags))`. No `nomem`, so it is also a compiler barrier. IF the device must see the stores complete, THEN use `dsb st`.
+- Take the register pointer in an `unsafe fn` constructor: aligned, mapped, one writer. Map it with `memmap2::MmapRaw` in the same struct. Check alignment and bounds.
+- `volatile` 0.6.1 `VolatilePtr`: one `unsafe` constructor, then safe reads and writes.
+- `NonNull<u32>` is not `Send`: build the queue on the hotpath thread.

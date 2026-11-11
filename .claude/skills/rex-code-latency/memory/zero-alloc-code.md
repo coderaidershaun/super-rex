@@ -2,11 +2,11 @@
 
 ## Count heap calls on the hotpath thread
 
-Compile-checked: cargo check and clippy, aarch64-apple-darwin and x86_64-unknown-linux-gnu. Run in release: 0 heap calls in 1,000,000 packets. Not run under Miri.
+Compile-checked: cargo check and clippy, aarch64-apple-darwin, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu. Run in release on aarch64-apple-darwin: 0 heap calls in 1,000,000 packets. Not run under Miri.
 
 - Counts `alloc`, `realloc` and `dealloc` on the current thread only. Test-harness and logging threads add no noise.
 - `try_with` stops a panic while thread-local storage is torn down.
-- `DeterministicMarketDataProcessor` = hotpath under test: a `Box<[T]>` filled in `new`, written by index. Put your own entry point there.
+- `DeterministicMarketDataProcessor` stands in for the hotpath under test. Put your own entry point in its place.
 - Run in the release profile. Warm up once outside the window.
 
 ```rust
@@ -45,6 +45,42 @@ unsafe impl GlobalAlloc for CountingAlloc {
 #[global_allocator]
 static GLOBAL: CountingAlloc = CountingAlloc;
 
+#[derive(Clone, Copy, Default)]
+#[repr(C, align(64))]
+pub struct MarketUpdate {
+    pub current_price: f64,
+    pub instrument_id: u32,
+}
+
+pub struct DeterministicMarketDataProcessor {
+    pre_allocated_updates: Box<[MarketUpdate]>,
+    current_write_index: usize,
+}
+
+impl DeterministicMarketDataProcessor {
+    pub fn new(maximum_capacity: usize) -> Self {
+        assert!(maximum_capacity > 0, "capacity must be above zero");
+        // A boxed slice has no spare capacity, so it can never grow.
+        // Do not count on this fill to pre-fault: a zero fill can become a
+        // lazy zeroed allocation. Pre-fault with mlockall or MAP_POPULATE.
+        let pre_allocated_updates = vec![MarketUpdate::default(); maximum_capacity].into_boxed_slice();
+        Self { pre_allocated_updates, current_write_index: 0 }
+    }
+
+    #[inline]
+    pub fn process_incoming_packet(&mut self, id: u32, price: f64) {
+        let active_slot = &mut self.pre_allocated_updates[self.current_write_index];
+        active_slot.instrument_id = id;
+        active_slot.current_price = price;
+
+        // A compare and reset in place of `%`: no integer division.
+        self.current_write_index += 1;
+        if self.current_write_index == self.pre_allocated_updates.len() {
+            self.current_write_index = 0;
+        }
+    }
+}
+
 fn main() {
     let mut engine = DeterministicMarketDataProcessor::new(4096);
     engine.process_incoming_packet(0, 0.0); // warm-up outside the measured window
@@ -73,7 +109,7 @@ Whole binary, no code change (not tested): `heaptrack`, `valgrind --tool=dhat`, 
 
 IF a `Vec` or `hashbrown` map must use pre-faulted pool memory, THEN use this. ELSE use `slab`, `heapless` or `bumpalo`: no `unsafe`.
 
-Compile-checked as a full file: cargo check and clippy, aarch64-apple-darwin and x86_64-unknown-linux-gnu. Behavior tests ran on aarch64-apple-darwin: oversize and over-align refused, exhaustion refused, LIFO reuse, 64-byte alignment, hash table refused at 64 bytes. This excerpt leaves out the `// ...` lines. Not run under Miri.
+Compile-checked as printed: cargo check and clippy, aarch64-apple-darwin, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu. Tests ran on aarch64-apple-darwin: zero size, oversize and over-align refused, exhaustion refused, LIFO reuse, 64-byte alignment, `Vec` growth from capacity 4 to 8, hash table refused at 64-byte blocks and fits 128. Not run under Miri.
 
 ```toml
 [dependencies]
@@ -92,6 +128,22 @@ use memmap2::{MmapMut, MmapOptions};
 
 pub const BLOCK_ALIGN: usize = 64;
 
+#[derive(Debug, thiserror::Error)]
+pub enum PoolError {
+    #[error("pool block size and block count must be above zero")]
+    ZeroSize,
+    #[error("pool size overflows the address space")]
+    TooLarge,
+    #[error("pool block address is null")]
+    NullAddress,
+    #[error("cannot map pool memory")]
+    Map(#[from] std::io::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("pool has no free block")]
+pub struct PoolExhausted;
+
 pub struct BareMetalObjectPool {
     block_size: usize,
     region_start: usize,
@@ -103,7 +155,9 @@ pub struct BareMetalObjectPool {
 
 impl BareMetalObjectPool {
     pub fn new(block_size: usize, maximum_blocks: usize) -> Result<Self, PoolError> {
-        // ... zero-size check ...
+        if block_size == 0 || maximum_blocks == 0 {
+            return Err(PoolError::ZeroSize);
+        }
         // Round up to a full cache line.
         let block_size = block_size.next_multiple_of(BLOCK_ALIGN);
         let bytes = block_size.checked_mul(maximum_blocks).ok_or(PoolError::TooLarge)?;
@@ -121,7 +175,19 @@ impl BareMetalObjectPool {
             let block = base.wrapping_add(index * block_size);
             stack.push(NonNull::new(block).ok_or(PoolError::NullAddress)?);
         }
-        // ... store region_start and region_end for `owns` ...
+
+        let region_start = base.addr();
+        Ok(Self {
+            block_size,
+            region_start,
+            region_end: region_start + bytes,
+            available_pointers_stack: RefCell::new(stack),
+            _physical_memory_arena: arena,
+        })
+    }
+
+    fn owns(&self, block: NonNull<u8>) -> bool {
+        (self.region_start..self.region_end).contains(&block.addr().get())
     }
 }
 
@@ -164,12 +230,8 @@ pub fn build_transient_chain(order_pool: &BareMetalObjectPool) -> Result<PoolVec
 pub type DynVec<'a, T> = PoolVec<T, &'a dyn Allocator>;
 ```
 
-- [ ] `PoolError` = `thiserror` enum: `ZeroSize`, `TooLarge`, `NullAddress`, `Map(#[from] std::io::Error)`. `PoolExhausted` = unit error type. `owns` (not shown) tests that the address is inside `region_start..region_end`.
-- [ ] `unsafe impl Allocator` and `unsafe fn deallocate` are required: the trait promises valid memory, and the compiler cannot test that promise.
 - [ ] CAUTION: Do not pass a block from another allocator to `deallocate`. The ownership test is a `debug_assert!`, so a release build puts the foreign block on the stack and hands it out later.
-- [ ] `RefCell` gives the `&self` methods their mutation and makes the pool `!Sync`. Use from a second thread fails: "`RefCell<Vec<NonNull<u8>>>` cannot be shared between threads safely".
 - [ ] Growth asks the pool again: `allocator_api2::vec::Vec<u64>` takes capacity 4 (32 bytes) on first push, then 8. Each growth = new block + free of the old one.
-- [ ] `hashbrown::HashMap<u32, u64>` with `try_reserve(3)` is refused by 64-byte blocks and fits 128-byte blocks.
 - [ ] `Vec<T, &Pool>` and `Vec<T, Global>` are different types. `DynVec` = one type, one virtual call per allocation.
 - [ ] Nightly-only in std: `Allocator`, `Vec::new_in` (`allocator_api`), `Vec::push_within_capacity` (`vec_push_within_capacity`). `allocator-api2` has them on stable. Code moves to std with a path change.
 - [ ] Production on Linux: add `huge(Some(30))` to the map options for one 1 GB page.

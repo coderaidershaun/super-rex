@@ -12,10 +12,17 @@ Record hotpath events with no added latency. Rebuild percentiles offline.
 
 ## Confirm
 
-- [ ] Measure p99 and p99.9 with logging off and on: `.claude/skills/rex-code-latency/measure.md`. IF difference > noise, THEN logging is the cause.
+- [ ] Measure p99 and p99.9 with logging off and on: `.claude/skills/rex-code-latency/measure.md`. IF difference > noise, THEN cause = logging.
+- [ ] IF a log line adds more than a few µs, THEN it blocks on a write or lock: formatting costs under 1 µs. Prove it: `strace -f -e trace=write,futex -p <pid>` shows these calls on the hotpath thread.
+- [ ] Count lines per event: `RUST_LOG=debug` also turns on `tokio`, `mio`, `hyper` lines.
 - [ ] Search hotpath for `format!`, `write!`, `to_string`, `{:?}`, `info!`, `#[instrument]`, `println!`, `File`, `Mutex`.
 
 ## Rules
+
+Quick fix, before any redesign:
+
+- [ ] Remove debug lines at compile time: feature `release_max_level_info` (or `_off`) on `log` or `tracing`. A removed macro costs nothing.
+- [ ] Filter per target: `RUST_LOG=warn,my_crate=debug`. Debug lines of other crates stay off.
 
 Record:
 
@@ -29,9 +36,9 @@ Hand-off:
 
 - [ ] Hotpath thread owns `rtrb::Producer`, slow path thread owns `Consumer`. Build at start: `RingBuffer::new(capacity)`.
 - [ ] Capacity ≥ event rate × longest slow path stall.
-- [ ] Fill ring once, drain once, at start: pre-faults every slot.
+- [ ] Push and pop `capacity` items once, at start: pre-faults every slot.
 - [ ] Drop on overflow: IF `push` gives `Err(PushError::Full(_))`, THEN count drop in a `#[cold]` `#[inline(never)]` fn and return. Never wait or retry.
-- [ ] Slow path thread pins itself to a housekeeping core, first, inside its closure, and sends result on a channel. IF pin fails, THEN start fails.
+- [ ] Slow path thread pins itself to a housekeeping core (`.claude/skills/rex-code-latency/os/cpu-isolation.md`), first, inside its closure, and sends result on a channel. IF pin fails, THEN start fails.
 - [ ] Drain in batches: `read_chunk(slots())`, `as_bytes()` per slice, `write_all` into `BufWriter::with_capacity(1 << 20, file)`.
 - [ ] Idle: `std::hint::spin_loop()` on own core. IF core is shared, THEN `thread::sleep` some µs.
 - [ ] Shutdown: drop `Producer`, join. Slow path reads `is_abandoned()` before `slots()`, drains, `sync_data`. Return written count, dropped count, I/O error.
@@ -51,9 +58,8 @@ Offline:
 
 Usual crates:
 
-- [ ] Never call `log` or `tracing` on hotpath. `log` backends get `fmt::Arguments` that borrow caller stack: they format on caller. `tracing-subscriber` `fmt` also formats on caller. `env_logger` writes each line under a lock.
-- [ ] `tracing_appender::non_blocking` moves only the write. Caller still formats + allocates each line.
-- [ ] IF a macro must stay in hotpath code, THEN enable `release_max_level_off` on `log` or `tracing`.
+- [ ] Never call `log` or `tracing` on hotpath: `log` backends and `tracing-subscriber` `fmt` format on the caller, and `env_logger` writes each line under a lock.
+- [ ] `tracing_appender::non_blocking` moves only the write. Caller still formats + allocates each line. A full buffer (128,000 lines) drops lines: read `error_counter().dropped_lines()`.
 
 ## Numbers
 
@@ -64,10 +70,7 @@ Typical figures. Measure on your own hardware.
 | Integer to text | about 20 divisions per large number, dozens of cycles each |
 | Format code in L1i | thousands of bytes |
 | Binary record write | 1 to 2 ns |
-| SPSC push | about 5 ns |
 | Disk write stall | hundreds of µs |
-| p50, deferred-format logger / `tracing` | 0.08–0.46 µs / 0.99–1.62 µs |
-| Example tail to investigate | p50 12 ns, p99.9 400 ns |
 
 ## Rust tools
 
@@ -75,29 +78,22 @@ All `default-features = false`.
 
 - `rtrb` 0.4.1: wait-free SPSC ring buffer, chunk API, abandoned flag.
 - `zerocopy` 0.8.63, `features = ["derive"]`: checked byte views, byte-order fields.
-- `core_affinity` 0.8.3: pin slow path thread.
 - `hdrhistogram` 7.6.0: fixed-memory percentiles.
 - `memmap2` 0.9.12: huge archives only.
 - `inqjet` 1.2.0: deferred-format text logger. Warm paths only.
-- `thiserror` 2.0.21, `features = ["std"]`: `PathBuf` in messages.
 
 ## Traps
 
 - Reference to a `#[repr(C, packed)]` field = error E0793.
 - `vec![0; n]` and `with_capacity` map pages lazily: first write faults on hotpath.
-- `Producer` is `Send`, not `Sync`. `push` takes `&mut self`: compiler keeps one producer.
 - Push copies 64 B. `write_chunk_uninit(1)` builds block in slot.
 - Stop flag + exit loses queued records. Drop `Producer`: its `Release` pairs with `Acquire` in `is_abandoned()`.
-- `set_for_current` returns `false` on macOS. Test the `bool`.
 - Rust `File` has no buffer: one `write` syscall per call.
-- CAUTION: `Mmap::map` is `unsafe`. Another process can write or truncate a mapped file: undefined behavior or SIGBUS.
+- CAUTION: `Mmap::map` is `unsafe`. Another process can write or truncate a mapped file, which is undefined behavior or a SIGBUS.
 
 ## Code
 
-In `.claude/skills/rex-code-latency/measurement/logging-code.md`:
-
-- Event block and hand-off to a pinned slow path: IF you record from hotpath.
-- Percentiles from tick pairs, offline read: IF you report the tail.
+In `.claude/skills/rex-code-latency/measurement/logging-code.md`: event block and hand-off to a pinned slow path, then percentiles from tick pairs and the offline read.
 
 ## See also
 

@@ -18,7 +18,7 @@ All code below is safe Rust. Assembly facts below come from `cargo asm --lib --t
 
 ## Route by a data-dependent condition with no branch
 
-Compile-checked: cargo check, aarch64-apple-darwin and x86_64-unknown-linux-gnu.
+Compile-checked: cargo check and clippy, aarch64-apple-darwin, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu. Not run.
 
 ```rust
 // Route each price to the bid or ask side with no data-dependent branch.
@@ -50,7 +50,7 @@ impl SideRouter {
 
 ## Packet validator with a cold error path
 
-Compile-checked: cargo check, aarch64-apple-darwin and x86_64-unknown-linux-gnu.
+Compile-checked: cargo check and clippy, aarch64-apple-darwin, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu. Not run.
 
 ```rust
 // The checksum test falls through into the hotpath block. The error path lives out of line.
@@ -114,7 +114,7 @@ impl DeterministicPacketValidator {
 
 ## Generic gateway with a build-time version check
 
-Compile-checked: cargo check, aarch64-apple-darwin and x86_64-unknown-linux-gnu. The build-fail case was checked with `cargo build`.
+Compile-checked: cargo check and clippy, aarch64-apple-darwin, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu. The build-fail case was checked with `cargo build`. Not run.
 
 ```rust
 // The forbidden pattern on the hotpath: one indirect call through a vtable.

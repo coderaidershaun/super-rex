@@ -2,6 +2,7 @@
 
 Two listings for steps 1 to 3 of the socket ladder in `.claude/skills/rex-code-latency/network/sockets.md`.
 Both call `evaluate_trading_strategy(&[u8])`. Replace it with your handler.
+Both poll loops call `spin_loop()`. Remove it only on an isolated core with SMT off that must react in the fewest cycles: `pause` costs about 100 cycles on recent Intel. Check on your host.
 
 ```toml
 [dependencies]
@@ -14,11 +15,12 @@ io-uring = { version = "0.7.16", default-features = false }
 
 ## Busy-poll UDP socket with `SO_BUSY_POLL`
 
-Compile-checked: cargo check, x86_64-unknown-linux-gnu. Not run.
+Compile-checked: cargo check + clippy, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu. Not run.
 
 - Removes passive wait. Each `recv` still pays syscall, kernel stack and copy.
-- `busy_poll_us` above `net.core.busy_read` needs `CAP_NET_ADMIN`. Without it, `set_busy_poll` returns `EPERM`.
-- Kernel caps the `8 << 20` receive buffer at `net.core.rmem_max` with no error. Read value back with `recv_buffer_size()`.
+- `busy_poll_us`: start at 50. Without `CAP_NET_ADMIN`, the kernel accepts no value above `net.core.busy_read`, which is 0 by default. So with default settings, `set_busy_poll` returns `EPERM` for any value above 0.
+- Kernel caps the `8 << 20` receive buffer at `net.core.rmem_max` with no error. Read it back with `recv_buffer_size()`: Linux reports double the size it kept.
+- The listing joins no multicast group. For a multicast feed, bind to the feed port and call `join_multicast_v4(&group, &interface)` on the returned socket.
 - No `unsafe`.
 
 ```rust
@@ -65,13 +67,15 @@ pub fn spin_receive(socket: &UdpSocket) -> Result<(), BusyPollError> {
 
 ## Receive with `io_uring` SQPOLL
 
-Compile-checked: cargo check, x86_64-unknown-linux-gnu. Not run.
+Compile-checked: cargo check + clippy, x86_64-unknown-linux-gnu and aarch64-unknown-linux-gnu. Not run.
 
 - Kernel poll thread on `kernel_poll_cpu` reads each submission. Hotpath thread makes no syscall while poll thread is awake.
 - `setup_sqpoll(2_000)`: poll thread sleeps after 2 s with no work. Then `submit()` makes a syscall to wake it.
 - Kernel stack and copy into `buffer` still run, on poll thread core.
 - Linux 5.11+. Without privileges: Linux 5.13+.
 - One `unsafe` block: kernel writes `buffer` after `push`, outside borrow checker.
+- `spin_receive` builds its own ring, so no other entry can produce the completion it waits for.
+- A failed `submit()` aborts the process. The receive is already in the ring, and the poll thread can still write `buffer` after the function returns.
 
 ```rust
 //! Receive on a kernel UDP socket with no syscall on the hot thread.
@@ -88,13 +92,11 @@ pub enum UringError {
     Setup(#[source] io::Error),
     #[error("submission queue is full")]
     QueueFull,
-    #[error("submit failed")]
-    Submit(#[source] io::Error),
     #[error("receive failed")]
     Recv(#[source] io::Error),
 }
 
-pub fn build_ring(kernel_poll_cpu: u32) -> Result<IoUring, UringError> {
+fn build_ring(kernel_poll_cpu: u32) -> Result<IoUring, UringError> {
     IoUring::builder()
         .setup_sqpoll(2_000) // kernel thread spins 2 s with no work, then sleeps
         .setup_sqpoll_cpu(kernel_poll_cpu) // pin it to its own isolated core
@@ -102,7 +104,9 @@ pub fn build_ring(kernel_poll_cpu: u32) -> Result<IoUring, UringError> {
         .map_err(UringError::Setup)
 }
 
-pub fn spin_receive(ring: &mut IoUring, socket: &UdpSocket) -> Result<(), UringError> {
+/// Run this on an isolated, pinned core. The ring is private to this call.
+pub fn spin_receive(socket: &UdpSocket, kernel_poll_cpu: u32) -> Result<(), UringError> {
+    let mut ring = build_ring(kernel_poll_cpu)?;
     let mut buffer = [0u8; 2048];
     loop {
         let recv = opcode::Recv::new(
@@ -112,11 +116,15 @@ pub fn spin_receive(ring: &mut IoUring, socket: &UdpSocket) -> Result<(), UringE
         )
         .build()
         .user_data(1);
-        // SAFETY: `buffer` lives on this frame for the whole loop, and no code
-        // reads or writes it until the completion for this entry is taken below.
+        // SAFETY: `buffer` outlives this receive. The ring is private to this call, the loop
+        // takes this entry's completion before it reads `buffer` or pushes again, and a failed
+        // submit aborts the process, so no path returns while the kernel can still write it.
         unsafe { ring.submission().push(&recv) }.map_err(|_| UringError::QueueFull)?;
         // With SQPOLL this enters the kernel only if the poll thread went to sleep.
-        ring.submit().map_err(UringError::Submit)?;
+        if let Err(e) = ring.submit() {
+            eprintln!("io_uring submit failed with a receive in flight: {e}");
+            std::process::abort();
+        }
 
         let result = loop {
             if let Some(cqe) = ring.completion().next() {
