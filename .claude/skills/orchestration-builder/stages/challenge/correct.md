@@ -1,6 +1,6 @@
 # Decision agent — examine + correct
 
-Decision agent: read this when builder sends findings of challenger, or evidence that work fails during run. You need not read `.claude/skills/orchestration-decision-challenge/SKILL.md`.
+Decision agent: read this when builder sends findings of challenger, or evidence that work fails during run. You need not read `.claude/skills/orchestration-builder/stages/challenge/stage.md`.
 
 Builder sends: findings (table `FINDINGS`: `#`, severity `BLOCK` / `MAJOR` / `MINOR`, part, claim, evidence, correction), name of challenger agent, and path + check result of each new skill.
 

@@ -1,6 +1,6 @@
 # Write new skill
 
-Steps 4 + 5 of `.claude/skills/orchestration-nuance-selection/SKILL.md`. Builder does them at step 5 of `.claude/skills/orchestration-builder/decide.md`, IF decision block lists NEW SKILLS. Do them once for each row: `Name`, `Need`, `Reason`, `Gap language`.
+Steps 4 + 5 of `.claude/skills/orchestration-builder/stages/1-skills/stage.md`. Builder does them at step 5 of `.claude/skills/orchestration-builder/decide.md`, IF decision block lists NEW SKILLS. Do them once for each row: `Name`, `Need`, `Reason`, `Gap language`.
 
 - `JOB_DIR`: Absolute path where job branch is checked out. `.claude/skills/rex-deliver/start.md` gives it.
 - Tag block: First lines of brief: `Rex-Job: <job ID>`, `Rex-Role: <role>`, then one blank line.

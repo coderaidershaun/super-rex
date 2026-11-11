@@ -1,16 +1,4 @@
----
-name: orchestration-work-breakdown
-description: >
-  Stage 2 of the orchestration builder. It divides a request into tasks, gives
-  each task its skills, and finds which tasks run in parallel and which in
-  sequence. Its output goes into the plan and the briefs.
-when_to_use: >
-  Use when the decision agent of `orchestration-builder` reaches stage 2.
-disable-model-invocation: true
-user-invocable: false
----
-
-# Work Breakdown
+# Stage 2 — Work Breakdown
 
 Divide request into tasks. Find what depends on what, and what can run in parallel.
 
@@ -28,7 +16,7 @@ IF job has one outcome, THEN write one task and go to step 6.
 
 - Decision agent: Sub-agent of builder that does stages 1 to 3. Its brief gives input of each stage.
 - Skill list: Skills this job uses. Output of stage 1.
-- Core rules: Skills that each task that writes code reads. Each language: `rex-code-philosophy`, `rex-code-commenting`. Rust adds `rex-code-ergonomics`, `rex-code-error-writing`. Kind of work adds its skill: tests → `rex-code-tdd` OR skill of that test kind (`rex-code-tests-*`). New, split, or moved file → `rex-code-folder-management`. Crate added → `rex-code-external-libraries`. Outside input, retry, or main loop → `rex-code-failure-policy`.
+- Assignment table: `.claude/skills/orchestration-builder/stages/1-skills/assign.md`. One home of which skills each kind of work gets.
 - Task: One outcome of job, with evidence that shows it is complete.
 - Dependency: Task T2 uses output of task T1. Then T2 depends on T1.
 - Shared contract: Interface, data form, or decision that 2 or more tasks use.
@@ -53,7 +41,7 @@ Work can be code, research, documents, or other work. Task can change no file.
 - [ ] Divide around useful outcomes, not around steps.
 - [ ] Keep decisions that are tightly coupled in one task.
 - [ ] Evidence: tests, sources, reproducible observations, or explicit rubric.
-- [ ] Skills: for each task, names from skill list that task needs: core rules for its kind of work and its language, gap skill of each language that it writes, and skills for its task. Add `<skill>/<file>.md` for each sibling file that task needs. To name sibling file of a skill in skill list: read table in `SKILL.md` of that skill that says when to read each file. Agent of task reads these first. It also reads a sibling file when a `SKILL.md` that it read sends it there.
+- [ ] Skills: for each task, from skill list: skills + sibling files of each row of assignment table that fits task, gap skill of each language that it writes, and other skills for its task. Add `<skill>/<file>.md` for each sibling file that task needs. To name sibling file of a skill in skill list: read table in `SKILL.md` of that skill that says when to read each file. Agent of task reads these first. It also reads a sibling file when a `SKILL.md` that it read sends it there.
 - [ ] IF job has one outcome, THEN write one task. Go to `## Output`.
 - [ ] Plan job: tasks = research + plan writing. Last 2 tasks: adversarial review of plan, then revision. Evidence of review task: verdict table.
 - [ ] Plan execution: start from task table of plan file. Change task only IF repo changed since plan.
@@ -113,4 +101,4 @@ Integration owner, group 2: orchestrator. Evidence: delivery test of combined re
 - [ ] Work breakdown is about this job only.
 - [ ] Builder records it with `rex job plan` and puts task detail in briefs.
 - [ ] It never goes into orchestrator skill.
-- [ ] This stage does not select method, roles, or models. `orchestration-selection` does that. It can add skills to `Skills` of a task.
+- [ ] This stage does not select method, roles, or models. Stage 3 does that. It can add skills to `Skills` of a task.

@@ -3,14 +3,14 @@
 Session: read at step 1 of `.claude/skills/orchestration-builder/SKILL.md`, for plan job or plan execution. Uses words and rules of that file.
 Decision agent: read before stage 1, for same jobs. Lines on skill list, orchestrator skill, and tasks are for you. Other lines are for session.
 
-For person, planning has two stages. Run 1 = plan job: it writes plan file. Person reads plan. Run 2 = plan execution: person starts builder again, and builder does work of plan. Each run = one job.
+For person, planning has two stages. Run 1 = plan job: it writes plan file. Person reads plan. Run 2 = plan execution: person runs `/orchestration-builder Execute plan <path>`, and builder does work of plan. Each run = one job.
 
 ## Run 1 — plan job
 
 - [ ] Work type `research`. `MERGE` = `no`. No job branch, no delivery.
 - [ ] Plan file: `$HOME_DIR/.rex/plans/<JOB>/plan.md`. Roles write only plan file + scratch files.
-- [ ] Skill list holds `rex-codex-adversarial-review`. Add skills that subject of plan needs. Example: code plan reads `rex-code-design-sketch` + `rex-code-validation-plan`.
-- [ ] Orchestrator skill is built for planning: `.claude/skills/orchestration-selection/plan-jobs.md`.
+- [ ] Skill list: row `Plan job` of assignment table (`.claude/skills/orchestration-builder/stages/1-skills/assign.md`), + skills that subject of plan needs.
+- [ ] Orchestrator skill is built for planning: `.claude/skills/orchestration-builder/stages/3-orchestration/plan-jobs.md`.
 - [ ] Before plan is final: adversarial review. Agent that wrote no part of plan reads `.claude/skills/rex-codex-adversarial-review/SKILL.md` IN FULL and obeys it.
 - [ ] Challenger = Codex. IF Codex is not available, THEN grid agent `model-high-effort-high` or above, by complexity. That skill gives choice.
 - [ ] Author changes plan for each `upheld` finding. Each `contested` finding goes into `Open questions` of plan, with both positions.
@@ -18,7 +18,7 @@ For person, planning has two stages. Run 1 = plan job: it writes plan file. Pers
 - [ ] Plan is final only after review. Plan writer writes first line of plan file in revision task: `Status: final. Reviewed by <challenger>.`
 - [ ] Brief of plan writer gives absolute path of plan file, plan file sections (below), and rule of `Status` line.
 - [ ] Close job: `--status delivered`, no deliveries file. `--outcome` names plan file.
-- [ ] Tell requester: path of plan file, open questions, and next step: "To execute this plan, start `orchestration-builder` again with: Execute plan `<absolute path of plan file>`."
+- [ ] Tell requester: path of plan file, open questions, and next step: "To execute this plan, run `/orchestration-builder Execute plan <absolute path of plan file>`."
 
 Plan file sections, in this order:
 
@@ -26,7 +26,7 @@ Plan file sections, in this order:
 2. Goal: request, and outcome that execution must give.
 3. Decisions: each decision, its reason, and alternative that plan rejected.
 4. Scope: what is in, what is out.
-5. Tasks: table of `orchestration-work-breakdown` form: `Task / Outcome / Evidence / Depends on / Owns (files, state) / Group / Skills`. Skill names come from skill list of plan job.
+5. Tasks: table of stage 2 form (`.claude/skills/orchestration-builder/stages/2-work-breakdown/stage.md`): `Task / Outcome / Evidence / Depends on / Owns (files, state) / Group / Skills`. Skill names come from skill list of plan job.
 6. Risks: each risk and its answer.
 7. Acceptance: evidence that shows whole work complete.
 8. Open questions: each with options + recommendation.

@@ -22,6 +22,7 @@ Each brief starts with tag block, as its first characters. Hooks read it to reco
 - [ ] Skills in brief: only `Skills` of task of that agent, from its row in work breakdown. Path of skill = its `Path` in skill list. Path of sibling file `<skill>/<file>.md` = folder of that `Path` + `<file>.md`. Agent reads these first. It also reads a sibling file when a `SKILL.md` that it read sends it there.
 - [ ] Agent of lead, or of role with no task (`—` in `Tasks`): skills of its role, from role table.
 - [ ] Lead: brief gives rows of tasks that it leads, with their Skills. Each worker brief of lead names only skills + sibling files of that worker's task.
+- [ ] Grid agent has no Skill tool. It reads only files that its brief names, by absolute path. Write that in brief: template line below.
 - [ ] Lead gets path of its lead skill in brief. Lead reads it IN FULL. Plain file read, not Skill tool.
 - [ ] Brief is for agent with no context: full sentences.
 
@@ -33,7 +34,7 @@ Rex-Role: <role>
 
 Outcome: <one deliverable, and why it matters>.
 Scope: <the files and state that you own, the prerequisites, the starting revision, and the edits or failures that exist already>.
-Context: <the requirements, interfaces, decisions, and locations of artifacts that apply>. Read these files in full before you start: <absolute paths of the skills and sibling files of your task, or of your role>. Also read a sibling file when one of these SKILL.md files sends you there.
+Context: <the requirements, interfaces, decisions, and locations of artifacts that apply>. <Grid agent: You have no Skill tool.> Read these files in full with the Read tool, one file for each call, before you start: <absolute paths of the skills and sibling files of your task, or of your role>. Also read a sibling file when one of these SKILL.md files sends you there.
 Acceptance: <the evidence that you must show to pass>.
 Limits: <the time and effort, the concurrency, and when to escalate>.
 Return: Give a short verdict and references: paths and commits. Map each acceptance criterion to its evidence. List the open issues. End the report with one state: done, partial, awaiting decision, or blocked.
@@ -41,7 +42,7 @@ Return: Give a short verdict and references: paths and commits. Map each accepta
 
 ## Limits of Claude Code
 
-Read `.claude/skills/orchestration-selection/limits.md` before you start first lead, OR IF you are sub-agent.
+Read `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md` before you start first lead, OR IF you are sub-agent.
 
 ## Guidance
 

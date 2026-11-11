@@ -1,6 +1,6 @@
 # Plan jobs
 
-Stage 3 for plan job. Uses words of `.claude/skills/orchestration-selection/SKILL.md`.
+Stage 3 for plan job. Uses words of `.claude/skills/orchestration-builder/stages/3-orchestration/stage.md`.
 
 Plan job: deliverable = plan file, not code. `.claude/skills/orchestration-builder/plan-jobs.md` defines it. Build its orchestrator skill for good planning, not for writing code.
 
