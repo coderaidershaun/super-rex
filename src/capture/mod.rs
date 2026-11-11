@@ -27,8 +27,8 @@ pub use tokens::{Reading, RunActivity, SETTLE, Step, TokenCounts, TokenTotal, To
 pub use transcripts::{TranscriptFacts, read_transcript};
 
 /// Takes the new lines of the event log into the store. Reads no transcript, except
-/// the first record of one for a run whose start line was lost. A log that has not
-/// grown since the last intake takes no lock.
+/// the first record of one for a run whose start line was lost. A log with no whole
+/// new line since the last intake takes no lock.
 ///
 /// # Errors
 /// - [`CaptureError::Store`] when the store fails.

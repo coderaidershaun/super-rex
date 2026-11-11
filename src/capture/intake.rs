@@ -15,17 +15,21 @@ use super::rows::{self, CallColumns, RunLine, StopColumns, TieTime};
 use super::tags::Tags;
 use crate::store::Store;
 
-/// Takes in the lines after the saved offset. A log that has not grown since the
-/// last intake takes no lock, so a read with nothing new costs no write.
+/// Takes in the lines after the saved offset. A log with no whole new line since
+/// the last intake takes no lock, so a read with nothing new costs no write.
 ///
 /// # Errors
 /// [`CaptureError::Store`] when the store fails; [`CaptureError::ReadLog`] when the
 /// log exists and cannot be read.
 pub(super) fn take_in(store: &mut Store) -> Result<(), CaptureError> {
     let log_path = store.paths().event_log.clone();
-    // SMELL: an unfinished last line keeps the log longer than the offset, so every
-    // intake takes the write lock, and finds nothing, until that line is finished.
-    if log_size(&log_path)? == rows::offset(store.conn())? {
+    let offset = rows::offset(store.conn())?;
+    if log_size(&log_path)? == offset {
+        return Ok(());
+    }
+    // A hook that is half way through its line makes the log longer and gives
+    // nothing whole to take in, so the log is read before the lock is asked for.
+    if hook::read_log(&log_path, offset)?.offset == offset {
         return Ok(());
     }
     store.write(|tx| {

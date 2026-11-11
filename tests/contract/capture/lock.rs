@@ -11,23 +11,15 @@ use std::time::{Duration, Instant};
 use assert_cmd::Command;
 use rusqlite::ErrorCode;
 use serde_json::{Value, json};
-use super_rex::capture::{CaptureError, RunState};
+use super_rex::capture::{CaptureError, RunState, take_in};
 use super_rex::commands::gate::SpendLimit;
 use super_rex::store::{JobId, Store, StoreError};
 
 use super::fixture::*;
 
-#[test]
-fn held_writer_lock_loses_nothing() {
-    let mut fixture = Fixture::new();
-    fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
-    let (last, early) = fixture.lines.split_last().unwrap();
-    let (last, early) = (last.clone(), early.to_vec());
-    fixture.append(&early);
-    // A limit of one billionth of a dollar, so only a failure can let the gate allow.
-    let job: JobId = JOB_A.parse().unwrap();
-    SpendLimit::set(&mut fixture.store, &job, "0.000000001".parse().unwrap()).unwrap();
-
+/// Starts a second writer that holds the store's write lock until the sender it
+/// gives back is used.
+fn hold_write_lock(fixture: &Fixture) -> (mpsc::Sender<()>, thread::JoinHandle<()>) {
     let (locked, is_locked) = mpsc::channel();
     let (release, is_released) = mpsc::channel::<()>();
     let paths = fixture.store.paths().clone();
@@ -42,6 +34,45 @@ fn held_writer_lock_loses_nothing() {
             .unwrap();
     });
     is_locked.recv().unwrap();
+    (release, holder)
+}
+
+// A hook that is half way through its line leaves the log longer than what was
+// taken in, with nothing whole to take in. That must cost no write lock: a
+// command that only reads would otherwise wait for every other writer.
+#[test]
+fn unfinished_last_line_takes_no_lock() {
+    let mut fixture = Fixture::new();
+    fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
+    fixture.append(&fixture.lines.clone());
+    take_in(&mut fixture.store).unwrap();
+    append_text(&fixture.store.paths().event_log, r#"{"v":1,"at_ms":1,"ev"#);
+
+    let (release, holder) = hold_write_lock(&fixture);
+    fixture
+        .store
+        .conn()
+        .busy_timeout(Duration::from_millis(50))
+        .unwrap();
+    let taken = take_in(&mut fixture.store);
+    release.send(()).unwrap();
+    holder.join().unwrap();
+
+    taken.expect("an intake with no whole new line must not wait for the write lock");
+}
+
+#[test]
+fn held_writer_lock_loses_nothing() {
+    let mut fixture = Fixture::new();
+    fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
+    let (last, early) = fixture.lines.split_last().unwrap();
+    let (last, early) = (last.clone(), early.to_vec());
+    fixture.append(&early);
+    // A limit of one billionth of a dollar, so only a failure can let the gate allow.
+    let job: JobId = JOB_A.parse().unwrap();
+    SpendLimit::set(&mut fixture.store, &job, "0.000000001".parse().unwrap()).unwrap();
+
+    let (release, holder) = hold_write_lock(&fixture);
 
     // PLAIN finishes now. `rex hook` opens no database, so the held lock never makes
     // it wait; a hook that waited would take the store's 10 seconds.
