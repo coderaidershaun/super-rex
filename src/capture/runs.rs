@@ -1,6 +1,8 @@
 //! The values that capture hands to its callers: the runs of one job, and the facts
 //! read from a main session's transcript.
 
+use std::collections::HashMap;
+
 use super::{Cost, TokenCounts, TokenTotal};
 
 /// The runs of one job as they stand at one moment, with the job's totals.
@@ -22,6 +24,10 @@ pub struct JobRuns {
     /// True when the history of the job may miss facts.
     pub incomplete: bool,
     pub damaged_log_lines: u64,
+    /// The last activity of each run, by agent ID, in milliseconds since the epoch:
+    /// the newest of the run's start and its transcript's modification time, and of
+    /// the same for each run below it. A run with no known activity is left out.
+    pub last_active_ms: HashMap<String, u64>,
 }
 
 /// One sub-agent, from its start to its stop.

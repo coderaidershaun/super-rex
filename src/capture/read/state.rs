@@ -21,16 +21,20 @@ pub(super) struct Activity<'a> {
     pub(super) last_active_ms: Option<u64>,
 }
 
-/// The state of each run at `now_ms`, in the order of `runs`. A run is active when
-/// any run below it in the tree is, because a lead waits while its workers run.
-pub(super) fn states(runs: &[Activity<'_>], now_ms: u64) -> Vec<RunState> {
+/// The state of each run at `now_ms`, in the order of `runs`, from the last
+/// activity that [`last_activities`] gives for it.
+pub(super) fn states(
+    runs: &[Activity<'_>],
+    last_active_ms: &HashMap<String, u64>,
+    now_ms: u64,
+) -> Vec<RunState> {
     runs.iter()
         .map(|run| {
             if run.is_finished {
                 return RunState::Finished;
             }
-            match latest_activity(runs, run, runs.len()) {
-                Some(at) if Duration::from_millis(now_ms.saturating_sub(at)) <= QUIET => {
+            match last_active_ms.get(run.agent_id) {
+                Some(at) if Duration::from_millis(now_ms.saturating_sub(*at)) <= QUIET => {
                     RunState::Open
                 }
                 _ => RunState::Unconfirmed,
@@ -39,8 +43,9 @@ pub(super) fn states(runs: &[Activity<'_>], now_ms: u64) -> Vec<RunState> {
         .collect()
 }
 
-/// The newest activity of each run and of the runs below it, by agent ID. A run with
-/// no known activity is left out.
+/// The newest activity of each run and of the runs below it, by agent ID. A run is
+/// active when any run below it in the tree is, because a lead waits while its
+/// workers run. A run with no known activity is left out.
 pub(super) fn last_activities(runs: &[Activity<'_>]) -> HashMap<String, u64> {
     runs.iter()
         .filter_map(|run| {

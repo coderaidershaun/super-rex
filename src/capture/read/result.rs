@@ -1,11 +1,10 @@
 //! The answer of a read, built from the store's rows after its write, with the
 //! states and the unreadable files of this read.
 
-use std::collections::HashMap;
-
 use rusqlite::Connection;
 
 use super::Read;
+use super::files::Standing;
 use crate::capture::error::CaptureError;
 use crate::capture::rows::{self, StoredRun, StoredTotal};
 use crate::capture::runs::{JobRuns, Run, RunState};
@@ -16,8 +15,12 @@ impl Read<'_> {
         &self,
         conn: &Connection,
         stored_runs: &[StoredRun],
-        states: &HashMap<String, RunState>,
+        standing: Standing,
     ) -> Result<JobRuns, CaptureError> {
+        let Standing {
+            states,
+            last_active_ms,
+        } = standing;
         let session = rows::session_total(conn, self.job)?;
         let session_tokens = session
             .as_ref()
@@ -64,6 +67,7 @@ impl Read<'_> {
             session_cost,
             incomplete,
             damaged_log_lines: rows::damaged_lines(conn)?,
+            last_active_ms,
             runs,
         })
     }

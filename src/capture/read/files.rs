@@ -36,9 +36,12 @@ pub(super) struct RunFiles {
     metadata: Option<Metadata>,
 }
 
-/// The last activity of each run, in milliseconds since the epoch.
-pub(super) fn last_activities(runs: &[StoredRun], files: &[RunFiles]) -> HashMap<String, u64> {
-    state::last_activities(&activities(runs, files))
+/// Where each run stands at one read, by agent ID.
+pub(super) struct Standing {
+    pub(super) states: HashMap<String, RunState>,
+    /// The newest activity of each run and of the runs below it, in milliseconds
+    /// since the epoch. A run with no known activity is left out.
+    pub(super) last_active_ms: HashMap<String, u64>,
 }
 
 fn activities<'a>(runs: &'a [StoredRun], files: &[RunFiles]) -> Vec<Activity<'a>> {
@@ -103,17 +106,18 @@ impl Read<'_> {
         }
     }
 
-    pub(super) fn states(
-        &self,
-        runs: &[StoredRun],
-        files: &[RunFiles],
-    ) -> HashMap<String, RunState> {
+    pub(super) fn standing(&self, runs: &[StoredRun], files: &[RunFiles]) -> Standing {
         let activities = activities(runs, files);
-        let states = state::states(&activities, self.now_ms);
-        runs.iter()
-            .map(|run| run.agent_id.clone())
-            .zip(states)
-            .collect()
+        let last_active_ms = state::last_activities(&activities);
+        let states = state::states(&activities, &last_active_ms, self.now_ms);
+        Standing {
+            states: runs
+                .iter()
+                .map(|run| run.agent_id.clone())
+                .zip(states)
+                .collect(),
+            last_active_ms,
+        }
     }
 
     /// For each run whose total is not final: the token step, and the columns its

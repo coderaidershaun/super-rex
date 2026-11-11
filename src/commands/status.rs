@@ -1,16 +1,13 @@
 //! `rex status`: where a job stands, kept short because agents read it.
 
 use std::cmp::max;
-use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusqlite::Connection;
 
-use crate::capture::{
-    CaptureError, Cost, JobRuns, Run, RunState, TokenTotal, job_runs, last_activity_ms,
-};
+use crate::capture::{CaptureError, Cost, JobRuns, Run, RunState, TokenTotal, job_runs};
 use crate::commands::gate::SpendLimit;
 use crate::commands::stdout::print_line_to_stdout;
 use crate::commands::token_text::{cost_text, split_text};
@@ -103,11 +100,6 @@ fn job_lines(
 ) -> Result<Vec<String>, StatusError> {
     let role_width = column_width(runs, |run| role_text(run));
     let type_width = column_width(runs, |run| agent_type_text(run));
-    let last_activity = if runs.unconfirmed > 0 {
-        last_activity_ms(store, job)?
-    } else {
-        HashMap::new()
-    };
     let now_ms = millis(now);
     let mut lines = vec![header(job, stored, runs)];
     // The gate checks only an open job, so a closed one gets no warning.
@@ -135,7 +127,7 @@ fn job_lines(
                 RunState::Finished => run
                     .duration_ms
                     .map_or_else(|| "-".to_owned(), duration_text),
-                RunState::Unconfirmed => match last_activity.get(&run.agent_id) {
+                RunState::Unconfirmed => match runs.last_active_ms.get(&run.agent_id) {
                     Some(at) => format!(
                         "no stop event, quiet {}",
                         duration_text(now_ms.saturating_sub(*at))

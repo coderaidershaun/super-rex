@@ -8,7 +8,6 @@ mod result;
 mod session;
 mod state;
 
-use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
 
 use super::error::CaptureError;
@@ -42,8 +41,8 @@ pub(super) fn job_runs(
         && session.as_ref().is_some_and(|session| session.is_final);
     if is_all_final {
         let files = read.observe(&runs, Need::State);
-        let states = read.states(&runs, &files);
-        return read.result(store.conn(), &runs, &states);
+        let standing = read.standing(&runs, &files);
+        return read.result(store.conn(), &runs, standing);
     }
 
     let recovery = recovery::recover(store, &stored_job.session_id)?;
@@ -52,40 +51,14 @@ pub(super) fn job_runs(
         runs = rows::runs(store.conn(), job)?;
     }
     let files = read.observe(&runs, Need::LaterSources);
-    let states = read.states(&runs, &files);
-    let mut changes = read.run_changes(&runs, &files, &states);
+    let standing = read.standing(&runs, &files);
+    let mut changes = read.run_changes(&runs, &files, &standing.states);
     changes.session = read.session_change(store.conn(), session.as_ref())?;
     if !changes.is_empty() {
         store.write(|tx| changes.apply(tx, job.as_str()))?;
     }
     let runs = rows::runs(store.conn(), job)?;
-    read.result(store.conn(), &runs, &states)
-}
-
-/// The last activity of each run of `job`, by agent ID, in milliseconds since the
-/// epoch: the newest of the run's start and its transcript's modification time, and
-/// of the same for each run below it. Reads no log and writes nothing.
-// SMELL: this reads every run's files a second time, after `job_runs` read them, and
-// takes the clock only to fill a field it does not use. The read of `job_runs` should
-// hand back the activity it already found.
-pub(crate) fn last_activity_ms(
-    store: &Store,
-    job: &JobId,
-) -> Result<HashMap<String, u64>, CaptureError> {
-    let Some(stored_job) = rows::job(store.conn(), job)? else {
-        return Ok(HashMap::new());
-    };
-    let now = SystemTime::now();
-    let mut read = Read {
-        job,
-        stored_job: &stored_job,
-        now,
-        now_ms: millis(now),
-        has_unreadable_file: false,
-    };
-    let runs = rows::runs(store.conn(), job)?;
-    let files = read.observe(&runs, Need::State);
-    Ok(files::last_activities(&runs, &files))
+    read.result(store.conn(), &runs, standing)
 }
 
 /// One call of `job_runs`: the job, the moment of the read, and whether a file of
