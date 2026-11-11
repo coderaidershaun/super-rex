@@ -62,7 +62,7 @@ impl Only {
     fn matches(self, path: &Path) -> bool {
         match self {
             Self::Code => Language::of(path).is_some(),
-            // Not `Language::of`, because a `.h` file is both C and C++.
+            // Not `Language::of`, because a `.h` file is C, C++ and Objective-C.
             Self::Language(language) => language.has_extension(path),
         }
     }

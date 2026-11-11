@@ -12,11 +12,12 @@ pub(super) struct Syntax {
     before: &'static [&'static str],
 }
 
-/// Lets any line come before the comment. Only Rust uses it, because `//!`
-/// cannot be mistaken for the comment on the first item of a file.
+/// Lets any line come before the comment. Only `//!` uses it, because in
+/// Rust and Zig that mark cannot be mistaken for the comment on the first item
+/// of a file.
 const ANY_LINE: &[&str] = &[""];
 
-pub(super) const RUST: Syntax = Syntax {
+pub(super) const INNER_DOC: Syntax = Syntax {
     line: "//!",
     block: None,
     before: ANY_LINE,
@@ -27,11 +28,19 @@ pub(super) const SLASH: Syntax = Syntax {
     before: &[],
 };
 pub(super) const C: Syntax = Syntax {
-    before: &["#pragma", "#if", "#define"],
+    before: &["#pragma", "#if", "#define", "#undef", "#nullable"],
     ..SLASH
 };
 pub(super) const SCRIPT: Syntax = Syntax {
     before: &["\"use ", "'use "],
+    ..SLASH
+};
+pub(super) const KOTLIN: Syntax = Syntax {
+    before: &["@file:"],
+    ..SLASH
+};
+pub(super) const PHP: Syntax = Syntax {
+    before: &["<?php", "declare("],
     ..SLASH
 };
 pub(super) const PYTHON: Syntax = Syntax {
@@ -42,6 +51,31 @@ pub(super) const PYTHON: Syntax = Syntax {
 pub(super) const SHELL: Syntax = Syntax {
     block: None,
     ..PYTHON
+};
+pub(super) const RUBY: Syntax = Syntax {
+    block: Some(("=begin", "=end")),
+    ..PYTHON
+};
+/// Elixir keeps the text that says what a module is for in `@moduledoc`, the
+/// first line inside `defmodule`, so that is read as well as `#` lines.
+pub(super) const ELIXIR: Syntax = Syntax {
+    block: Some(("@moduledoc \"\"\"", "\"\"\"")),
+    before: &["defmodule "],
+    ..PYTHON
+};
+pub(super) const SQL: Syntax = Syntax {
+    line: "--",
+    block: Some(("/*", "*/")),
+    before: &[],
+};
+pub(super) const LUA: Syntax = Syntax {
+    block: Some(("--[[", "]]")),
+    before: &["#!"],
+    ..SQL
+};
+pub(super) const HASKELL: Syntax = Syntax {
+    block: Some(("{-", "-}")),
+    ..SQL
 };
 
 /// How many of the code lines that `before` allows may come before the comment.
@@ -58,11 +92,29 @@ const DIRECTIVE_STARTS: &[&str] = &[
     "shellcheck ",
     "eslint-",
     "@ts-",
+    "@dart=",
+    "swift-tools-version",
+    "frozen_string_literal:",
+    "encoding:",
+    "coding:",
+    "typed:",
+    "+goose",
+    "migrate:",
     "spdx-license-identifier",
+    // The body of a Haskell pragma such as `{-# LANGUAGE GADTs #-}`.
+    "# language",
+    "# options_",
 ];
 
 /// A comment whose first words are one of these is a licence header.
-const LICENCE_STARTS: &[&str] = &["copyright", "(c)", "©", "licensed", "this source code"];
+const LICENCE_STARTS: &[&str] = &[
+    "copyright",
+    "(c)",
+    "©",
+    "licensed",
+    "this source code",
+    "this file is part of",
+];
 
 // SMELL: a file that starts with a byte order mark gets no sentence, and nor
 // does a JavaScript or TypeScript file that starts with a `#!` line.
@@ -140,13 +192,16 @@ fn comment_part<'a>(
     syntax: &Syntax,
     closer: &mut Option<&'static str>,
 ) -> Option<(&'a str, bool)> {
+    // The block mark is tried first, because Lua's `--[[` starts with its
+    // line mark `--`. It can be indented, as Elixir's `@moduledoc` is.
     let (body, close) = if let Some(close) = *closer {
         (line, close)
-    } else if let Some(body) = line.strip_prefix(syntax.line) {
-        return Some((body, false));
+    } else if let Some((open, close)) = syntax.block
+        && let Some(body) = line.trim_start().strip_prefix(open)
+    {
+        (body, close)
     } else {
-        let (open, close) = syntax.block?;
-        (line.strip_prefix(open)?, close)
+        return line.strip_prefix(syntax.line).map(|body| (body, false));
     };
 
     let inside = body.split_once(close).map(|(inside, _)| inside);
@@ -155,9 +210,12 @@ fn comment_part<'a>(
 }
 
 /// Drops the marks that decorate a comment line, such as the `*` that starts
-/// each line of a block. A line of marks alone, such as a rule, gives nothing.
+/// each line of a block, the `|` of a Haskell doc comment or the `'` of an R
+/// one. A line of marks alone, such as a rule, gives nothing.
 fn plain_words(body: &str) -> &str {
-    let words = body.trim_start_matches(['/', '*', '!', '#']).trim_start();
+    let words = body
+        .trim_start_matches(['/', '*', '!', '#', '-', '|', '\''])
+        .trim_start();
     if words.chars().any(char::is_alphanumeric) {
         words
     } else {
