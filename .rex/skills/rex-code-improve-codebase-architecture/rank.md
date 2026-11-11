@@ -2,7 +2,7 @@
 
 Words, rules + SIZE CHECK: `.rex/skills/rex-code-improve-codebase-architecture/SKILL.md`. Facts come from step 1 (`.rex/skills/rex-code-improve-codebase-architecture/explore.md`).
 
-Write numbered list. Sort by leverage x locality gain. Each candidate:
+Write numbered list. Sort: 1. friction on main path or failed growth test (1.5). 2. leverage x locality gain. Each candidate:
 
 | Field | Content |
 | --- | --- |
@@ -13,12 +13,16 @@ Write numbered list. Sort by leverage x locality gain. Each candidate:
 | Benefits | Locality + leverage + test gain |
 | Ergonomics | Result of ERGONOMICS CHECK |
 | Risk | Hidden behavior, public path change, size of diff |
+| Quality | Quality of priority line that candidate serves. Quality that it costs, or "none". |
 
 Rules:
 
 - [ ] Use domain words from code for domain. Use Words table for architecture. Say "Order intake module", not "FooBarHandler".
 - [ ] Each candidate must pass ERGONOMICS CHECK. IF it fails, THEN drop it or change it.
 - [ ] Each candidate must obey each rule of `rex-code-folder-management`.
+- [ ] Obey USE in `rex-code-priorities`. IF candidate costs a higher quality or breaks a Never line, THEN drop it.
+- [ ] Candidate fits pattern from 1.5. New pattern needs reason from priority line.
+- [ ] IF growth = "none", THEN no new seam, trait, or generic for growth.
 - [ ] IF candidate conflicts with warning comment or fitness function, THEN list it only when friction is large. Mark it: "contradicts warning at src/feed.rs:42, open again because …".
 - [ ] One run = one kind. Join move candidates into one run. Never mix move + redesign.
 - [ ] IF scope has move candidates + redesign candidates, THEN do move first. Clean tree makes redesign small.

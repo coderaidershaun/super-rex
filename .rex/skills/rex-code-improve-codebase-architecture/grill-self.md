@@ -7,6 +7,7 @@ Walk design tree for chosen candidate alone. Write each answer. Answers become b
 - [ ] Constraints: what must not change? Public paths, saved formats, messages, prompts, tests.
 - [ ] Dependencies: category from `.rex/skills/rex-code-improve-codebase-architecture/DEEPENING.md` for each one.
 - [ ] Shape: interface of each module after change. What is behind each seam?
+- [ ] State: each piece of state has one owner module after change.
 - [ ] Tree: target tree, with one line of purpose for each file. Make sure AUDIT (`.rex/skills/rex-code-folder-management/audit.md`) gives zero defects for it.
 - [ ] Names: each new name is word that code uses, or domain word from side effects below. No invented word.
 - [ ] Tests: which tests stay, which move with code, which go. Default: add zero tests for move.

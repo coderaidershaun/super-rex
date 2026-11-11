@@ -23,9 +23,9 @@ Spawn 3+ sub-agents parallel via Agent tool. Each = **radically different** inte
 Prompt each w/ separate technical brief (file paths, coupling details, dep category from [DEEPENING.md](DEEPENING.md), what sits behind seam). Each agent = different design constraint:
 
 - Agent 1: "Minimize interface — 1–3 entry points max. Maximise leverage per entry point."
-- Agent 2: "Maximise flexibility — many use cases + extension."
+- Agent 2: "Serve first quality of priority line above all. Say what it costs."
 - Agent 3: "Optimise for most common caller — default case trivial."
-- Agent 4 (only IF applicable): "Design around ports & adapters for cross-seam deps."
+- Agent 4 (only IF growth is not "none", or dep is category 3 or 4): "Design around interface at seam + adapters for cross-seam deps."
 
 Include both [LANGUAGE.md](LANGUAGE.md) vocab + domain words from code in brief. Purpose: each sub-agent names things consistent w/ arch language + project domain language.
 
