@@ -9,11 +9,11 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 use super::changes::Changes;
+use super::state::{self, Activity};
 use super::{Read, millis};
 use crate::capture::recovery::{Metadata, metadata_name, read_metadata};
 use crate::capture::rows::{Fill, Reading, RunReading, StoredRun};
 use crate::capture::runs::RunState;
-use crate::capture::state::{self, Activity};
 use crate::capture::tags::Tags;
 use crate::capture::tokens::{RunActivity, Step, TotalCheck};
 use crate::capture::transcripts::{TranscriptFacts, read_transcript};

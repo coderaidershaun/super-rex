@@ -6,6 +6,7 @@ mod changes;
 mod files;
 mod result;
 mod session;
+mod state;
 
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime};

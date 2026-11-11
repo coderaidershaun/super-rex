@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use super::runs::RunState;
+use crate::capture::runs::RunState;
 
 /// How long a run that has not finished may stay silent and still count as open.
 /// It is longer than the longest shell command an agent can run in the foreground

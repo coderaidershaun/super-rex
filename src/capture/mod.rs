@@ -9,7 +9,6 @@ mod read;
 mod recovery;
 mod rows;
 mod runs;
-mod state;
 mod tags;
 mod tokens;
 mod transcripts;
