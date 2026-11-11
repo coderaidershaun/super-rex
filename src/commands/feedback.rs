@@ -207,7 +207,7 @@ impl Feedback {
         let causes = options
             .cause
             .iter()
-            .filter_map(|cause| cause.to_possible_value())
+            .filter_map(clap::ValueEnum::to_possible_value)
             .map(|value| value.get_name().to_owned())
             .collect();
         Ok(Feedback {
