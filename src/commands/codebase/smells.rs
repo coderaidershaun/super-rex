@@ -6,8 +6,8 @@ use std::path::Path;
 
 use super::comments::comment_lines;
 use super::language::Language;
-use super::stdout::print_to_stdout;
 use super::walk::{skip_if_denied, visible_entries};
+use crate::commands::stdout::print_to_stdout;
 use crate::error::RexError;
 
 const FLAG_WORD: &[u8] = b"SMELL";

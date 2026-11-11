@@ -8,7 +8,7 @@ use std::process::ExitCode;
 use clap::{CommandFactory, Parser, Subcommand};
 
 use super_rex::commands::{
-    catalog, codebase, feedback, gate, hook, init, job, jobs, oms, recall, skills, smells, status,
+    catalog, codebase, feedback, gate, hook, init, job, jobs, oms, recall, skills, status,
     test_output, watch,
 };
 use super_rex::error::CommandError;
@@ -43,7 +43,7 @@ enum Command {
     Watch(watch::WatchOptions),
     Feedback(feedback::FeedbackOptions),
     Codebase(codebase::CodebaseOptions),
-    Smells(smells::SmellsOptions),
+    Smells(codebase::SmellsOptions),
     Commands(catalog::CommandsOptions),
 }
 
@@ -67,7 +67,7 @@ fn main() -> ExitCode {
         Command::Watch(options) => finish(watch::run(&cwd, options)),
         Command::Feedback(options) => finish(feedback::run(&cwd, options)),
         Command::Codebase(options) => finish(codebase::run(&cwd, options)),
-        Command::Smells(options) => finish(smells::run(&cwd, options)),
+        Command::Smells(options) => finish(codebase::run_smells(&cwd, options)),
         Command::Commands(options) => finish(catalog::run(&Cli::command(), options)),
     }
 }

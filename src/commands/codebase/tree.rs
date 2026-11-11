@@ -12,10 +12,10 @@ use clap::builder::PossibleValue;
 use ignore::DirEntry;
 
 use super::language::Language;
-use super::links::is_symlink;
 use super::module_comment::leading_sentence;
-use super::stdout::{print_line_to_stdout, print_to_stdout};
 use super::walk::{skip_if_denied, visible_entries};
+use crate::commands::links::is_symlink;
+use crate::commands::stdout::{print_line_to_stdout, print_to_stdout};
 use crate::error::RexError;
 
 const OUTPUT_FILENAME: &str = "CODEBASE.md";
