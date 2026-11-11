@@ -103,7 +103,7 @@ EOF
 - [ ] `breakdown`: `WORK BREAKDOWN` + `DECISION CHECK`, as one JSON string. Write `\n` for each line end.
 - [ ] `roles`: `ROLE TABLE`. At least one role. Each `<v>` = `low`, `medium`, `high`, or `none`.
 - [ ] Role has all four inputs, OR `"session": true` (session agent). Never both.
-- [ ] `skills` of role: skill names of `Skills` of that role in `ROLE TABLE` = union of `Skills` of its tasks. Lead, or role with `—` in `Tasks`: skills of its role. Name only: for `<skill>/<file>.md`, write `<skill>`. Each name once. Each name also in job `skills`. Role with no skill: leave `skills` out.
+- [ ] `skills` of role: skill names of `Skills` of that role in `ROLE TABLE` = union of `Skills` of its tasks. Lead, or role with `—` in `Tasks`: skills of its role. Name = folder name of skill: for `<skill>/<file>.md`, write `<skill>`. Each name once. Each name also in job `skills`. Role with no skill: leave `skills` out. `rex job close` checks `skills` of each role that is not session role.
 - [ ] Add `{"role": "decision-maker", "session": true}`.
 - [ ] IF skill writer ran (step 5), THEN add `{"role": "skill-writer", "session": true}`.
 - [ ] `rex` selects agent of each role itself. Job gets one plan only.
