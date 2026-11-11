@@ -46,7 +46,7 @@ Run it yourself, in your own shell, in the root of the main checkout (the folder
 $ cd ~/code/shop
 $ rex init
 rex init: .claude/settings.local.json created
-rex init: 149 written, 0 skipped
+rex init: 148 written, 0 skipped
 rex init: AGENTS.md created
 rex init: .gitignore created
 rex init: .rex/ created
