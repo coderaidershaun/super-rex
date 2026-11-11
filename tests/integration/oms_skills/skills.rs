@@ -242,7 +242,7 @@ fn skills_list_json_has_the_same_fields() {
 }
 
 #[test]
-fn skills_list_in_a_worktree_reads_the_main_checkout() {
+fn skills_list_in_a_worktree_reads_the_main_checkout_too() {
     let temp = tempfile::tempdir().expect("temp dir");
     let root = temp.path().canonicalize().expect("canonical temp dir");
     let main = root.join("main");
@@ -256,14 +256,32 @@ fn skills_list_in_a_worktree_reads_the_main_checkout() {
         &main.join(".claude/skills/alpha/SKILL.md"),
         "---\nname: alpha\ndescription: Main alpha.\nwhen_to_use: Use when main.\n---\nBody.\n",
     );
+    // The worktree tracks one library skill of its own, so its library
+    // folder holds that one only. The main checkout's library fills in the
+    // rest, and the worktree's copy wins.
+    for (checkout, name, description) in [
+        (&main, "delta", "Main delta."),
+        (&main, "notes", "Main notes."),
+        (&worktree, "notes", "Worktree notes."),
+    ] {
+        write(
+            &checkout.join(format!(".rex/skills/{name}/SKILL.md")),
+            &format!("---\nname: {name}\ndescription: {description}\n---\nBody.\n"),
+        );
+    }
     fs::create_dir_all(root.join("home")).expect("make home");
 
     let stdout = stdout_of_success(&worktree, &root.join("home"), &["list"]);
 
     let expected = format!(
         "name=alpha\ndescription=Main alpha.\nwhen_to_use=Use when main.\nsource=repo\n\
-         shadowed=no\npath={}/.claude/skills/alpha/SKILL.md\n",
-        main.display()
+         shadowed=no\npath={main}/.claude/skills/alpha/SKILL.md\n\n\
+         name=delta\ndescription=Main delta.\nwhen_to_use=\nsource=library\n\
+         shadowed=no\npath={main}/.rex/skills/delta/SKILL.md\n\n\
+         name=notes\ndescription=Worktree notes.\nwhen_to_use=\nsource=library\n\
+         shadowed=no\npath={worktree}/.rex/skills/notes/SKILL.md\n",
+        main = main.display(),
+        worktree = worktree.display(),
     );
     assert_eq!(stdout, expected);
 }
@@ -361,6 +379,27 @@ fn skills_check_prints_ok_for_a_skill_that_passes() {
         "ok .claude/skills/clean\nok .claude/skills/clean/SKILL.md\nok .rex/skills/lib\n"
     );
     assert_eq!(output.status.code(), Some(0));
+
+    // A repo with no skills folder and no library of its own: the bundle
+    // stands in for both, as `rex init` would install it.
+    let bare = fixture.root.join("bare");
+    fs::create_dir_all(bare.join(".git")).expect("make .git");
+    write(
+        &bare.join("drafts/draft/SKILL.md"),
+        &(header("draft", DESCRIPTION, WHEN_TO_USE)
+            + &format!(
+                "Read `{}` and `{}`.\n",
+                bundled_sibling(".claude/skills"),
+                bundled_sibling(".rex/skills")
+            )),
+    );
+    let output = rex_skills(
+        &bare,
+        &fixture.root.join("home"),
+        &["check", "drafts/draft"],
+    );
+    assert_eq!(text_of(&output.stdout), "ok drafts/draft\n");
+    assert_eq!(output.status.code(), Some(0));
 }
 
 const DESCRIPTION: &str = "A skill for a test.";
@@ -440,6 +479,13 @@ fn bad_skills() -> Vec<BadSkill> {
             "B4",
             good("bad-b4-folder") + "Read `.claude/skills/lib/SKILL.md`.\n",
         ),
+        // The repo has a library, so a bundled file that it does not hold is
+        // not there for an agent to read.
+        one(
+            "bad-b4-bundled",
+            "B4",
+            good("bad-b4-bundled") + &format!("Read `{}`.\n", bundled_sibling(".rex/skills")),
+        ),
         BadSkill {
             folder: "bad-b4-file",
             rule: "B4",
@@ -452,29 +498,28 @@ fn bad_skills() -> Vec<BadSkill> {
     ]
 }
 
+/// The path of a Markdown file besides `SKILL.md` of a bundled skill in
+/// `root`, such as `.rex/skills/rex-code-tdd/mocking.md`.
+fn bundled_sibling(root: &str) -> String {
+    super_rex::bundle::walk()
+        .into_iter()
+        .find_map(|(path, _)| {
+            let file = path.strip_prefix(root).ok()?;
+            let is_sibling = file.extension()? == "md" && file.file_name()? != "SKILL.md";
+            is_sibling.then(|| path.display().to_string())
+        })
+        .unwrap_or_else(|| panic!("a skill in {root} has a Markdown file besides SKILL.md"))
+}
+
 /// Paths to files of skills that are right: one folder down in this skill, in
-/// another skill of the repo, in the repo's library, in a bundled skill and a
-/// bundled library skill that the repo does not hold, and a template. The one
+/// another skill of the repo, in the repo's library, and a template. The one
 /// wrong path, at the end of a sentence, names a file that `clean` does not
 /// have.
 fn paths_to_skill_files() -> String {
-    let bundled = |root: &str| {
-        super_rex::bundle::walk()
-            .into_iter()
-            .find_map(|(path, _)| {
-                let file = path.strip_prefix(root).ok()?;
-                let is_sibling = file.extension()? == "md" && file.file_name()? != "SKILL.md";
-                is_sibling.then(|| path.display().to_string())
-            })
-            .unwrap_or_else(|| panic!("a skill in {root} has a Markdown file besides SKILL.md"))
-    };
-    format!(
-        "Read `.claude/skills/bad-b4-file/os/notes.md`, `.claude/skills/clean/reference.md`, \
-         `.rex/skills/lib/reference.md`, `{}`, `{}` and `.claude/skills/<name>/<file>.md`.\n\
-         Then read .claude/skills/clean/gone.md.\n",
-        bundled(".claude/skills"),
-        bundled(".rex/skills"),
-    )
+    "Read `.claude/skills/bad-b4-file/os/notes.md`, `.claude/skills/clean/reference.md`, \
+     `.rex/skills/lib/reference.md` and `.claude/skills/<name>/<file>.md`.\n\
+     Then read .claude/skills/clean/gone.md.\n"
+        .to_owned()
 }
 
 #[test]
@@ -519,10 +564,10 @@ fn skills_check_names_the_rule_each_bad_skill_breaks() {
     let every_path: Vec<&str> = every_path.iter().map(String::as_str).collect();
     let output = fixture.check(&every_path);
 
-    assert_eq!(text_of(&output.stdout).lines().count(), 17);
+    assert_eq!(text_of(&output.stdout).lines().count(), 18);
     assert_eq!(
         text_of(&output.stderr),
-        "error: 16 findings in 16 of 17 skills\n"
+        "error: 17 findings in 17 of 18 skills\n"
     );
     assert_eq!(output.status.code(), Some(1));
 

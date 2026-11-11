@@ -3,17 +3,37 @@
 
 use std::path::{Component, Path, PathBuf};
 
-const MODEL_TIERS: [&str; 4] = ["low", "medium", "high", "xhigh"];
+/// Each model tier of the grid, with the Claude Code model alias it runs.
+const MODEL_TIERS: [(&str, &str); 4] = [
+    ("low", "haiku"),
+    ("medium", "sonnet"),
+    ("high", "opus"),
+    ("xhigh", "fable"),
+];
 const EFFORT_LEVELS: [&str; 5] = ["low", "medium", "high", "xhigh", "max"];
 
-/// The bundle path of each agent in the grid, one for each model tier and
-/// effort level.
-fn grid_agent_paths() -> Vec<PathBuf> {
+/// One agent of the grid: its bundle path, and the header lines that make it
+/// run the model and effort its name gives.
+struct GridAgent {
+    path: PathBuf,
+    header_lines: [String; 3],
+}
+
+/// Each agent of the grid, one for each model tier and effort level.
+fn grid_agents() -> Vec<GridAgent> {
     MODEL_TIERS
         .iter()
-        .flat_map(|tier| {
+        .flat_map(|(tier, model)| {
             EFFORT_LEVELS.iter().map(move |level| {
-                PathBuf::from(format!(".claude/agents/model-{tier}-effort-{level}.md"))
+                let name = format!("model-{tier}-effort-{level}");
+                GridAgent {
+                    path: PathBuf::from(format!(".claude/agents/{name}.md")),
+                    header_lines: [
+                        format!("name: {name}"),
+                        format!("model: {model}"),
+                        format!("effort: {level}"),
+                    ],
+                }
             })
         })
         .collect()
@@ -40,14 +60,36 @@ fn bundle_contains_only_skill_and_agent_paths() {
         );
     }
 
-    let agents = grid_agent_paths();
-    for agent in &agents {
-        assert!(
-            entries.iter().any(|(path, _)| path == agent),
-            "embedded bundle must contain every grid agent, missing {}",
-            agent.display()
-        );
-    }
+    // An agent whose file runs another model or effort than its name gives
+    // is picked by the selection function for a pair it does not run.
+    let agents: Vec<PathBuf> = grid_agents()
+        .into_iter()
+        .map(|agent| {
+            let (_, bytes) = entries
+                .iter()
+                .find(|(path, _)| *path == agent.path)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "embedded bundle must contain every grid agent, missing {}",
+                        agent.path.display()
+                    )
+                });
+            let text = String::from_utf8_lossy(bytes);
+            let header: Vec<&str> = text
+                .lines()
+                .skip(1)
+                .take_while(|line| *line != "---")
+                .collect();
+            for line in &agent.header_lines {
+                assert!(
+                    header.contains(&line.as_str()),
+                    "{} must have the header line `{line}`",
+                    agent.path.display()
+                );
+            }
+            agent.path
+        })
+        .collect();
 
     let skill_roots = [".claude/skills", ".rex/skills"];
     for (path, _) in &entries {

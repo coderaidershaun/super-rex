@@ -83,7 +83,10 @@ fn recorded_session_gives_correct_tree() {
         } else {
             &[]
         };
-        assert_eq!(run.skills_opened, skills, "{id} skills");
+        // Every run's transcript was read, so a run that opened no skill has
+        // an empty list, not `None`.
+        let skills: Vec<String> = skills.iter().map(|&skill| skill.to_owned()).collect();
+        assert_eq!(run.skills_opened, Some(skills), "{id} skills");
         all_tokens += tokens;
     }
     assert_eq!(

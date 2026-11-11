@@ -89,10 +89,15 @@ fn known_from(root: &str, known: &KnownSkills) -> KnownSkills {
 /// `SKILL.md`, so it has the same limit.
 const MAX_STAGE_WORDS: usize = 1500;
 
+/// The stage files of the builder: stages 1 to 3 and the challenge.
+const STAGE_FILES: usize = 4;
+
 /// Each stage file of the builder, `stages/<stage>/stage.md`, that holds more
-/// than `MAX_STAGE_WORDS` words, as `<skill>/<file>: <count> words`.
+/// than `MAX_STAGE_WORDS` words, as `<skill>/<file>: <count> words`. Panics
+/// unless it finds all `STAGE_FILES`, so a renamed folder cannot pass by
+/// checking nothing.
 fn long_stage_files(skills: &[BundledSkill]) -> Vec<String> {
-    skills
+    let stage_files: Vec<_> = skills
         .iter()
         .map(|bundled| &bundled.skill)
         .filter(|skill| skill.folder == "orchestration-builder")
@@ -100,6 +105,14 @@ fn long_stage_files(skills: &[BundledSkill]) -> Vec<String> {
         .filter(|(_, file)| {
             file.path.starts_with("stages") && file.path.file_name() == Some("stage.md".as_ref())
         })
+        .collect();
+    assert_eq!(
+        stage_files.len(),
+        STAGE_FILES,
+        "orchestration-builder must have {STAGE_FILES} files stages/<stage>/stage.md"
+    );
+    stage_files
+        .into_iter()
         .filter_map(|(skill, file)| {
             let words = file.text.split_whitespace().count();
             (words > MAX_STAGE_WORDS).then(|| {
@@ -215,14 +228,98 @@ fn a_plain_description_is_not_shortened_by_yaml() {
     );
 }
 
-#[test]
-fn every_markdown_link_to_a_file_in_the_bundle_resolves() {
-    let (skills, known) = bundle_skills();
+/// The assignment table: stage 1, stage 2, the challenger, `rex-rules` and
+/// `rex-feedback` all start from its rows.
+const ASSIGNMENT_TABLE: &str = ".claude/skills/orchestration-builder/stages/1-skills/assign.md";
 
-    let findings = findings_of(&skills, &known, &[Rule::B3]);
+/// The words of `text` in backticks.
+fn backticked(text: &str) -> impl Iterator<Item = &str> {
+    text.split('`').skip(1).step_by(2)
+}
+
+/// Each name in backticks in the assignment table that the bundle does not
+/// hold: a skill `rex-<name>`, a sibling file `<skill>/<file>.md`, or a path
+/// `<root>/<skill>/<file>.md`. A gap skill (`rex-gap-<language>`) is written
+/// by a job, not bundled, and a name with a placeholder is a template.
+fn dead_names_in_assignment_table(bundle: &BTreeMap<PathBuf, String>) -> Vec<String> {
+    let roots = [SKILLS_ROOT, LIBRARY_ROOT];
+    let is_bundled = |path: &str| bundle.contains_key(Path::new(path));
+    let is_skill = |name: &str| {
+        roots.iter().any(|root| {
+            bundle
+                .keys()
+                .any(|path| path.starts_with(Path::new(root).join(name)))
+        })
+    };
+    let text = bundle
+        .get(Path::new(ASSIGNMENT_TABLE))
+        .unwrap_or_else(|| panic!("the bundle must hold {ASSIGNMENT_TABLE}"));
+    backticked(text)
+        .filter(|name| !name.contains(['<', ' ']))
+        .filter(|name| {
+            if name.ends_with(".md") && name.contains('/') {
+                if roots.iter().any(|root| name.starts_with(root)) {
+                    !is_bundled(name)
+                } else {
+                    !roots
+                        .iter()
+                        .any(|root| is_bundled(&format!("{root}/{name}")))
+                }
+            } else {
+                name.starts_with("rex-") && !name.starts_with("rex-gap-") && !is_skill(name)
+            }
+        })
+        .map(|name| format!("{ASSIGNMENT_TABLE}: `{name}` is not in the bundle"))
+        .collect()
+}
+
+/// Each "`## <Section>` of `<path>`" (or `in`) in the bundle whose file, given
+/// by its full path, has no line `## <Section>`.
+fn dead_section_references(bundle: &BTreeMap<PathBuf, String>) -> Vec<String> {
+    let mut dead = Vec::new();
+    for (from, text) in bundle {
+        let parts: Vec<&str> = text.split('`').collect();
+        for at in (1..parts.len().saturating_sub(2)).step_by(2) {
+            let (section, between, target) = (parts[at], parts[at + 1], parts[at + 2]);
+            let names_its_file = section.starts_with("## ")
+                && matches!(between, " of " | " in ")
+                && [SKILLS_ROOT, LIBRARY_ROOT]
+                    .iter()
+                    .any(|root| target.starts_with(root));
+            if !names_its_file {
+                continue;
+            }
+            let is_there = bundle
+                .get(Path::new(target))
+                .is_some_and(|file| file.lines().any(|line| line.trim_end() == section));
+            if !is_there {
+                dead.push(format!(
+                    "{}: `{section}` is not a heading of {target}",
+                    from.display()
+                ));
+            }
+        }
+    }
+    dead
+}
+
+// The links, the assignment table and the section names are how one skill
+// sends an agent to another file. A name that is not there sends every task
+// that the row fits to a file it cannot read, and the agent goes on without it.
+#[test]
+fn every_reference_to_a_file_in_the_bundle_resolves() {
+    let (skills, known) = bundle_skills();
+    let bundle: BTreeMap<PathBuf, String> = walk()
+        .into_iter()
+        .map(|(path, bytes)| (path, String::from_utf8_lossy(bytes).into_owned()))
+        .collect();
+
+    let mut findings = findings_of(&skills, &known, &[Rule::B3]);
+    findings.extend(dead_names_in_assignment_table(&bundle));
+    findings.extend(dead_section_references(&bundle));
     assert!(
         findings.is_empty(),
-        "these links point to no file in the bundle:\n{}",
+        "these references point to nothing in the bundle:\n{}",
         findings.join("\n")
     );
 }

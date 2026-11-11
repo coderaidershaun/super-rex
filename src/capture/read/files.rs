@@ -193,7 +193,7 @@ impl Read<'_> {
                 damaged_lines: facts.damaged_lines,
                 read_ms: self.now_ms,
             },
-            skills_opened: (!facts.skills_opened.is_empty()).then(|| facts.skills_opened.join(",")),
+            skills_opened: facts.skills_opened.join(","),
             tool_uses: facts.tool_uses,
             lines_added: facts.lines_added,
             lines_removed: facts.lines_removed,

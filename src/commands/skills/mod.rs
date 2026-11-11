@@ -6,6 +6,7 @@ mod header;
 mod list;
 mod rules;
 
+pub(crate) use rules::is_skill_name;
 pub use rules::{Finding, KnownSkills, Rule, Skill, SkillFile, check_skill};
 
 use std::io;

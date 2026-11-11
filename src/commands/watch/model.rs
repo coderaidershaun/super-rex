@@ -248,7 +248,7 @@ mod tests {
             lines_removed: None,
             brief: None,
             final_message: None,
-            skills_opened: vec![],
+            skills_opened: None,
             tokens: TokenTotal::Unknown,
         }
     }

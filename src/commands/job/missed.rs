@@ -62,7 +62,7 @@ impl SkillCheck {
             }
             let opened: BTreeSet<&str> = runs
                 .iter()
-                .flat_map(|run| run.skills_opened.iter().map(String::as_str))
+                .flat_map(|run| run.skills_opened.iter().flatten().map(String::as_str))
                 .collect();
             for skill in skills.split(',').filter(|skill| !opened.contains(skill)) {
                 check.missed.push(MissedSkill {

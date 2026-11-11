@@ -71,6 +71,16 @@ fn lost_lines_give_the_same_tree() {
     assert!(!runs.incomplete, "metadata files lost");
     assert_eq!(runs.runs, recorded.runs, "metadata files lost");
 
+    // A run whose transcript was never read has no list of skills, which is
+    // not the empty list of a read transcript that opened none.
+    let mut fixture = fixture_without(&[]);
+    let transcript = fixture.transcript(WORKER);
+    fs::remove_file(&transcript).unwrap();
+    fs::create_dir(&transcript).unwrap();
+    let runs = fixture.read(JOB_A, AFTER_SESSION);
+    assert_eq!(run(&runs, WORKER).skills_opened, None);
+    assert_eq!(run(&recorded, WORKER).skills_opened, Some(vec![]));
+
     // All three lines lost, and the transcript that would recover the run cannot be
     // read: the run is not found, and the history is marked.
     let mut fixture = fixture_without(&[start, stop, call]);

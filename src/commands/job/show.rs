@@ -168,10 +168,9 @@ fn delivery_line(number: usize, delivery: &DeliveryRow) -> String {
 }
 
 fn run_line(run: &Run) -> String {
-    let skills = if run.skills_opened.is_empty() {
-        "none".to_owned()
-    } else {
-        run.skills_opened.join(",")
+    let skills = match run.skills_opened.as_deref() {
+        None | Some([]) => "none".to_owned(),
+        Some(skills) => skills.join(","),
     };
     format!(
         "run.{}={} parent={} role={} agent={} ran={}/{} skills={skills} tokens={} provisional={}",
@@ -341,7 +340,7 @@ fn json_run(run: &Run) -> Value {
         "lines_added": run.lines_added,
         "lines_removed": run.lines_removed,
         "brief": run.brief,
-        "skills_opened": (!run.skills_opened.is_empty()).then_some(&run.skills_opened),
+        "skills_opened": run.skills_opened,
         "final_message": run.final_message,
         "tokens": json_total(run.tokens),
     })

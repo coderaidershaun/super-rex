@@ -86,9 +86,10 @@ pub enum Rule {
     H7,
     /// Every header key is one Claude Code reads.
     H8,
-    /// `description` and `when_to_use` together have at most 60 words. Claude
-    /// Code lists every skill in every session, and drops descriptions when
-    /// the list grows too long.
+    /// `description` and `when_to_use` together have at most 60 words. The
+    /// decision agent reads both for every skill that `rex skills list`
+    /// prints, and Claude Code lists each skill of `.claude/skills/` in every
+    /// session, so each extra word costs context in every job.
     H9,
     /// `SKILL.md` has text after the header.
     B1,
@@ -292,18 +293,24 @@ fn name_problem(folder: &str, header: &Header) -> Option<String> {
     if name != folder {
         return Some(format!("name `{name}` is not the folder name `{folder}`"));
     }
+    if !is_skill_name(name) {
+        return Some(format!(
+            "name `{name}` must be lowercase letters and digits in groups joined by single hyphens, at most {MAX_NAME_LENGTH} characters"
+        ));
+    }
+    None
+}
+
+/// True when `name` has the name form of rule H3, which a skill folder must
+/// have.
+pub(crate) fn is_skill_name(name: &str) -> bool {
     let words_are_valid = name.split('-').all(|word| {
         !word.is_empty()
             && word
                 .bytes()
                 .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
     });
-    if !words_are_valid || name.len() > MAX_NAME_LENGTH {
-        return Some(format!(
-            "name `{name}` must be lowercase letters and digits in groups joined by single hyphens, at most {MAX_NAME_LENGTH} characters"
-        ));
-    }
-    None
+    words_are_valid && name.len() <= MAX_NAME_LENGTH
 }
 
 /// The text of `key`, or what is wrong with it: missing, not a string, or

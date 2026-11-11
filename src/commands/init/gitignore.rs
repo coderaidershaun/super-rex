@@ -18,8 +18,10 @@ const IGNORE_MARKER: &str = "# rex:ignore superrex";
 ///
 /// Claude Code's own worktree isolation puts worktrees in `.claude/worktrees/`.
 /// Untracked, they make the checkout not clean, and a job then refuses to
-/// work in it.
-const IGNORE_BLOCK: &str = "# rex:ignore superrex\n.claude/skills/\n.claude/agents/\n.claude/settings.local.json\n/.rex/\n/.claude/worktrees/\n";
+/// work in it. `/.rex/*` ignores what is in `.rex/` and not the folder itself,
+/// because Git cannot re-include a path below an ignored folder: a repo that
+/// tracks its own `.rex/skills/` adds `!/.rex/skills/` after the block.
+const IGNORE_BLOCK: &str = "# rex:ignore superrex\n.claude/skills/\n.claude/agents/\n.claude/settings.local.json\n/.rex/*\n/.claude/worktrees/\n";
 
 /// Make sure `cwd/.gitignore` has the rex block: create the file if it is
 /// missing, append the block after the existing lines if it is not there yet,

@@ -35,7 +35,8 @@ pub(crate) struct StoredRun {
     pub(crate) model_ran: Option<String>,
     pub(crate) effort_ran: Option<String>,
     pub(crate) brief: Option<String>,
-    /// Joined by commas, as the store keeps a list.
+    /// Joined by commas, as the store keeps a list. Empty when the transcript
+    /// was read and opened no skill, NULL when no transcript was read.
     pub(crate) skills_opened: Option<String>,
     pub(crate) background: Option<bool>,
     pub(crate) started_at: Option<String>,
