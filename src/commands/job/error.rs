@@ -64,7 +64,7 @@ pub enum JobError {
     BadOrchestratorName { name: String, path: PathBuf },
 
     #[error(
-        "skill name {name} in plan file {} is not valid; a skill name is not empty and has no spaces or commas",
+        "skill name {name} in plan file {} is not valid; give the skill folder name, lower-case letters and digits in groups joined by single hyphens, such as rex-code-tdd for rex-code-tdd/mocking.md",
         path.display()
     )]
     BadSkillName { name: String, path: PathBuf },

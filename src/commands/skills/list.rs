@@ -17,7 +17,7 @@ use crate::store::StorePaths;
 /// Where a skill was found. Claude Code runs the user's skill when the repo's
 /// skills folder and the user's both hold one with the same name. Claude Code
 /// does not load the library; an agent reads a library skill by its path.
-#[derive(Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub(super) enum Source {
     Repo,
@@ -43,7 +43,8 @@ pub(super) struct Place {
 
 /// The repo's skills folder and skill library, for the repo that holds
 /// `cwd`, then the user's skills folder. When the repo's skills folder is the
-/// user's, only the user's is given.
+/// user's, only the user's is given. A linked worktree with a library of its
+/// own gives it first, then its main checkout's library.
 ///
 /// # Errors
 /// [`SkillsError::Read`] if `cwd` or a `.git` entry above it cannot be read.
@@ -52,27 +53,46 @@ pub(super) fn places(cwd: &Path) -> Result<Vec<Place>, SkillsError> {
         source: Source::Repo,
         folder: repo_root(cwd, SKILLS_ROOT)?.join(SKILLS_ROOT),
     };
-    let library = Place {
-        source: Source::Library,
-        folder: repo_root(cwd, LIBRARY_ROOT)?.join(LIBRARY_ROOT),
-    };
+    let library = library_places(cwd)?;
     let home = std::env::var_os("HOME").filter(|home| !home.is_empty());
-    let Some(home) = home else {
-        return Ok(vec![repo, library]);
-    };
-    let user = Place {
+    let user = home.map(|home| Place {
         source: Source::User,
         folder: PathBuf::from(home).join(SKILLS_ROOT),
-    };
-    let same_folder = match (repo.folder.canonicalize(), user.folder.canonicalize()) {
-        (Ok(repo), Ok(user)) => repo == user,
-        _ => false,
-    };
-    if same_folder {
-        Ok(vec![library, user])
-    } else {
-        Ok(vec![repo, library, user])
+    });
+    let same_folder = user.as_ref().is_some_and(|user| {
+        match (repo.folder.canonicalize(), user.folder.canonicalize()) {
+            (Ok(repo), Ok(user)) => repo == user,
+            _ => false,
+        }
+    });
+    let mut places = Vec::new();
+    if !same_folder {
+        places.push(repo);
     }
+    places.extend(library);
+    places.extend(user);
+    Ok(places)
+}
+
+/// The library of [`repo_root`], and after it the main checkout's library
+/// when that root is a linked worktree. A worktree holds only the library
+/// skills that Git tracks there, so a skill kept with `git add -f`, or a new
+/// one, would otherwise hide every other library skill.
+fn library_places(cwd: &Path) -> Result<Vec<Place>, SkillsError> {
+    let root = repo_root(cwd, LIBRARY_ROOT)?;
+    let mut places = vec![Place {
+        source: Source::Library,
+        folder: root.join(LIBRARY_ROOT),
+    }];
+    if let Ok(paths) = StorePaths::locate(&root)
+        && paths.root != root
+    {
+        places.push(Place {
+            source: Source::Library,
+            folder: paths.root.join(LIBRARY_ROOT),
+        });
+    }
+    Ok(places)
 }
 
 /// The nearest folder at or above `cwd` that holds `.git`, else `cwd`. A
@@ -176,25 +196,37 @@ impl Listed {
 
 /// Print every skill of [`places`]: repo skills by name, then library skills
 /// by name, then user skills by name, as `key=value` blocks or, with `json`,
-/// as one JSON line. Only a repo skill can be shadowed.
+/// as one JSON line. Only a repo skill can be shadowed. A library skill of a
+/// worktree hides the main checkout's library skill of the same name.
 ///
 /// # Errors
 /// [`SkillsError::Read`] if a place exists but cannot be read,
 /// [`SkillsError::Json`] if the list cannot be written as JSON, and
 /// [`SkillsError::Rex`] if standard output cannot be written.
 pub(super) fn run(cwd: &Path, json: bool) -> Result<(), SkillsError> {
-    let mut skills = Vec::new();
+    let mut skills: Vec<Listed> = Vec::new();
     for place in places(cwd)? {
         let mut found: Vec<Listed> = skill_folders(&place.folder)?
             .iter()
             .map(|folder| Listed::read(folder, place.source))
             .collect();
-        // Two folders can hold the same name, so the path settles the order.
-        found.sort_by(|left, right| {
-            (left.name.as_bytes(), &left.path).cmp(&(right.name.as_bytes(), &right.path))
-        });
+        if place.source == Source::Library {
+            found.retain(|skill| {
+                !skills
+                    .iter()
+                    .any(|listed| listed.source == Source::Library && listed.name == skill.name)
+            });
+        }
         skills.extend(found);
     }
+    // Two folders can hold the same name, so the path settles the order.
+    skills.sort_by(|left, right| {
+        (left.source, left.name.as_bytes(), &left.path).cmp(&(
+            right.source,
+            right.name.as_bytes(),
+            &right.path,
+        ))
+    });
 
     let user_names: BTreeSet<String> = skills
         .iter()

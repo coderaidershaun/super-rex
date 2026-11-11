@@ -166,16 +166,27 @@ fn skill_paths(skills_folder: &Path) -> Result<BTreeSet<PathBuf>, SkillsError> {
     Ok(paths)
 }
 
-/// [`skill_paths`] of the skills that `rex skills list` finds from `cwd`, and
-/// of the skills in the bundle that `rex init` installs, each in the set of
-/// its folder: the library's, or that of a `.claude/skills/`.
+/// [`skill_paths`] of the skills that `rex skills list` finds from `cwd`, each
+/// in the set of its folder: the library's, or that of a `.claude/skills/`.
+/// For a repo with no such folder of its own, the bundle stands in for it,
+/// with the files that `rex init` would install there.
 fn skill_paths_outside(cwd: &Path) -> Result<KnownSkills, SkillsError> {
     let mut known = KnownSkills::default();
+    // When the repo's skills folder is the user's, `places` gives no repo
+    // place, and the user's folder is the repo's own.
+    let (mut has_skills_folder, mut has_library) = (true, false);
     for place in list::places(cwd)? {
         let paths = skill_paths(&place.folder)?;
         match place.source {
-            Source::Library => known.library_paths.extend(paths),
-            Source::Repo | Source::User => known.skill_paths.extend(paths),
+            Source::Library => {
+                has_library |= place.folder.is_dir();
+                known.library_paths.extend(paths);
+            }
+            Source::Repo => {
+                has_skills_folder = place.folder.is_dir();
+                known.skill_paths.extend(paths);
+            }
+            Source::User => known.skill_paths.extend(paths),
         }
     }
     for (path, _) in bundle::walk() {
@@ -183,8 +194,12 @@ fn skill_paths_outside(cwd: &Path) -> Result<KnownSkills, SkillsError> {
             continue;
         }
         if let Ok(in_library) = path.strip_prefix(LIBRARY_ROOT) {
-            known.library_paths.insert(in_library.to_path_buf());
-        } else if let Ok(in_skills_folder) = path.strip_prefix(SKILLS_ROOT) {
+            if !has_library {
+                known.library_paths.insert(in_library.to_path_buf());
+            }
+        } else if let Ok(in_skills_folder) = path.strip_prefix(SKILLS_ROOT)
+            && !has_skills_folder
+        {
             known.skill_paths.insert(in_skills_folder.to_path_buf());
         }
     }

@@ -48,8 +48,9 @@ pub struct Run {
     pub lines_removed: Option<u64>,
     pub brief: Option<String>,
     pub final_message: Option<String>,
-    /// Sorted. Empty means none seen, or no transcript read.
-    pub skills_opened: Vec<String>,
+    /// Sorted. Empty when the transcript was read and opened no skill, `None`
+    /// when no transcript was read.
+    pub skills_opened: Option<Vec<String>>,
     pub tokens: TokenTotal,
 }
 

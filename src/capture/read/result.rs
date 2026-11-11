@@ -81,11 +81,14 @@ fn run_of(run: &StoredRun, state: RunState) -> Run {
         lines_removed: run.lines_removed,
         brief: run.brief.clone(),
         final_message: run.final_message.clone(),
-        skills_opened: run
-            .skills_opened
-            .as_deref()
-            .map(|skills| skills.split(',').map(str::to_owned).collect())
-            .unwrap_or_default(),
+        // The empty text is a read transcript that opened no skill.
+        skills_opened: run.skills_opened.as_deref().map(|skills| {
+            skills
+                .split(',')
+                .filter(|skill| !skill.is_empty())
+                .map(str::to_owned)
+                .collect()
+        }),
         tokens: run.total.total(),
     }
 }

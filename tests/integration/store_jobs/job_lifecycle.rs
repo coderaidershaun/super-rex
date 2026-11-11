@@ -114,6 +114,15 @@ fn job_is_opened_planned_closed_and_shown_from_a_worktree() {
     assert_eq!(
         refused(
             r#"["rex-code-philosophy"]"#,
+            r#"["rex-code-tdd/mocking.md"]"#
+        ),
+        "error: skill name rex-code-tdd/mocking.md in plan file - is not valid; give the skill \
+         folder name, lower-case letters and digits in groups joined by single hyphens, such as \
+         rex-code-tdd for rex-code-tdd/mocking.md\n"
+    );
+    assert_eq!(
+        refused(
+            r#"["rex-code-philosophy"]"#,
             r#"["rex-code-philosophy", "rex-code-philosophy"]"#
         ),
         "error: role reviewer in plan file - names skill rex-code-philosophy twice; give each \

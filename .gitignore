@@ -1,8 +1,14 @@
 /target
 .scratch
-# The store of `rex` stays local, and the skill library in `.rex/skills/` is
-# tracked source. The first line wins over an ignore of all of `.rex/` in a
-# checkout's own exclude file.
+
+# This repo's own block, under the marker of `rex init`, so `rex init` here
+# adds no block of its own. Unlike that block it keeps `.claude/skills/`,
+# `.claude/agents/` and `.rex/skills/` in Git: they are the source of the
+# bundle. `!/.rex/` wins over an ignore of all of `.rex/` in a checkout's own
+# exclude file.
+# rex:ignore superrex
+.claude/settings.local.json
+/.claude/worktrees/
 !/.rex/
 /.rex/*
 !/.rex/skills/

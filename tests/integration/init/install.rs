@@ -12,7 +12,7 @@ use super::support::{
 };
 
 /// The block `rex init` adds to `.gitignore`, byte for byte.
-const SUPERREX_IGNORE_BLOCK: &[u8] = b"# rex:ignore superrex\n.claude/skills/\n.claude/agents/\n.claude/settings.local.json\n/.rex/\n/.claude/worktrees/\n";
+const SUPERREX_IGNORE_BLOCK: &[u8] = b"# rex:ignore superrex\n.claude/skills/\n.claude/agents/\n.claude/settings.local.json\n/.rex/*\n/.claude/worktrees/\n";
 
 /// The first line of a first run.
 const SETTINGS_CREATED: &str = "rex init: .claude/settings.local.json created\n";

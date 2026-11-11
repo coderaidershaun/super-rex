@@ -128,6 +128,7 @@ CREATE TABLE sub_agent_run (
     model_ran                TEXT,
     effort_ran               TEXT,
     brief                    TEXT,
+    -- Comma list. '' = the transcript was read and opened no skill; NULL = no transcript was read.
     skills_opened            TEXT,
     background               INTEGER CHECK (background IN (0, 1)),
     first_seen_at            TEXT    NOT NULL,

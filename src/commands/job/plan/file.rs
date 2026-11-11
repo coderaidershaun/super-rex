@@ -7,6 +7,7 @@ use std::path::Path;
 use serde::Deserialize;
 
 use crate::commands::job::JobError;
+use crate::commands::skills::is_skill_name;
 use crate::oms::{Inputs, Level};
 
 #[derive(Deserialize)]
@@ -162,12 +163,6 @@ impl Rating {
             Rating::None => None,
         }
     }
-}
-
-/// A skill name: not empty, with no comma or space, because the store keeps a
-/// list of names as one comma list.
-fn is_skill_name(text: &str) -> bool {
-    !text.is_empty() && !text.contains(|c: char| c == ',' || c.is_whitespace())
 }
 
 /// A role or orchestrator name: lower-case letters, digits and `-`.

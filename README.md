@@ -63,8 +63,8 @@ What it writes:
 | `.claude/agents/` | The 20 grid agents. | No |
 | `.claude/settings.local.json` | The hooks and the safety settings, merged into your file. | No |
 | `.rex/skills/` | The skill library: the 22 skills that agents read by path. | No |
-| `.rex/` | The store `rex.db`, the skill library `skills/`, and the empty library folder `orchestrators/`. | No |
-| `.gitignore` | A block that starts with `# rex:ignore superrex` and ignores `.claude/skills/`, `.claude/agents/`, `.claude/settings.local.json`, `/.rex/` and `/.claude/worktrees/`. | Yes |
+| `.rex/` | The store `rex.db`, the skill library `skills/`, and the empty library folder `orchestrators/`. Jobs add the rest (see Files in "Reference"). | No |
+| `.gitignore` | A block that starts with `# rex:ignore superrex` and ignores `.claude/skills/`, `.claude/agents/`, `.claude/settings.local.json`, `/.rex/*` and `/.claude/worktrees/`. | Yes |
 | `AGENTS.md` | Two sections at the top, after the marker `<!-- rex:codebase -->`: how to use `rex codebase` and `rex smells`. | Yes |
 | `.pre-commit-config.yaml` | Checks for large files, merge markers, TOML, YAML, private keys and white space; gitleaks at commit; trivy at push; `cargo fmt`, `cargo clippy` and (at push) `cargo test` for Rust files. Only if you have no such file. | Yes |
 
@@ -80,7 +80,7 @@ git add AGENTS.md .gitignore .pre-commit-config.yaml && git commit -m "chore: se
 - Your settings file is merged: missing keys and list entries are added, your keys and order stay. A value of yours that differs is kept, with a warning.
 - `AGENTS.md` and `.gitignore` get their block once, found by its marker. An existing pre-commit config is never replaced.
 - Nothing is written through a symbolic link. Skills of your own are left alone. `rex init` removes nothing, does not touch your user-level Claude Code settings, and writes no `CLAUDE.md`.
-- The ignore block hides whole folders, so a skill of your own in `.claude/skills/` or `.rex/skills/` is hidden from Git too. To keep one in Git, run `git add -f <path>`.
+- The ignore block hides whole folders, so a skill of your own in `.claude/skills/` or `.rex/skills/` is hidden from Git too. To keep one in Git, run `git add -f <path>`. To keep the whole library in Git, add the line `!/.rex/skills/` after the block: it works because the block ignores what is in `.rex/` (`/.rex/*`), not the folder itself.
 
 **`--no-hooks`** leaves out the hooks, so no telemetry is recorded. Everything else is written. Hook entries from an earlier run are not removed: delete the entries that run `rex hook` to turn telemetry off.
 
@@ -176,7 +176,7 @@ existing=no
 
 A session has at most one open job (`created` or `planned`). A second create in the same session opens nothing, prints that job with `existing=yes`, notes it on stderr, and exits 0.
 
-**`rex job plan <job> --plan-file <path|-> [--json]`**: record the skills, the work breakdown, the orchestrator and the roles, and move the job to `planned`. A job is planned once. The orchestrator folder `.rex/orchestrators/<name>/` must exist. Each role gives four inputs, each `low`, `medium`, `high` or `none`, or `"session": true` to run at the session's model. A role may also give `"skills"`, the skills its tasks are assigned: each name is a skill folder name, is also in the job's `skills`, and is given once. `rex job close` reports each of them that no run of the role opened.
+**`rex job plan <job> --plan-file <path|-> [--json]`**: record the skills, the work breakdown, the orchestrator and the roles, and move the job to `planned`. A job is planned once. The orchestrator folder `.rex/orchestrators/<name>/` must exist. Each role gives four inputs, each `low`, `medium`, `high` or `none`, or `"session": true` to run at the session's model. A role may also give `"skills"`, the skills its tasks are assigned: each is also in the job's `skills`, and is given once. `rex job close` reports each of them that no run of the role opened. Each skill name, of the job or of a role, is a skill folder name in the form of rule H3, so a sibling file such as `rex-code-tdd/mocking.md` is refused: give its skill, `rex-code-tdd`. A `conflict.<role>=budget`, `duration` or `budget,duration` line follows a role's line when the user's preference capped the agent that the role needed.
 
 ```console
 $ rex job plan 0g51g6fykv --plan-file - <<'EOF'
@@ -208,9 +208,9 @@ missed_skills=1
 missed_skill.1=engineer rex-code-philosophy
 ```
 
-When a role has skills, the close compares them with the skills its runs opened: a run opens a skill when it reads a `.md` file below `.claude/skills/<name>/` or `.rex/skills/<name>/`. `missed_skills=<n>` counts the `missed_skill.<i>=<role> <skill>` lines that follow, one for each skill that no run of the role opened. A role with skills and no run at all gets one `role_not_run.<i>=<role>` line instead. A role run as the session is not checked, because the session's own reads are not recorded. `missed_skills_incomplete=yes` means the record of the runs misses facts, so the list may be wrong. `--json` gives the same as `"missed_skills": [{"role": ..., "skill": ...}]`, `"roles_not_run": [...]` and `"missed_skills_incomplete": true|false`. A missed skill never changes the status or the exit code.
+When a role has skills, the close compares them with the skills its runs opened: a run opens a skill when it loads it with the Skill tool, reads its `SKILL.md`, or reads another `.md` file below `.claude/skills/<name>/` or `.rex/skills/<name>/`. `missed_skills=<n>` counts the `missed_skill.<i>=<role> <skill>` lines that follow, one for each skill that no run of the role opened. A role with skills and no run at all gets one `role_not_run.<i>=<role>` line instead. A role run as the session is not checked, because the session's own reads are not recorded. `missed_skills_incomplete=yes` means the record of the runs misses facts, so the list may be wrong. `--json` gives the same as `"missed_skills": [{"role": ..., "skill": ...}]`, `"roles_not_run": [...]` and `"missed_skills_incomplete": true|false`. A missed skill never changes the status or the exit code.
 
-**`rex job show [<job>] [--json]`**: print one job's record: classification, preferences, merge answer, plan, roles with their model selection and skills (`skills=none`, or `[]` in `--json`, for none), deliveries, sub-agent runs, tokens, request, breakdown and the recalled experience. With no job, it shows the open job of `$CLAUDE_CODE_SESSION_ID`. `--json` adds the transitions, each run's brief and final message, and the feedback.
+**`rex job show [<job>] [--json]`**: print one job's record: classification, preferences, merge answer, plan, roles with their model selection and skills (`skills=none`, or `[]` in `--json`, for none), deliveries, sub-agent runs with the skills each opened, tokens, request, breakdown and the recalled experience. A run's `skills_opened` in `--json` is `[]` when its transcript was read and it opened no skill, and `null` when no transcript was read; the text form prints `skills=none` for both. With no job, it shows the open job of `$CLAUDE_CODE_SESSION_ID`. `--json` adds the transitions, each run's brief and final message, and the feedback.
 
 ```console
 $ rex job show 0g51g6fykv
@@ -255,7 +255,7 @@ version=1
 
 **`rex skills`**: the group of `list` and `check`. On its own it prints its help on stderr and exits 2.
 
-**`rex skills list [--json]`**: print each skill of the repo's `.claude/skills/`, of the repo's skill library `.rex/skills/` and of `~/.claude/skills/` as a block of six lines. `source` is `repo`, `library` or `user`, and `path` is the absolute path of the skill's `SKILL.md`. `shadowed=yes` marks a repo skill that a user skill of the same name hides; a library skill is never shadowed.
+**`rex skills list [--json]`**: print each skill of the repo's `.claude/skills/`, of the repo's skill library `.rex/skills/` and of `~/.claude/skills/` as a block of six lines. `source` is `repo`, `library` or `user`, and `path` is the absolute path of the skill's `SKILL.md`. `shadowed=yes` marks a repo skill that a user skill of the same name hides; a library skill is never shadowed. In a Git worktree, the repo's skills folder is the worktree's own when it has one, else the main checkout's. The library is the worktree's own `.rex/skills/` and then the main checkout's, so the main checkout fills in the library skills that Git does not track in the worktree; a worktree's skill hides the main checkout's skill of the same name.
 
 ```console
 $ rex skills list
@@ -418,6 +418,7 @@ Only a person can start `/rex-deliver`, for example for the clean-up after a per
 | `.rex/events.jsonl` | The hook event log. It is never truncated. |
 | `.rex/skills/<name>/` | The skill library: one folder with a `SKILL.md` per skill that agents read by path. Claude Code does not list it. |
 | `.rex/orchestrators/<name>/` | The orchestrator library: one folder with a `SKILL.md` per orchestrator. A changed folder gets a new version at the next plan or recall. |
+| `.rex/plans/<job-id>/` | The plan that a plan job writes, `plan.md`. |
 | `.rex/worktrees/<job-id>/` | Worktrees of a job, removed after its merge. |
 
 **How `rex` finds the store.** Every command except `rex init` uses the first of these that holds a `rex.db`: `REX_STORE` (the path of a `.rex` folder, used as is and never skipped), `CLAUDE_PROJECT_DIR`, then the working folder. From a sub-folder or a Git worktree, `rex` walks up to the main checkout. Claude Code sets `CLAUDE_PROJECT_DIR` for hooks only, not in the shell an agent uses, so from a sibling repo set the variable for the command: `REX_STORE=/home/ana/code/shop/.rex rex job show 0g51g6fykv`.
@@ -459,7 +460,7 @@ An agent reads all of `SKILL.md`, so it holds only the rules an agent needs ever
 | B1 | There is text after the header. |
 | B2 | `SKILL.md` has at most 500 lines. |
 | B3 | Each relative link to a `.md` file points to a file inside the skills folder. |
-| B4 | Each `.claude/skills/<name>/<file>.md` or `.rex/skills/<name>/<file>.md` named in the text is a Markdown file of a known skill in that folder: its `SKILL.md`, or a file in its folder or below it. A path to a skill in the other folder is a finding. A path with a placeholder such as `<name>` is a template and is not checked. |
+| B4 | Each `.claude/skills/<name>/<file>.md` or `.rex/skills/<name>/<file>.md` named in the text is a Markdown file of a known skill in that folder: its `SKILL.md`, or a file in its folder or below it. The known skills are those that `rex skills list` finds and those beside the checked skill. A repo with no `.claude/skills/`, or no `.rex/skills/`, gets the skills of this `rex`'s bundle for that folder instead, as `rex init` would install them. A path to a skill in the other folder is a finding. A path with a placeholder such as `<name>` is a template and is not checked. |
 | B5 | The text after the header of `SKILL.md` has at most 1,500 words, counted as `wc -w` counts them. |
 
 ## Skills and the agent grid

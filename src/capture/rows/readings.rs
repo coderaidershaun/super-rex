@@ -21,8 +21,8 @@ pub(crate) struct Reading {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct RunReading {
     pub(crate) reading: Reading,
-    /// Joined by commas; `None` when the run opened no skill.
-    pub(crate) skills_opened: Option<String>,
+    /// Joined by commas; empty when the run opened no skill.
+    pub(crate) skills_opened: String,
     pub(crate) tool_uses: u64,
     pub(crate) lines_added: u64,
     pub(crate) lines_removed: u64,
