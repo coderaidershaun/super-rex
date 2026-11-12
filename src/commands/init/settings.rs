@@ -12,7 +12,7 @@ use super::error::InitError;
 use super::file_change::FileChange;
 use super::print_line_to_stderr;
 use super::safety::{
-    UNSANDBOXED_KEY, forbids_unsandboxed, is_safety_key, parent_to_open, safety_settings,
+    forbids_unsandboxed, is_safety_key, parent_to_open, safety_settings, stricter_value_effect,
 };
 use crate::capture::{REX_COMMANDS, hook_registration};
 use crate::commands::links::is_symlink;
@@ -261,11 +261,9 @@ fn warn_hooks_left_in() {
 /// warning. Making the safety case a warning too is a change here only.
 fn report_kept_value(kept: KeptValue) -> Option<InitError> {
     let KeptValue { key, found, needed } = kept;
-    // The one safety value of the person's that is stricter than the one rex
-    // sets: it turns no protection off, so it does not fail the run.
-    if key == UNSANDBOXED_KEY && found == Value::Bool(false) {
+    if let Some(effect) = stricter_value_effect(&key, &found) {
         print_line_to_stderr(&format!(
-            "rex init: warning: kept {key} = false in {SETTINGS_FILENAME}, so no agent can run a command outside the sandbox, such as a test that opens its own network connection; set it to true to let agents do that."
+            "rex init: warning: kept {key} = {found} in {SETTINGS_FILENAME}, {effect}."
         ));
         return None;
     }

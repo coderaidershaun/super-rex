@@ -86,7 +86,7 @@ git add AGENTS.md .gitignore .pre-commit-config.yaml && git commit -m "chore: se
 
 **The hooks.** `rex init` writes five entries, each with a timeout of 10 seconds: `rex hook` for `SubagentStart`, `SubagentStop` and `PostToolUse` (matcher `Agent|Task`), `rex gate` for `PreToolUse` (matcher `Agent|Task`), and `rex test-hook` for `PreToolUse` (matcher `Bash`). A repo that was set up before gets the two new entries from the next `rex init`. See `rex hook`, `rex gate` and `rex test-hook` under "The commands".
 
-**The preflight** runs before anything is written. These stop the run with exit 1 and write nothing: the folder holds no `.git` folder (or `.git` is a file: a linked worktree or submodule); `claude` is not on `PATH`; its version cannot be read; it is older than 2.1.322. These only warn: no `gh` on `PATH`; no `rex` on `PATH`, or another `rex` comes first (the hooks and skills call `rex` by `PATH`). On Linux, a missing `bwrap` or `socat` is reported at the end with the install command, and the run exits 1; the settings are still written, so Claude Code refuses to start in the repo until the tools are there.
+**The preflight** runs before anything is written. These stop the run with exit 1 and write nothing: the folder holds no `.git` folder (or `.git` is a file: a linked worktree or submodule); `claude` is not on `PATH`; its version cannot be read; it is older than 2.1.322. These only warn: no `gh` on `PATH`; no `rex` on `PATH`, or another `rex` comes first (the hooks and skills call `rex` by `PATH`). On Linux, a missing `bwrap` or `socat` is reported at the end with the install command, and the run exits 1; the settings are still written, and commands run with no sandbox in the repo until the tools are there (after `--strict`, Claude Code refuses to start instead).
 
 **A weaker safety value is a failure.** If your settings file already holds a different value for a safety key (anything under `sandbox`, or `permissions.blockWritesOutsideWorkingDirectories`), `rex init` keeps your value, finishes the rest, and exits 1:
 
@@ -104,7 +104,7 @@ The protection is Claude Code's own sandbox, enforced by the operating system. `
 | Setting | What it is for |
 | --- | --- |
 | `sandbox.enabled: true` | Shell commands run in the sandbox. |
-| `sandbox.failIfUnavailable: true` | Claude Code refuses to start when the sandbox cannot, instead of running commands unsandboxed. |
+| `sandbox.failIfUnavailable: false` | Claude Code still starts when the sandbox cannot, and runs commands with no sandbox. Some systems block the sandbox although its tools are installed, for example Ubuntu 24.04 with `kernel.apparmor_restrict_unprivileged_userns = 1`, where `bwrap` fails with `setting up uid map: Permission denied`. `--strict` writes `true`, and Claude Code then refuses to start there. |
 | `sandbox.allowUnsandboxedCommands: true` | An agent can run a command again outside the sandbox. `--strict` writes `false`. See "Commands outside the sandbox". |
 | `sandbox.enableWeakerNetworkIsolation: true` | `gh` works inside the sandbox. |
 | `sandbox.network.allowLocalBinding: true` | A sandboxed command can listen on localhost, so a test server or a nested `claude -p` starts. |
@@ -126,9 +126,9 @@ Because of the proxy limit, an agent can run a command again outside the sandbox
 
 A command outside the sandbox runs with your full access. In bypass mode Claude Code approves it without a prompt; in the default mode it asks you first. So the sandbox stops mistakes, but it does not stop an agent that chooses to leave it. The file tools still cannot write outside the working folders.
 
-**`--strict`** writes `sandbox.allowUnsandboxedCommands: false` and no `sandbox.excludedCommands`, and then no command leaves the sandbox. A live test that opens its own connection cannot run in a session, so the agent gives you the command to run yourself.
+**`--strict`** writes `sandbox.allowUnsandboxedCommands: false`, `sandbox.failIfUnavailable: true` and no `sandbox.excludedCommands`, and then no command runs outside the sandbox: Claude Code refuses to start where the sandbox cannot. A live test that opens its own connection cannot run in a session, so the agent gives you the command to run yourself.
 
-A stricter value of yours is never made weaker. If the settings file already holds `false`, for example from an earlier version of `rex`, a run without `--strict` keeps it, adds no excluded commands, and warns. Set it to `true` by hand to let agents run such commands. The other way round, a kept `true` fails a `--strict` run, like any weaker safety value.
+A stricter value of yours is never made weaker. If the settings file already holds `sandbox.allowUnsandboxedCommands: false`, for example from an earlier version of `rex`, a run without `--strict` keeps it, adds no excluded commands, and warns. Set it to `true` by hand to let agents run such commands. A kept `sandbox.failIfUnavailable: true` gets a warning in the same way: set it to `false` by hand to let Claude Code start without its sandbox. The other way round, a kept weaker value of either fails a `--strict` run, like any weaker safety value.
 
 ## How a job runs
 
@@ -592,7 +592,7 @@ Run `rex skills list` to see each skill's description and when to use it. No lib
   git -C <repo> merge-base --is-ancestor <branch> <pr head> && git -C <repo> branch -D <branch>
   ```
 
-- Linux without `bwrap` or `socat` was not tested live; only the detection is tested. `sandbox.failIfUnavailable` (Claude Code refuses to start without its sandbox) comes from the Claude Code documentation and was not tested on any system, and neither was the trivy cache path on Linux.
+- Linux without `bwrap` or `socat` was not tested live; only the detection is tested. `sandbox.failIfUnavailable` (with `true`, Claude Code refuses to start without its sandbox) comes from the Claude Code documentation and was not tested on any system, and neither was the trivy cache path on Linux.
 - A main branch that needs a person's approval was not tested live.
 - From a sibling repo, `rex` needs `REX_STORE` (see "How `rex` finds the store").
 - A request that Claude Code bills but writes to no transcript is not counted in the tokens, so a total can be lower than Claude Code's own figure.

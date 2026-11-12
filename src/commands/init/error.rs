@@ -41,7 +41,7 @@ pub enum InitError {
     ClaudeTooOld { found: String, minimum: String },
 
     #[error(
-        "the Claude Code sandbox cannot start on this machine: {missing} not found on PATH, so Claude Code will refuse to start in this repo until they are installed; install them with sudo apt-get install bubblewrap socat (Ubuntu or Debian), or sudo dnf install bubblewrap socat (Fedora)"
+        "the Claude Code sandbox cannot start on this machine: {missing} not found on PATH, so commands run with no sandbox in this repo until they are installed (after rex init --strict, Claude Code refuses to start instead); install them with sudo apt-get install bubblewrap socat (Ubuntu or Debian), or sudo dnf install bubblewrap socat (Fedora)"
     )]
     SandboxToolsMissing { missing: String },
 

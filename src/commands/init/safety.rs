@@ -40,6 +40,11 @@ const COMMANDS_OUTSIDE_SANDBOX: [&str; 5] = [
 /// a database driver, cannot connect. Unless `is_strict`, an agent may
 /// therefore run a command again outside the sandbox, from
 /// [`COMMANDS_OUTSIDE_SANDBOX`].
+///
+/// Where the sandbox cannot start, Claude Code still starts and runs commands
+/// with no sandbox, because some systems block the sandbox although its tools
+/// are installed, and a person there could not start a session at all. With
+/// `is_strict` Claude Code refuses to start instead.
 pub(super) fn safety_settings(parent: Option<&str>, is_strict: bool) -> Map<String, Value> {
     let mut permissions = Map::new();
     if let Some(parent) = parent {
@@ -58,7 +63,7 @@ pub(super) fn safety_settings(parent: Option<&str>, is_strict: bool) -> Map<Stri
 
     let mut sandbox = json!({
         "enabled": true,
-        "failIfUnavailable": true,
+        "failIfUnavailable": is_strict,
         "allowUnsandboxedCommands": !is_strict,
         "enableWeakerNetworkIsolation": true,
         // Lets a test server or a nested `claude -p` listen on localhost.
@@ -131,4 +136,22 @@ pub(super) fn is_safety_key(key: &str) -> bool {
 }
 
 /// The setting that lets an agent run a command again outside the sandbox.
-pub(super) const UNSANDBOXED_KEY: &str = "sandbox.allowUnsandboxedCommands";
+const UNSANDBOXED_KEY: &str = "sandbox.allowUnsandboxedCommands";
+
+/// The setting that keeps Claude Code from starting when its sandbox cannot.
+const FAIL_IF_UNAVAILABLE_KEY: &str = "sandbox.failIfUnavailable";
+
+/// What a value of the person's that is stricter than the one rex sets does,
+/// and how to undo it. `None` when `found` is not such a value of `key`. A
+/// stricter value turns no protection off, so it must not fail the run.
+pub(super) fn stricter_value_effect(key: &str, found: &Value) -> Option<&'static str> {
+    match (key, found) {
+        (UNSANDBOXED_KEY, Value::Bool(false)) => Some(
+            "so no agent can run a command outside the sandbox, such as a test that opens its own network connection; set it to true to let agents do that",
+        ),
+        (FAIL_IF_UNAVAILABLE_KEY, Value::Bool(true)) => Some(
+            "so Claude Code refuses to start when its sandbox cannot; set it to false to let it start and run commands with no sandbox",
+        ),
+        _ => None,
+    }
+}

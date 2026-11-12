@@ -79,7 +79,7 @@ fn linux_sandbox_tools_missing_fails_after_the_install() {
             assert_eq!(
                 stderr,
                 format!(
-                    "rex init: failed: the Claude Code sandbox cannot start on this machine: {named} not found on PATH, so Claude Code will refuse to start in this repo until they are installed; install them with sudo apt-get install bubblewrap socat (Ubuntu or Debian), or sudo dnf install bubblewrap socat (Fedora)\n\
+                    "rex init: failed: the Claude Code sandbox cannot start on this machine: {named} not found on PATH, so commands run with no sandbox in this repo until they are installed (after rex init --strict, Claude Code refuses to start instead); install them with sudo apt-get install bubblewrap socat (Ubuntu or Debian), or sudo dnf install bubblewrap socat (Fedora)\n\
                      error: rex init did not finish 1 step(s); each is named above\n"
                 )
             );

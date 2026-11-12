@@ -179,9 +179,9 @@ const SANDBOX_TOOLS: [&str; 2] = ["bwrap", "socat"];
 
 /// The failure that names each sandbox tool missing from PATH, on Linux.
 ///
-/// The install still runs in full, because the settings it writes make
-/// Claude Code refuse to start without a sandbox. Stopping here would leave
-/// no settings, and Claude Code would then start with no sandbox at all.
+/// The install still runs in full, so the sandbox is on from the moment the
+/// tools are installed. Until then the run has failed, so that commands
+/// running with no sandbox cannot go unseen.
 fn missing_sandbox_tools() -> Option<InitError> {
     if !cfg!(target_os = "linux") {
         return None;

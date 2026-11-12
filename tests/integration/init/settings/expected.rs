@@ -62,7 +62,7 @@ pub(super) fn safety_settings(repo: &Repo) -> Value {
     json!({
         "sandbox": {
             "enabled": true,
-            "failIfUnavailable": true,
+            "failIfUnavailable": false,
             "allowUnsandboxedCommands": true,
             "enableWeakerNetworkIsolation": true,
             "network": { "allowLocalBinding": true },

@@ -4,6 +4,10 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+### Changed
+
+- `rex init` writes `sandbox.failIfUnavailable: false`, not `true`, so Claude Code still starts on a system where its sandbox cannot, and runs commands with no sandbox there. Ubuntu 24.04 with `kernel.apparmor_restrict_unprivileged_userns = 1` is such a system: `bwrap` is installed but fails, and Claude Code would not start in the repo. `rex init --strict` still writes `true`. A settings file that already holds `true` keeps it, with a warning: set it to `false` by hand. The message for a missing `bwrap` or `socat` on Linux now says that commands run with no sandbox until they are installed.
+
 ## 0.6.0 - 2026-11-11
 
 ### Fixed

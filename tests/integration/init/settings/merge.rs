@@ -50,7 +50,7 @@ const EXAMPLE_AFTER: &str = r#"{
   },
   "sandbox": {
     "enabled": false,
-    "failIfUnavailable": true,
+    "failIfUnavailable": false,
     "allowUnsandboxedCommands": true,
     "enableWeakerNetworkIsolation": true,
     "network": {
