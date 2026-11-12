@@ -4,6 +4,8 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.7.0 - 2026-11-12
+
 ### Added
 
 - The library skill `rex-agent-prompting`. An agent that starts another agent now writes the brief for that agent's model and effort: rules for every brief in `SKILL.md`, and one file for each grid tier (`haiku.md`, `sonnet.md`, `opus.md`, `fable.md`) with the text to add at each effort level, such as the finish text for a low effort and the stop text for Sonnet at a high one. The builder, each lead, the parallel-writer steps, the plan review and `rex-rules` point to it, and the assignment table gives it to each role that starts agents. `rex job close` does not count it as an extra skill. `rex init` installs 5 more files.
