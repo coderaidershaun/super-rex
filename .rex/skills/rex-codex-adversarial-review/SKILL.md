@@ -99,7 +99,7 @@ EOF
 - [ ] Session ID = `thread_id` of first line of `round-1.jsonl`: `{"type":"thread.started","thread_id":"<ID>"}`. Keep it for round 2.
 - [ ] Small target: `model_reasoning_effort=medium` is faster and usually sufficient.
 
-Fallback agent. Brief = text for agent with no context: full sentences. IF you work inside job, THEN brief starts with tag block of job, role `challenger`. Brief gives target, demands above, and these lines: "You only read. Change no file except <SCRATCH>/round-1.md. Run no command that writes. Write your findings to <SCRATCH>/round-1.md. Your final message gives that path and the count of findings for each severity, nothing more."
+Fallback agent. Brief = text for agent with no context: full sentences. Brief obeys `.rex/skills/rex-agent-prompting/SKILL.md` + its tier file for that grid agent. IF you work inside job, THEN brief starts with tag block of job, role `challenger`. Brief gives target, demands above, and these lines: "You only read. Change no file except <SCRATCH>/round-1.md. Run no command that writes. Write your findings to <SCRATCH>/round-1.md. Your final message gives that path and the count of findings for each severity, nothing more."
 
 ## Step 4 — Cross-examine
 

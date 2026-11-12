@@ -39,6 +39,7 @@ Each agent of this step writes its output to its output file (`## Words` of `.cl
 7. Read corrected decision block at path that decision agent gives. Record plan with it: step 6.
 
 - [ ] Each job, small job also. Small job: stages are short. Output can be one task + one worker.
+- [ ] Each brief of this step (decision agent, skill writer, challenger) fits model + effort of its grid agent. Before first brief: read `.rex/skills/rex-agent-prompting/SKILL.md` IN FULL. Before each brief: read its tier file for tier of that grid agent, IF you did not read it yet. Put brief text that it gives for that level in a new line before last paragraph of brief template.
 - [ ] One challenge round only. No decision gets second challenge.
 - [ ] Agents that start before you record plan do not change job status.
 

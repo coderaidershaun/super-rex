@@ -4,6 +4,10 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+### Added
+
+- The library skill `rex-agent-prompting`. An agent that starts another agent now writes the brief for that agent's model and effort: rules for every brief in `SKILL.md`, and one file for each grid tier (`haiku.md`, `sonnet.md`, `opus.md`, `fable.md`) with the text to add at each effort level, such as the finish text for a low effort and the stop text for Sonnet at a high one. The builder, each lead, the parallel-writer steps, the plan review and `rex-rules` point to it, and the assignment table gives it to each role that starts agents. `rex job close` does not count it as an extra skill. `rex init` installs 5 more files.
+
 ### Changed
 
 - `rex init` writes `sandbox.failIfUnavailable: false`, not `true`, so Claude Code still starts on a system where its sandbox cannot, and runs commands with no sandbox there. Ubuntu 24.04 with `kernel.apparmor_restrict_unprivileged_userns = 1` is such a system: `bwrap` is installed but fails, and Claude Code would not start in the repo. `rex init --strict` still writes `true`. A settings file that already holds `true` keeps it, with a warning: set it to `false` by hand. The message for a missing `bwrap` or `socat` on Linux now says that commands run with no sandbox until they are installed.

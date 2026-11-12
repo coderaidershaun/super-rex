@@ -29,6 +29,7 @@ Each brief starts with tag block, as its first characters. Hooks read it to reco
 - [ ] Grid agent has no Skill tool. It reads only files that its brief names, by absolute path. Write that in brief: template line below.
 - [ ] Lead gets path of its lead skill in brief. Lead reads it IN FULL. Plain file read, not Skill tool.
 - [ ] Brief is for agent with no context: full sentences.
+- [ ] Brief fits model + effort of agent that gets it. Before you write first brief: read `.rex/skills/rex-agent-prompting/SKILL.md` IN FULL, then its tier file for tier of each agent that you start. Tier = `<tier>` in `model-<tier>-effort-<level>`. Obey them. This is the one home of this rule: each agent that writes a brief obeys it.
 - [ ] Brief names output file of agent. Agent that needs report of other agent gets path of its output file, never text.
 
 Template:
@@ -42,6 +43,7 @@ Scope: <the files and state that you own, the prerequisites, the starting revisi
 Context: <the requirements, interfaces, decisions, and locations of artifacts that apply>. <Grid agent: You have no Skill tool.> Read these files in full with the Read tool, one file for each call, before you start: <absolute paths of the Skills of your task, or of your role>. Also read a sibling file when one of these SKILL.md files sends you there. Open each of these files only when your work reaches its case: <each Open when item of your task, or of your role, as name — case — absolute path, or leave this sentence out when Open when is —>. A skill that a SKILL.md names, such as a sister skill, is not a file to read: open it only when this brief lists it. A path that starts with `.rex/skills/` or `.claude/skills/` starts at <HOME_DIR>.
 Acceptance: <the evidence that you must show to pass>.
 Limits: <the time and effort, the concurrency, and when to escalate>.
+<The brief text that the tier file of rex-agent-prompting gives for the tier and level of this agent, unchanged. Leave this line out when it gives none.>
 Return: Write your full report to <output file>: a short verdict, references (paths and commits), each acceptance criterion with its evidence, and the open issues. If that file exists, write to the same name with -2, -3, and so on, before .md: the lowest number that is free. Your final message has at most 2,000 characters: the path of the file that you wrote, a summary of at most 5 lines, and one state: done, partial, awaiting decision, or blocked.
 ```
 

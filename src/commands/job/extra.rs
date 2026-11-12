@@ -17,8 +17,9 @@ use crate::store::{JobId, StorePaths};
 const NO_ROLE: &str = "-";
 
 /// Skills whose files the builder's own text tells any role to read: the
-/// delivery steps of a writer that starts parallel writers.
-const BUILDER_SKILLS: &[&str] = &["rex-deliver"];
+/// delivery steps of a writer that starts parallel writers, and the rules
+/// for the brief of any role that starts an agent.
+const BUILDER_SKILLS: &[&str] = &["rex-deliver", "rex-agent-prompting"];
 
 /// Roles that the builder starts outside the plan, each with the skill that
 /// its brief names. Keep this in step with the builder roles of the

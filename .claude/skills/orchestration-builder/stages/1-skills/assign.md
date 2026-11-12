@@ -44,6 +44,7 @@ Each language. Rulebook text is about Rust. Agent applies intent of each rule in
 | Review of branch or pull request by agent that wrote none of it | `rex-pr-review` |
 | Diagram in plan or document | `rex-mermaid-diagrams` |
 | Writes skill, prompt, or agent instructions | `rex-skill-language` |
+| Starts sub-agent, or writes brief for other agent (each lead) | `rex-agent-prompting`. Starts tier `low`: + `.rex/skills/rex-agent-prompting/haiku.md`. Tier `medium`: + `.rex/skills/rex-agent-prompting/sonnet.md`. Tier `high`: + `.rex/skills/rex-agent-prompting/opus.md`. Tier `xhigh`: + `.rex/skills/rex-agent-prompting/fable.md` |
 | Plan job: review of plan (role `plan-reviewer`) | `rex-codex-adversarial-review`. Code plan, writer of plan: + `rex-code-design-sketch` + `rex-code-validation-plan` |
 
 ## Not in table

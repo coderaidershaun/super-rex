@@ -36,6 +36,7 @@ IF brief of builder job names your skill files, THEN read those. Do not use this
 8. IF language is not Rust, AND list has gap skill `rex-gap-<language>` of that language, THEN read it. `<language>` = `--only` name of that language in `rex codebase` (`rex codebase --help` lists them), for example `rex-gap-go`, `rex-gap-ts`.
 9. IF need fits no row, THEN read skill whose `description` + `when_to_use` fit need.
 10. Read sibling file when a `SKILL.md` that you read sends you there.
+11. IF you start sub-agent, THEN first read `.rex/skills/rex-agent-prompting/SKILL.md`, then its tier file for model of that agent. Obey them in brief.
 
 Each skill that you read stays in context, and cache gives it again on each later call. Read few.
 

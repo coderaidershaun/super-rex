@@ -46,7 +46,7 @@ Run it yourself, in your own shell, in the root of the main checkout (the folder
 $ cd ~/code/shop
 $ rex init
 rex init: .claude/settings.local.json created
-rex init: 149 written, 0 skipped
+rex init: 154 written, 0 skipped
 rex init: AGENTS.md created
 rex init: .gitignore created
 rex init: .rex/ created
@@ -62,7 +62,7 @@ What it writes:
 | `.claude/skills/` | The 6 skills that you start, or that a session finds by itself (section "Skills and the agent grid"). | No |
 | `.claude/agents/` | The 20 grid agents. | No |
 | `.claude/settings.local.json` | The hooks, the safety settings and one allow rule, merged into your file. | No |
-| `.rex/skills/` | The skill library: the 22 skills that agents read by path. | No |
+| `.rex/skills/` | The skill library: the 23 skills that agents read by path. | No |
 | `.rex/` | The store `rex.db`, the skill library `skills/`, and the empty library folder `orchestrators/`. Jobs add the rest (see Files in "Reference"). | No |
 | `.gitignore` | A block that starts with `# rex:ignore superrex` and ignores `.claude/skills/`, `.claude/agents/`, `.claude/settings.local.json`, `/.rex/*` and `/.claude/worktrees/`. | Yes |
 | `AGENTS.md` | Two sections at the top, after the marker `<!-- rex:codebase -->`: how to use `rex codebase` and `rex smells`. | Yes |
@@ -561,7 +561,7 @@ An agent reads all of `SKILL.md`, so it holds only the rules an agent needs ever
 
 ## Skills and the agent grid
 
-`rex init` installs 28 skills in two folders. Claude Code lists each skill in `.claude/skills/` in every session, so only 6 are there: the ones that you start with `/<name>`, and one that a session must find by itself. The other 22 are the skill library in `.rex/skills/`, which Claude Code does not list, so they cost no context in a session. The decision agent finds them with `rex skills list`, and each brief names the ones its agent reads, by path.
+`rex init` installs 29 skills in two folders. Claude Code lists each skill in `.claude/skills/` in every session, so only 6 are there: the ones that you start with `/<name>`, and one that a session must find by itself. The other 23 are the skill library in `.rex/skills/`, which Claude Code does not list, so they cost no context in a session. The decision agent finds them with `rex skills list`, and each brief names the ones its agent reads, by path.
 
 In `.claude/skills/`:
 
@@ -576,6 +576,7 @@ In the skill library, `.rex/skills/`:
 - **Plan review:** `rex-codex-adversarial-review`, which every plan job runs before its plan is final. Outside a job, ask the session to read `.rex/skills/rex-codex-adversarial-review/SKILL.md` and run it on a plan or a code change.
 - **`rex-mermaid-diagrams`:** how to draw diagrams in Mermaid.
 - **`rex-skill-language`:** the language every skill and agent instruction is written in.
+- **`rex-agent-prompting`:** how an agent writes the brief of a sub-agent for that sub-agent's model and effort. `SKILL.md` holds the rules for every brief, and one file for each grid tier (`haiku.md`, `sonnet.md`, `opus.md`, `fable.md`) holds the text to add at each effort level. The builder, each lead and the router read it before they start an agent, and read only the file of the tier they start.
 
 Run `rex skills list` to see each skill's description and when to use it. No library skill has a `/<name>` command; to use one outside a job, ask the session to read its `SKILL.md`.
 

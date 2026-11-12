@@ -23,13 +23,14 @@ You make `SLUG` only. You name no branch and no worktree.
 3. ELSE read `.claude/skills/rex-deliver/SKILL.md`, then `.claude/skills/rex-deliver/start.md`, with Read tool, after plan, before first agent writes file in Git repo. Exception: new skill that repo tracks starts START before plan (`.claude/skills/orchestration-builder/stages/1-skills/write-skill.md`). Skill tool cannot load `rex-deliver`: only a person starts it.
 4. Do START one time for each repo, as soon as you know that repo changes. Never work on main.
 5. Start each role with agent that `rex job plan` printed. `role.<name>=<grid agent>`: `subagent_type` = that grid agent.
-6. Each brief starts with tag block. Form: `.claude/skills/orchestration-builder/stages/3-orchestration/briefs.md`. Read it IN FULL before you write first brief.
+6. Each brief starts with tag block. Form: `.claude/skills/orchestration-builder/stages/3-orchestration/briefs.md`. Read it IN FULL before you write first brief. It sends you to `.rex/skills/rex-agent-prompting/SKILL.md`: each brief fits model + effort of its agent.
 7. IF job works in job worktree, THEN put `JOB_DIR` in brief of each writer. Writer writes files only below it, and names it in each shell command. Skill paths start at `HOME_DIR`.
 8. Use no `isolation: "worktree"` for writers.
 9. Lead that starts parallel writers: tell it to read `<HOME_DIR>/.claude/skills/rex-deliver/SKILL.md`, then `<HOME_DIR>/.claude/skills/rex-deliver/parallel-writers.md`. Give it `JOB`, `HOME_DIR`, `REPO_DIR`, its branch, absolute path where that branch is checked out, and `CHECKS`.
 10. Lead that starts workers: give it in its brief:
     - `SKILL LIST` rows (name + `Path`) of skills of its tasks, and `Skills` + `Open when` of each task.
     - Role name + grid agent (`role.<name>=` of `rex job plan`) of each worker role that it starts.
+    - Absolute paths of `.rex/skills/rex-agent-prompting/SKILL.md` + its tier file for tier of each worker grid agent. Lead reads them IN FULL before it writes first worker brief, and obeys them.
     - Tag block rules, brief template, lead line of `## Briefs`, and `Output file` of `## Words`, all in `briefs.md`, and brief text of `## Sandbox`.
     - This rule: each worker brief names only skills + sibling files of that worker's task, by absolute path. Worker has no Skill tool. It reads `Skills` first with Read tool. It opens an `Open when` item only IF its work reaches that case. It also reads a sibling file when a `SKILL.md` that it read sends it there.
 11. Brief of each role that runs commands holds brief text of `## Sandbox`.

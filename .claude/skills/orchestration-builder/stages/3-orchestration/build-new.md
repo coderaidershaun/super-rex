@@ -87,6 +87,7 @@ Contents:
 - [ ] Checks: how agents examine work.
 - [ ] One rule (below).
 - [ ] Tag block: each brief starts with it (`.claude/skills/orchestration-builder/stages/3-orchestration/briefs.md`).
+- [ ] Each role that starts agents: it obeys `.rex/skills/rex-agent-prompting/SKILL.md` for each brief, so brief fits model + effort of agent that gets it.
 - [ ] Each role that starts agents: what it does when it has no Agent tool. Facts: `.claude/skills/orchestration-builder/stages/3-orchestration/limits.md`.
 
 Form: like any skill. Header, then `## Words`, flow block, sections. Header:

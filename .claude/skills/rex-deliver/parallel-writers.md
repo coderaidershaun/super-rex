@@ -21,7 +21,7 @@ UNIT_BRANCH="$PARENT--$UNIT"
 UNIT_DIR="$REPO_DIR/.rex/worktrees/$JOB/${UNIT_BRANCH#*"$JOB--"}"
 git -C "$REPO_DIR" worktree add -b "$UNIT_BRANCH" "$UNIT_DIR" "$TIP"
 ```
-4. Write brief of each writer as below, with real values. Brief starts with tag block, as its first characters: no heading, quote mark, or code fence before it. One space after each colon. One blank line after block.
+4. Write brief of each writer as below, with real values. Brief starts with tag block, as its first characters: no heading, quote mark, or code fence before it. One space after each colon. One blank line after block. Brief obeys `.rex/skills/rex-agent-prompting/SKILL.md` + its tier file for grid agent of writer: add brief text of its level.
    - `Rex-Job`: copy from tag block of your own brief. IF you have none, THEN use ID that `rex job create` printed.
    - `Rex-Role`: role of that writer, as role table names it (`[a-z0-9-]+`).
    - After you send a brief, do nothing more with its tags. `rex` reads them.

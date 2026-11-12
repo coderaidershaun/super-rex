@@ -152,6 +152,6 @@ REX_STORE="$HOME_DIR/.rex" rex recall <job-id>
 
 ## On request
 
-- [ ] IF requester asks for review of pull request, THEN start fresh grid agent, role `pr-reviewer`: `rex oms` gives it from ratings of `## Builder roles` in `.claude/skills/orchestration-builder/decide.md`. It wrote no part of change. Brief: tag block, `PR` or `BASE` + `HEAD`, `JOB`, and absolute path of `.claude/skills/rex-pr-review/SKILL.md` to read IN FULL and obey. Give its verdict to requester.
+- [ ] IF requester asks for review of pull request, THEN start fresh grid agent, role `pr-reviewer`: `rex oms` gives it from ratings of `## Builder roles` in `.claude/skills/orchestration-builder/decide.md`. It wrote no part of change. Brief: tag block, `PR` or `BASE` + `HEAD`, `JOB`, and absolute path of `.claude/skills/rex-pr-review/SKILL.md` to read IN FULL and obey. Brief obeys `.rex/skills/rex-agent-prompting/SKILL.md` + its tier file for that grid agent. Give its verdict to requester.
 - [ ] IF requester asks for feedback on job, THEN read `.claude/skills/rex-feedback/SKILL.md` IN FULL and obey it.
 - [ ] Requester can give other instructions at any time. Obey them.
