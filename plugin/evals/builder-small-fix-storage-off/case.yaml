@@ -1,9 +1,9 @@
-# Live run 2 as an eval case: the small fix of live run 1 with storage off; needs T6, because stage 1 of the builder records its skills with rex_assign.
+# Live run 2 as an eval case: the small fix of live run 1 with storage off.
 # Run with the job binary first on PATH: claude plugin eval plugin --case builder-small-fix-storage-off --ablation none --runs 1 --model sonnet --judge-model sonnet --scaffold --allow-tools Bash Edit Write ToolSearch 'mcp__super-rex__*' --no-publish
 schema_version: "1.0"
 name: builder-small-fix-storage-off
-description: needs T6. A person's small fix opens a job, plans it, delivers one squash commit through rex_merge, and closes delivered, with storage off, so no store is written.
-tags: [needs-t6, live-run-2, builder]
+description: A person's small fix opens a job, plans it, delivers one squash commit through rex_merge, and closes delivered, with storage off, so no store is written.
+tags: [live-run-2, builder]
 context:
   scaffold_script: scaffold.sh
 execution:

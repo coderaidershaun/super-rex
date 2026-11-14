@@ -8,7 +8,7 @@ import type { BriefContext, BriefFile, BriefPart, Parts, Table } from '../parts'
 import { hashText } from '../skills/index'
 import { briefFiles, lateFacts, lintKey, roleFor, spawnCase } from './brief'
 import { lintFindings, lintRefusal, taskLine } from './lint'
-import { assembled, outputFileOf, OWN_PARTS } from './parts'
+import { assembled, isTierFile, outputFileOf, OWN_PARTS } from './parts'
 import { gridOf } from './tiers'
 
 export { assembled, OWN_PARTS } from './parts'
@@ -73,7 +73,7 @@ async function recordAssembly($: EngineInterface, event: AgentSpawnInput, agentI
     assembled: 'yes',
     lint: assembly.lint,
     lintFindings: assembly.findings,
-    skillsAttached: assembly.files.filter(file => file.file === 'SKILL.md').map(file => file.skill),
+    skillsAttached: [...new Set(assembly.files.filter(file => !isTierFile(file)).map(file => file.skill))],
   })
   await setRunOutput($, agentId, assembly.outputFile)
   for (const file of assembly.files) {

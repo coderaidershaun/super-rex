@@ -13,7 +13,8 @@ export function taskOf(job: RexJob, task: string | null): RexTask | undefined {
   return job.plan?.tasks.find(each => each.id === task)
 }
 
-function isTierFile(file: BriefFile): boolean {
+/** The tier file of `rex-agent-prompting` goes in the tier part, never in the skills block. */
+export function isTierFile(file: BriefFile): boolean {
   return file.skill === PROMPTING_SKILL && Object.values(TIER_FILE).includes(file.file)
 }
 
@@ -41,12 +42,12 @@ export const OWN_PARTS: readonly BriefPart[] = [
     name: 'skills',
     order: 20,
     text: ctx => {
-      const attached = ctx.files.filter(file => file.file === 'SKILL.md' && !isTierFile(file))
+      const attached = ctx.files.filter(file => !isTierFile(file))
       const opens = taskOf(ctx.job, ctx.task)?.openWhen ?? []
       if (attached.length === 0 && opens.length === 0) {
         return null
       }
-      const skills = attached.map(file => `<skill name="${file.skill}" source="${file.source}" hash="${file.hash}">\n${file.text}\n</skill>`)
+      const skills = attached.map(file => `<skill name="${file.skill}"${file.file === 'SKILL.md' ? '' : ` file="${file.file}"`} source="${file.source}" hash="${file.hash}">\n${file.text}\n</skill>`)
       const openLines = opens.map(open => `- ${open.skill}${open.file === null ? '' : `/${open.file}`}: ${open.when}`)
       const openBlock = openLines.length === 0 ? [] : [`Open when (call rex_skill with the name and file):\n${openLines.join('\n')}`]
       return ['<skills>', ...skills, ...openBlock, '</skills>'].join('\n')

@@ -82,6 +82,7 @@ git -C "$JOB_DIR" diff --quiet "$WORK_TIP" "$BRANCH"   # exit 0: squash holds al
 | refused: `a merge of <repo> runs now` | Next round. |
 | refused: `push to origin/<base> failed` | IF error says main is protected or needs a review, THEN go to `## No merge`. Note: "Main of <repo> takes no direct push, so rex_merge cannot merge it. A person merges branch <BRANCH>--work." ELSE fetch, rebase as above, next round. |
 | refused: `has no merge answer` | Ask merge question (step 4 of `orchestration-builder/SKILL.md`). Then call again. |
+| refused: `has no plan` | Record plan with `rex_job_plan` (step 7 of `orchestration-builder/SKILL.md`). Then call again. |
 | other refusal | Outcome = `blocked`. Note = refusal text. |
 
 `merged=no` with `question=<id>`: not a refusal. Mod parked a merge question for a person, with options `Merge` and `Keep the branch`.

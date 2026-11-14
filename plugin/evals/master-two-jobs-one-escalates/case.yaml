@@ -1,10 +1,10 @@
 # Live run 3 as an eval case: a master runs two jobs headless; one touches a path the policy always asks about, so its merge waits on a question and the job ends blocked at session end.
-# needs T7: the master module, and a policy confirmed before the run. A headless run cannot confirm one (only a person's /rex policy confirm can), and the eval's Claude Code folder is new for each run.
+# It needs a policy confirmed before the run, with allow_headless true and LICENSE in always_ask_paths. A headless run cannot confirm one (only a person's /rex policy confirm can), and the eval's Claude Code folder is new for each run, so this case runs only where that folder can carry a confirmed policy.
 # Run with the job binary first on PATH and CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=4 and CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0 in the shell: claude plugin eval plugin --case master-two-jobs-one-escalates --ablation none --runs 1 --model sonnet --judge-model sonnet --scaffold --allow-tools Bash Edit Write ToolSearch 'mcp__super-rex__*' --no-publish
 schema_version: "1.0"
 name: master-two-jobs-one-escalates
-description: needs T7. Two jobs under one master in -p; the job that touches LICENSE parks a merge question and ends blocked; the other merges.
-tags: [needs-t7, live-run-3, master]
+description: Needs a confirmed policy. Two jobs under one master in -p; the job that touches LICENSE parks a merge question and ends blocked; the other merges.
+tags: [needs-confirmed-policy, live-run-3, master]
 context:
   scaffold_script: scaffold.sh
 execution:

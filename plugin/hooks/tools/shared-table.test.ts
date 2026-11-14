@@ -7,7 +7,7 @@ import { CONFIG_OFF, CONFIG_ON, ROOT, spawnInput, START_MS, world } from '../boo
 import type { ProcessAnswer } from '../book/kit'
 import { sharedJson } from '../book/shared'
 import { AUTHOR, plannedBook, SKILL_FILES, spawnsKept } from '../pipeline/assembly.fixture'
-import { BASE_CALL, callFile, files, JOB, ok, promptsPass, resultText, scripted, seededBook } from './act-kit'
+import { BASE_CALL, callFile, files, JOB, ok, plannedAll, promptsPass, resultText, scripted, seededBook } from './act-kit'
 import type { Scripted } from './act-kit'
 import { jsonField } from './binary'
 import { openJobIn } from '../book/jobs'
@@ -185,7 +185,7 @@ test('rex_merge answers each key of the shared tools table, merged or waiting on
     { argv: ['git', '-C', ROOT, 'push', 'origin', `${branch}:refs/heads/main`], answer: ok() },
     { argv: ['git', '-C', ROOT, 'rev-parse', branch], answer: ok('c1\n') },
   ]
-  world(on, { seed: mergeBook(), processAnswer: scripted([...gitCalls(branch), ...push, ...gitCalls(`rex/${TREE_JOB}`)]) })
+  world(on, { seed: plannedAll(mergeBook()), processAnswer: scripted([...gitCalls(branch), ...push, ...gitCalls(`rex/${TREE_JOB}`)]) })
   await $.session.start(START)
 
   const merged = await $.tool.call({ tool: 'mcp__super-rex__rex_merge' })

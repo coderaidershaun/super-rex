@@ -2,7 +2,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
-import { answerQuestion, errorText, fail, isOpen, readBook, setVersions } from '../book/index'
+import { answerQuestion, bandJob, errorText, fail, readBook, setVersions } from '../book/index'
 import type { RexBook, RexJob } from '../../types'
 import type { Parts } from '../parts'
 import { DECISIONS_VIEW } from './decisions'
@@ -12,12 +12,6 @@ import { HEADER_VIEW, JOBS_VIEW, jobRuns, maxDepth, QUESTIONS_VIEW, TREE_VIEW, u
 export const PANE_ID = 'rex'
 
 const viewAtom = atom({ plugin: 'super-rex', key: 'view' } as const, 'jobs')
-
-/** The job the band speaks of: the main loop's open job, else the newest open job of the session. */
-function bandJob(book: RexBook): RexJob | undefined {
-  const open = book.jobs.filter(job => isOpen(job) && job.owner.session === book.session)
-  return open.find(job => job.owner.builder === 'main') ?? [...open].sort((a, b) => b.createdAt - a.createdAt)[0]
-}
 
 export function bandLine(book: RexBook, job: RexJob): string {
   const runs = jobRuns(book, job)
@@ -101,9 +95,9 @@ export function register(on: On, parts: Parts): void {
     }
     const elements = { Box, Text, Button }
     return drawPane({ elements, book, columns: e.props.bodyColumns, actions: { answer }, views: parts.paneViews.entries(), chosen, choose })
-  }).catch(($, _e, next) => {
+  }).catch(($, e, next) => {
     recordDrawFailure($, 'Pane', next.error.message ?? next.error.kind)
-    const { Text } = $.ui.resolve(_e)
+    const { Text } = $.ui.resolve(e)
     return <Text dimColor>rex: the pane could not be drawn ({next.error.message ?? next.error.kind})</Text>
   })
 }

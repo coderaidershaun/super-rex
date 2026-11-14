@@ -244,7 +244,7 @@ function rex(args: string, origin: PromptOrigin = { kind: 'composer' }): Command
   return { command: 'rex', args, origin, presentation: { isFullscreen: false, columns: 120 } }
 }
 
-test('/rex limit shows and sets a limit from the person only, and refuses an amount out of range', async ($, on) => {
+test('/rex limit shows and sets a limit from the person only, and refuses an amount out of range or a job it does not know', async ($, on) => {
   files(on, {})
   const session = world(on, { seed: seededBook() })
   await $.session.start(START)
@@ -253,12 +253,16 @@ test('/rex limit shows and sets a limit from the person only, and refuses an amo
   const refused = await $.command.run(rex(`limit ${JOB} 25`, { kind: 'sdk' }))
   const bad = await $.command.run(rex(`limit ${JOB} 9000001`))
   const set = await $.command.run(rex(`limit ${JOB} 25`))
+  const unnamed = await $.command.run(rex('limit'))
+  const unknown = await $.command.run(rex('limit 0gaq829999 25'))
 
   expect(shown.text).toBe(`job=${JOB}\nspent_usd=0.00\nlimit_usd=10.00\nlimit_source=default\n`)
   expect(refused.text).toBe('rex limit: only your own typing may run this, got origin sdk')
   expect(bad.text).toBe('rex limit: 9000001 is not an amount from 0 to 9000000 dollars, got 9000001')
   expect(set.text).toBe(`job=${JOB}\nspent_usd=0.00\nlimit_usd=25.00\nlimit_source=set\n`)
   expect(session.book().jobs[0]?.limit).toEqual({ nano: 25_000_000_000, source: 'set' })
+  expect(unnamed.text).toBe('rex limit: needs the id of a job, got none; name a job of /rex jobs')
+  expect(unknown.text).toBe('rex limit: no job 0gaq829999 in this session, got 0gaq829999; name a job of /rex jobs')
 })
 
 test('a gate check another module adds stands in the table, and its closed hook refuses when it throws', async ($, on) => {

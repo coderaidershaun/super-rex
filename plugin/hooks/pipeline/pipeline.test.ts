@@ -114,6 +114,36 @@ test('an agent that started without its parts gets them late from rex_skill with
   expect(session.book().runs.find(each => each.agentId === 'a1')?.assembled).toBe('late')
 })
 
+test('a fixed manifest that names a file of a skill attaches that file, as the builder skill writes its table', async ($, on) => {
+  const builderSkill = [
+    '# Builder',
+    '',
+    '## Fixed manifests',
+    '',
+    '| Role | Read-first skills |',
+    '| --- | --- |',
+    '| `decision-maker` | `orchestration-builder/stages/1-skills/stage.md`, `orchestration-builder/stages/2-work-breakdown/stage.md` |',
+    '| `skill-writer` | `rex-code-philosophy` |',
+    '',
+  ].join('\n')
+  files(on, {
+    ...SKILL_FILES,
+    'plugin:skills/orchestration-builder/SKILL.md': builderSkill,
+    'plugin:skills/orchestration-builder/stages/1-skills/stage.md': 'Stage one.\n',
+    'plugin:skills/orchestration-builder/stages/2-work-breakdown/stage.md': 'Stage two.\n',
+  })
+  const started = spawnsKept(on)
+  const session = world(on, { seed: seededBook() })
+  await $.session.start(START)
+
+  await $.agent.spawn(spawnInput({ description: 'decide', subagentType: 'super-rex:model-high-effort-high', prompt: AUTHOR.replace('Task: T2', 'Task: decision-maker') }))
+
+  expect(started[0]?.prompt).toMatch(
+    /^Rex-Job: 0gaq820001\nRex-Role: decision-maker\n\n<skills>\n<skill name="orchestration-builder" file="stages\/1-skills\/stage\.md" source="plugin" hash="sha256:[0-9a-f]{64}">\nStage one\.\n\n<\/skill>\n<skill name="orchestration-builder" file="stages\/2-work-breakdown\/stage\.md" source="plugin" hash="sha256:[0-9a-f]{64}">\nStage two\.\n\n<\/skill>\n<\/skills>\n\nTask: decision-maker\n/,
+  )
+  expect(session.book().runs.find(each => each.agentId === 'a1')?.skillsAttached).toEqual(['orchestration-builder'])
+})
+
 test('a role that starts before the plan gets the fixed manifest of its Task line, and any other pre-plan agent gets no skills block', async ($, on) => {
   const builderSkill = '# Builder\n\n## Fixed manifests\n\n| Role | Read-first skills |\n| --- | --- |\n| decision-maker | `rex-code-philosophy` |\n'
   files(on, { ...SKILL_FILES, 'plugin:skills/orchestration-builder/SKILL.md': builderSkill, 'plugin:library/rex-code-philosophy/SKILL.md': 'Grug.\n' })

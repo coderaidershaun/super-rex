@@ -54,6 +54,21 @@ export function openJobs(book: RexBook): readonly RexJob[] {
   return book.jobs.filter(job => isOpen(job) && job.owner.session === book.session)
 }
 
+/** The open job the main loop builds in this session, if it builds one. */
+export function mainJob(book: RexBook): RexJob | undefined {
+  return openJobs(book).find(job => job.owner.builder === 'main')
+}
+
+/** The session's open job that was made last, if any is open. */
+export function newestOpenJob(book: RexBook): RexJob | undefined {
+  return openJobs(book).reduce<RexJob | undefined>((newest, job) => (newest === undefined || job.createdAt > newest.createdAt ? job : newest), undefined)
+}
+
+/** The job the band and `/rex status` speak of: the main loop's open job, else the session's newest open job. */
+export function bandJob(book: RexBook): RexJob | undefined {
+  return mainJob(book) ?? newestOpenJob(book)
+}
+
 export function findJob(book: RexBook, id: string): RexJob | undefined {
   return book.jobs.find(job => job.id === id)
 }

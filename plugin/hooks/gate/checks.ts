@@ -2,12 +2,12 @@
 import type { AgentSpawnInput } from 'claude-code'
 
 import type { RexBook, RexJob, RexRun } from '../../types'
-import { isOpen } from '../book/index'
+import { openJobs } from '../book/index'
 
 /** The job a loop works for: the open job it owns, else its run's job; the main loop's own job when `agentId` is absent. */
 export function jobOfLoop(book: RexBook, agentId: string | undefined): RexJob | undefined {
   const builder = agentId ?? 'main'
-  const owned = book.jobs.find(job => isOpen(job) && job.owner.session === book.session && job.owner.builder === builder)
+  const owned = openJobs(book).find(job => job.owner.builder === builder)
   if (owned !== undefined || agentId === undefined) {
     return owned
   }
@@ -24,7 +24,8 @@ export function isOwnSpawn(book: RexBook, event: AgentSpawnInput, origin: string
   return origin === 'super-rex' && event.parentAgentId === undefined && book.pendingSpawns.some(spawn => spawn.description === event.description)
 }
 
-function dollars(nano: number): string {
+/** A sum of nano-dollars as dollars and cents, as the person sets and reads limits. */
+export function dollars(nano: number): string {
   return (nano / 1e9).toFixed(2)
 }
 

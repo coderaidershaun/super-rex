@@ -1,6 +1,6 @@
 // Injection canaries of the master: a master starts only from the person's own /rex master, and no caller but the master starts a builder.
-// The kit runs only files named *.test.ts, so these wait for the master module; rename this file to master.test.ts when it lands.
-import { expect, test } from 'claude-code/testing'
+// Each test starts from an empty plugin store, so the policy is the default one: no master from a headless prompt.
+import { expect, mock, test } from 'claude-code/testing'
 import type { AgentSpawnInput, CommandRunInput, PromptOrigin } from 'claude-code'
 
 import { ROOT, world } from '../../hooks/book/kit'
@@ -25,6 +25,7 @@ function rex(args: string, origin: PromptOrigin): CommandRunInput {
 
 test('canary: /rex master from any origin but the person starts no master and opens no tree', async ($, on) => {
   files(on, {})
+  mock.store(on, {})
   promptsPass(on)
   const spawned: AgentSpawnInput[] = []
   on('agent.spawn', (_$, e) => {
@@ -46,6 +47,7 @@ test('canary: /rex master from any origin but the person starts no master and op
 
 test('canary: rex_build from the main loop or an agent starts no builder', async ($, on) => {
   files(on, {})
+  mock.store(on, {})
   const spawned: AgentSpawnInput[] = []
   on('agent.spawn', (_$, e) => {
     spawned.push(e)

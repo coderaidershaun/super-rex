@@ -2,7 +2,7 @@
 
 SuperRex 0.8.0 is a Claude Code plugin with a mod inside it. In 0.7, `rex init` copied the skills and agents into each repo and registered three `rex` hooks. In 0.8, the plugin carries the skills, the library and the grid agents, and the mod does the work of the hooks. This guide moves a repo that 0.7 set up to 0.8.
 
-Do these steps once on your machine. Then, in each repo, `rex migrate` moves the store and one run of `rex init` does the rest. You do nothing by hand unless you changed a file that 0.7 installed.
+Do these steps once on your machine. Then, in each repo, one run of `rex init` does the upgrade. You do nothing by hand unless you changed a file that 0.7 installed.
 
 ## Before you start
 
@@ -33,28 +33,29 @@ You do not install the plugin by hand. `rex init` installs it in each repo.
 
 Run each command yourself, in your own shell, in the root of the main checkout. Do not ask an agent to run them: the sandbox of a session cannot write the Claude Code settings files.
 
-### 1. Move the store
+### 1. Run `rex init`
 
-0.7 kept a store in `.rex/rex.db` in every repo. Its form is version 1, and every 0.8 command except `rex init` and `rex migrate` refuses it with `error: store is version 1; run rex migrate`. Move it to version 2:
-
-```console
-$ rex migrate
-store=v2 migrated=yes jobs=12
-```
-
-`rex migrate` runs in one transaction and keeps each job. A job that a person asked for gets the origin `composer`, any other the origin `sdk`, and a spend limit that you set moves into the job. A second run changes nothing and prints `store=v2 migrated=no`. A repo with no `.rex/rex.db` skips this step.
-
-If you run `rex init --with-storage` before `rex migrate`, it does every other step, then ends with `rex init: failed: the store could not be set up: store is version 1; run rex migrate` and exit 1. Run `rex migrate`, then `rex init --with-storage` again.
-
-### 2. Run `rex init`
-
-0.7 always kept a store. In 0.8 the store is a choice. To keep recall, feedback, the cost of record and master runs, turn it on:
+0.7 always kept a store, `.rex/rex.db`. In 0.8 the store is a choice. To keep recall, feedback, the cost of record and master runs, turn it on:
 
 ```sh
 rex init --with-storage
 ```
 
-Without `--with-storage`, the record of a job lives only in the session and ends with it, and the store from step 1 stays on disk unused. You can turn storage on later with another run of `rex init --with-storage`.
+With `--with-storage`, `rex init` also moves the 0.7 store to the form of 0.8 by itself. It first copies the store to `.rex/rex.db.v1-backup`, then migrates it in one transaction, as `rex migrate` does, and keeps each job. A job that a person asked for gets the origin `composer`, any other the origin `sdk`, and a spend limit that you set moves into the job. It prints one line:
+
+```console
+rex init: .rex/rex.db migrated from version 1 to 2 (12 jobs), as rex migrate does; the version 1 store is kept in .rex/rex.db.v1-backup
+```
+
+A backup that is already there is never replaced: the next copy is `.rex/rex.db.v1-backup-2`. The backup is ignored by Git, like the store.
+
+If a row of the 0.7 store names a row that is not there, `rex init` does not migrate the store, because to carry that row over or to drop it is your choice. It does every other step, leaves the store as it was, and exits 1 with the command that lists those rows:
+
+```console
+rex init: failed: .rex/rex.db is version 1, and 1 row in it names a row that is not there, so rex did not migrate it: carrying the row over or dropping it is your choice, and dropping it loses that record; list it with: sqlite3 .rex/rex.db 'PRAGMA foreign_key_check;' then delete it or restore the store from a backup, and run rex init --with-storage again
+```
+
+Without `--with-storage`, the record of a job lives only in the session and ends with it, and the 0.7 store stays on disk unused. Every 0.8 command that reads the store refuses it with `error: store is version 1; run rex migrate`. You can turn storage on later with another run of `rex init --with-storage`, which migrates the store then.
 
 `rex init` does these things by itself:
 
@@ -98,7 +99,7 @@ rex init:   add the line /.rex/events.jsonl
 
 Make those changes in `.gitignore`. A warning never fails the run, and `rex init` exits 0. If a folder that it would look into is a symbolic link, it does not look into it, because the folder can be shared with other repos, and it says so.
 
-### 3. Commit
+### 2. Commit
 
 Commit the files that `rex init` names in its commit line. A job works in the main checkout only when it is clean:
 
@@ -108,7 +109,7 @@ git add .rex/config.json .gitignore && git commit -m "chore: move SuperRex to 0.
 
 Add `AGENTS.md` and `.pre-commit-config.yaml` too if `rex init` created or changed them. If `.rex/skills/` holds skills of your own, such as skills a job wrote, gap skills or forks that feedback made, commit them as well: 0.8 tracks them.
 
-### 4. Start a new session
+### 3. Start a new session
 
 Claude Code loads a plugin when a session starts. Start a new session in the main checkout, then run:
 
@@ -138,4 +139,4 @@ The answer starts with `doctor=ok` and ends with `mod=0.8.0`. A `problem=` line 
 | The store, always | The store only with `rex init --with-storage`. |
 | `rex watch` | `/rex watch` in the session. `rex watch` still works at a shell. |
 
-New in 0.8: `/rex status`, `/rex jobs`, `/rex doctor`, `/rex prompts`, `/rex limit`, and master runs with `/rex master`, `/rex policy` and `/rex answer` (they need storage). <!-- T9: confirm after T7 --> The [README](../README.md) describes each one.
+New in 0.8: `/rex status`, `/rex jobs`, `/rex doctor`, `/rex prompts`, `/rex limit`, and, since 0.8.1, master runs with `/rex master`, `/rex policy` and `/rex answer` (they need storage). The [README](../README.md) describes each one.

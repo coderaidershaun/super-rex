@@ -1,7 +1,7 @@
 // Records the person's prompts unchanged and adds a restatement of a job's request beside it, so the person's words stay the request.
 import type { EngineInterface, On, PromptOrigin, PromptSubmitInput } from 'claude-code'
 
-import { fail, isOpen, limitIgnoredLine, readBook, readPersonWords, recordPrompt, setLimit, setMergeAnswer } from '../book/index'
+import { fail, limitIgnoredLine, mainJob, readBook, readPersonWords, recordPrompt, setLimit, setMergeAnswer } from '../book/index'
 import type { RexBook, RexOriginKind } from '../../types'
 import type { Parts } from '../parts'
 import { missingItems, restate, restatementContext } from './restate'
@@ -56,7 +56,7 @@ async function jobStart($: EngineInterface, e: PromptSubmitInput, origin: RexOri
 /** Any other prompt of the person while the main loop owns a job: rules only, no model call. */
 async function insideJob($: EngineInterface, e: PromptSubmitInput, origin: RexOriginKind, book: RexBook): Promise<readonly string[]> {
   await recordPrompt($, { text: e.text, origin, command: e.command ?? null, restatement: null, isRecorded: book.prompts !== 'off', jobStart: null })
-  const job = book.jobs.find(each => isOpen(each) && each.owner.session === book.session && each.owner.builder === 'main')
+  const job = mainJob(book)
   if (job === undefined) {
     return []
   }

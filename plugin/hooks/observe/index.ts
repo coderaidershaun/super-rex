@@ -1,7 +1,7 @@
 // Turns what the engine reports about spawns, model requests, agent ends, permission asks and the merge dialog into changes of the live record.
 import type { On, TurnUsage } from 'claude-code'
 
-import { countPermissionAsk, endRun, errorText, fail, noteTranscript, readBook, setMergeAnswer, startRun, stepRun } from '../book/index'
+import { countPermissionAsk, endRun, errorText, fail, mainJob, noteTranscript, readBook, setMergeAnswer, startRun, stepMain, stepRun } from '../book/index'
 import type { Parts } from '../parts'
 
 /** The builder skill asks the merge question in exactly these words; any other dialog records nothing. */
@@ -66,13 +66,12 @@ export function register(on: On, _parts: Parts): void {
 
   on('turn.step', async function* ($, e, next) {
     const result = yield* next(e)
-    if (e.agentId !== undefined) {
-      try {
-        const usage = checkedUsage(result.usage)
-        await stepRun($, e.agentId, { model: e.model, effort: e.effort === undefined ? null : String(e.effort), usage })
-      } catch (error) {
-        await fail($, { kind: 'observer-failed', event: 'turn.step', module: 'observe', agentId: e.agentId, error: errorText(error) })
-      }
+    try {
+      const step = { model: e.model, effort: e.effort === undefined ? null : String(e.effort), usage: checkedUsage(result.usage) }
+      // A step with no agent id is the main loop's own; the main loop has no run, so its usage goes to the job it builds.
+      await (e.agentId === undefined ? stepMain($, step) : stepRun($, e.agentId, step))
+    } catch (error) {
+      await fail($, { kind: 'observer-failed', event: 'turn.step', module: 'observe', agentId: e.agentId ?? null, error: errorText(error) })
     }
     return result
   })
@@ -97,8 +96,7 @@ export function register(on: On, _parts: Parts): void {
       return result
     }
     const answer = fieldOf(fieldOf(output, 'answers'), MERGE_QUESTION)
-    const book = await readBook($)
-    const job = book.jobs.find(each => each.owner.builder === 'main' && each.owner.session === book.session && (each.status === 'created' || each.status === 'planned'))
+    const job = mainJob(await readBook($))
     if (job !== undefined && (answer === MERGE_YES || answer === MERGE_NO)) {
       await setMergeAnswer($, job.id, { answer: answer === MERGE_YES ? 'yes' : 'no', source: 'dialog', question: null, policyHash: null })
     }

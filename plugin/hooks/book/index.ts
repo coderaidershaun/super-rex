@@ -42,12 +42,13 @@ export {
   setRunOutput,
   setVersions,
   startRun,
+  stepMain,
   stepRun,
   tickTree,
 } from './api'
 export type { Batch, OpenedJob } from './api'
 export type { PromptRecord } from './session'
-export { isOpen, openJobs, utcText } from './events'
+export { bandJob, isOpen, mainJob, newestOpenJob, openJobs, utcText } from './events'
 export { assertNever, errorText, failureClass } from './failure'
 export type { FailureClass, RexFailure, RexFailureKind } from './failure'
 export { jobWorktree } from './jobs'

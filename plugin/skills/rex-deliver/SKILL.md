@@ -55,7 +55,7 @@ Other files. Read one only when a step sends you there:
 - `WORK_TIP`: tip of job branch before squash. Branch `$BRANCH--work` keeps it. Empty job branch: `START_COMMIT`.
 - Guard: a branch passes guard IF `git merge-base --is-ancestor <branch> "$WORK_TIP"` OR `git merge-base --is-ancestor <branch> "origin/$MAIN"` succeeds. Test before each delete.
 - Delivery object: one object per repo for `deliveries` of `rex_job_close`. See `## Result` in `rex-deliver/end.md`.
-- `$NAME` in a command: value that session holds under that name. Shell variables do not persist between tool calls. Set each one in same call, or write its value in its place.
+- `$NAME` in a command: value that session holds under that name. Shell variables do not persist between tool calls. Set each one in same call, or write its value in its place. Write a pushed branch out: the mod refuses `push origin "$BRANCH"`.
 
 ## Rules
 

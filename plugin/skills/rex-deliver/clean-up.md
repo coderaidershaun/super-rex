@@ -32,11 +32,12 @@ done
 ```
    - IF `git branch -D` prints `could not lock config file`, THEN make sure: IF `git -C "$REPO_DIR" rev-parse --verify --quiet "refs/heads/$B"` fails, THEN branch is deleted.
    - IF Git refuses because branch is checked out in a kept worktree, THEN keep branch + report it.
-5. Delete a remote branch of the job that is still in `origin/` only IF it passes the same guard. ELSE keep it and report it.
+5. Delete a remote branch of the job that is still in `origin/` only IF it passes the same guard. ELSE keep it and report it. The loop prints the guard result of each branch. Then push one delete for each `DELETE` line, with the branch name written out. The mod refuses a push whose target the shell fills in, such as `"$B"`.
 ```sh
 for B in $(git -C "$REPO_DIR" branch -r --list --format='%(refname:lstrip=3)' "origin/rex/$JOB" "origin/rex/$JOB--*"); do
-  if git -C "$REPO_DIR" merge-base --is-ancestor "origin/$B" "$WORK_TIP" || git -C "$REPO_DIR" merge-base --is-ancestor "origin/$B" "origin/$MAIN"; then git -C "$REPO_DIR" push origin --delete "$B"; else echo "KEEP origin/$B"; fi
+  if git -C "$REPO_DIR" merge-base --is-ancestor "origin/$B" "$WORK_TIP" || git -C "$REPO_DIR" merge-base --is-ancestor "origin/$B" "origin/$MAIN"; then echo "DELETE $B"; else echo "KEEP origin/$B"; fi
 done
+git -C "$REPO_DIR" push origin --delete rex/<job ID>   # once for each DELETE line, its branch name written out
 ```
    - IF push prints `could not lock config file`, THEN `git -C "$REPO_DIR" ls-remote origin "refs/heads/$B"` prints nothing = deleted.
 - [ ] Never delete: main. Each branch with no job ID in its name. Each branch or worktree that fails guard or holds uncommitted work. Each branch of a repo with no merge.

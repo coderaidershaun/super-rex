@@ -2,7 +2,7 @@
 import type { TurnUsage } from 'claude-code'
 
 import type { RexBook, RexJob, RexLintAttempt, RexRun, RexTokens } from '../../types'
-import { findJob, isOpen, NO_TOKENS, queued, replaceJob, tokensData, tokensPlus } from './events'
+import { findJob, isOpen, mainJob, NO_TOKENS, queued, replaceJob, tokensData, tokensPlus } from './events'
 import { priceNano } from './prices'
 
 export type StartRunInput = {
@@ -35,10 +35,6 @@ export function findRun(book: RexBook, agentId: string): RexRun | undefined {
 
 function replaceRun(book: RexBook, agentId: string, change: (run: RexRun) => RexRun): RexBook {
   return { ...book, runs: book.runs.map(run => (run.agentId === agentId ? change(run) : run)) }
-}
-
-function mainJob(book: RexBook): RexJob | undefined {
-  return book.jobs.find(job => isOpen(job) && job.owner.session === book.session && job.owner.builder === 'main')
 }
 
 type Place = { readonly parent: string; readonly parentSource: RexRun['parentSource']; readonly depth: number; readonly job: string | null; readonly tree: string | null }
@@ -159,11 +155,13 @@ export type StepInput = {
   readonly usage: TurnUsage | null
 }
 
-function tokensOf(usage: TurnUsage | null): RexTokens {
+/** What one step adds to a tally: its tokens and their price; a step with no usage adds nothing. */
+function tallyOf(usage: TurnUsage | null): { readonly tokens: RexTokens; readonly spent: number } {
   if (usage === null) {
-    return NO_TOKENS
+    return { tokens: NO_TOKENS, spent: 0 }
   }
-  return { input: usage.input_tokens, output: usage.output_tokens, cacheRead: usage.cache_read_input_tokens, cacheCreation: usage.cache_creation_input_tokens }
+  const tokens = { input: usage.input_tokens, output: usage.output_tokens, cacheRead: usage.cache_read_input_tokens, cacheCreation: usage.cache_creation_input_tokens }
+  return { tokens, spent: priceNano(usage) }
 }
 
 const TIER_FAMILY: { readonly [tier: string]: string } = { low: 'haiku', medium: 'sonnet', high: 'opus', xhigh: 'fable' }
@@ -184,8 +182,7 @@ export function stepRunIn(book: RexBook, agentId: string, step: StepInput, at: n
   if (run === undefined) {
     return book
   }
-  const tokens = tokensOf(step.usage)
-  const spent = step.usage === null ? 0 : priceNano(step.usage)
+  const { tokens, spent } = tallyOf(step.usage)
   const planned = run.planned ?? (GRID_AGENT.test(bareType(run.agentType)) ? bareType(run.agentType) : null)
   const mark = `ran-other:${step.model}/${step.effort ?? 'none'}`
   const isNewMark = ranOther(planned, step) && !run.marks.some(old => old.startsWith('ran-other:'))
@@ -202,6 +199,16 @@ export function stepRunIn(book: RexBook, agentId: string, step: StepInput, at: n
     changed = replaceJob(changed, run.job, job => ({ ...job, tokens: tokensPlus(job.tokens, tokens), spentNano: job.spentNano + spent }))
   }
   return isNewMark ? queued(changed, at, 'run.mark', agentId, run.job, { agent_id: agentId, mark }) : changed
+}
+
+/** A step of the main loop, which has no run: its usage goes to the open job the main loop builds in this session, so that job's limit counts the whole session's work on it, and to no job when the main loop builds none. */
+export function stepMainIn(book: RexBook, step: StepInput): RexBook {
+  const job = mainJob(book)
+  if (job === undefined) {
+    return book
+  }
+  const { tokens, spent } = tallyOf(step.usage)
+  return replaceJob(book, job.id, old => ({ ...old, tokens: tokensPlus(old.tokens, tokens), spentNano: old.spentNano + spent }))
 }
 
 export type EndInput = {

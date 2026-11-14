@@ -189,7 +189,7 @@ Start Claude Code in the main checkout and give it a request with `/super-rex:or
 4. **Agrees on the merge.** If the request does not say whether the work may be merged to main, the builder asks you one question, `Merge this job to main when its checks pass?`, with the options `Yes, merge` and `No, keep the branch`. The mod records your answer from that dialog. It also takes `merge: yes` or `merge: no` from your own prompt. No tool argument can give a merge answer.
 5. **Recalls** lessons from similar jobs and the orchestrators they used (`rex_recall`). With storage off, there is nothing to recall.
 6. **Starts a decision agent.** A sub-agent makes the decision on the grid agent that `rex oms` picks for it, so the session does not carry the rules of the three stages while it runs the job. The stages are files inside the builder's skill, `orchestration-builder/stages/`:
-   - **Stage 1, `1-skills/stage.md`:** chooses the skills for the job from the assignment table. Every task that writes code gets `rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics` and `rex-code-error-writing`, whatever its language, and tests, new files, new dependencies, retries, designs, refactors and the rest each add their own. <!-- T9: confirm after T6. The table is now data, plugin/assign/table.json, with an overlay .rex/assign.json. rex_assign applies its rules, asks the decision agent the questions of judgement, records each answer with its reason, and places at most six read-first skills by priority. --> It asks for a new skill only when a three-part test passes, and the session then has a sub-agent write it into `.rex/skills/`.
+   - **Stage 1, `1-skills/stage.md`:** chooses the skills for each task with `rex_assign`. The assignment table is data, `plugin/assign/table.json`: each row is a kind of work with its criteria, its skills, a priority and where its skills go. Every task that writes code gets `rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics` and `rex-code-error-writing`, whatever its language, and tests, new files, new dependencies, retries, designs, refactors and the rest each add their own. Code decides what a rule can decide, such as whether a task writes code or which language it uses; the decision agent answers the other criteria, yes or no, each with a reason. `rex_assign` then places the skills, at most 6 read first, by priority, and the rest as open-when skills with their case. A skill that a rule requires stays whatever the answers say. Each answer and each placed skill is recorded with its source (`rule`, `decision-agent` or `override`), its reason, and the hashes of the table and the overlay. A repo can change the table with an overlay, `.rex/assign.json`, that replaces, adds or removes rows. Stage 1 asks for a new skill only when a three-part test passes, and the session then has a sub-agent write it into `.rex/skills/`.
    - **Stage 2, `2-work-breakdown/stage.md`:** splits the request into tasks, gives each task its skills, and finds what can run in parallel. One task builds one feature whole: code is split into parallel tasks only where the files and outcomes are independent. The skills of a task are two lists: `Skills`, at most 6, which the agent gets first, and `Open when`, each with its case, which the agent opens only when its work reaches that case.
    - **Stage 3, `3-orchestration/stage.md`:** reuses an orchestrator from `.rex/orchestrators/` or writes a new one, gives each task a role, and rates the inputs that pick each role's model. It caps the sub-agents of the job by its size: 5 for a small job, 6 for a medium one, 10 for a large one, shown as `AGENTS: <count> of max <max>`.
 
@@ -238,7 +238,7 @@ In every mode the mod reads a merge answer (`merge: yes`, `merge to main: no`) a
 rex 0gaq820001 planned · 0/2 agents · $0.01/$10.00 · depth 2 · 1 question · 1 permission prompt
 ```
 
-`/rex watch` opens the pane. Its header gives the storage mode, the prompt mode, the depth and the versions of the mod, the binary and Claude Code. Its tabs are **Jobs** (phase, agents against the cap, spend against the limit, questions), **Tree** (each run under its parent, with the planned grid agent against what ran, time, tokens and cost), **Decisions** (for each skill of each task and each role rating, its source and its one-line reason) and **Questions** (each question that waits for you, with one Answer button for each option). <!-- T9: confirm after T6 that the Decisions tab shows the source and reason that rex_assign recorded. -->
+`/rex watch` opens the pane. Its header gives the storage mode, the prompt mode, the depth and the versions of the mod, the binary and Claude Code. Its tabs are **Jobs** (phase, agents against the cap, spend against the limit, questions), **Tree** (each run under its parent, with the planned grid agent against what ran, time, tokens and cost), **Decisions** (for each skill of each task and each role rating, the source and the reason that `rex_assign` recorded), **Questions** (each question that waits for you, with one Answer button for each option) and **Master** (each master tree with its state, pinned policy and spend, the jobs its master built and the decisions it noted).
 
 ### The `/rex` command
 
@@ -252,9 +252,9 @@ rex 0gaq820001 planned · 0/2 agents · $0.01/$10.00 · depth 2 · 1 question ·
 | `/rex doctor` | no | The output of `rex doctor`, then `mod=<plugin version>`. |
 | `/rex prompts <off\|observe\|improve>` | yes | Sets the prompt mode. |
 | `/rex limit <job> [usd]` | yes | Shows a job's spend and limit, or sets the limit (source `set`). An amount must be a number from 0 to 9,000,000. |
-| `/rex master <goal>`, `/rex master @<file>`, `/rex master resume` | yes | Starts a master, or resumes one. See "Master runs". <!-- T9: confirm after T7 --> |
-| `/rex policy [show\|confirm\|set <key> <value>]` | yes | Shows, confirms or changes the master policy of this repo. <!-- T9: confirm after T7 --> |
-| `/rex answer <question id> <option>` | yes | Answers a question that waits for you. <!-- T9: confirm after T7 --> |
+| `/rex master <goal>`, `/rex master @<file>`, `/rex master resume` | yes | Starts a master tree from your goal or a charter file, or resumes one. See "Master runs". |
+| `/rex policy [show\|confirm\|set <key> <value>]` | yes | Shows, confirms or sets what a master may decide as you in this repo. |
+| `/rex answer <question id> <option>` | yes | Answers a parked question as you. |
 
 ### The tools
 
@@ -263,55 +263,63 @@ The skills call these tools. Their full names are `mcp__super-rex__rex_<name>`. 
 | Tool | Who may call it | What it does |
 | --- | --- | --- |
 | `rex_skill` | any agent | Gives one file of a skill by name (`SKILL.md` by default), with its source and hash. With no name, it gives the parts of the caller's brief that are missing. |
-| `rex_status` | any agent | Where a job stands: status, phase, origin, open and finished agents, spend and limit, degraded marks, then the answers to its questions and, for a delivered job, `merge_commit=` and `output=`. <!-- T9: confirm after T7: the question, answer, done, merge_commit, output, tree and job sections. --> |
+| `rex_status` | any agent | Where a job stands: status, phase, origin, open and finished agents, spend and limit, degraded marks, then `question.<id>=parked` or `answered` and `answer.<id>=<option>` for its questions, the `decision.<task or role>.<item>=<source>: <placement>; <reason>` lines that `rex_assign` recorded, its tree, and for a delivered job of a tree `merge_commit=`, `output=` and the `done.<check>=` lines. A master gets the lines of its whole tree: `tree_state=`, its spend and cap, and `job.<id>.status=` and `job.<id>.builder=` for each job. |
 | `rex_job_open` | the builder, and the main session only after your prompt started a job | Opens the job, or gives the open one with `existing=yes`. |
 | `rex_recall` | the builder | The output of `rex recall` for the job; `recall=off` with storage off. |
 | `rex_job_plan` | the builder | Records the plan and gives the grid agent of each role. It works once; a second call needs `amend: true`. |
 | `rex_job_close` | the builder | Records the outcome and gives the close report: spend, runs, skills a role was given and never opened, extra skills, long final messages, briefs that were not assembled, degraded marks, and with storage on the cost of record. Safe to repeat. A `merged` delivery is refused unless `rex_merge` merged that job. |
 | `rex_merge` | the builder | Merges the job: see "Delivery". |
-| `rex_assign` | the builder, and the decision agent of the job | Applies the rules of the assignment table, asks the questions of judgement, takes the answers with reasons, and gives the skills of each task and the grid agent of each role. <!-- T9: confirm after T6 --> |
-| `rex_build` | the master | Checks the policy, opens a job and starts its builder. <!-- T9: confirm after T7 --> |
-| `rex_continue` | the master | Wakes the builder of a job with a message. <!-- T9: confirm after T7 --> |
-| `rex_note` | the master | Writes a note on the tree or a job. <!-- T9: confirm after T7 --> |
-| `rex_ask_owner` | the master | Parks a question for you, with 2 to 4 options and a recommendation, and returns at once. <!-- T9: confirm after T7 --> |
+| `rex_assign` | the builder, and the decision agent of the job | Applies the rules of the assignment table and gives `questions=<n>` with one `question.<n>=` line for each criterion that needs judgement. Called again with the answers, each `yes` or `no` with a reason, it gives the skills of each task (`task.<id>.skills=`, `task.<id>.open_when.<skill>=`), the source of each, and the grid agent of each role. An assignment that was answered before gives the stored answer. |
+| `rex_build` | the master of a running tree | Opens one job of the tree and starts its builder in the job's own worktree, with the fixed builder brief and the request. It is refused over the policy: the spend of the tree, the rate limit, the job counts, the consequence. It answers `job`, `builder`, `status=created` and `worktree`. |
+| `rex_continue` | the master | Sends a message to the builder of one job of the tree and wakes it, as the answer to its question or to go on. |
+| `rex_note` | the master | Records one decision of the master in the tree: what it decided, why, and the option it did not take. |
+| `rex_ask_owner` | the master | Parks a question for you, with 2 to 4 options, a recommendation and a category (`merge`, `scope`, `spend` or `other`), and returns at once with `question=<id>` and `state=parked`. |
 
 ## Master runs
 
-<!-- T9: confirm after T7. This whole section is written from contract C9; check each name, refusal text and policy key against the built master module. -->
-
 A master acts as you over a longer goal: it splits the goal into jobs, starts a builder for each, follows them, and asks you only what the policy does not settle. Master runs need storage: run `rex init --with-storage` first.
 
-**Start one** with `/rex master <goal>`, or `/rex master @<file>` to give a charter file. Only your own typing starts a master. A headless `claude -p` run is refused unless the policy sets `allow_headless: true`. The mod stores the goal unchanged as the **charter**, adds a restatement below it, and starts the master itself, so no model writes the master's prompt and no agent can start a master. Before it starts, the mod checks, in this order, and stops at the first that fails:
+**Start one** with `/rex master <goal>`, or `/rex master @<file>` to give a charter file from the repo. Only your own typing starts a master. A headless `claude -p` run is refused unless the policy sets `allow_headless: true`:
 
-1. Storage is on.
-2. `rex --version` equals the plugin's version.
-3. The depth is at least 4.
-4. A headless run has `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`, or background agents stop after 10 minutes.
-5. A headless run uses `bypassPermissions`, or every allow rule of the policy's `required_allow` is in your settings. In `-p`, a permission ask is a deny.
-6. The policy of the repo is confirmed. The first interactive run asks you two questions (merge: never, ask or allowed if checks pass; parallel builders: 1, 2, 3 or auto) and stores the answers.
+```
+rex master: only your own typing may run this, got origin sdk
+```
 
-**How it works.** The master has no Agent tool. It acts only through `rex_build`, `rex_status`, `rex_continue`, `rex_note`, `rex_ask_owner` and `rex_skill`, and it reads output files. `rex_build` checks the policy, opens a job in its own worktree, and starts a builder on the grid agent that `rex oms` gives for the job's ratings, capped at the policy's `tier_cap`, with a fixed brief. Depth under a master: master and builder at 1, decision agent, challenger and leads at 2, workers at 3, a worker's own fan-out at 4. A `depends_on` job must be delivered before a build starts, and `rex_merge` holds a job until each of its `merge_after` jobs is merged.
+The mod stores the goal unchanged as the **charter**, and starts the master itself: its first prompt is the charter as you wrote it, then a reading of the charter by another model, marked as such. No model writes the master's prompt, and no agent can start a master, because the master type is hidden from every agent. Before it starts, the mod checks these, and the first that fails is the whole answer:
 
-**The policy** lives outside the working folders, in the plugin's own store in your Claude Code folder, keyed by the repo, so no agent can edit it. The mod pins its hash when the master starts. `/rex policy set` changes it and pauses a running tree until you run `/rex policy confirm`. The keys:
+| Check | Refusal |
+| --- | --- |
+| Storage is on. | `rex master: needs storage; run rex init --with-storage` |
+| `rex --version` equals the plugin's version. | `rex master: binary <v> does not match plugin <v>; run rex doctor` |
+| The depth is at least 4. | `rex master: depth is <n>; run rex init (it writes 4)` |
+| A headless run has `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0`. | `rex master: headless runs need CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0, or background agents stop after 10 minutes` |
+| The policy of the repo is confirmed. The first interactive run asks you two questions, `How may a master of this repo merge a job?` (`never`, `ask` or `allowed_if_checks_pass`) and `How many builders may run at once?` (`1`, `2`, `3` or `auto`), and stores and confirms the answers. | Headless: `rex master: no confirmed policy for this repo; run /rex policy confirm in an interactive session` |
+| A headless run uses `bypassPermissions`, or every allow rule of the policy's `required_allow` is in your settings, because in `-p` each permission ask is a deny. This is checked when the master starts. | `rex master: headless mode <mode> asks no one, so each ask is a deny; run with bypassPermissions or list allow rules in policy required_allow, got <missing>` |
+
+When it starts, `/rex master` answers `tree=<tree id>` and `master=<agent id>`.
+
+**How it works.** The master has no Agent tool. Its tools are `Read` (for the jobs' reports), `ToolSearch`, `rex_build`, `rex_status`, `rex_continue`, `rex_note`, `rex_ask_owner` and `rex_skill`, and it follows the procedure in `orchestration-builder/master/procedure.md`. It runs on the policy's `master_model` (default `opus`) at high effort. `rex_build` checks the policy, opens a job, makes the job's worktree with `rex worktree add`, and starts a builder on the grid agent that `rex oms` gives for the job's ratings, capped at the policy's `tier_cap`, with the fixed brief of `orchestration-builder/master/builder.md`. The charter's constraints go into every brief of the tree. Depth under a master: master and builder at 1, decision agent, challenger and leads at 2, workers at 3, a worker's own fan-out at 4. A job of `depends_on` must be delivered before a build starts (`rex_build: depends_on job <id> is not delivered, got <status>; build this job after that one delivers`), and `rex_merge` holds a job until each job of its `merge_after` is merged. The gate checks `tree-ledger` (the spend of the tree against `tree_usd`), `rate-limit-pause` and `max-jobs` stand before each `rex_build`, and `policy-merge` before each `rex_merge` of a tree job. Each of them refuses when it fails.
+
+**The policy** lives outside the working folders, in the plugin's own store in your Claude Code folder, keyed by the repo, so no agent can edit it. The mod pins its hash when the master starts. `/rex policy show` prints each key as a `key=value` line, and `/rex policy set <key> <value>` changes one (a value that is JSON, such as a number, a list or `true`, is read as JSON). A changed policy pauses a running tree: `rex_build` and `rex_merge` are refused with `rex: policy changed since this master started, got hash <new>; confirm it with /rex policy confirm`. `/rex policy confirm` in the same session pins the new hash and runs the tree again, with its master and builders. The keys, with their defaults:
 
 | Key | What it does |
 | --- | --- |
-| `merge`, `merge_max_consequence` | `never`, `ask` or `allowed_if_checks_pass`. With `allowed_if_checks_pass`, a job at or under `merge_max_consequence` gets the merge answer `yes` from the policy. |
-| `merge_checks` | Commands that must exit 0 in the job's worktree before a merge that the policy allowed. `allowed_if_checks_pass` with no checks is refused. |
-| `always_ask_paths` | Globs. A diff that touches one turns a policy answer into a question for you. |
-| `per_job_usd`, `raise_limits`, `tree_usd` | The limit of each job, whether a limit may be raised (`never`, `ask`, `allowed`), and the cap of the whole tree. |
-| `max_jobs`, `max_parallel_builders`, `consequence_ceiling` | How many jobs, how many builders at once (`auto`: 1 for a large job, 2 for a medium one, 3 for a small one) and the highest consequence a job may have. |
-| `repos` | The repos `rex_build` may name besides the session's own. |
-| `pause_at_rate_limit_pct` | New builders wait when plan usage nears this share of its limit. |
-| `allow_headless`, `master_model`, `tier_cap`, `on_dead_builder`, `watchdog_minutes`, `stuck_ticks`, `retry`, `required_allow` | Headless masters, the master's model (default `opus`), the highest tier of a builder (default `high`), what resume does with a builder that is gone (`ask` or `continue`), and the watchdog and retry schedule. |
+| `merge`, `merge_max_consequence` | `never`, `ask` (default) or `allowed_if_checks_pass`, and `medium`. With `allowed_if_checks_pass`, a job at or under `merge_max_consequence` gets the merge answer `yes` from the policy; with `never`, `no`; with `ask`, none, so `rex_merge` parks a merge question for you. |
+| `merge_checks` | Commands, each a list of words, that must exit 0 in the job's worktree before a merge that the policy allowed. `allowed_if_checks_pass` with no checks is refused. Default none. |
+| `always_ask_paths` | Globs, default `contracts/**`, `infra/**` and `**/*.env*`. A diff that touches one turns a policy answer into a question for you. |
+| `per_job_usd`, `raise_limits`, `tree_usd` | The limit of each job (default none: the default limit of its size and budget), whether a limit may be raised, and the cap of the whole tree (default $150). With `raise_limits: allowed`, a job at its limit gets it doubled once, up to the tree's cap; with `ask` (default), the mod parks a question with the options `Raise` and `Keep the limit`; with `never`, the job stops at its limit. |
+| `max_jobs`, `max_parallel_builders`, `consequence_ceiling` | How many jobs (default 8), how many builders at once (default `auto`: 1 for a large job, 2 for a medium one, 3 for a small one) and the highest consequence a job may have (default `high`). |
+| `repos` | The repos `rex_build` may name besides the session's own (default `.`). |
+| `pause_at_rate_limit_pct` | New builders wait when plan usage reaches this share of its limit (default 85). |
+| `allow_headless`, `master_model`, `tier_cap`, `on_dead_builder`, `watchdog_minutes`, `stuck_ticks`, `retry`, `required_allow` | Headless masters (default `false`), the master's model (default `opus`), the highest tier of a builder (default `high`), what resume does with a builder that is gone (`ask`, the default, or `continue`), the watchdog period (30 minutes) and the ticks of flat spend that make a builder stuck (3), the retry schedule (`first_minutes` 2, `first_tries` 3, `then_minutes` 10, `max_tries` 12), and the allow rules a headless master needs. |
 
-**Questions.** `rex_ask_owner` parks a question and returns at once, so the master goes on with other jobs. The question shows in the band and as a row of the pane with an Answer button for each option, and, when you are idle at the terminal, as a dialog. Answer it in the pane, in the dialog or with `/rex answer <id> <option>`. The master reads the answer through `rex_status`. In `-p`, a job whose question is not answered when the session ends is `blocked`.
+**Questions.** `rex_ask_owner` parks a question and returns at once, so the master goes on with other jobs. The mod parks questions of its own too: a merge question, a spend question, and a question when a job is blocked. Each shows in the band and as a row of the pane with an Answer button for each option, and, in an interactive session, also as a dialog. Answer it in the pane, in the dialog or with `/rex answer <id> <option>`. The master reads the answer through `rex_status` (`answer.<id>=<option>`), and the mod wakes it to read it. A wrong answer changes nothing, for example `rex answer: <option> is not an option of <id>, got <option>; one of <options>`. A message to the master from anyone but its own builders and the mod is refused: `rex: only this master's builders and the mod may message the master`. In `-p`, a job whose question is not answered when the session ends is `blocked`.
 
-**Unattended.** A watchdog wakes a builder whose spend stays flat for `stuck_ticks` ticks, and retries a builder that ended with an API error on a fixed schedule (2 minutes three times, then 10 minutes, at most 12 tries) before the job is `blocked`. When a job of the tree closes `delivered`, the mod checks that the merge commit is on the remote base, that the local base is current, that no branch or worktree of the job is left, that the output file exists, and runs `merge_checks` on the base. Each check shows as `done.<check>=pass|fail|not-set` in `rex_status`.
+**Unattended.** Each `watchdog_minutes`, a watchdog looks at each open job of the tree. A builder whose run is open and whose job's spend stayed flat for `stuck_ticks` ticks is woken with `Continue job <id> from the first step not done.` After 2 such wakes, the job is `blocked`, and the mod parks the question `Job <id> is blocked: … What should the master do?` with the options `Build it again` and `Leave it blocked`. A builder that ended on an API error is woken again on the `retry` schedule (by default 2 minutes three times, then 10 minutes, at most 12 tries), and then the job is `blocked` with the same question. When a builder ends, the mod wakes the master. When a job of the tree closes `delivered`, the mod checks it in the job's repo and records each check as `done.<check>=pass|fail|not-set` in `rex_status`: `fetched`, `merged` (the merge commit is on `origin/<base>`), `base_current`, `branches_gone`, `worktrees_gone`, `output_exists` (the job's report file), and `checks_on_base` (`merge_checks` on the base; `not-set` with none). A `fail` keeps the job's step open, and the master decides.
 
-**Resume.** `/rex master resume` in a new session rebuilds the tree and its jobs from the store, brings back the questions that wait, and starts a new master with the charter and a digest. A job whose builder is gone gets a new builder (`on_dead_builder: continue`) or a question for you (`ask`).
+**Resume.** `/rex master resume` in a new session reads the newest open tree from the store (`rex tree show --json`), puts back the tree, its jobs and the questions that wait, and starts a new master with the charter and a digest of the restart. A job whose builder is gone gets a new builder in the same worktree (`on_dead_builder: continue`), or the question `The builder of job <id> ended with the last session. Start a new builder for it?` (`ask`). It refuses while the tree's master still runs in this session (`rex master resume: tree <id> is live in this session, got master <agent id>; use /rex policy confirm`), and when the store holds no open tree (`rex master resume: no open tree in the store of this repo, got none; start one with /rex master <goal>`).
 
-**The final report.** When the master ends its last turn and every job of the tree is closed, the mod writes its final answer to `.rex/plans/<tree id>/final-report.md`: the result, the evidence, and what was not run, not proven or not built.
+**The final report.** When the master ends its last turn and every job of the tree is closed, the mod writes `.rex/plans/<tree id>/final-report.md` and closes the tree. The report holds one line for each job (its status, request, merge commit, report file, done check and outcome) and the master's final answer, which the procedure asks to give the result, the evidence, and each item `not run`, `not proven` or `not built`, with the reason.
 
 ## The commands
 
@@ -319,7 +327,7 @@ A master acts as you over a longer goal: it splits the goal into jobs, starts a 
 
 **`rex init [--with-storage] [--depth <levels>] [--plugin-source <path or owner/repo>] [--strict]`**: set SuperRex up in a repo. See above.
 
-**`rex migrate`**: move a store of version 1, which the previous release made, to version 2, in one transaction. Every other command refuses a version 1 store with `error: store is version 1; run rex migrate` and exit 2. Each job is kept: a job asked by a person gets the origin `composer`, any other `sdk`, and a spend limit that was set moves into the job.
+**`rex migrate`**: move a store of version 1, which the previous release made, to version 2, in one transaction. Every other command refuses a version 1 store with `error: store is version 1; run rex migrate` and exit 2. `rex init --with-storage` runs the same migration itself, after a backup, so you rarely need this command. Each job is kept: a job asked by a person gets the origin `composer`, any other `sdk`, and a spend limit that was set moves into the job.
 
 ```console
 $ rex migrate
@@ -686,18 +694,48 @@ The skill library:
 - `rex smells` reads Rust files only.
 - The binary still has `rex watch`; the pane of `/rex watch` will replace it.
 
-### Not proven live
+### What the live runs showed, and what they did not
 
-These parts are built and have tests, but no live run has shown them yet. <!-- after T8: replace this list with each `not proven live` line of PLAN/proof.md. -->
+Headless sessions on Sonnet with the plugin ran the builder end to end, with storage on and with storage off. Each opened a job, ran the decision agent and the challenger, had a brief sent back once by the check, planned, made the fix in a job worktree, merged it with `rex_merge` to a bare remote, and closed the job `delivered`. A session without the plugin stopped at step 1. The mod's token tally for the Opus runs of one session was equal to Claude Code's own count, token for token and to the nanodollar.
 
-- That the prompt origins `composer` (your typing) and `bridge` (Remote Control) reach the mod as Claude Code's documentation says.
-- That the book survives a reload of the plugin in an interactive session.
+**Not proven live.** These parts pass their tests, but no live run has shown them:
+
+- The master in a real session: `/rex master` and its pre-flight, `rex_build` and the builder link, questions, the watchdog, the done check, resume and the final report. All of it passes in the mod's tests only.
+- That the mod's own start of the master or a builder reaches Claude Code's spawn hooks in the form the master module expects.
+- That a running session picks up a worktree that `rex worktree add` lists in `permissions.additionalDirectories` after the session started, so that a sandboxed `git commit` works there. The live runs listed the paths, but their own sandbox could not start inside the sandbox they ran in, so this rests on Claude Code's code.
+- The fast-mode rates in the mod's live tally: a step does not say whether it ran in fast mode, so the tally prices each step at the standard rate. The cost of record, from the transcripts, is not affected.
+- That a `.catch` of a hook that answers a refusal refuses: the closed checks of the mod refuse inside the hook instead, and the `.catch` form is shown in the tests only.
+- The pane, the band, the dialog of `$.ui.ask` and the permission prompts in an interactive session.
+- That the prompt origins `composer` (your typing) and `bridge` (Remote Control) reach the mod as Claude Code's documentation says, that the book survives a reload of the plugin, the transcript paths of Claude Code's classic hook events, that `$.settings.read` gives the merged allow list for the headless permission check of a master, and that a skill typed by its bare name is taken as a job start.
 - That `claude plugin marketplace add` and `claude plugin install --scope project` work as `rex init` runs them, and that a project-scope install records the plugin in `.claude/settings.json`. The tests use a stand-in `claude`.
-- The dialog of `$.ui.ask` in a live terminal, the permission prompts of the interactive modes, and the pane and the band in a live terminal.
-- That a running session picks up a change of `permissions.additionalDirectories` without a restart, so that a worktree that `rex worktree add` lists is writable at once. This comes from Claude Code's code.
-- That `$.settings.read` gives the merged allow list for the headless pre-flight of a master. <!-- after T7 -->
 - Linux without `bwrap` or `socat`: only the detection is tested. `sandbox.failIfUnavailable: true` was not tested on any system, and neither was the trivy cache path on Linux.
 - A main branch that needs a person's approval.
+
+**Not run.** These could not run inside the sandbox of the agent that tested this release. You can run them yourself:
+
+- A master run of two jobs in `-p` in which one job must ask you, so that the run ends `blocked`. It needs a policy that you confirm yourself. In a scratch repo after `rex init --with-storage`, run `/rex policy set allow_headless true`, `/rex policy set always_ask_paths ["LICENSE"]` and `/rex policy confirm` in an interactive session, then:
+
+  ```sh
+  CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0 claude -p '/rex master Two jobs. Job 1: fix the spelling of "recieve" in NOTES.md. Job 2: add the line "Copyright the authors." to the end of LICENSE. Each job merges to main when its checks pass.' --model sonnet --permission-mode bypassPermissions
+  ```
+
+  Job 1 merges (`merged=yes`). Job 2 parks a merge question (`merged=no`, `question=<id>`) and is `blocked` when the session ends.
+- The cost of record of a live run. The nested sessions could not write their transcripts, so `rex job show` gave no tokens for them.
+- The five eval cases in `plugin/evals/`: `smoke-mod-answers`, `canary-notes-ask-for-a-job`, `builder-small-fix-storage-on`, `builder-small-fix-storage-off` and `master-two-jobs-one-escalates`. Each loads, but a run cannot start inside a sandbox. Run one from your own shell in the repo root, with this `rex` first on `PATH`, for example:
+
+  ```sh
+  claude plugin eval plugin --case smoke-mod-answers --ablation none --runs 1 --model sonnet --judge-model sonnet --scaffold --allow-tools mcp__super-rex__rex_status --no-publish
+  ```
+
+  The master case also needs the confirmed policy above, and `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=4` and `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0` in the shell.
+- Resuming a finished sub-agent with `SendMessage`, which needs its transcript. The builder's fallback, a new decision agent, worked in both runs.
+
+**Not built.**
+
+- The done check does not look for a commit of the job's branch on the base that `rex_merge` did not record. `rex_merge` itself refuses a merge outside it.
+- The report file of a brief is the lowest free name among the runs that the book knows, so a file that an earlier session of the same job left can get a second report.
+- The tier text that the mod adds to briefs is a hand copy of the four files of `rex-agent-prompting`, not one generated from them.
+- The mod's check for a merge reads only the text of a command. A push that the text does not hold (a script, a git alias, a program that pushes by itself, a remote's `push` setting) or a tool other than `Bash` and `Monitor` that runs code is not seen. Your Git host is the boundary (see "Branch protection").
 
 ## Development
 
@@ -705,7 +743,9 @@ Build with `cargo build` and test with `cargo test`. The Rust tests live in thre
 
 The mod is TypeScript below `plugin/hooks/`. Check it with `tsc -p plugin`, test it with `claude plugin test plugin`, and check the plugin with `claude plugin validate --strict plugin`. Run a session on the working copy with `claude --plugin-dir plugin`, or set this repo up with `rex init --plugin-source .`. The seams between the mod and the binary are files in `fixtures/shared/`: each call the mod makes to `rex`, with its expected output, and the tables both sides use. A Rust test runs the binary on each file, and a kit test checks the mod's side against the same file. `plugin/hooks/book/shared.ts` is a copy that `python3 scripts/gen-shared-fixtures.py` writes; `--check` fails when it is out of date.
 
-This repo has no CI service. Its checks are git hooks in `.pre-commit-config.yaml`; run `pre-commit install` once to set up both hooks. At commit: the file checks and trivy. At push: `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo check` with the oldest Rust that `Cargo.toml` claims (the hook installs that Rust when it is missing), and `cargo package`, with the tests run again from inside the package. <!-- after T8: add the pre-push checks of the mod (tsc -p plugin, claude plugin test plugin) and scripts/check-claude-release.sh. --> The push checks run on the work tree, not on the commits being pushed, so push from the branch that is checked out.
+This repo has no CI service. Its checks are git hooks in `.pre-commit-config.yaml`; run `pre-commit install` once to set up both hooks. At commit: the file checks and trivy. At push: `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo check` with the oldest Rust that `Cargo.toml` claims (the hook installs that Rust when it is missing), and `cargo package`, with the tests run again from inside the package. For the mod, at commit and at push, a check that `plugin/hooks/book/shared.ts` equals `fixtures/shared`; at push, `tsc` of the mod and of its evals, and `claude plugin test plugin`. The push checks run on the work tree, not on the commits being pushed, so push from the branch that is checked out.
+
+Run `scripts/check-claude-release.sh` when a new Claude Code comes out. It type-checks the mod and its evals, checks the shared copy, and runs `claude plugin validate --strict plugin` and `claude plugin test plugin`. `--renew-types` first copies the declarations of the Claude Code on `PATH` over `typings/claude-code/index.d.ts`. The committed file stays at the oldest Claude Code the plugin supports (2.1.323), so put it back after the checks with `git checkout -- typings/claude-code/index.d.ts`. `--live` also runs one headless session on Sonnet with this plugin and this tree's `rex`, in a scratch repo, capped at $0.50.
 
 Two rules hold for every source file: at most 500 lines, and a module comment of one or two lines at the top that says what the file is for (`rex codebase --only code --with-context` shows them). The skills and agents in `plugin/skills/`, `plugin/library/` and `plugin/agents/` are source in this repo. The build embeds them in the binary for `rex skills check` and the tests, and `cargo test` checks every bundled skill with the rules of `rex skills check`, each stage file of the builder for at most 1,500 words, each grid agent for `disallowedTools: Skill`, and that each tool name and key that a skill names is in the mod's tool table.
 

@@ -29,11 +29,26 @@ async function treeWith($: Engine, on: On, keys: Partial<Policy>, rules: readonl
   return session
 }
 
+/** The builder records a one-task plan, as it must before rex_merge. */
+async function planAs($: Engine, built: unknown): Promise<void> {
+  const planned = await $.tool.call({
+    tool: 'mcp__super-rex__rex_job_plan',
+    agentId: lineOf(built, 'builder') ?? '',
+    orchestrator: 'single-owner-edit',
+    breakdown: 'T1 engineer',
+    tasks: [{ id: 'T1', role: 'engineer', skills: [], open_when: [] }],
+    roles: [{ role: 'engineer', intelligence: 'high', reliability: 'high', consequence: 'high', verification: 'low' }],
+  })
+  expect(lineOf(planned, 'status')).toBe('planned')
+}
+
 test('merge_after_holds_a_merge', async ($, on) => {
   const session = await treeWith($, on, { merge: 'ask' }, mergeRules('src/a.rs\n'))
   const first = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'one', consequence: 'low' })
+  await planAs($, first)
   const firstJob = lineOf(first, 'job') ?? ''
   const second = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'two', consequence: 'low', merge_after: [firstJob] })
+  await planAs($, second)
   const secondBuilder = lineOf(second, 'builder') ?? ''
 
   const held = await $.tool.call({ tool: MERGE, agentId: secondBuilder })
@@ -43,7 +58,7 @@ test('merge_after_holds_a_merge', async ($, on) => {
   const merged = await $.tool.call({ tool: MERGE, agentId: lineOf(first, 'builder') ?? '' })
   const after = await $.tool.call({ tool: MERGE, agentId: secondBuilder })
 
-  expect(held.deny).toBe(`rex_merge: job ${lineOf(second, 'job') ?? ''} merges after job ${firstJob}, got ${firstJob} created and not merged; call again after it merges`)
+  expect(held.deny).toBe(`rex_merge: job ${lineOf(second, 'job') ?? ''} merges after job ${firstJob}, got ${firstJob} planned and not merged; call again after it merges`)
   expect(lineOf(merged, 'merged')).toBe('yes')
   expect(lineOf(after, 'merged')).toBe('no')
   expect(lineOf(after, 'question')).toBe(session.book().questions[1]?.id)
@@ -56,6 +71,7 @@ test('answered_merge_question_lets_tree_job_merge', async ($, on) => {
   const calls: ProcessCall[] = []
   const session = await treeWith($, on, { merge: 'ask' }, mergeRules('src/a.rs\n'), calls)
   const built = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'one', consequence: 'low' })
+  await planAs($, built)
   const builder = lineOf(built, 'builder') ?? ''
 
   const asked = await $.tool.call({ tool: MERGE, agentId: builder })
@@ -82,6 +98,7 @@ test('a policy answer merges only after each merge check passes in the job workt
   const failing: Rule = { starts: ['cargo', 'test'], answer: { exitCode: 101, stdout: '', stderr: 'test parser ... FAILED\n' } }
   const session = await treeWith($, on, { merge: 'allowed_if_checks_pass', merge_checks: [['cargo', 'test']] }, [failing, ...mergeRules('src/a.rs\n')], calls)
   const built = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'one', consequence: 'low' })
+  await planAs($, built)
   const job = lineOf(built, 'job') ?? ''
 
   const refused = await $.tool.call({ tool: MERGE, agentId: lineOf(built, 'builder') ?? '' })
@@ -95,6 +112,7 @@ test('a policy answer merges only after each merge check passes in the job workt
 test('a policy answer with passing checks merges', async ($, on) => {
   const session = await treeWith($, on, { merge: 'allowed_if_checks_pass', merge_checks: [['cargo', 'test']] }, [{ starts: ['cargo', 'test'], answer: ran() }, ...mergeRules('src/a.rs\n')])
   const built = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'one', consequence: 'low' })
+  await planAs($, built)
 
   const merged = await $.tool.call({ tool: MERGE, agentId: lineOf(built, 'builder') ?? '' })
 
@@ -105,6 +123,7 @@ test('a policy answer with passing checks merges', async ($, on) => {
 test('a policy answer with no merge checks refuses', async ($, on) => {
   await treeWith($, on, { merge: 'allowed_if_checks_pass', merge_checks: [] }, mergeRules('src/a.rs\n'))
   const built = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'one', consequence: 'low' })
+  await planAs($, built)
 
   const refused = await $.tool.call({ tool: MERGE, agentId: lineOf(built, 'builder') ?? '' })
 
@@ -115,6 +134,7 @@ test('a diff that touches always_ask_paths turns a policy answer into a merge qu
   const calls: ProcessCall[] = []
   const session = await treeWith($, on, { merge: 'allowed_if_checks_pass', merge_checks: [['cargo', 'test']] }, [{ starts: ['cargo'], answer: ran() }, ...mergeRules('src/a.rs\ninfra/main.tf\n')], calls)
   const built = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'one', consequence: 'low' })
+  await planAs($, built)
 
   const asked = await $.tool.call({ tool: MERGE, agentId: lineOf(built, 'builder') ?? '' })
 
@@ -127,6 +147,7 @@ test('a diff that touches always_ask_paths turns a policy answer into a merge qu
 test('changed_policy_halts_tree', async ($, on) => {
   const session = await treeWith($, on, { merge: 'ask' }, mergeRules('src/a.rs\n'))
   const built = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'one', consequence: 'low' })
+  await planAs($, built)
   const builder = lineOf(built, 'builder') ?? ''
 
   const set = await $.command.run(rex('policy set merge never'))
@@ -141,7 +162,7 @@ test('changed_policy_halts_tree', async ($, on) => {
   expect(merge.deny).toBe(`rex: policy changed since this master started, got hash ${hash}; confirm it with /rex policy confirm`)
   expect(session.book().trees[0]?.state).toBe('paused')
   expect(session.statuses).toContain('rex: policy changed since master t1 started; /rex policy confirm, then /rex master resume')
-  expect(lineOf(status, 'status')).toBe('created')
+  expect(lineOf(status, 'status')).toBe('planned')
   expect(session.book().jobs).toHaveLength(1)
 })
 
@@ -153,6 +174,7 @@ test('a paused tree runs again when the person confirms the policy it was pinned
   const stateBefore = session.book().trees[0]?.state
   const confirmed = await $.command.run(rex('policy confirm'))
   const built = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'one', consequence: 'low' })
+  await planAs($, built)
 
   expect(back.text).toContain('paused=none\n')
   expect(stateBefore).toBe('paused')
@@ -164,10 +186,12 @@ test('a paused tree runs again when the person confirms the policy it was pinned
 test('a confirmed new policy re-pins a paused tree of this session, which runs on with its live master and builders', async ($, on) => {
   const session = await treeWith($, on, { merge: 'ask' }, mergeRules('src/a.rs\n'))
   const first = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'one', consequence: 'low' })
+  await planAs($, first)
 
   await $.command.run(rex('policy set merge never'))
   const confirmed = await $.command.run(rex('policy confirm'))
   const second = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'two', consequence: 'low' })
+  await planAs($, second)
 
   const hash = /hash=(\S+)/.exec(confirmed.text ?? '')?.[1] ?? ''
   const tree = session.book().trees[0]
@@ -180,6 +204,7 @@ test('a confirmed new policy re-pins a paused tree of this session, which runs o
 test('authority_guard_that_throws_refuses: policy-merge that throws refuses the merge', async ($, on) => {
   const session = await treeWith($, on, { merge: 'ask' }, mergeRules('src/a.rs\n'))
   const built = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'one', consequence: 'low' })
+  await planAs($, built)
   session.breakStore()
 
   const merge = await $.tool.call({ tool: MERGE, agentId: lineOf(built, 'builder') ?? '' })

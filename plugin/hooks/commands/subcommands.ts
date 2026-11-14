@@ -1,7 +1,7 @@
 // The sub-commands of /rex that read and show: the pane, a job's status, the jobs, the doctor's check, and the prompt mode.
 import type { CommandRunInput, CommandRunResult, EngineInterface } from 'claude-code'
 
-import { fail, isOpen, pluginVersion, setPromptMode } from '../book/index'
+import { bandJob, fail, pluginVersion, setPromptMode } from '../book/index'
 import type { RexBook, RexJob } from '../../types'
 
 const PANE_ID = 'rex'
@@ -23,8 +23,7 @@ function jobFor(book: RexBook, id: string): RexJob | undefined {
   if (id !== '') {
     return book.jobs.find(job => job.id === id)
   }
-  const open = book.jobs.filter(job => isOpen(job) && job.owner.session === book.session)
-  return open.find(job => job.owner.builder === 'main') ?? [...open].sort((a, b) => b.createdAt - a.createdAt)[0]
+  return bandJob(book)
 }
 
 export async function watch($: EngineInterface): Promise<CommandRunResult> {

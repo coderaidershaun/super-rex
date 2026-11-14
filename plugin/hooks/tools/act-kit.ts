@@ -1,9 +1,9 @@
 // Test support for the act modules: exact answers to each process call in order, and a file tree under the skill, plan and worktree folders.
 import type { On } from 'claude-code'
 
-import type { RexBook, RexJob } from '../../types'
+import type { RexBook, RexJob, RexPlan } from '../../types'
 import { emptyBook, newIngest } from '../book/events'
-import { openJobIn } from '../book/jobs'
+import { openJobIn, planJobIn } from '../book/jobs'
 import type { ProcessAnswer, ProcessCall } from '../book/kit'
 import { ROOT, SESSION, START_MS } from '../book/kit'
 
@@ -138,6 +138,20 @@ export function seededBook(options: SeedOptions = {}): RexBook {
     mergeAfter: [],
   } as const
   return openJobIn(started, input, JOB, START_MS).book
+}
+
+/** The plan a builder records before it merges: one task T1 of role engineer on model-high-effort-high. */
+const ONE_TASK_PLAN: RexPlan = {
+  orchestrator: 'single-owner-edit',
+  breakdown: 'T1 engineer',
+  tasks: [{ id: 'T1', role: 'engineer', skills: [], openWhen: [] }],
+  roles: [{ role: 'engineer', ratings: { intelligence: 'high', reliability: 'high', consequence: 'high', verification: 'low' }, gridAgent: 'model-high-effort-high', conflict: null, omsVersion: 2 }],
+  manifest: [],
+}
+
+/** The same book with each job that has no plan yet planned, as rex_merge needs. */
+export function plannedAll(book: RexBook): RexBook {
+  return book.jobs.filter(job => job.status === 'created').reduce((planned, job) => planJobIn(planned, job.id, ONE_TASK_PLAN, START_MS), book)
 }
 
 /** The value of one `key=` line of a tool's text result. */

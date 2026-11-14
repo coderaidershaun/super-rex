@@ -50,8 +50,7 @@ function isGoPass(line: string): boolean {
 }
 
 function isPytestPass(line: string): boolean {
-  const found = /^(\S+::\S+) PASSED\s*(\[\s*\d+%\])?\s*$/.exec(line)
-  return found !== null
+  return /^\S+::\S+ PASSED\s*(?:\[\s*\d+%\])?\s*$/.test(line)
 }
 
 function isJestPass(line: string): boolean {

@@ -115,6 +115,10 @@ export async function serveMerge($: EngineInterface, event: { readonly agentId?:
     await fail($, { kind: 'bad-argument', tool: TOOL, argument: 'job', value: String(event['job']) })
     return deny(jobText)
   }
+  if (job.status !== 'planned') {
+    await fail($, { kind: 'merge-not-planned', job: job.id, status: job.status })
+    return deny(`${TOOL}: job ${job.id} has no plan, got status ${job.status}; record the plan with rex_job_plan, then call again`)
+  }
   const holder = locks.get(job.repo)
   if (holder !== undefined) {
     await fail($, { kind: 'merge-lock-held', repo: job.repo, job: holder })

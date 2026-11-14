@@ -1,7 +1,7 @@
 // Refuses an agent start or a shell command that a gate check refuses: spend over the limit, depth outside a master tree, a fork in a job, a merge around rex_merge. An inert mod refuses nothing.
 import type { AgentSpawnInput, AgentSpawnResult, EngineInterface, HookFailure, On } from 'claude-code'
 
-import { fail, markDegraded, MAX_LIMIT_USD, openJobs, readBook, setLimit } from '../book/index'
+import { fail, markDegraded, MAX_LIMIT_USD, newestOpenJob, readBook, setLimit } from '../book/index'
 import type { GateCheck, Parts } from '../parts'
 import { failureName } from '../tools/index'
 import { depthVerdict, forkRefusal, isMergeCommand, isOverLimit, isOwnSpawn, jobOfLoop, spendRefusal, tripwireRefusal } from './checks'
@@ -55,7 +55,7 @@ async function depthAtSpawn($: EngineInterface, event: AgentSpawnInput): Promise
   }
   const verdict = depthVerdict(book, event.parentAgentId)
   if (verdict.depth === null) {
-    const newest = [...openJobs(book)].sort((a, b) => b.createdAt - a.createdAt)[0]
+    const newest = newestOpenJob(book)
     if (newest !== undefined) {
       await markDegraded($, newest.id, 'gate:depth:unknown-parent')
     }

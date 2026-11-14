@@ -4,14 +4,11 @@ import type { CommandRunInput, CommandRunResult, EngineInterface } from 'claude-
 import { fail, MAX_LIMIT_USD, readBook, setLimit } from '../book/index'
 import { originRefusal, rexLine } from '../commands/index'
 import type { Subcommand } from '../parts'
+import { dollars } from './checks'
 
 export const LIMIT_SUBCOMMAND: Subcommand = { name: 'limit', summary: "Shows or sets a job's spend limit", grantsAuthority: true }
 
 const AMOUNT = /^\d+(?:\.\d+)?$/
-
-function dollars(nano: number): string {
-  return (nano / 1e9).toFixed(2)
-}
 
 export async function serveLimit($: EngineInterface, event: CommandRunInput): Promise<CommandRunResult> {
   const refusal = originRefusal(event, LIMIT_SUBCOMMAND, false)
@@ -22,8 +19,11 @@ export async function serveLimit($: EngineInterface, event: CommandRunInput): Pr
   const [id = '', amount, ...rest] = rexLine(event).args.split(/\s+/).filter(word => word !== '')
   const book = await readBook($)
   const job = book.jobs.find(each => each.id === id)
+  if (id === '') {
+    return { text: 'rex limit: needs the id of a job, got none; name a job of /rex jobs' }
+  }
   if (job === undefined) {
-    return { text: `rex limit: no job ${id === '' ? 'named' : id} in this session, got ${id === '' ? 'none' : id}; name a job of /rex jobs` }
+    return { text: `rex limit: no job ${id} in this session, got ${id}; name a job of /rex jobs` }
   }
   if (amount !== undefined) {
     const usd = Number(amount)

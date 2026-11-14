@@ -19,6 +19,9 @@ const CHOSEN_OUTPUT = ['|', '>', '<', ';', '&', '`', '$(', '\n', '\r', '\\', '#'
 
 const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/
 
+/** The test commands split into words once, since every shell command of every agent is checked against them. */
+const TEST_COMMAND_WORDS: readonly (readonly string[])[] = TEST_COMMANDS.map(test => test.split(' '))
+
 /** True when the command is one test command, alone. */
 export function isTestRun(command: string): boolean {
   const checked = command.replace(/2>&1/g, '')
@@ -29,8 +32,5 @@ export function isTestRun(command: string): boolean {
   }
   const start = words.findIndex(word => !ASSIGNMENT.test(word))
   const run = start === -1 ? [] : words.slice(start)
-  return TEST_COMMANDS.some(test => {
-    const testWords = test.split(' ')
-    return testWords.every((word, index) => run[index] === word)
-  })
+  return TEST_COMMAND_WORDS.some(testWords => testWords.every((word, index) => run[index] === word))
 }

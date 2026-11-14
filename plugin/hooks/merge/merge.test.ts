@@ -4,7 +4,7 @@ import { expect, test } from 'claude-code/testing'
 import type { RexBook, RexMergeAnswer } from '../../types'
 import type { ProcessAnswer, ProcessCall } from '../book/kit'
 import { ROOT, START_MS, world } from '../book/kit'
-import { exit, files, JOB, ok, resultText, scripted, seededBook } from '../tools/act-kit'
+import { exit, files, JOB, ok, plannedAll, resultText, scripted, seededBook } from '../tools/act-kit'
 import type { Scripted } from '../tools/act-kit'
 
 const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
@@ -31,7 +31,7 @@ const DIALOG_YES = { answer: 'yes', source: 'dialog', question: null, policyHash
 test('rex_merge_pushes_only_own_branch_after_steps', async ($, on) => {
   files(on, {})
   const calls: ProcessCall[] = []
-  const session = world(on, { seed: answered(seededBook(), DIALOG_YES), processAnswer: scripted([...CHECKS, ...PUSH], calls) })
+  const session = world(on, { seed: answered(plannedAll(seededBook()), DIALOG_YES), processAnswer: scripted([...CHECKS, ...PUSH], calls) })
   await $.session.start(START)
 
   const other = await $.tool.call({ tool: 'mcp__super-rex__rex_merge', job: '0gb0000000' })
@@ -58,7 +58,7 @@ test('rex_merge refuses while the lock of the repo is held', async ($, on) => {
     await held
     return { value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
-  world(on, { seed: answered(seededBook(), DIALOG_YES), processAnswer: call => (call.argv.includes('fetch') ? ok() : answer(call)) })
+  world(on, { seed: answered(plannedAll(seededBook()), DIALOG_YES), processAnswer: call => (call.argv.includes('fetch') ? ok() : answer(call)) })
   await $.session.start(START)
 
   const first = $.tool.call({ tool: 'mcp__super-rex__rex_merge' })
@@ -73,7 +73,7 @@ test('rex_merge refuses while the lock of the repo is held', async ($, on) => {
 test('rex_merge refuses with no merge answer', async ($, on) => {
   files(on, {})
   const calls: ProcessCall[] = []
-  world(on, { seed: answered(seededBook(), null), processAnswer: scripted([...CHECKS], calls) })
+  world(on, { seed: answered(plannedAll(seededBook()), null), processAnswer: scripted([...CHECKS], calls) })
   await $.session.start(START)
 
   const refused = await $.tool.call({ tool: 'mcp__super-rex__rex_merge' })
@@ -85,7 +85,7 @@ test('rex_merge refuses with no merge answer', async ($, on) => {
 test('rex_merge refuses a branch that is not one squash commit on the base, and a rejected push', async ($, on) => {
   files(on, {})
   const steps = [gitCall(['fetch', 'origin', 'main']), gitCall(['rev-list', '--count', `origin/main..${BRANCH}`], ok('3\n')), ...CHECKS.slice(0, 2), gitCall(['merge-base', '--is-ancestor', 'origin/main', BRANCH], exit(1, '')), ...CHECKS, gitCall(['push', 'origin', `${BRANCH}:refs/heads/main`], exit(1, 'error: failed to push some refs\nmore\n'))]
-  world(on, { seed: answered(seededBook(), DIALOG_YES), processAnswer: scripted(steps) })
+  world(on, { seed: answered(plannedAll(seededBook()), DIALOG_YES), processAnswer: scripted(steps) })
   await $.session.start(START)
 
   const many = await $.tool.call({ tool: 'mcp__super-rex__rex_merge' })
@@ -112,12 +112,12 @@ test('a branch with no commit over the base is asked for its squash commit; one 
     gitCall(['reflog', 'show', '--format=%gs', `refs/heads/${BRANCH}`, '--'], ok('commit: feat: the parser reads empty input\nbranch: Created from origin/main\n')),
   ]
   const calls: ProcessCall[] = []
-  const session = world(on, { seed: answered(seededBook(), DIALOG_YES), processAnswer: scripted([...empty, ...outside], calls) })
+  const session = world(on, { seed: answered(plannedAll(seededBook()), DIALOG_YES), processAnswer: scripted([...empty, ...outside], calls) })
   await $.session.start(START)
 
   const early = await $.tool.call({ tool: 'mcp__super-rex__rex_merge' })
   expect(early.deny).toBe(`rex_merge: ${BRANCH} must be one squash commit over origin/main, got 0 commits; squash it and call again`)
-  expect(session.book().jobs[0]?.status).toBe('created')
+  expect(session.book().jobs[0]?.status).toBe('planned')
 
   const halted = await $.tool.call({ tool: 'mcp__super-rex__rex_merge' })
   expect(halted.deny).toBe(`rex_merge: origin/main already holds ${BRANCH}, got commit c9 that rex_merge did not push; job ${JOB} is blocked, ask the person`)
@@ -127,7 +127,7 @@ test('a branch with no commit over the base is asked for its squash commit; one 
 
 test('a tree job with no merge answer parks one merge question and names it again on the next call', async ($, on) => {
   files(on, {})
-  const seed = seededBook({ builder: 'b1' })
+  const seed = plannedAll(seededBook({ builder: 'b1' }))
   const treeJob = { ...seed, jobs: seed.jobs.map(job => ({ ...job, tree: 't1', origin: 'master' as const })) }
   const calls: ProcessCall[] = []
   const session = world(on, { seed: treeJob, processAnswer: scripted([...CHECKS, ...CHECKS], calls) })

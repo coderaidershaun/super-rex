@@ -40,8 +40,8 @@ test('the fixed manifests come from the table of the builder skill', () => {
   ].join('\n')
 
   expect([...fixedManifests(skill).entries()]).toEqual([
-    ['decision-maker', ['rex-code-philosophy', 'rex-agent-prompting']],
-    ['decision-challenger', ['rex-code-philosophy']],
+    ['decision-maker', [{ skill: 'rex-code-philosophy', file: 'SKILL.md' }, { skill: 'rex-agent-prompting', file: 'SKILL.md' }]],
+    ['decision-challenger', [{ skill: 'rex-code-philosophy', file: 'SKILL.md' }]],
   ])
 })
 

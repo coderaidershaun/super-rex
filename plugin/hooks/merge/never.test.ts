@@ -5,7 +5,7 @@ import type { RexBook, RexMergeAnswer } from '../../types'
 import { openJobIn } from '../book/jobs'
 import type { ProcessAnswer, ProcessCall } from '../book/kit'
 import { ROOT, START_MS, world } from '../book/kit'
-import { files, JOB, ok, promptsPass, seededBook } from '../tools/act-kit'
+import { files, JOB, ok, plannedAll, promptsPass, seededBook } from '../tools/act-kit'
 
 const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
 
@@ -30,7 +30,7 @@ for (const source of PERSON_OR_POLICY) {
   test(`no_merge_without_person_or_policy_answer: a no from ${source} pushes nothing, whatever the arguments say`, async ($, on) => {
     files(on, {})
     const calls: ProcessCall[] = []
-    const seed = seededBook()
+    const seed = plannedAll(seededBook())
     const no: RexBook = { ...seed, jobs: seed.jobs.map(job => ({ ...job, merge: { answer: 'no', source, question: null, policyHash: null, at: START_MS } })) }
     world(on, { seed: no, processAnswer: cleanGit(calls) })
     await $.session.start(START)
@@ -46,7 +46,7 @@ for (const source of PERSON_OR_POLICY) {
   test(`no_merge_without_person_or_policy_answer: a yes from ${source} pushes the job branch once`, async ($, on) => {
     files(on, {})
     const calls: ProcessCall[] = []
-    const seed = seededBook()
+    const seed = plannedAll(seededBook())
     const yes: RexBook = { ...seed, jobs: seed.jobs.map(job => ({ ...job, merge: { answer: 'yes', source, question: null, policyHash: null, at: START_MS } })) }
     world(on, { seed: yes, processAnswer: cleanGit(calls) })
     await $.session.start(START)
@@ -61,7 +61,7 @@ test('no_merge_without_person_or_policy_answer: absent, then the person says no,
   files(on, {})
   promptsPass(on)
   const calls: ProcessCall[] = []
-  world(on, { seed: seededBook(), processAnswer: cleanGit(calls) })
+  world(on, { seed: plannedAll(seededBook()), processAnswer: cleanGit(calls) })
   await $.session.start(START)
 
   const absent = await $.tool.call({ tool: 'mcp__super-rex__rex_merge', merge: true, merge_answer: 'yes' })
@@ -81,7 +81,7 @@ test('rex_merge_pushes_only_the_callers_job_branch', async ($, on) => {
   files(on, {})
   const calls: ProcessCall[] = []
   const yes = { answer: 'yes', source: 'policy', question: null, policyHash: 'h1', at: START_MS } as const
-  const first = seededBook({ builder: 'b1' })
+  const first = plannedAll(seededBook({ builder: 'b1' }))
   const input = { builder: 'b2', tree: 't1', origin: 'master', request: 'Other', repo: '/other', base: 'release', type: null, size: null, consequence: null, langs: [], prefs: { duration: null, budget: null, autonomy: null }, limit: { nano: 1, source: 'default' }, dependsOn: [], mergeAfter: [] } as const
   const both = openJobIn(first, input, '0gb0000000', START_MS).book
   const seed: RexBook = { ...both, jobs: both.jobs.map(job => ({ ...job, merge: yes })) }

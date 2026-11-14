@@ -3,7 +3,7 @@ import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-import { emptyBook, newIngest } from './events'
+import { bandJob, emptyBook, mainJob, newestOpenJob, newIngest } from './events'
 import { jobIdOf } from './ids'
 import type { RexRole } from '../../types'
 import { openJobIn, planJobIn, questionIn } from './jobs'
@@ -14,6 +14,24 @@ import { CONFIG_ON, ROOT, SESSION, spawnInput, START_MS, world } from './kit'
 import { seededBook } from '../tools/act-kit'
 
 const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
+
+/** A job the main loop opens from the composer, with nothing yet known about it. */
+const JOB_INPUT = {
+  builder: 'main',
+  tree: null,
+  origin: 'composer',
+  request: 'Fix the parser',
+  repo: ROOT,
+  base: 'main',
+  type: null,
+  size: null,
+  consequence: null,
+  langs: [],
+  prefs: { duration: null, budget: null, autonomy: null },
+  limit: { nano: 10_000_000_000, source: 'default' },
+  dependsOn: [],
+  mergeAfter: [],
+} as const
 
 const TEST_OUTPUT = 'running 1 test\ntest parser::reads_empty ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored\n'
 
@@ -143,23 +161,7 @@ test('a job id counts seconds since 2026 and ends in four random characters', ()
 test('own_spawn_takes_pending_entry_and_master_charges_no_job', () => {
   const setup = { session: SESSION, storage: 'off', jobsFromSdk: true, inert: null, claudeCode: '2.1.323', plugin: '0.8.0' } as const
   const started = sessionIn(emptyBook(), setup, START_MS, { stream: 'a'.repeat(16), secret: '1'.repeat(64) })
-  const input = {
-    builder: 'main',
-    tree: null,
-    origin: 'composer',
-    request: 'Fix the parser',
-    repo: ROOT,
-    base: 'main',
-    type: null,
-    size: null,
-    consequence: null,
-    langs: [],
-    prefs: { duration: null, budget: null, autonomy: null },
-    limit: { nano: 10_000_000_000, source: 'default' },
-    dependsOn: [],
-    mergeAfter: [],
-  } as const
-  const withJob = openJobIn(started, input, '0gaq82j000', START_MS).book
+  const withJob = openJobIn(started, JOB_INPUT, '0gaq82j000', START_MS).book
   const withTree = treeIn(withJob, { id: 't1', charter: 'Ship it.', charterHash: 'sha256:0', policyHash: 'sha256:1', state: 'running', capNano: 0 }, START_MS)
   const pending = pendingIn(withTree, { description: 'rex master t1', kind: 'master', tree: 't1', job: null, at: START_MS })
   const spawned = startRunIn(pending, { agentId: 'm1', toolUseId: 'toolu_plugin_1', parentAgentId: null, agentType: 'super-rex:master', description: 'rex master t1', isOwnSpawn: true }, START_MS + 1000)
@@ -185,23 +187,7 @@ test('a run whose grid agent several roles share takes its parent role, else the
     roles: [role('engineer'), role('reviewer'), { ...role('worker'), gridAgent: 'model-low-effort-low' }],
     manifest: [],
   }
-  const input = {
-    builder: 'main',
-    tree: null,
-    origin: 'composer',
-    request: 'Fix the parser',
-    repo: ROOT,
-    base: 'main',
-    type: null,
-    size: null,
-    consequence: null,
-    langs: [],
-    prefs: { duration: null, budget: null, autonomy: null },
-    limit: { nano: 10_000_000_000, source: 'default' },
-    dependsOn: [],
-    mergeAfter: [],
-  } as const
-  const base = planJobIn(openJobIn({ ...emptyBook(), session: SESSION }, input, '0gaq82j000', START_MS).book, '0gaq82j000', plan, START_MS)
+  const base = planJobIn(openJobIn({ ...emptyBook(), session: SESSION }, JOB_INPUT, '0gaq82j000', START_MS).book, '0gaq82j000', plan, START_MS)
   const spawn = { toolUseId: null, description: 'agent', isOwnSpawn: false, agentType: 'super-rex:model-high-effort-high' }
   const lead = startRunIn(base, { ...spawn, agentId: 'a1', parentAgentId: null }, START_MS)
   const reviewer = { ...lead, runs: lead.runs.map(run => ({ ...run, role: 'reviewer' })) }
@@ -214,4 +200,18 @@ test('a run whose grid agent several roles share takes its parent role, else the
     ['a2', 'reviewer'],
     ['a3', 'worker'],
   ])
+})
+
+test('the band speaks of the open job of the main loop, else the newest open job of this session', () => {
+  const book = { ...emptyBook(), session: SESSION }
+  const first = openJobIn(book, { ...JOB_INPUT, builder: 'a1' }, '0gaq82j001', START_MS).book
+  const second = openJobIn(first, { ...JOB_INPUT, builder: 'a2' }, '0gaq82j002', START_MS + 1000).book
+  const otherSession = openJobIn({ ...second, session: 'other-session' }, JOB_INPUT, '0gaq82j003', START_MS + 5000).book
+  const elsewhere = { ...otherSession, session: SESSION }
+  const withMain = openJobIn(elsewhere, JOB_INPUT, '0gaq82j004', START_MS + 500).book
+  const mainClosed = { ...withMain, jobs: withMain.jobs.map(job => (job.id === '0gaq82j004' ? { ...job, status: 'delivered' as const } : job)) }
+
+  expect([mainJob(elsewhere)?.id, newestOpenJob(elsewhere)?.id, bandJob(elsewhere)?.id]).toEqual([undefined, '0gaq82j002', '0gaq82j002'])
+  expect([mainJob(withMain)?.id, bandJob(withMain)?.id]).toEqual(['0gaq82j004', '0gaq82j004'])
+  expect([mainJob(mainClosed)?.id, bandJob(mainClosed)?.id]).toEqual([undefined, '0gaq82j002'])
 })

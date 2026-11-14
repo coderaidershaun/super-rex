@@ -6,6 +6,7 @@ import { isOwnSpawn } from '../gate/checks'
 import type { BriefFile } from '../parts'
 import { resolveSkill, skillPlaces } from '../skills/index'
 import { fixedManifests, PRE_PLAN_ROLES } from './manifests'
+import type { ManifestEntry } from './manifests'
 import { PROMPTING_SKILL, taskOf } from './parts'
 import { gridOf, TIER_FILE } from './tiers'
 
@@ -41,11 +42,11 @@ export function roleFor(book: RexBook, job: RexJob, task: string | null, agentTy
   return (matching.find(role => role.role === parentRole) ?? matching[0])?.role ?? null
 }
 
-/** The read-first skills of a brief: its plan task's, else the fixed manifest of its pre-plan role. */
-async function readFirst($: EngineInterface, job: RexJob, task: string | null, role: string | null): Promise<readonly string[]> {
+/** The read-first files of a brief: the SKILL.md of each skill of its plan task, else the fixed manifest of its pre-plan role. */
+async function readFirst($: EngineInterface, job: RexJob, task: string | null, role: string | null): Promise<readonly ManifestEntry[]> {
   const planTask = taskOf(job, task)
   if (planTask !== undefined) {
-    return planTask.skills
+    return planTask.skills.map(skill => ({ skill, file: 'SKILL.md' }))
   }
   if (job.plan !== null || role === null) {
     return []
@@ -54,11 +55,11 @@ async function readFirst($: EngineInterface, job: RexJob, task: string | null, r
   return builder === null ? [] : (fixedManifests(builder.text).get(role) ?? [])
 }
 
-/** Every file the brief's parts read: each read-first SKILL.md, then the tier file of its grid agent. A skill no folder holds is left out. */
+/** Every file the brief's parts read: each read-first file, then the tier file of its grid agent. A file no folder holds is left out. */
 export async function briefFiles($: EngineInterface, job: RexJob, task: string | null, role: string | null, agentType: string): Promise<readonly BriefFile[]> {
   const places = await skillPlaces($, job)
   const grid = gridOf(agentType)
-  const wanted = [...(await readFirst($, job, task, role)).map(skill => ({ skill, file: 'SKILL.md' })), ...(grid === null ? [] : [{ skill: PROMPTING_SKILL, file: TIER_FILE[grid.tier] }])]
+  const wanted = [...(await readFirst($, job, task, role)), ...(grid === null ? [] : [{ skill: PROMPTING_SKILL, file: TIER_FILE[grid.tier] }])]
   const files: BriefFile[] = []
   for (const one of wanted) {
     const found = await resolveSkill($, places, one.skill, one.file)

@@ -21,7 +21,7 @@ import type {
   RexTreeTick,
   RexVersions,
 } from '../../types'
-import { acked, emptyBook, nextBatch, withMark, withTranscript } from './events'
+import { acked, emptyBook, mainJob, nextBatch, withMark, withTranscript } from './events'
 import { promptIn, sessionIn } from './session'
 import type { PromptRecord, SessionSetup } from './session'
 import { failIn } from './fail'
@@ -45,7 +45,7 @@ import {
   wakeIn,
 } from './jobs'
 import type { JobClose, MergeDone, OpenJobInput, PlanAmendment, QuestionInput, Restored, WakeReason } from './jobs'
-import { endRunIn, lintAttemptIn, runOutputIn, skillOpenIn, startRunIn, stepRunIn } from './runs'
+import { endRunIn, lintAttemptIn, runOutputIn, skillOpenIn, startRunIn, stepMainIn, stepRunIn } from './runs'
 import type { EndInput, SkillOpen, StartRunInput, StepInput } from './runs'
 import { linkIn, noteIn, pendingIn, repinIn, tickIn, treeIn, treeStateIn } from './trees'
 import type { TreeInput } from './trees'
@@ -116,6 +116,15 @@ export async function startRun($: Dollar, run: StartRunInput): Promise<void> {
 
 export async function stepRun($: Dollar, agentId: string, step: StepInput): Promise<void> {
   await change($, (book, at) => stepRunIn(book, agentId, step, at))
+}
+
+/** A step of the main loop: its usage goes to the main loop's open job, else to none. */
+export async function stepMain($: Dollar, step: StepInput): Promise<void> {
+  // This runs after every model request of the main loop, and most sessions build no job: one read then costs less than writing the same book back.
+  if (mainJob(await readBook($)) === undefined) {
+    return
+  }
+  await change($, book => stepMainIn(book, step))
 }
 
 export async function endRun($: Dollar, agentId: string, end: EndInput): Promise<void> {

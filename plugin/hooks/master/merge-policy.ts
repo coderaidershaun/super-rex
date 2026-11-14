@@ -59,7 +59,8 @@ type Verdict = { readonly kind: 'pass' } | { readonly kind: 'answer'; readonly r
 async function verdictOf($: EngineInterface, agentId: string | undefined): Promise<Verdict> {
   const caller = await callerOf($, agentId)
   const job = caller.job
-  if (caller.kind !== 'builder' || job === null || job.tree === null) {
+  // A job with no plan passes on, so rex_merge refuses it before any policy check runs a command or parks a question.
+  if (caller.kind !== 'builder' || job === null || job.tree === null || job.status !== 'planned') {
     return { kind: 'pass' }
   }
   const book = await readBook($)

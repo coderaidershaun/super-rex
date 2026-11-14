@@ -11,7 +11,11 @@ Usage: scripts/check-claude-release.sh [--renew-types] [--live]
                  typings/claude-code/index.d.ts before the checks. They are the
                  file the plugin-authoring skill lays out when a session of that
                  build loads it (type /plugin-authoring once in any session).
-                 Commit the renewed file on its own.
+                 The committed file stays at the oldest Claude Code the plugin
+                 supports, so the mod cannot use a newer API by accident: after
+                 the checks, put the committed file back with
+                 git checkout -- typings/claude-code/index.d.ts. Commit a
+                 renewed file, on its own, only when that minimum version rises.
   --live         Also run one headless session on Sonnet with this plugin and
                  the binary of this tree, capped at $0.50, in a scratch repo
                  below $CHECK_SCRATCH (default: $TMPDIR). It costs about $0.10.

@@ -1,6 +1,6 @@
 // The book's part of each failure: marks, the halt of ingest or a tree, a blocked job, and the one status line the person reads.
 import type { RexBook } from '../../types'
-import { findJob, isOpen, openJobs, withMark, withMarkOnOpenJobs } from './events'
+import { findJob, isOpen, newestOpenJob, withMark, withMarkOnOpenJobs } from './events'
 import type { RexFailure } from './failure'
 import { assertNever } from './failure'
 import type { StreamKeys } from './ids'
@@ -79,6 +79,7 @@ export function failIn(book: RexBook, failure: RexFailure, at: number, keys: Str
     case 'lint-findings':
     case 'merge-push-rejected':
     case 'merge-lock-held':
+    case 'merge-not-planned':
     case 'merge-not-fast-forward':
     case 'merge-path-asks':
     case 'binary-read-failed':
@@ -138,7 +139,6 @@ function flushFailed(book: RexBook, reason: string, keys: StreamKeys, at: number
 /** The mark goes to the job of the event's run, else to the session's newest open job. */
 function observerMarked(book: RexBook, agentId: string | null, mark: string, at: number): RexBook {
   const runJob = agentId === null ? null : (findRun(book, agentId)?.job ?? null)
-  const newest = [...openJobs(book)].sort((a, b) => b.createdAt - a.createdAt)[0]
-  const jobId = runJob ?? newest?.id ?? null
+  const jobId = runJob ?? newestOpenJob(book)?.id ?? null
   return jobId === null ? book : withMark(book, jobId, mark, at)
 }
