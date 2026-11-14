@@ -1,19 +1,13 @@
-//! A second writer that holds the store's write lock while an agent finishes: the
-//! hook's line still reaches the log, the spend gate lets a new sub-agent start
-//! within its short wait, a read that cannot get the lock writes nothing, and the
-//! next read gives the full history.
+//! A second writer that holds the store's write lock while an agent finishes: a
+//! read that cannot get the lock writes nothing, and the next read gives the full history.
 
-use std::fs;
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use assert_cmd::Command;
 use rusqlite::ErrorCode;
-use serde_json::{Value, json};
-use super_rex::capture::{CaptureError, RunState, take_in};
-use super_rex::commands::gate::SpendLimit;
-use super_rex::store::{JobId, Store, StoreError};
+use super_rex::capture::{CaptureError, RunState};
+use super_rex::store::{Store, StoreError};
 
 use super::fixture::*;
 
@@ -37,90 +31,12 @@ fn hold_write_lock(fixture: &Fixture) -> (mpsc::Sender<()>, thread::JoinHandle<(
     (release, holder)
 }
 
-// A hook that is half way through its line leaves the log longer than what was
-// taken in, with nothing whole to take in. That must cost no write lock: a
-// command that only reads would otherwise wait for every other writer.
-#[test]
-fn unfinished_last_line_takes_no_lock() {
-    let mut fixture = Fixture::new();
-    fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
-    fixture.append(&fixture.lines.clone());
-    take_in(&mut fixture.store).unwrap();
-    append_text(&fixture.store.paths().event_log, r#"{"v":1,"at_ms":1,"ev"#);
-
-    let (release, holder) = hold_write_lock(&fixture);
-    fixture
-        .store
-        .conn()
-        .busy_timeout(Duration::from_millis(50))
-        .unwrap();
-    let taken = take_in(&mut fixture.store);
-    release.send(()).unwrap();
-    holder.join().unwrap();
-
-    taken.expect("an intake with no whole new line must not wait for the write lock");
-}
-
 #[test]
 fn held_writer_lock_loses_nothing() {
     let mut fixture = Fixture::new();
     fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
-    let (last, early) = fixture.lines.split_last().unwrap();
-    let (last, early) = (last.clone(), early.to_vec());
-    fixture.append(&early);
-    // A limit of one billionth of a dollar, so only a failure can let the gate allow.
-    let job: JobId = JOB_A.parse().unwrap();
-    SpendLimit::set(&mut fixture.store, &job, "0.000000001".parse().unwrap()).unwrap();
-
+    fixture.append(&fixture.lines.clone());
     let (release, holder) = hold_write_lock(&fixture);
-
-    // PLAIN finishes now. `rex hook` opens no database, so the held lock never makes
-    // it wait; a hook that waited would take the store's 10 seconds.
-    let event = event_of(&last);
-    let started = Instant::now();
-    Command::cargo_bin("rex")
-        .unwrap()
-        .arg("hook")
-        .current_dir(&fixture.store.paths().root)
-        .env_remove("REX_STORE")
-        .env_remove("CLAUDE_PROJECT_DIR")
-        .write_stdin(format!("{event}\n"))
-        .assert()
-        .success()
-        .stdout("")
-        .stderr("");
-    assert!(
-        started.elapsed() < Duration::from_secs(5),
-        "the hook waited"
-    );
-
-    // The gate needs the lock to take the new log lines in. It waits a moment, then
-    // lets the sub-agent start: silent, exit 0, and long before the hook's timeout.
-    let started = Instant::now();
-    Command::cargo_bin("rex")
-        .unwrap()
-        .arg("gate")
-        .current_dir(&fixture.store.paths().root)
-        .env_remove("REX_STORE")
-        .env_remove("CLAUDE_PROJECT_DIR")
-        .write_stdin(
-            json!({ "session_id": SESSION, "hook_event_name": "PreToolUse", "tool_name": "Agent" })
-                .to_string(),
-        )
-        .assert()
-        .success()
-        .stdout("")
-        .stderr("");
-    assert!(
-        started.elapsed() < Duration::from_secs(5),
-        "the gate waited for the store's full 10 seconds"
-    );
-    let log = fs::read_to_string(&fixture.store.paths().event_log).unwrap();
-    let logged: Value = serde_json::from_str(log.lines().last().unwrap()).unwrap();
-    assert_eq!(
-        logged["event"], event,
-        "the hook's line is the last in the log"
-    );
 
     // A read that cannot get the lock in time fails and writes nothing. The store
     // waits 10 seconds; this connection is set to wait only a moment.
@@ -140,8 +56,7 @@ fn held_writer_lock_loses_nothing() {
         .store
         .conn()
         .query_row(
-            "SELECT (SELECT COUNT(*) FROM sub_agent_run)
-                  + (SELECT COUNT(*) FROM meta WHERE key LIKE 'intake.%')",
+            "SELECT COUNT(*) FROM sub_agent_run WHERE tokens_read_at IS NOT NULL",
             [],
             |row| row.get(0),
         )
@@ -174,7 +89,7 @@ fn held_writer_lock_loses_nothing() {
     assert_eq!(plain.state, RunState::Finished);
     assert_eq!(
         plain.duration_ms,
-        Some(6_892),
-        "PLAIN's completed call was taken in"
+        Some(6_856),
+        "PLAIN's start and end were taken in"
     );
 }

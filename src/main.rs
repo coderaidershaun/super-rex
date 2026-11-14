@@ -8,8 +8,8 @@ use std::process::ExitCode;
 use clap::{CommandFactory, Parser, Subcommand};
 
 use super_rex::commands::{
-    catalog, codebase, feedback, gate, hook, init, job, jobs, oms, recall, skills, status,
-    test_output, watch,
+    catalog, codebase, doctor, feedback, ingest, init, job, jobs, limit, migrate, oms, recall,
+    skills, status, test_filter, tree, watch, worktree,
 };
 use super_rex::error::CommandError;
 
@@ -29,21 +29,23 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     Init(init::InitOptions),
+    Migrate(migrate::MigrateOptions),
+    Ingest(ingest::IngestOptions),
+    Doctor(doctor::DoctorOptions),
     Job(job::JobOptions),
-    Hook(hook::HookOptions),
-    Gate(gate::GateOptions),
-    TestHook(test_output::TestHookOptions),
-    TestFilter(test_output::FilterOptions),
-    Limit(gate::LimitOptions),
+    TestFilter(test_filter::FilterOptions),
+    Limit(limit::LimitOptions),
     Status(status::StatusOptions),
     Oms(oms::OmsOptions),
     Skills(skills::SkillsOptions),
     Recall(recall::RecallOptions),
     Jobs(jobs::JobsOptions),
+    Tree(tree::TreeOptions),
     Watch(watch::WatchOptions),
     Feedback(feedback::FeedbackOptions),
     Codebase(codebase::CodebaseOptions),
     Smells(codebase::SmellsOptions),
+    Worktree(worktree::WorktreeOptions),
     Commands(catalog::CommandsOptions),
 }
 
@@ -53,32 +55,40 @@ fn main() -> ExitCode {
 
     match cli.command {
         Command::Init(options) => finish(init::run(&cwd, options)),
+        Command::Migrate(options) => finish(migrate::run(&cwd, options)),
+        Command::Ingest(options) => finish(ingest::run(&cwd, options)),
+        Command::Doctor(options) => finish(doctor::run(&cwd, options)),
         Command::Job(options) => finish(job::run(&cwd, options)),
-        Command::Hook(options) => finish(hook::run(&cwd, options)),
-        Command::Gate(options) => finish(gate::run(&cwd, options)),
-        Command::TestHook(options) => finish(test_output::run_hook(&cwd, options)),
-        Command::TestFilter(options) => test_output::run_filter(options),
-        Command::Limit(options) => finish(gate::run_limit(&cwd, options)),
+        Command::TestFilter(options) => test_filter::run_filter(options),
+        Command::Limit(options) => finish(limit::run(&cwd, options)),
         Command::Status(options) => finish(status::run(&cwd, options)),
         Command::Oms(options) => finish(oms::run(&cwd, options)),
         Command::Skills(options) => finish(skills::run(&cwd, options)),
         Command::Recall(options) => finish(recall::run(&cwd, options)),
         Command::Jobs(options) => finish(jobs::run(&cwd, options)),
+        Command::Tree(options) => finish(tree::run(&cwd, options)),
         Command::Watch(options) => finish(watch::run(&cwd, options)),
         Command::Feedback(options) => finish(feedback::run(&cwd, options)),
         Command::Codebase(options) => finish(codebase::run(&cwd, options)),
         Command::Smells(options) => finish(codebase::run_smells(&cwd, options)),
+        Command::Worktree(options) => finish(worktree::run(&cwd, options)),
         Command::Commands(options) => finish(catalog::run(&Cli::command(), options)),
     }
 }
 
-/// Every exit that is not 0 writes exactly one `error: ` line on stderr. Lines
-/// that the command wrote before it, such as warnings or findings, stay.
+/// Every exit that is not 0 writes exactly one line on stderr: `error: ` and
+/// the error, or a refusal as it is. Lines that the command wrote before it,
+/// such as warnings or findings, stay.
+///
+/// Scripts, agents and the plugin branch on the exit code: 0 done, also when
+/// there was nothing to do; 1 the work failed, a check that found something
+/// included; 2 the command line is wrong, or the input or the store is refused;
+/// `rex ingest` adds 3 and 4 for its own refusals.
 fn finish(result: Result<(), impl CommandError>) -> ExitCode {
     let Err(error) = result else {
         return ExitCode::SUCCESS;
     };
-    let code = exit_code_for(&error);
+    let code = error.exit_code();
     // If stderr cannot be written to, there is nowhere left to report it.
     let _ = writeln!(std::io::stderr(), "{}", error_line(error));
     ExitCode::from(code)
@@ -87,15 +97,12 @@ fn finish(result: Result<(), impl CommandError>) -> ExitCode {
 /// The error and each of its sources, joined by `: `, as one line. Agents read
 /// stderr line by line, so a line end in a tool's output must not split it.
 fn error_line(error: impl CommandError) -> String {
-    let text = format!("error: {:#}", anyhow::Error::new(error));
+    let text = if error.is_bare_line() {
+        format!("{:#}", anyhow::Error::new(error))
+    } else {
+        format!("error: {:#}", anyhow::Error::new(error))
+    };
     text.replace("\r\n", " ").replace(['\r', '\n'], " ")
-}
-
-/// Scripts and agents branch on the exit code, so there are only three: 0 done,
-/// also when there was nothing to do; 1 the work failed, a check that found
-/// something included; 2 the command line is wrong.
-fn exit_code_for(error: &impl CommandError) -> u8 {
-    if error.is_usage() { 2 } else { 1 }
 }
 
 #[cfg(test)]
@@ -108,7 +115,11 @@ mod tests {
         Tool { output: String },
     }
 
-    impl CommandError for TestError {}
+    impl CommandError for TestError {
+        fn failure_class(&self) -> super_rex::error::FailureClass {
+            super_rex::error::FailureClass::Reject
+        }
+    }
 
     #[test]
     fn an_error_text_with_line_ends_prints_as_one_line() {

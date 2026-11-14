@@ -10,7 +10,7 @@ use rusqlite::{Transaction, params};
 
 use super::skills;
 use super::stdout::print_line_to_stdout;
-use crate::error::{CommandError, RexError};
+use crate::error::{CommandError, FailureClass, RexError};
 use crate::store::orchestrator;
 use crate::store::{JobId, Store, StoreError, StorePaths};
 
@@ -45,7 +45,28 @@ pub enum RecallError {
     Rex(#[from] RexError),
 }
 
-impl CommandError for RecallError {}
+impl CommandError for RecallError {
+    fn failure_class(&self) -> FailureClass {
+        match self {
+            RecallError::Json(_) => FailureClass::Reject,
+            RecallError::Store(error) => error.failure_class(),
+            RecallError::Rex(error) => error.failure_class(),
+        }
+    }
+
+    fn exit_code(&self) -> u8 {
+        match self {
+            RecallError::Store(error) => error.exit_code(),
+            _ => {
+                if self.is_usage() {
+                    2
+                } else {
+                    1
+                }
+            }
+        }
+    }
+}
 
 /// # Errors
 /// - [`RecallError::Store`] for a missing store, an unknown job, or a failed

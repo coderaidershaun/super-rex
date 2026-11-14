@@ -1,126 +1,156 @@
-//! A first and a second `rex init`: the bundle files, `AGENTS.md` and
-//! `.gitignore` each land once and are never replaced, and the person is
-//! told which project files to commit.
+//! A first and a second `rex init`: the plugin is installed through the `claude`
+//! command, the project files each land once and are never replaced, and the
+//! person is told which project files to commit.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use serde_json::{Value, json};
+
 use super::support::{
-    AGENT_MARKER, COMMIT_ALL, SKILL_MARKER, bundle_file, bundle_file_count, installed, repo,
-    rex_init_ok,
+    COMMIT_ALL, PLUGIN_INSTALL_CALLS, PLUGIN_INSTALLED, PLUGIN_SKIPPED, Repo, repo, rex_init_ok,
 };
 
 /// The block `rex init` adds to `.gitignore`, byte for byte.
-const SUPERREX_IGNORE_BLOCK: &[u8] = b"# rex:ignore superrex\n.claude/skills/\n.claude/agents/\n.claude/settings.local.json\n/.rex/*\n/.claude/worktrees/\n";
+const SUPERREX_IGNORE_BLOCK: &[u8] = b"# rex:ignore superrex\n.claude/settings.local.json\n/.claude/worktrees/\n/.rex/rex.db*\n/.rex/events.jsonl\n/.rex/orchestrators/\n/.rex/plans/\n/.rex/worktrees/\n/.rex/live/\n";
 
 /// The first line of a first run.
 const SETTINGS_CREATED: &str = "rex init: .claude/settings.local.json created\n";
 
+fn config(repo: &Repo) -> Value {
+    let text = fs::read_to_string(repo.path().join(".rex/config.json")).expect("read config");
+    serde_json::from_str(&text).expect("config JSON")
+}
+
+fn config_with_storage(storage: &str) -> Value {
+    json!({ "version": 1, "storage": storage, "depth": 4, "jobs_from_sdk": true, "min_claude_code": "2.1.323" })
+}
+
 #[test]
-fn fresh_install_writes_every_bundle_file() {
+fn fresh_install_writes_the_project_files_and_no_store() {
     let repo = repo();
-    let n = bundle_file_count();
 
     let printed = rex_init_ok(&repo, &[]);
 
     assert_eq!(
         printed.stdout,
         format!(
-            "{SETTINGS_CREATED}rex init: {n} written, 0 skipped\nrex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .rex/ created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}"
+            "{SETTINGS_CREATED}rex init: .rex/config.json created\n{PLUGIN_INSTALLED}rex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}"
         )
     );
     assert_eq!(
         printed.stderr, "",
         "no warning when every tool is installed"
     );
-
-    let mut roots = BTreeSet::new();
-    for (path, contents) in super_rex::bundle::walk() {
-        let installed = fs::read(repo.path().join(&path)).expect("read installed");
-        assert_eq!(installed, contents, "{} was changed", path.display());
-        roots.extend(super_rex::bundle::root_of(&path));
+    assert_eq!(config(&repo), config_with_storage("off"));
+    assert!(!repo.path().join(".rex/rex.db").exists(), "storage is off");
+    for copied in [".claude/skills", ".claude/agents", ".rex/skills"] {
+        assert!(
+            !repo.path().join(copied).exists(),
+            "rex init copies no skill or agent file, found {copied}"
+        );
     }
-    assert_eq!(
-        roots,
-        BTreeSet::from([".claude/agents", ".claude/skills", ".rex/skills"]),
-        "the skills, the agents and the library are each installed"
-    );
 
     let agents_md = fs::read_to_string(repo.path().join("AGENTS.md")).expect("read AGENTS.md");
     assert!(agents_md.starts_with("<!-- rex:codebase -->\n## Codebase map\n"));
     assert!(agents_md.contains("`rex codebase --only code --with-context`"));
-    assert!(agents_md.contains("`rex codebase --for-human --only code --with-context`"));
     assert!(agents_md.contains("\n## Code smells\n"));
-    assert!(agents_md.contains("- `rex smells`: "));
 
     let gitignore = fs::read(repo.path().join(".gitignore")).expect("read .gitignore");
     assert_eq!(gitignore, SUPERREX_IGNORE_BLOCK);
-
-    let store = repo.path().join(".rex");
-    assert!(store.join("orchestrators").is_dir());
-    assert!(store.join("rex.db").is_file());
 }
 
-// This test must never be deleted. It is the only check that a file the
-// user has already edited is never overwritten by the install command, and
-// that a deleted file is put back.
+// The plugin is installed only through Claude Code's own command, at the
+// project's scope, so this test is the only proof of the two commands rex runs.
 #[test]
-fn existing_modified_file_is_never_touched() {
+fn init_installs_the_plugin_through_the_claude_command() {
+    let default_source = repo();
+
+    rex_init_ok(&default_source, &[]);
+
+    assert_eq!(default_source.claude_calls(), PLUGIN_INSTALL_CALLS);
+
+    let this_checkout = repo();
+
+    let printed = rex_init_ok(&this_checkout, &["--plugin-source", "."]);
+
+    assert_eq!(
+        this_checkout.claude_calls(),
+        "claude plugin marketplace add . --scope project\nclaude plugin install super-rex@super-rex --scope project\n"
+    );
+    assert!(
+        printed
+            .stdout
+            .contains("rex init: plugin super-rex@super-rex installed at project scope from .\n"),
+        "got: {}",
+        printed.stdout
+    );
+
+    let failing = repo();
+    failing.write_tool(
+        "claude",
+        "if [ \"$1\" = plugin ]; then echo 'marketplace not found' >&2; exit 1; fi\necho '2.1.323 (Claude Code)'",
+    );
+
+    let printed = super::support::rex_init_failed(&failing, &[]);
+
+    assert_eq!(
+        printed.stderr,
+        format!(
+            "rex init: failed: \"claude plugin marketplace add coderaidershaun/super-rex --scope project\" exited with exit status: 1, so the super-rex plugin is not installed; fix what it names, or give another --plugin-source, then run rex init again: marketplace not found\n{}",
+            super::support::ONE_STEP_FAILED
+        )
+    );
+    assert!(
+        failing.path().join("AGENTS.md").is_file(),
+        "the rest of the install still happens"
+    );
+}
+
+#[test]
+fn init_with_and_without_storage_writes_config() {
     let repo = repo();
-    let n = bundle_file_count();
+    rex_init_ok(&repo, &[]);
+    assert_eq!(config(&repo), config_with_storage("off"));
 
-    let marker = installed(&repo, SKILL_MARKER);
-    let older_files: [(&str, &[u8]); 2] = [
-        (".claude/skills/INDEX.md", b"an older skill index\n"),
-        (".claude/skills/rex-code-lead/SKILL.md", b"an older skill\n"),
-    ];
-    fs::create_dir_all(marker.parent().expect("marker has a folder"))
-        .expect("create marker skill folder");
-    fs::write(&marker, b"sentinel content").expect("write sentinel marker skill");
-    for (path, contents) in older_files {
-        let path = repo.path().join(path);
-        fs::create_dir_all(path.parent().expect("file has a folder")).expect("create folder");
-        fs::write(&path, contents).expect("write older file");
-    }
-
-    let printed = rex_init_ok(&repo, &[]);
+    let printed = rex_init_ok(&repo, &["--with-storage"]);
 
     assert_eq!(
         printed.stdout,
         format!(
-            "{SETTINGS_CREATED}rex init: {} written, 1 skipped (1 differs from this version; use --force to overwrite)\nrex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .rex/ created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}",
-            n - 1
+            "rex init: .rex/config.json updated\n{PLUGIN_SKIPPED}rex init: .rex/rex.db created\nrex init: pre-commit hooks installed\nrex init: commit .rex/config.json (git add + git commit); a job works in the main checkout only when it is clean\n"
         )
     );
-    assert_eq!(
-        fs::read(&marker).expect("read marker skill"),
-        b"sentinel content"
-    );
-    for (path, contents) in older_files {
-        let after = fs::read(repo.path().join(path)).expect("read older file");
-        assert_eq!(after, contents, "{path} must not change");
-    }
+    assert_eq!(config(&repo), config_with_storage("on"));
+    assert!(repo.path().join(".rex/rex.db").is_file());
+    assert!(repo.path().join(".rex/orchestrators").is_dir());
 
-    let agent = installed(&repo, AGENT_MARKER);
-    fs::remove_file(&agent).expect("remove agent file");
-
+    // A later run without the flag keeps the record: storage is turned off
+    // only by the person, in the file.
     let printed = rex_init_ok(&repo, &[]);
 
-    assert_eq!(
-        printed.stdout,
-        format!(
-            "rex init: 1 written, {} skipped (1 differs from this version; use --force to overwrite)\nrex init: pre-commit hooks installed\n",
-            n - 1
-        )
+    assert!(
+        !printed.stdout.contains("config.json"),
+        "got: {}",
+        printed.stdout
     );
+    assert_eq!(config(&repo), config_with_storage("on"));
+
+    // A key of the person's stays, and a depth they asked for is recorded.
+    let own = super::support::repo();
+    fs::create_dir_all(own.path().join(".rex")).expect("create .rex");
+    fs::write(
+        own.path().join(".rex/config.json"),
+        "{\"storage\": \"off\", \"jobs_from_sdk\": false, \"note\": \"mine\"}\n",
+    )
+    .expect("write config");
+
+    rex_init_ok(&own, &["--with-storage", "--depth", "6"]);
+
     assert_eq!(
-        fs::read(&agent).expect("read agent file"),
-        bundle_file(AGENT_MARKER)
-    );
-    assert_eq!(
-        fs::read(&marker).expect("read marker skill"),
-        b"sentinel content"
+        config(&own),
+        json!({ "storage": "on", "jobs_from_sdk": false, "note": "mine", "version": 1, "depth": 6, "min_claude_code": "2.1.323" })
     );
 }
 
@@ -162,21 +192,22 @@ fn existing_agents_md_gets_section_on_top_once() {
     );
 }
 
-// The promise that `rex init` is safe to run twice: the second run
-// leaves every file in the repo as it was and adds none.
+// The promise that `rex init` is safe to run twice: the second run leaves
+// every file in the repo as it was, adds none and installs nothing again.
 #[test]
-fn a_second_run_changes_no_file() {
+fn init_run_twice_changes_nothing() {
     let repo = repo();
-    let n = bundle_file_count();
-    rex_init_ok(&repo, &[]);
+    rex_init_ok(&repo, &["--with-storage"]);
     let before = files_under(repo.path());
+    let calls = repo.claude_calls();
 
-    let printed = rex_init_ok(&repo, &[]);
+    let printed = rex_init_ok(&repo, &["--with-storage"]);
 
     assert_eq!(
         printed.stdout,
-        format!("rex init: 0 written, {n} skipped\nrex init: pre-commit hooks installed\n")
+        format!("{PLUGIN_SKIPPED}rex init: pre-commit hooks installed\n")
     );
+    assert_eq!(repo.claude_calls(), calls, "no claude plugin command again");
     let after = files_under(repo.path());
     assert_eq!(
         before.keys().collect::<Vec<_>>(),

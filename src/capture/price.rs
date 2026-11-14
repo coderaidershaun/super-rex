@@ -136,3 +136,79 @@ pub(super) fn cost_of(message: &Value) -> Cost {
         unpriced_requests: 0,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::Value;
+
+    use super::*;
+
+    /// The price table the plugin prices its live tally with.
+    const SHARED_PRICES: &str = include_str!("../../fixtures/shared/tables/prices.json");
+
+    fn rates_of_json(rates: &Value) -> Rates {
+        let at = |key: &str| {
+            rates[key]
+                .as_u64()
+                .unwrap_or_else(|| panic!("{key} in {rates}"))
+        };
+        Rates {
+            input: at("input"),
+            cache_write_5m: at("cache_write_5m"),
+            cache_write_1h: at("cache_write_1h"),
+            cache_read: at("cache_read"),
+            output: at("output"),
+        }
+    }
+
+    fn as_tuple(rates: Rates) -> (u64, u64, u64, u64, u64) {
+        (
+            rates.input,
+            rates.cache_write_5m,
+            rates.cache_write_1h,
+            rates.cache_read,
+            rates.output,
+        )
+    }
+
+    // The plugin's live tally and the binary's cost of record must price a
+    // token alike, or the spend gate refuses at another figure than rex shows.
+    #[test]
+    fn the_shared_price_table_is_the_one_the_binary_prices_with() {
+        let shared: Value = serde_json::from_str(SHARED_PRICES).unwrap();
+        for (model, rates) in shared["models"].as_object().unwrap() {
+            let ours = rates_of(model, 1).unwrap_or_else(|| panic!("{model} has no price"));
+            assert_eq!(as_tuple(ours), as_tuple(rates_of_json(rates)), "{model}");
+        }
+        for (model, card) in shared["second_card"].as_object().unwrap() {
+            let above = card["above_prompt_tokens"].as_u64().unwrap();
+            let ours = rates_of(model, above + 1).unwrap();
+            assert_eq!(
+                as_tuple(ours),
+                as_tuple(rates_of_json(&card["rates"])),
+                "{model}"
+            );
+            let below = rates_of(model, above).unwrap();
+            assert_eq!(
+                as_tuple(below),
+                as_tuple(rates_of_json(&shared["models"][model])),
+                "{model}"
+            );
+        }
+        let fast: Vec<&str> = shared["fast_mode"]["models"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|model| model.as_str().unwrap())
+            .collect();
+        for model in shared["models"].as_object().unwrap().keys() {
+            assert_eq!(
+                has_fast_mode(model),
+                fast.contains(&model.as_str()),
+                "{model}"
+            );
+        }
+        assert_eq!(shared["fast_mode"]["factor"], 2);
+        assert_eq!(rates_of("claude-not-a-model", 1).map(as_tuple), None);
+    }
+}

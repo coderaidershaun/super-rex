@@ -1,5 +1,5 @@
-//! The skills, library skills and agents embedded in the binary are checked with
-//! the same rules as `rex skills check`, so that `rex init` never installs a broken one.
+//! The skills, library skills and agents that the plugin ships are checked with
+//! the same rules as `rex skills check`, so that no session loads a broken one.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -8,16 +8,16 @@ use super_rex::bundle::{AGENTS_ROOT, LIBRARY_ROOT, SKILLS_ROOT, walk};
 use super_rex::commands::skills::{KnownSkills, Rule, Skill, SkillFile, check_skill};
 
 /// One skill of the bundle, with the root folder that holds it, such as
-/// `.rex/skills`.
+/// `plugin/library`.
 struct BundledSkill {
     root: &'static str,
     skill: Skill,
 }
 
 /// Each skill folder of the bundle with its Markdown files, in
-/// `.claude/skills` and in the library, and the skills and Markdown files
-/// around them. The bundle is Markdown, so a Markdown file that is not UTF-8
-/// is a mistake.
+/// `plugin/skills` and in the library, and every skill file that text may
+/// name. The bundle is Markdown, so a Markdown file that is not UTF-8 is a
+/// mistake.
 fn bundle_skills() -> (Vec<BundledSkill>, KnownSkills) {
     let mut files_by_folder: BTreeMap<(&str, String), Vec<SkillFile>> = BTreeMap::new();
     let mut known = KnownSkills::default();
@@ -35,12 +35,7 @@ fn bundle_skills() -> (Vec<BundledSkill>, KnownSkills) {
         }
         let text = String::from_utf8(bytes.to_vec())
             .unwrap_or_else(|_| panic!("{} is not UTF-8", path.display()));
-        let in_root = if root == LIBRARY_ROOT {
-            &mut known.library_paths
-        } else {
-            &mut known.skill_paths
-        };
-        in_root.insert(below_root.to_path_buf());
+        known.paths.insert(below_root.to_path_buf());
 
         let mut parts = below_root.components();
         let Some(folder) = parts.next() else {
@@ -68,20 +63,6 @@ fn bundle_skills() -> (Vec<BundledSkill>, KnownSkills) {
         })
         .collect();
     (skills, known)
-}
-
-/// What is around a skill in `root`: every skill of both folders, and the
-/// Markdown files of `root`, where a link may point.
-fn known_from(root: &str, known: &KnownSkills) -> KnownSkills {
-    let files = if root == LIBRARY_ROOT {
-        &known.library_paths
-    } else {
-        &known.skill_paths
-    };
-    KnownSkills {
-        files: files.clone(),
-        ..known.clone()
-    }
 }
 
 /// The most words a stage file of the builder may hold, counted as `wc -w`
@@ -155,7 +136,7 @@ fn findings_of(skills: &[BundledSkill], known: &KnownSkills, rules: &[Rule]) -> 
     skills
         .iter()
         .flat_map(|BundledSkill { root, skill }| {
-            check_skill(skill, &known_from(root, known))
+            check_skill(skill, known)
                 .into_iter()
                 .filter(|finding| rules.contains(&finding.rule))
                 .map(move |finding| {
@@ -230,7 +211,19 @@ fn a_plain_description_is_not_shortened_by_yaml() {
 
 /// The assignment table: stage 1, stage 2, the challenger, `rex-rules` and
 /// `rex-feedback` all start from its rows.
-const ASSIGNMENT_TABLE: &str = ".claude/skills/orchestration-builder/stages/1-skills/assign.md";
+const ASSIGNMENT_TABLE: &str = "plugin/skills/orchestration-builder/stages/1-skills/assign.md";
+
+/// The bundle path of a skill file as the skill text names it,
+/// `<skill>/<file>.md`: the file in whichever of `plugin/skills` and
+/// `plugin/library` holds that skill. `None` when neither holds the skill.
+fn bundle_path(bundle: &BTreeMap<PathBuf, String>, written: &str) -> Option<PathBuf> {
+    let skill = written.split('/').next()?;
+    [SKILLS_ROOT, LIBRARY_ROOT]
+        .iter()
+        .map(Path::new)
+        .find(|root| bundle.contains_key(&root.join(skill).join("SKILL.md")))
+        .map(|root| root.join(written))
+}
 
 /// The words of `text` in backticks.
 fn backticked(text: &str) -> impl Iterator<Item = &str> {
@@ -238,19 +231,11 @@ fn backticked(text: &str) -> impl Iterator<Item = &str> {
 }
 
 /// Each name in backticks in the assignment table that the bundle does not
-/// hold: a skill `rex-<name>`, a sibling file `<skill>/<file>.md`, or a path
-/// `<root>/<skill>/<file>.md`. A gap skill (`rex-gap-<language>`) is written
-/// by a job, not bundled, and a name with a placeholder is a template.
+/// hold: a skill `rex-<name>`, or a skill file `<skill>/<file>.md`. A gap
+/// skill (`rex-gap-<language>`) is written by a job, not bundled, and a name
+/// with a placeholder is a template.
 fn dead_names_in_assignment_table(bundle: &BTreeMap<PathBuf, String>) -> Vec<String> {
-    let roots = [SKILLS_ROOT, LIBRARY_ROOT];
-    let is_bundled = |path: &str| bundle.contains_key(Path::new(path));
-    let is_skill = |name: &str| {
-        roots.iter().any(|root| {
-            bundle
-                .keys()
-                .any(|path| path.starts_with(Path::new(root).join(name)))
-        })
-    };
+    let is_skill = |name: &str| bundle_path(bundle, &format!("{name}/SKILL.md")).is_some();
     let text = bundle
         .get(Path::new(ASSIGNMENT_TABLE))
         .unwrap_or_else(|| panic!("the bundle must hold {ASSIGNMENT_TABLE}"));
@@ -258,13 +243,7 @@ fn dead_names_in_assignment_table(bundle: &BTreeMap<PathBuf, String>) -> Vec<Str
         .filter(|name| !name.contains(['<', ' ']))
         .filter(|name| {
             if name.ends_with(".md") && name.contains('/') {
-                if roots.iter().any(|root| name.starts_with(root)) {
-                    !is_bundled(name)
-                } else {
-                    !roots
-                        .iter()
-                        .any(|root| is_bundled(&format!("{root}/{name}")))
-                }
+                !bundle_path(bundle, name).is_some_and(|path| bundle.contains_key(&path))
             } else {
                 name.starts_with("rex-") && !name.starts_with("rex-gap-") && !is_skill(name)
             }
@@ -273,28 +252,26 @@ fn dead_names_in_assignment_table(bundle: &BTreeMap<PathBuf, String>) -> Vec<Str
         .collect()
 }
 
-/// Each "`## <Section>` of `<path>`" (or `in`) in the bundle whose file, given
-/// by its full path, has no line `## <Section>`.
+/// Each "`## <Section>` of `<skill>/<file>.md`" (or `in`) in the bundle whose
+/// file has no line `## <Section>`. A file of no bundled skill is a file of
+/// the repo; rule B4 names a skill that is missing.
 fn dead_section_references(bundle: &BTreeMap<PathBuf, String>) -> Vec<String> {
     let mut dead = Vec::new();
     for (from, text) in bundle {
         let parts: Vec<&str> = text.split('`').collect();
         for at in (1..parts.len().saturating_sub(2)).step_by(2) {
-            let (section, between, target) = (parts[at], parts[at + 1], parts[at + 2]);
-            let names_its_file = section.starts_with("## ")
-                && matches!(between, " of " | " in ")
-                && [SKILLS_ROOT, LIBRARY_ROOT]
-                    .iter()
-                    .any(|root| target.starts_with(root));
-            if !names_its_file {
+            let (section, between, written) = (parts[at], parts[at + 1], parts[at + 2]);
+            let target = bundle_path(bundle, written).filter(|_| written.ends_with(".md"));
+            let names_its_file = section.starts_with("## ") && matches!(between, " of " | " in ");
+            let Some(target) = target.filter(|_| names_its_file) else {
                 continue;
-            }
+            };
             let is_there = bundle
-                .get(Path::new(target))
+                .get(&target)
                 .is_some_and(|file| file.lines().any(|line| line.trim_end() == section));
             if !is_there {
                 dead.push(format!(
-                    "{}: `{section}` is not a heading of {target}",
+                    "{}: `{section}` is not a heading of {written}",
                     from.display()
                 ));
             }

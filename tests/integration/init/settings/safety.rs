@@ -1,20 +1,20 @@
-//! Which safety settings `rex init` writes: what `--strict` and `--no-hooks`
-//! change, and when the folder above the repo is opened to agents.
+//! Which safety settings `rex init` writes: what `--strict` changes, and when
+//! the folder above the repo is opened to agents.
 
 use std::path::Path;
 
 use serde_json::{Value, json};
 
-use super::expected::{as_written, hooked, parent_of, read_settings, safety_settings};
+use super::expected::{as_written, parent_of, read_settings, safety_settings, with_depth};
 use crate::init::support::{Repo, repo, rex_init_command, rex_init_failed, rex_init_ok};
 
 // A program that opens its own network connection cannot run in the sandbox,
 // so an agent may run a command again outside it. Some systems block the
 // sandbox itself, so Claude Code still starts there, with no sandbox.
 // `--strict` takes both away, and a file that is stricter than the run asks
-// for is never made weaker. `--no-hooks` leaves out the hook entries.
+// for is never made weaker.
 #[test]
-fn strict_and_no_hooks_change_only_the_settings_they_name() {
+fn strict_changes_only_the_settings_it_names() {
     let sandbox_key = |repo: &Repo, name: &str| {
         let written: Value = serde_json::from_str(&read_settings(repo)).expect("settings JSON");
         written["sandbox"][name].clone()
@@ -29,7 +29,7 @@ fn strict_and_no_hooks_change_only_the_settings_they_name() {
     assert_eq!(printed.stderr, "");
     assert_eq!(allow_key(&strict), json!(false));
     assert_eq!(fail_key(&strict), json!(true));
-    let mut expected = hooked(safety_settings(&strict));
+    let mut expected = with_depth(safety_settings(&strict));
     expected["sandbox"]["failIfUnavailable"] = json!(true);
     expected["sandbox"]["allowUnsandboxedCommands"] = json!(false);
     // With --strict no command may run outside the sandbox, so none is excluded.
@@ -37,6 +37,11 @@ fn strict_and_no_hooks_change_only_the_settings_they_name() {
         .as_object_mut()
         .expect("sandbox object")
         .remove("excludedCommands");
+    // Nor is `rex worktree` let run with no prompt.
+    expected["permissions"]
+        .as_object_mut()
+        .expect("permissions object")
+        .remove("allow");
     assert_eq!(read_settings(&strict), as_written(&expected));
 
     // A later run without the flag keeps the stricter values, and says how to
@@ -67,27 +72,6 @@ fn strict_and_no_hooks_change_only_the_settings_they_name() {
         "rex init: failed: kept sandbox.failIfUnavailable = false in .claude/settings.local.json, so the protection it gives is off; set it to true to turn it on\n\
          rex init: failed: kept sandbox.allowUnsandboxedCommands = true in .claude/settings.local.json, so the protection it gives is off; set it to false to turn it on\n\
          error: rex init did not finish 2 step(s); each is named above\n"
-    );
-
-    // Leaving the hooks out turns telemetry off for a new repo, but it never
-    // deletes entries an earlier run wrote: the person is told to remove them.
-    let fresh = repo();
-
-    let printed = rex_init_ok(&fresh, &["--no-hooks"]);
-
-    assert_eq!(printed.stderr, "");
-    assert_eq!(read_settings(&fresh), as_written(&safety_settings(&fresh)));
-
-    let hooked = repo();
-    rex_init_ok(&hooked, &[]);
-    let before = read_settings(&hooked);
-
-    let printed = rex_init_ok(&hooked, &["--no-hooks"]);
-
-    assert_eq!(read_settings(&hooked), before, "the hook entries stay");
-    assert_eq!(
-        printed.stderr,
-        "rex init: warning: hooks left out, but hook entries from an earlier run are still in .claude/settings.local.json. Remove the entries that run rex hook, rex gate or rex test-hook to turn telemetry, the spend gate and the test output filter off.\n"
     );
 }
 

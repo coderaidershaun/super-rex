@@ -147,9 +147,9 @@ fn insert_job(
     status: &str,
 ) -> Result<(), StoreError> {
     tx.execute(
-        "INSERT INTO job (id, request, asked_by, class_version, work_type, size, consequence,
+        "INSERT INTO job (id, request, origin, class_version, work_type, size, consequence,
                           languages, merge_agreed, session_id, status, created_at, updated_at)
-         VALUES (?1, 'fix the parser', 'human', 1, 'fix', 'small', 'low', 'rust', 0, ?2, ?3,
+         VALUES (?1, 'fix the parser', 'composer', 1, 'fix', 'small', 'low', 'rust', 0, ?2, ?3,
                  strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
         params![id, session, status],
     )?;
@@ -189,7 +189,6 @@ fn paths_in(dir: &Path) -> StorePaths {
         root: dir.parent().unwrap().to_path_buf(),
         dir: dir.to_path_buf(),
         db: dir.join("rex.db"),
-        event_log: dir.join("events.jsonl"),
         orchestrators: dir.join("orchestrators"),
     }
 }
@@ -220,7 +219,7 @@ fn second_writer_waits_instead_of_failing() {
     wait_for_lock.recv().unwrap();
 
     let started = Instant::now();
-    // Read before the write, as `rex job create` does: a transaction that only
+    // Read before the write, as `rex ingest` does: a transaction that only
     // takes the write lock later would fail at once instead of waiting.
     second
         .write(|tx| {
@@ -242,7 +241,7 @@ fn second_writer_waits_instead_of_failing() {
 }
 
 #[test]
-fn schema_v1_applies_once_and_guards_its_invariants() {
+fn schema_v2_applies_once_and_guards_its_invariants() {
     let temp = tempfile::tempdir().unwrap();
     let repo = temp.path().join("repo");
     fs::create_dir_all(&repo).unwrap();
@@ -254,14 +253,15 @@ fn schema_v1_applies_once_and_guards_its_invariants() {
         .conn()
         .query_row("PRAGMA user_version", [], |row| row.get(0))
         .unwrap();
-    assert_eq!(version, 1);
+    assert_eq!(version, 2);
     let tables = count(
         &store,
         "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name IN
          ('job', 'job_transition', 'role', 'delivery', 'orchestrator', 'sub_agent_run',
-          'session_tokens', 'feedback', 'meta')",
+          'session_tokens', 'feedback', 'meta', 'decision', 'manifest', 'skill_open',
+          'ingest_stream', 'ingest_event', 'tree', 'question')",
     );
-    assert_eq!(tables, 9);
+    assert_eq!(tables, 16);
     assert!(paths.orchestrators.is_dir());
     drop(store);
 
@@ -271,7 +271,7 @@ fn schema_v1_applies_once_and_guards_its_invariants() {
     assert_eq!(
         snapshot_files(&paths.dir),
         before,
-        "a store at version 1 must be left as it was"
+        "a store at version 2 must be left as it was"
     );
     for leftover in ["rex.db-wal", "rex.db-shm"] {
         assert!(
@@ -293,7 +293,7 @@ fn schema_v1_applies_once_and_guards_its_invariants() {
         insert_job(tx, "job0000003", "s2", "created")?;
         insert_job(tx, "job0000002", "s1", "planned")
     });
-    assert_refused(second_open_job, "a second open job for one session");
+    assert_refused(second_open_job, "a second open job for one owner");
     assert_eq!(
         count(&store, "SELECT count(*) FROM job WHERE id = 'job0000003'"),
         0,
@@ -353,16 +353,25 @@ fn schema_v1_applies_once_and_guards_its_invariants() {
     let newer = paths_in(&temp.path().join("newer").join(".rex"));
     rusqlite::Connection::open(&newer.db)
         .unwrap()
-        .pragma_update(None, "user_version", 2)
+        .pragma_update(None, "user_version", 3)
         .unwrap();
     for result in [Store::open(&newer), Store::create(&newer)] {
         assert!(matches!(
             result,
             Err(StoreError::NewerSchema {
-                found: 2,
-                supported: 1,
+                found: 3,
+                supported: 2,
                 ..
             })
         ));
+    }
+
+    let older = paths_in(&temp.path().join("older").join(".rex"));
+    rusqlite::Connection::open(&older.db)
+        .unwrap()
+        .pragma_update(None, "user_version", 1)
+        .unwrap();
+    for result in [Store::open(&older), Store::create(&older)] {
+        assert!(matches!(result, Err(StoreError::VersionOne { .. })));
     }
 }

@@ -1,10 +1,10 @@
-//! Fitness tests of `rex init`: what the binary embeds and so installs into
-//! every repo, and what the hooks it installs may answer.
+//! Fitness tests of what the plugin ships and what `rex init` writes: the files
+//! the binary embeds, and the settings hooks no run may leave behind.
 
+use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 use serde_json::{Value, json};
-use super_rex::commands::test_output::{OUTPUT_FLAGS, TEST_COMMANDS, hook_output};
 
 /// Each model tier of the grid, with the Claude Code model alias it runs.
 const MODEL_TIERS: [(&str, &str); 4] = [
@@ -30,7 +30,7 @@ fn grid_agents() -> Vec<GridAgent> {
             EFFORT_LEVELS.iter().map(move |level| {
                 let name = format!("model-{tier}-effort-{level}");
                 GridAgent {
-                    path: PathBuf::from(format!(".claude/agents/{name}.md")),
+                    path: PathBuf::from(format!("plugin/agents/{name}.md")),
                     header_lines: [
                         format!("name: {name}"),
                         format!("model: {model}"),
@@ -42,8 +42,8 @@ fn grid_agents() -> Vec<GridAgent> {
         .collect()
 }
 
-// This test must never be deleted. A file like .claude/settings.local.json
-// or the store in .rex can be hidden from `git status` by the user's global
+// This test must never be deleted. A file like the types folder the engine
+// writes below plugin/.claude-plugin can be hidden from `git status` by the user's global
 // git ignore rules, so it could end up embedded in the published crate
 // without ever showing up as a change. This is the only check that would
 // catch it.
@@ -53,8 +53,8 @@ fn bundle_contains_only_skill_and_agent_paths() {
     assert!(!entries.is_empty(), "embedded bundle must not be empty");
 
     let markers = [
-        ".claude/skills/rex-deliver/SKILL.md",
-        ".rex/skills/rex-skill-language/SKILL.md",
+        "plugin/skills/rex-deliver/SKILL.md",
+        "plugin/library/rex-skill-language/SKILL.md",
     ];
     for marker in markers {
         assert!(
@@ -94,18 +94,18 @@ fn bundle_contains_only_skill_and_agent_paths() {
         })
         .collect();
 
-    let skill_roots = [".claude/skills", ".rex/skills"];
+    let skill_roots = ["plugin/skills", "plugin/library"];
     for (path, _) in &entries {
         let skill_root = skill_roots.iter().find(|root| path.starts_with(root));
         assert!(
             skill_root.is_some() || agents.contains(path),
-            "every embedded path must start with .claude/skills/ or .rex/skills/, or be a grid agent, found {}",
+            "every embedded path must start with plugin/skills/ or plugin/library/, or be a grid agent, found {}",
             path.display()
         );
 
         let below_root = match skill_root {
             Some(root) => path.strip_prefix(root).expect("path is below its root"),
-            None => path.strip_prefix(".claude/agents").expect("agent path"),
+            None => path.strip_prefix("plugin/agents").expect("agent path"),
         };
         if skill_root.is_some() {
             assert!(
@@ -126,51 +126,108 @@ fn bundle_contains_only_skill_and_agent_paths() {
     }
 }
 
-// This test must never be deleted. The test hook runs before every shell
-// command in every repo. A permission decision in its answer would skip or
-// change the person's permission prompt for that command, and nothing would
-// show that it had.
-#[test]
-fn test_hook_never_decides_a_permission() {
-    let forms = [
-        "{test}",
-        "{test} --quiet",
-        "{test} 2>&1",
-        "RUST_LOG=debug {test}",
-        "{test} | tail -5",
-        "cd src && {test}",
-        "{test} | grep x",
-        "{test}; rm -rf x",
-        "{test} && exit 0",
-        "{test} > out.txt",
-        "echo $({test})",
-        "{test} \\",
-    ];
-    let mut commands: Vec<String> = TEST_COMMANDS
-        .iter()
-        .flat_map(|test| forms.iter().map(move |form| form.replace("{test}", test)))
-        .collect();
-    // A run that asks for its output keeps it, so it is never changed.
-    for test in TEST_COMMANDS {
-        commands.extend(OUTPUT_FLAGS.iter().map(|flag| format!("{test} {flag}")));
+/// Runs `rex init` in a new repo whose settings file holds `settings`, with
+/// stand-in tools on PATH, and gives the settings file after it.
+fn settings_after_init(settings: Option<&Value>) -> Value {
+    let repo = tempfile::tempdir().expect("create repo");
+    let bin = tempfile::tempdir().expect("create tools folder");
+    fs::create_dir(repo.path().join(".git")).expect("create .git");
+    if let Some(settings) = settings {
+        fs::create_dir(repo.path().join(".claude")).expect("create .claude");
+        fs::write(
+            repo.path().join(".claude/settings.local.json"),
+            settings.to_string(),
+        )
+        .expect("write settings");
     }
-    commands.extend(["ls -la", "git status", "rm -rf build", ""].map(String::from));
+    for (tool, body) in [
+        (
+            "claude",
+            "if [ \"$1\" = plugin ]; then exit 0; fi\necho '2.1.323 (Claude Code)'",
+        ),
+        ("bwrap", "exit 0"),
+        ("socat", "exit 0"),
+    ] {
+        let path = bin.path().join(tool);
+        fs::write(&path, format!("#!/bin/sh\n{body}\n")).expect("write tool");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).expect("chmod");
+        }
+    }
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_rex"))
+        .arg("init")
+        .current_dir(repo.path())
+        .env("PATH", bin.path())
+        .env_remove("REX_STORE")
+        .output()
+        .expect("run rex init");
+    assert!(
+        output.status.success(),
+        "rex init failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let text =
+        fs::read_to_string(repo.path().join(".claude/settings.local.json")).expect("read settings");
+    serde_json::from_str(&text).expect("settings JSON")
+}
 
-    let mut changed = 0;
-    for command in &commands {
-        let tool_input = json!({ "command": command, "description": "d", "timeout": 5, "run_in_background": true });
-        let event = json!({ "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_input": tool_input });
-        let Some(output) = hook_output(&event) else {
-            continue;
-        };
-        changed += 1;
-        let answer = &output["hookSpecificOutput"];
-        let keys: Vec<&String> = answer.as_object().expect("an object").keys().collect();
-        assert_eq!(keys, ["hookEventName", "updatedInput"], "{command}");
-        let mut kept = answer["updatedInput"].clone();
-        kept["command"] = Value::String(command.clone());
-        assert_eq!(kept, tool_input, "every other field stays: {command}");
+/// The command of each hook of any event in `settings`.
+fn hook_commands(settings: &Value) -> Vec<String> {
+    let Some(events) = settings.get("hooks").and_then(Value::as_object) else {
+        return Vec::new();
+    };
+    events
+        .values()
+        .filter_map(Value::as_array)
+        .flatten()
+        .filter_map(|group| group.get("hooks").and_then(Value::as_array))
+        .flatten()
+        .filter_map(|hook| hook.get("command").and_then(Value::as_str))
+        .map(str::to_owned)
+        .collect()
+}
+
+// This test must never be deleted. A settings hook runs on every event of
+// every session in the repo, outside the plugin's own failure handling, so a
+// hook that fails or prints can stop an agent. The plugin's mod does that work
+// now, so no run of `rex init` may leave a hook that runs rex.
+#[test]
+fn init_registers_no_hook() {
+    let old_entry = |command: &str| json!([{ "hooks": [{ "type": "command", "command": command, "timeout": 10 }] }]);
+    let starting_files = [
+        None,
+        Some(json!({})),
+        Some(json!({ "hooks": {} })),
+        Some(json!({ "hooks": {
+            "SubagentStart": old_entry("rex hook >/dev/null 2>&1 || true"),
+            "SubagentStop": old_entry("rex hook >/dev/null 2>&1 || true"),
+            "PostToolUse": old_entry("rex hook >/dev/null 2>&1 || true"),
+            "PreToolUse": [
+                { "matcher": "Agent|Task", "hooks": [{ "type": "command", "command": "rex gate 2>/dev/null || true" }] },
+                { "matcher": "Bash", "hooks": [
+                    { "type": "command", "command": "rex test-hook 2>/dev/null || true" },
+                    { "type": "command", "command": "my-linter" }
+                ] }
+            ]
+        } })),
+    ];
+    for settings in &starting_files {
+        let after = settings_after_init(settings.as_ref());
+
+        let commands = hook_commands(&after);
+        assert!(
+            commands.iter().all(|command| !command.starts_with("rex ")),
+            "a hook runs rex after rex init on {settings:?}: {commands:?}"
+        );
+        let kept_own = settings
+            .as_ref()
+            .is_some_and(|settings| settings.to_string().contains("my-linter"));
+        assert_eq!(
+            commands.contains(&"my-linter".to_owned()),
+            kept_own,
+            "the person's hook stays"
+        );
     }
-    // The first five forms of each test command are changed; the rest are not.
-    assert_eq!(changed, TEST_COMMANDS.len() * 5);
 }

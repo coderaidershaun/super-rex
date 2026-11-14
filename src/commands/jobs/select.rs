@@ -73,9 +73,9 @@ impl JobFilter {
     /// script that reads the list expects it to be complete.
     pub fn sql(&self) -> (String, Vec<String>) {
         let mut sql = String::from(
-            "SELECT id, created_at, updated_at, status, request, asked_by, class_version, \
-             work_type, size, consequence, languages, orchestrator_name, orchestrator_version, \
-             merge_agreed, builder_model, builder_effort FROM job WHERE 1 = 1",
+            "SELECT id, created_at, updated_at, status, request, origin, builder_agent_id, \
+             tree_id, work_type, size, consequence, languages, orchestrator_name, \
+             orchestrator_version, merge_agreed, builder_model, builder_effort FROM job WHERE 1 = 1",
         );
         let mut params = Vec::new();
         for term in &self.search {
@@ -103,11 +103,12 @@ pub struct JobRow {
     pub updated_at: String,
     pub stored_status: String,
     pub request: String,
-    pub asked_by: String,
-    pub class_version: i64,
-    pub work_type: String,
-    pub size: String,
-    pub consequence: String,
+    pub origin: String,
+    pub builder_agent_id: String,
+    pub tree: Option<String>,
+    pub work_type: Option<String>,
+    pub size: Option<String>,
+    pub consequence: Option<String>,
     /// Sorted names joined by commas, or `none`.
     pub languages: String,
     pub orchestrator: Option<(String, i64)>,
@@ -133,24 +134,25 @@ pub fn select_job_rows(conn: &Connection, filter: &JobFilter) -> Result<Vec<JobR
     let (sql, params) = filter.sql();
     let mut statement = conn.prepare(&sql)?;
     let rows = statement.query_map(params_from_iter(params.iter()), |row| {
-        let orchestrator_name: Option<String> = row.get(11)?;
-        let orchestrator_version: Option<i64> = row.get(12)?;
+        let orchestrator_name: Option<String> = row.get(12)?;
+        let orchestrator_version: Option<i64> = row.get(13)?;
         Ok(JobRow {
             id: row.get(0)?,
             created_at: row.get(1)?,
             updated_at: row.get(2)?,
             stored_status: row.get(3)?,
             request: row.get(4)?,
-            asked_by: row.get(5)?,
-            class_version: row.get(6)?,
-            work_type: row.get(7)?,
-            size: row.get(8)?,
-            consequence: row.get(9)?,
-            languages: row.get(10)?,
+            origin: row.get(5)?,
+            builder_agent_id: row.get(6)?,
+            tree: row.get(7)?,
+            work_type: row.get(8)?,
+            size: row.get(9)?,
+            consequence: row.get(10)?,
+            languages: row.get(11)?,
             orchestrator: orchestrator_name.zip(orchestrator_version),
-            merge_agreed: row.get::<_, i64>(13)? != 0,
-            builder_model: row.get(14)?,
-            builder_effort: row.get(15)?,
+            merge_agreed: row.get::<_, i64>(14)? != 0,
+            builder_model: row.get(15)?,
+            builder_effort: row.get(16)?,
         })
     })?;
     Ok(rows.collect::<Result<Vec<_>, _>>()?)

@@ -18,20 +18,39 @@ const TRIVY_CACHE: &str = "~/.cache/trivy";
 /// Commands that run outside the sandbox, unless `is_strict`. The sandbox never
 /// lets a command write `.claude/skills`, `.claude/agents` or the settings
 /// files, and no setting narrows that. These commands must write them: a Git
-/// checkout of a repo that tracks those folders, and `rex init` itself. Each
+/// checkout of a repo that tracks those folders, `rex init` itself, which
+/// also runs `claude plugin install`, and `rex worktree`, which makes a job's
+/// worktree (git's record of it is in `.git/worktrees`, which the sandbox
+/// keeps read-only too) and lists it in the settings file. Each
 /// still goes through the permission flow. `git commit` and `git push` are not
-/// here, because their hooks run code that an agent can change. Claude Code
-/// takes a git command out of the sandbox only when its paths are relative,
-/// with no `..`, so `git -C /abs/path ...` stays sandboxed whatever the entry.
-const COMMANDS_OUTSIDE_SANDBOX: [&str; 5] = [
+/// here, because their hooks run code that an agent can change: they run in
+/// the sandbox, which lets git write the record of a listed worktree. Claude
+/// Code takes a git command out of the sandbox only when its paths are
+/// relative, with no `..`, so `git -C /abs/path ...` stays sandboxed whatever the entry.
+const COMMANDS_OUTSIDE_SANDBOX: [&str; 6] = [
     "git worktree *",
     "git merge *",
     "git pull *",
     "git switch *",
     "rex init*",
+    "rex worktree *",
 ];
 
-/// The safety settings, with `parent` opened to agents when there is one.
+/// The allow rules that spare the person a prompt for each worktree a job
+/// makes or removes, unless `is_strict`. `rex worktree` checks its own
+/// arguments, so it can only list a real linked worktree of this repo in
+/// `<parent>/<name>.worktrees/`.
+const ALLOW_RULES: [&str; 2] = ["Bash(rex worktree add *)", "Bash(rex worktree remove *)"];
+
+/// The safety settings, with `parent` opened to agents when there is one,
+/// and each of `worktrees`, the job worktrees of the repo, listed after it.
+/// Claude Code's sandbox lets git write the record of a linked worktree whose
+/// own path is listed, and of no other, so a sandboxed `git commit` works there.
+///
+/// The deny rules after the first four keep merges and the record out of an
+/// agent's hands: a merge goes through the plugin's own merge tool, which does
+/// not run in the shell, and only the plugin and the person write the store
+/// and the spend limits. A rule holds even when a hook of the plugin is skipped.
 /// The `~/` paths stay as written, because Claude Code reads them the same
 /// way from any folder a session starts in.
 ///
@@ -45,10 +64,18 @@ const COMMANDS_OUTSIDE_SANDBOX: [&str; 5] = [
 /// with no sandbox, because some systems block the sandbox although its tools
 /// are installed, and a person there could not start a session at all. With
 /// `is_strict` Claude Code refuses to start instead.
-pub(super) fn safety_settings(parent: Option<&str>, is_strict: bool) -> Map<String, Value> {
+pub(super) fn safety_settings(
+    parent: Option<&str>,
+    worktrees: &[String],
+    is_strict: bool,
+) -> Map<String, Value> {
     let mut permissions = Map::new();
-    if let Some(parent) = parent {
-        permissions.insert("additionalDirectories".into(), json!([parent]));
+    let directories: Vec<&str> = parent
+        .into_iter()
+        .chain(worktrees.iter().map(String::as_str))
+        .collect();
+    if !directories.is_empty() {
+        permissions.insert("additionalDirectories".into(), json!(directories));
     }
     permissions.insert("blockWritesOutsideWorkingDirectories".into(), json!(true));
     permissions.insert(
@@ -57,7 +84,13 @@ pub(super) fn safety_settings(parent: Option<&str>, is_strict: bool) -> Map<Stri
             "Bash(sudo *)",
             "Bash(git push --force*)",
             "Bash(cargo publish*)",
-            "Bash(gh pr merge*--admin*)"
+            "Bash(gh pr merge*--admin*)",
+            "Bash(gh pr merge:*)",
+            "Bash(git push origin main:*)",
+            "Bash(git push origin HEAD:main:*)",
+            "Bash(rex ingest:*)",
+            "Bash(rex migrate:*)",
+            "Bash(rex limit:*)"
         ]),
     );
 
@@ -84,6 +117,7 @@ pub(super) fn safety_settings(parent: Option<&str>, is_strict: bool) -> Map<Stri
 
     if !is_strict {
         sandbox["excludedCommands"] = json!(COMMANDS_OUTSIDE_SANDBOX);
+        permissions.insert("allow".into(), json!(ALLOW_RULES));
     }
 
     let mut settings = Map::new();

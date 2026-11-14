@@ -1,0 +1,1737 @@
+{
+  "about": "The 44 cases of the specification of rex oms: each argv and the JSON line it prints. A Rust test of the binary pins each line; the plugin's tests read the same file.",
+  "version": 2,
+  "cases": [
+    {
+      "number": 1,
+      "inputs": "-------",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "none",
+        "--reliability",
+        "none",
+        "--consequence",
+        "none",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-medium",
+          "demand": "model-medium-effort-medium",
+          "rules": [
+            "T0",
+            "E0"
+          ],
+          "conflict": [],
+          "inputs": "-------",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 2,
+      "inputs": "--M----",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "medium",
+        "--reliability",
+        "none",
+        "--consequence",
+        "none",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-medium",
+          "demand": "model-medium-effort-medium",
+          "rules": [
+            "T1",
+            "E0"
+          ],
+          "conflict": [],
+          "inputs": "--M----",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 3,
+      "inputs": "--L----",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "low",
+        "--reliability",
+        "none",
+        "--consequence",
+        "none",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-low-effort-medium",
+          "demand": "model-low-effort-medium",
+          "rules": [
+            "T1",
+            "E0"
+          ],
+          "conflict": [],
+          "inputs": "--L----",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 4,
+      "inputs": "--H----",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "none",
+        "--consequence",
+        "none",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-high-effort-medium",
+          "demand": "model-high-effort-medium",
+          "rules": [
+            "T1",
+            "E0"
+          ],
+          "conflict": [],
+          "inputs": "--H----",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 5,
+      "inputs": "----L--",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "none",
+        "--reliability",
+        "low",
+        "--consequence",
+        "none",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-low",
+          "demand": "model-medium-effort-low",
+          "rules": [
+            "T0",
+            "E1"
+          ],
+          "conflict": [],
+          "inputs": "----L--",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 6,
+      "inputs": "-----H-",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "none",
+        "--reliability",
+        "none",
+        "--consequence",
+        "high",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-high-effort-high",
+          "demand": "model-high-effort-high",
+          "rules": [
+            "T0",
+            "T2",
+            "E1"
+          ],
+          "conflict": [],
+          "inputs": "-----H-",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 7,
+      "inputs": "----HL-",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "none",
+        "--reliability",
+        "high",
+        "--consequence",
+        "low",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-high-effort-high",
+          "demand": "model-high-effort-high",
+          "rules": [
+            "T0",
+            "T2",
+            "E1"
+          ],
+          "conflict": [],
+          "inputs": "----HL-",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 8,
+      "inputs": "----LH-",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "none",
+        "--reliability",
+        "low",
+        "--consequence",
+        "high",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-high-effort-high",
+          "demand": "model-high-effort-high",
+          "rules": [
+            "T0",
+            "T2",
+            "E1"
+          ],
+          "conflict": [],
+          "inputs": "----LH-",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 9,
+      "inputs": "--L--H-",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "low",
+        "--reliability",
+        "none",
+        "--consequence",
+        "high",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-high",
+          "demand": "model-medium-effort-high",
+          "rules": [
+            "T1",
+            "T2",
+            "E1"
+          ],
+          "conflict": [],
+          "inputs": "--L--H-",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 10,
+      "inputs": "--H--H-",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "none",
+        "--consequence",
+        "high",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-xhigh-effort-high",
+          "demand": "model-xhigh-effort-high",
+          "rules": [
+            "T1",
+            "T2",
+            "E1"
+          ],
+          "conflict": [],
+          "inputs": "--H--H-",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 11,
+      "inputs": "------L",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "none",
+        "--reliability",
+        "none",
+        "--consequence",
+        "none",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-high",
+          "demand": "model-medium-effort-high",
+          "rules": [
+            "T0",
+            "E0",
+            "E2"
+          ],
+          "conflict": [],
+          "inputs": "------L",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 12,
+      "inputs": "------H",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "none",
+        "--reliability",
+        "none",
+        "--consequence",
+        "none",
+        "--verification",
+        "high"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-low",
+          "demand": "model-medium-effort-low",
+          "rules": [
+            "T0",
+            "E0",
+            "E3"
+          ],
+          "conflict": [],
+          "inputs": "------H",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 13,
+      "inputs": "---H---",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "none",
+        "--reliability",
+        "none",
+        "--consequence",
+        "none",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-high",
+          "demand": "model-medium-effort-high",
+          "rules": [
+            "T0",
+            "E0",
+            "E4"
+          ],
+          "conflict": [],
+          "inputs": "---H---",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 14,
+      "inputs": "---L---",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "low",
+        "--intelligence",
+        "none",
+        "--reliability",
+        "none",
+        "--consequence",
+        "none",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-low",
+          "demand": "model-medium-effort-low",
+          "rules": [
+            "T0",
+            "E0",
+            "E5"
+          ],
+          "conflict": [],
+          "inputs": "---L---",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 15,
+      "inputs": "---LLLH",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "low",
+        "--intelligence",
+        "none",
+        "--reliability",
+        "low",
+        "--consequence",
+        "low",
+        "--verification",
+        "high"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-low",
+          "demand": "model-medium-effort-low",
+          "rules": [
+            "T0",
+            "E1",
+            "E3",
+            "E5"
+          ],
+          "conflict": [],
+          "inputs": "---LLLH",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 16,
+      "inputs": "--HHHHL",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "high",
+        "--consequence",
+        "high",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-xhigh-effort-max",
+          "demand": "model-xhigh-effort-max",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E2",
+            "E4"
+          ],
+          "conflict": [],
+          "inputs": "--HHHHL",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 17,
+      "inputs": "--H-HHL",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "high",
+        "--consequence",
+        "high",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-xhigh-effort-xhigh",
+          "demand": "model-xhigh-effort-xhigh",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E2"
+          ],
+          "conflict": [],
+          "inputs": "--H-HHL",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 18,
+      "inputs": "--M--HH",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "medium",
+        "--reliability",
+        "none",
+        "--consequence",
+        "high",
+        "--verification",
+        "high"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-high-effort-high",
+          "demand": "model-high-effort-high",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E3",
+            "F1"
+          ],
+          "conflict": [],
+          "inputs": "--M--HH",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 19,
+      "inputs": "--ML-HH",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "low",
+        "--intelligence",
+        "medium",
+        "--reliability",
+        "none",
+        "--consequence",
+        "high",
+        "--verification",
+        "high"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-high-effort-high",
+          "demand": "model-high-effort-high",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E3",
+            "E5",
+            "F1"
+          ],
+          "conflict": [],
+          "inputs": "--ML-HH",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 20,
+      "inputs": "--MH-HH",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "medium",
+        "--reliability",
+        "none",
+        "--consequence",
+        "high",
+        "--verification",
+        "high"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-high-effort-high",
+          "demand": "model-high-effort-high",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E3",
+            "E4"
+          ],
+          "conflict": [],
+          "inputs": "--MH-HH",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 21,
+      "inputs": "-L-----",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "low",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "none",
+        "--reliability",
+        "none",
+        "--consequence",
+        "none",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-medium",
+          "demand": "model-medium-effort-medium",
+          "rules": [
+            "T0",
+            "E0"
+          ],
+          "conflict": [],
+          "inputs": "-L-----",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 22,
+      "inputs": "-LH----",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "low",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "none",
+        "--consequence",
+        "none",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-medium",
+          "demand": "model-high-effort-medium",
+          "rules": [
+            "T1",
+            "E0",
+            "C1"
+          ],
+          "conflict": [],
+          "inputs": "-LH----",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 23,
+      "inputs": "-LHHHHL",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "low",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "high",
+        "--consequence",
+        "high",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-high",
+          "demand": "model-xhigh-effort-max",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E2",
+            "E4",
+            "C1",
+            "C2",
+            "F1"
+          ],
+          "conflict": [
+            "budget"
+          ],
+          "inputs": "-LHHHHL",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 24,
+      "inputs": "-LL--HH",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "low",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "low",
+        "--reliability",
+        "none",
+        "--consequence",
+        "high",
+        "--verification",
+        "high"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-high",
+          "demand": "model-medium-effort-high",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E3",
+            "C2",
+            "F1"
+          ],
+          "conflict": [
+            "budget"
+          ],
+          "inputs": "-LL--HH",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 25,
+      "inputs": "-MHHHHL",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "medium",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "high",
+        "--consequence",
+        "high",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-high-effort-high",
+          "demand": "model-xhigh-effort-max",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E2",
+            "E4",
+            "C1",
+            "C2"
+          ],
+          "conflict": [],
+          "inputs": "-MHHHHL",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 26,
+      "inputs": "-MHHMML",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "medium",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "medium",
+        "--consequence",
+        "medium",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-high-effort-high",
+          "demand": "model-high-effort-xhigh",
+          "rules": [
+            "T1",
+            "E1",
+            "E2",
+            "E4",
+            "C2"
+          ],
+          "conflict": [],
+          "inputs": "-MHHMML",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 27,
+      "inputs": "-HHHHHL",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "high",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "high",
+        "--consequence",
+        "high",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-xhigh-effort-max",
+          "demand": "model-xhigh-effort-max",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E2",
+            "E4"
+          ],
+          "conflict": [],
+          "inputs": "-HHHHHL",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 28,
+      "inputs": "L-HHHHL",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "low",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "high",
+        "--consequence",
+        "high",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-xhigh-effort-high",
+          "demand": "model-xhigh-effort-max",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E2",
+            "E4",
+            "C3",
+            "F1"
+          ],
+          "conflict": [
+            "duration"
+          ],
+          "inputs": "L-HHHHL",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 29,
+      "inputs": "L-MHMM-",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "low",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "medium",
+        "--reliability",
+        "medium",
+        "--consequence",
+        "medium",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-medium",
+          "demand": "model-medium-effort-high",
+          "rules": [
+            "T1",
+            "E1",
+            "E4",
+            "C3"
+          ],
+          "conflict": [],
+          "inputs": "L-MHMM-",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 30,
+      "inputs": "M-HHHHL",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "medium",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "high",
+        "--consequence",
+        "high",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-xhigh-effort-high",
+          "demand": "model-xhigh-effort-max",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E2",
+            "E4",
+            "C3"
+          ],
+          "conflict": [],
+          "inputs": "M-HHHHL",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 31,
+      "inputs": "LLH--H-",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "low",
+        "--budget",
+        "low",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "none",
+        "--consequence",
+        "high",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-high",
+          "demand": "model-xhigh-effort-high",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "C1",
+            "C2",
+            "C3",
+            "F1"
+          ],
+          "conflict": [
+            "budget",
+            "duration"
+          ],
+          "inputs": "LLH--H-",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 32,
+      "inputs": "HLM-M-L",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "high",
+        "--budget",
+        "low",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "medium",
+        "--reliability",
+        "medium",
+        "--consequence",
+        "none",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-medium",
+          "demand": "model-medium-effort-high",
+          "rules": [
+            "T1",
+            "E1",
+            "E2",
+            "C2"
+          ],
+          "conflict": [],
+          "inputs": "HLM-M-L",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 33,
+      "inputs": "--LHMML",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "low",
+        "--reliability",
+        "medium",
+        "--consequence",
+        "medium",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-low-effort-xhigh",
+          "demand": "model-low-effort-xhigh",
+          "rules": [
+            "T1",
+            "E1",
+            "E2",
+            "E4"
+          ],
+          "conflict": [],
+          "inputs": "--LHMML",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 34,
+      "inputs": "--LHLLH",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "low",
+        "--reliability",
+        "low",
+        "--consequence",
+        "low",
+        "--verification",
+        "high"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-low-effort-low",
+          "demand": "model-low-effort-low",
+          "rules": [
+            "T1",
+            "E1",
+            "E3",
+            "E4"
+          ],
+          "conflict": [],
+          "inputs": "--LHLLH",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 35,
+      "inputs": "--MHMMH",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "medium",
+        "--reliability",
+        "medium",
+        "--consequence",
+        "medium",
+        "--verification",
+        "high"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-medium",
+          "demand": "model-medium-effort-medium",
+          "rules": [
+            "T1",
+            "E1",
+            "E3",
+            "E4"
+          ],
+          "conflict": [],
+          "inputs": "--MHMMH",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 36,
+      "inputs": "--HHMML",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "medium",
+        "--consequence",
+        "medium",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-high-effort-xhigh",
+          "demand": "model-high-effort-xhigh",
+          "rules": [
+            "T1",
+            "E1",
+            "E2",
+            "E4"
+          ],
+          "conflict": [],
+          "inputs": "--HHMML",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 37,
+      "inputs": "--LHHMH",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "low",
+        "--reliability",
+        "high",
+        "--consequence",
+        "medium",
+        "--verification",
+        "high"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-high",
+          "demand": "model-medium-effort-high",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E3",
+            "E4"
+          ],
+          "conflict": [],
+          "inputs": "--LHHMH",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 38,
+      "inputs": "MMMMMMM",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "medium",
+        "--budget",
+        "medium",
+        "--autonomy",
+        "medium",
+        "--intelligence",
+        "medium",
+        "--reliability",
+        "medium",
+        "--consequence",
+        "medium",
+        "--verification",
+        "medium"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-medium",
+          "demand": "model-medium-effort-medium",
+          "rules": [
+            "T1",
+            "E1"
+          ],
+          "conflict": [],
+          "inputs": "MMMMMMM",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 39,
+      "inputs": "HHHHHHH",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "high",
+        "--budget",
+        "high",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "high",
+        "--consequence",
+        "high",
+        "--verification",
+        "high"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-xhigh-effort-high",
+          "demand": "model-xhigh-effort-high",
+          "rules": [
+            "T1",
+            "T2",
+            "E1",
+            "E3",
+            "E4"
+          ],
+          "conflict": [],
+          "inputs": "HHHHHHH",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 40,
+      "inputs": "LLLLLLL",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "low",
+        "--budget",
+        "low",
+        "--autonomy",
+        "low",
+        "--intelligence",
+        "low",
+        "--reliability",
+        "low",
+        "--consequence",
+        "low",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-low-effort-low",
+          "demand": "model-low-effort-low",
+          "rules": [
+            "T1",
+            "E1",
+            "E2",
+            "E5"
+          ],
+          "conflict": [],
+          "inputs": "LLLLLLL",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 41,
+      "inputs": "-LLHM-L",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "low",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "low",
+        "--reliability",
+        "medium",
+        "--consequence",
+        "none",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-low-effort-medium",
+          "demand": "model-low-effort-xhigh",
+          "rules": [
+            "T1",
+            "E1",
+            "E2",
+            "E4",
+            "C2"
+          ],
+          "conflict": [],
+          "inputs": "-LLHM-L",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 42,
+      "inputs": "M--H--L",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "medium",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "none",
+        "--reliability",
+        "none",
+        "--consequence",
+        "none",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-medium-effort-high",
+          "demand": "model-medium-effort-xhigh",
+          "rules": [
+            "T0",
+            "E0",
+            "E2",
+            "E4",
+            "C3"
+          ],
+          "conflict": [],
+          "inputs": "M--H--L",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 43,
+      "inputs": "--HHHML",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "high",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "high",
+        "--consequence",
+        "medium",
+        "--verification",
+        "low"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-high-effort-max",
+          "demand": "model-high-effort-max",
+          "rules": [
+            "T1",
+            "T2",
+            "T3",
+            "E1",
+            "E2",
+            "E4"
+          ],
+          "conflict": [],
+          "inputs": "--HHHML",
+          "version": 2
+        }
+      }
+    },
+    {
+      "number": 44,
+      "inputs": "--H-H--",
+      "argv": [
+        "rex",
+        "oms",
+        "--json",
+        "--duration",
+        "none",
+        "--budget",
+        "none",
+        "--autonomy",
+        "none",
+        "--intelligence",
+        "high",
+        "--reliability",
+        "high",
+        "--consequence",
+        "none",
+        "--verification",
+        "none"
+      ],
+      "expect": {
+        "exit": 0,
+        "stdout_json": {
+          "agent": "model-high-effort-high",
+          "demand": "model-high-effort-high",
+          "rules": [
+            "T1",
+            "T2",
+            "T3",
+            "E1"
+          ],
+          "conflict": [],
+          "inputs": "--H-H--",
+          "version": 2
+        }
+      }
+    }
+  ]
+}

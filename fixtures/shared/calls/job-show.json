@@ -1,0 +1,44 @@
+{
+  "name": "job-show",
+  "setup": [
+    "fixtures/shared/ingest/batch-open-stream.json",
+    "fixtures/shared/ingest/batch-example.json"
+  ],
+  "argv": [
+    "rex",
+    "job",
+    "show",
+    "0gaq820001",
+    "--json"
+  ],
+  "stdin_file": null,
+  "expect": {
+    "exit": 0,
+    "stdout_json_contains": {
+      "job": {
+        "id": "0gaq820001",
+        "status": "created",
+        "origin": "composer",
+        "builder_agent_id": "main",
+        "tree": null,
+        "request": "Fix the parser. Merge to main: yes",
+        "restatement": "Goal: fix the parser. Missing: budget.",
+        "merge": {
+          "answer": "yes",
+          "source": "person-prompt",
+          "question": null
+        },
+        "limit_usd": 10.0,
+        "limit_source": "default",
+        "degraded": [],
+        "repo": "/home/person/repo",
+        "branch": "rex/0gaq820001",
+        "base": "main"
+      },
+      "runs": [],
+      "questions": [],
+      "decisions": [],
+      "deliveries": []
+    }
+  }
+}

@@ -61,3 +61,27 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-push]
+
+      # The mod's checks. A plugin test cannot read fixtures/shared, so the mod reads a generated copy, and a copy that
+      # differs from its source would let the mod and the binary pass against different fixtures.
+      - id: shared-fixture-copy
+        name: plugin/hooks/book/shared.ts equals fixtures/shared
+        entry: python3 -I scripts/gen-shared-fixtures.py --check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit, pre-push]
+      - id: tsc-plugin
+        name: tsc of the mod and its evals
+        entry: bash -c 'tsc -p plugin && tsc -p plugin/evals'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: plugin-test
+        name: claude plugin test plugin
+        entry: claude plugin test plugin
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

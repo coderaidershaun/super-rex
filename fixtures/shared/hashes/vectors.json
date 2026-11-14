@@ -1,0 +1,45 @@
+{
+  "about": "SHA-256 as both sides write it. A skill file's hash is sha256: and the lower-case hex of the SHA-256 of its bytes, read as they are (no line ends changed, no BOM taken off); the text below is those bytes as UTF-8. A stream's secret is stored as the lower-case hex of the SHA-256 of the 64 hex characters of the secret, with no prefix. A Rust test pins each vector.",
+  "files": [
+    {
+      "name": "empty file",
+      "text": "",
+      "hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "one line",
+      "text": "Body.\n",
+      "hash": "sha256:44261ce242e1b99d52c7d2a4cb6dbcb5a4ab507bed9b9b303062a969fafe1d1e"
+    },
+    {
+      "name": "skill header",
+      "text": "---\nname: alpha\ndescription: The alpha skill.\n---\n\n# Alpha\n",
+      "hash": "sha256:76551968ba87e77a1a67b29c6185f69aaf23f777f7cfa955420e0eb2c1c54071"
+    },
+    {
+      "name": "no final line end",
+      "text": "last line",
+      "hash": "sha256:823810021fd8e874d5837ffc0c3fc3736826c08f45f9c4014161e74ed781d011"
+    },
+    {
+      "name": "Windows line ends",
+      "text": "one\r\ntwo\r\n",
+      "hash": "sha256:6f4792b265fe72790b344fd3ef5294701d9d087bed9fce815c0f4bbad6d2ed87"
+    },
+    {
+      "name": "text that is not ASCII",
+      "text": "Café — naïve façade ✓\n",
+      "hash": "sha256:434e4e2c6164573eb0599bf61a91a743735863412bce2cafe53fd4503d118326"
+    }
+  ],
+  "secrets": [
+    {
+      "secret": "1111111111111111111111111111111111111111111111111111111111111111",
+      "secret_sha256": "3138bb9bc78df27c473ecfd1410f7bd45ebac1f59cf3ff9cfe4db77aab7aedd3"
+    },
+    {
+      "secret": "2222222222222222222222222222222222222222222222222222222222222222",
+      "secret_sha256": "4f2e8d65483c641648cdb374ae9d8abd368d269e4ddffe092a8237b8162cddd6"
+    }
+  ]
+}

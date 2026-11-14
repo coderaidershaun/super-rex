@@ -23,7 +23,6 @@ pub struct JobRuns {
     pub session_cost: Option<Cost>,
     /// True when the history of the job may miss facts.
     pub incomplete: bool,
-    pub damaged_log_lines: u64,
     /// The last activity of each run, by agent ID, in milliseconds since the epoch:
     /// the newest of the run's start and its transcript's modification time, and of
     /// the same for each run below it. A run with no known activity is left out.

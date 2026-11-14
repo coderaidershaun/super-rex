@@ -11,9 +11,12 @@ use serde_json::Value;
 use super_rex::store::StoreError;
 
 use super::recorded::{
-    AFTER_SESSION, BEFORE_SESSION, BG, BG_CHILD, Fixture, JOB_A, JOB_B, LEAD, PLAIN, REVIEWER,
-    WORKER, event_of,
+    AFTER_SESSION, BEFORE_SESSION, BG, BG_CHILD, Fixture, JOB_A, LEAD, PLAIN, REVIEWER, WORKER,
+    event_of,
 };
+
+/// A job of the recorded session that is not in the store.
+const JOB_B: &str = "b5n8w3r6tz";
 
 /// `rex status` in `cwd`, with the two variables that steer the store search removed,
 /// so the test machine's own setup cannot change the result.
@@ -193,9 +196,9 @@ fn status_prints_runs() {
     open_and_unconfirmed_runs_are_shown();
 }
 
-/// A planned job whose REVIEWER and PLAIN runs lost their stop and completed-call
-/// lines and their `finished` mark: REVIEWER's transcript is fresh, and PLAIN's was
-/// last written long ago. The log also holds one damaged line.
+/// A planned job whose REVIEWER and PLAIN runs lost their end events and their
+/// `finished` mark: REVIEWER's transcript is fresh, and PLAIN's was last written
+/// long ago.
 fn open_and_unconfirmed_runs_are_shown() {
     let mut fixture = Fixture::new();
     fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
@@ -207,7 +210,7 @@ fn open_and_unconfirmed_runs_are_shown() {
         })
         .unwrap();
     let lost = [REVIEWER, PLAIN];
-    let mut log: Vec<String> = fixture
+    let log: Vec<String> = fixture
         .lines
         .iter()
         .filter(|line| {
@@ -222,7 +225,6 @@ fn open_and_unconfirmed_runs_are_shown() {
         })
         .cloned()
         .collect();
-    log.push("this line is not JSON".to_owned());
     fixture.append(&log);
     for agent in lost {
         let path = fixture.metadata(agent);
@@ -247,7 +249,7 @@ fn open_and_unconfirmed_runs_are_shown() {
     let after = SystemTime::now();
 
     let lines: Vec<&str> = text.lines().collect();
-    assert_eq!(lines.len(), 11, "{text}");
+    assert_eq!(lines.len(), 10, "{text}");
     assert_eq!(
         lines[0],
         "job k3x9p2m7qd  planned (running)  1 open  4 finished  1 unconfirmed  incomplete  \
@@ -295,5 +297,4 @@ fn open_and_unconfirmed_runs_are_shown() {
         "in 2 cache-w 4.4k cache-r 7.0k out 10 hit 61% $0.011~",
         "{text}"
     );
-    assert_eq!(lines[10], "event log: 1 damaged lines");
 }

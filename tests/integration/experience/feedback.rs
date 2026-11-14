@@ -74,7 +74,7 @@ fn feedback_moves_status_by_the_table() {
     assert_eq!(
         planned.stderr.trim_end(),
         format!(
-            "error: job {JOB_D} is planned and has no final outcome yet; close it with rex job close first"
+            "error: job {JOB_D} is planned and has no final outcome yet; give feedback once its builder has closed it"
         )
     );
     assert_eq!(fixture.feedback_rows(JOB_D), 0);

@@ -6,7 +6,7 @@ use std::path::Path;
 use serde::Serialize;
 
 use crate::commands::stdout::print_line_to_stdout;
-use crate::error::{CommandError, RexError};
+use crate::error::{CommandError, FailureClass, RexError};
 use crate::oms::{Inputs, Level, Selection, VERSION, select};
 
 /// Print the grid agent for a set of inputs.
@@ -118,7 +118,14 @@ pub enum OmsError {
     Rex(#[from] RexError),
 }
 
-impl CommandError for OmsError {}
+impl CommandError for OmsError {
+    fn failure_class(&self) -> FailureClass {
+        match self {
+            OmsError::Json { .. } => FailureClass::Reject,
+            OmsError::Rex(error) => error.failure_class(),
+        }
+    }
+}
 
 /// The printed result. The fields are in output order, which the JSON form
 /// keeps.

@@ -1,0 +1,11 @@
+{
+  "name": "super-rex",
+  "version": "0.8.0",
+  "description": "Plans and runs a job with Claude Code sub-agents: skills, the agent grid, and a mod that records, gates and assembles every agent of the job",
+  "author": { "name": "Shaun McDonogh" },
+  "homepage": "https://github.com/coderaidershaun/super-rex",
+  "repository": "https://github.com/coderaidershaun/super-rex",
+  "license": "MIT",
+  "keywords": ["agent", "claude", "orchestration", "skills"],
+  "types": "./types/index.d.ts"
+}

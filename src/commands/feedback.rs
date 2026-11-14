@@ -8,7 +8,7 @@ use clap::{ArgGroup, ValueEnum};
 use rusqlite::{Transaction, params};
 
 use super::stdout::print_line_to_stdout;
-use crate::error::{CommandError, RexError};
+use crate::error::{CommandError, FailureClass, RexError};
 use crate::store::status::{self, Event, Verdict};
 use crate::store::{JobId, Store, StoreError, StorePaths};
 
@@ -123,6 +123,18 @@ pub enum FeedbackError {
 }
 
 impl CommandError for FeedbackError {
+    fn failure_class(&self) -> FailureClass {
+        match self {
+            FeedbackError::AcceptedWithAnalysis
+            | FeedbackError::EmptySaid
+            | FeedbackError::EmptyLesson
+            | FeedbackError::LessonTooLong { .. } => FailureClass::Reject,
+            FeedbackError::Read { .. } => FailureClass::Retry,
+            FeedbackError::Store(error) => error.failure_class(),
+            FeedbackError::Rex(error) => error.failure_class(),
+        }
+    }
+
     fn is_usage(&self) -> bool {
         matches!(
             self,
@@ -131,6 +143,19 @@ impl CommandError for FeedbackError {
                 | FeedbackError::EmptyLesson
                 | FeedbackError::LessonTooLong { .. }
         )
+    }
+
+    fn exit_code(&self) -> u8 {
+        match self {
+            FeedbackError::Store(error) => error.exit_code(),
+            _ => {
+                if self.is_usage() {
+                    2
+                } else {
+                    1
+                }
+            }
+        }
     }
 }
 

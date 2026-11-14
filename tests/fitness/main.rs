@@ -3,3 +3,4 @@
 
 mod init;
 mod oms_skills;
+mod plugin;

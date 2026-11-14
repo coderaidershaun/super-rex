@@ -10,19 +10,19 @@ use super::error::InitError;
 use super::on_path::{first_on_path, is_missing};
 use super::print_line_to_stderr;
 
-/// The oldest Claude Code version the safety settings were tested on. An
-/// older one might ignore a setting it does not know and run without it;
-/// this is inferred, not tested.
-const MIN_CLAUDE_CODE_VERSION: ClaudeVersion = ClaudeVersion {
+/// The oldest Claude Code version that runs the plugin's mod: the one whose
+/// declarations the mod is written against. The plugin reads it from
+/// `.rex/config.json` too.
+pub(super) const MIN_CLAUDE_CODE_VERSION: ClaudeVersion = ClaudeVersion {
     major: 2,
     minor: 1,
-    patch: 322,
+    patch: 323,
 };
 
 /// A Claude Code version. The derived order compares the parts as numbers,
 /// major first, so 2.1.1000 is newer than 2.1.322.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct ClaudeVersion {
+pub(super) struct ClaudeVersion {
     major: u32,
     minor: u32,
     patch: u32,
@@ -146,16 +146,15 @@ fn warn_if_gh_is_missing() {
     }
 }
 
-/// The hooks and the skills start `rex` by its name on PATH. When that is
-/// no `rex`, or another one, their runs are lost or go to that one, so the
-/// person is told. This sees the PATH of the shell that runs `rex init`,
+/// The plugin starts `rex` by its name on PATH. When that is no `rex`, or
+/// another one, its record is lost or goes to that one, so the person is told. This sees the PATH of the shell that runs `rex init`,
 /// which may not be the PATH Claude Code runs with.
 fn warn_if_this_rex_is_not_on_path() {
     let Ok(this) = env::current_exe().and_then(|exe| exe.canonicalize()) else {
         return;
     };
     let warning = match first_on_path("rex") {
-        None => "rex init: warning: rex not found on PATH. The hooks log nothing and the skills cannot run rex until it is.".to_string(),
+        None => "rex init: warning: rex not found on PATH. The plugin keeps no record and cannot pick agents until it is.".to_string(),
         Some(found) => {
             let Ok(canonical) = found.canonicalize() else {
                 return;
@@ -164,7 +163,7 @@ fn warn_if_this_rex_is_not_on_path() {
                 return;
             }
             format!(
-                "rex init: warning: the rex on PATH is {}, not this one ({}). The hooks and the skills run that one; put this rex first on PATH.",
+                "rex init: warning: the rex on PATH is {}, not this one ({}). The plugin runs that one; put this rex first on PATH.",
                 found.display(),
                 this.display()
             )

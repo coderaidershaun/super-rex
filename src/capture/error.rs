@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use crate::error::CommandError;
+use crate::error::{CommandError, FailureClass};
 use crate::store::StoreError;
 
 /// Failure of capture.
@@ -11,12 +11,6 @@ use crate::store::StoreError;
 pub enum CaptureError {
     #[error("failed to read transcript {}", path.display())]
     ReadTranscript {
-        path: PathBuf,
-        #[source]
-        source: std::io::Error,
-    },
-    #[error("failed to read the event log {}", path.display())]
-    ReadLog {
         path: PathBuf,
         #[source]
         source: std::io::Error,
@@ -31,4 +25,18 @@ impl From<rusqlite::Error> for CaptureError {
     }
 }
 
-impl CommandError for CaptureError {}
+impl CommandError for CaptureError {
+    fn failure_class(&self) -> FailureClass {
+        match self {
+            CaptureError::ReadTranscript { .. } => FailureClass::Retry,
+            CaptureError::Store(error) => error.failure_class(),
+        }
+    }
+
+    fn exit_code(&self) -> u8 {
+        match self {
+            CaptureError::Store(error) => error.exit_code(),
+            CaptureError::ReadTranscript { .. } => 1,
+        }
+    }
+}

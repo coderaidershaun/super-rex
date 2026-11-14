@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::error::CaptureError;
-use super::rows::{self, RecoveredRun, TieTime};
+use super::rows::{self, RecoveredRun};
 use super::transcripts::text_at;
 use crate::store::Store;
 
@@ -176,8 +176,7 @@ fn unrecorded_runs(
         let (Some(first_at), Some(transcript)) = (first_at, transcript.to_str()) else {
             continue;
         };
-        let tie = TieTime::Text(first_at.clone());
-        if let Some(job_id) = rows::job_open_at(store.conn(), session_id, &tie)? {
+        if let Some(job_id) = rows::job_open_at(store.conn(), session_id, &first_at)? {
             found.push(Unrecorded {
                 job_id,
                 agent_id: agent.to_owned(),

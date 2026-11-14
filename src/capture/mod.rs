@@ -1,9 +1,7 @@
-//! Turns the events that `rex hook` logs into the record of sub-agent runs.
+//! The cost of record of sub-agent runs: reads the transcripts of the runs that
+//! `rex ingest` recorded, and finds the runs whose start never reached it.
 
 mod error;
-mod event;
-mod hook;
-mod intake;
 mod price;
 mod read;
 mod recovery;
@@ -19,33 +17,40 @@ use std::time::SystemTime;
 use crate::store::{JobId, Store};
 
 pub use error::CaptureError;
-pub(crate) use hook::append_event;
-pub use hook::{GATE_COMMAND, HOOK_COMMAND, REX_COMMANDS, hook_registration};
 pub use price::Cost;
+pub(crate) use rows::remember_transcript as remember_main_transcript;
+
+/// Where Claude Code writes the transcript of `agent_id`, a sub-agent of
+/// `session_id`, beside the session's main transcript: known before the run's
+/// end names it, so a run whose end is lost is still read. `None` while the
+/// session's main transcript is not known.
+///
+/// # Errors
+/// The read of the session's main transcript from the store fails.
+pub(crate) fn derived_transcript(
+    conn: &rusqlite::Connection,
+    session_id: &str,
+    agent_id: &str,
+) -> rusqlite::Result<Option<String>> {
+    let Some(main) = rows::session_transcript(conn, session_id)? else {
+        return Ok(None);
+    };
+    let path = recovery::subagents_folder(std::path::Path::new(&main), session_id)
+        .map(|folder| folder.join(recovery::transcript_name(agent_id)));
+    Ok(path.and_then(|path| path.to_str().map(str::to_owned)))
+}
 pub use runs::{JobRuns, MainFacts, Run, RunState};
 pub use tokens::{Reading, RunActivity, SETTLE, Step, TokenCounts, TokenTotal, TotalCheck};
 pub use transcripts::{TranscriptFacts, read_transcript};
 
-/// Takes the new lines of the event log into the store. Reads no transcript, except
-/// the first record of one for a run whose start line was lost. A log with no whole
-/// new line since the last intake takes no lock.
-///
-/// # Errors
-/// - [`CaptureError::Store`] when the store fails.
-/// - [`CaptureError::ReadLog`] when the event log exists and cannot be read.
-pub fn take_in(store: &mut Store) -> Result<(), CaptureError> {
-    intake::take_in(store)
-}
-
-/// Calls [`take_in`], finds runs that left no event, reads transcripts, stores
-/// totals, and returns the runs of one job as they stand at `now`. A transcript,
+/// Finds runs that left no event, reads transcripts, stores totals, and
+/// returns the runs of one job as they stand at `now`. A transcript,
 /// metadata file or folder that cannot be read counts as absent and sets
 /// [`JobRuns::incomplete`].
 ///
 /// # Errors
 /// - [`CaptureError::Store`] when the store fails, and with
 ///   [`crate::store::StoreError::JobNotFound`] for a job not in the store.
-/// - [`CaptureError::ReadLog`] when the event log exists and cannot be read.
 pub fn job_runs(store: &mut Store, job: &JobId, now: SystemTime) -> Result<JobRuns, CaptureError> {
     read::job_runs(store, job, now)
 }

@@ -15,7 +15,7 @@ use ratatui::crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 
 use self::model::{Action, Key, Sizes, Snapshot, State, on_key};
 use super::jobs::JobsError;
-use crate::error::CommandError;
+use crate::error::{CommandError, FailureClass};
 use crate::store::{Store, StoreError, StorePaths};
 
 /// How long the data stays as read before the next refresh.
@@ -44,7 +44,30 @@ pub enum WatchError {
     Jobs(#[from] JobsError),
 }
 
-impl CommandError for WatchError {}
+impl CommandError for WatchError {
+    fn failure_class(&self) -> FailureClass {
+        match self {
+            WatchError::NotATerminal => FailureClass::Reject,
+            WatchError::Terminal(_) => FailureClass::Retry,
+            WatchError::Store(error) => error.failure_class(),
+            WatchError::Jobs(error) => error.failure_class(),
+        }
+    }
+
+    fn exit_code(&self) -> u8 {
+        match self {
+            WatchError::Store(error) => error.exit_code(),
+            WatchError::Jobs(error) => error.exit_code(),
+            _ => {
+                if self.is_usage() {
+                    2
+                } else {
+                    1
+                }
+            }
+        }
+    }
+}
 
 /// Puts the terminal back when it goes out of scope, on every way out of
 /// `run`: a normal quit, an error, or a panic that unwinds.

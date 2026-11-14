@@ -5,7 +5,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::process::ExitStatus;
 
-use crate::error::{CommandError, RexError};
+use crate::error::{CommandError, FailureClass, RexError};
 use crate::store::StoreError;
 
 /// A failure of `rex init`. None of them is a wrong command line.
@@ -80,6 +80,46 @@ pub enum InitError {
     )]
     SettingsLinked { link: &'static str },
 
+    #[error(
+        ".rex/config.json could not be read and was left as it is, so the plugin cannot tell whether the record is kept; make it readable, then run rex init again"
+    )]
+    ConfigUnreadable {
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error(
+        ".rex/config.json is not valid JSON and was left as it is, so the plugin stays off in this repo; correct it or remove it, then run rex init again"
+    )]
+    ConfigNotJson {
+        #[source]
+        source: serde_json::Error,
+    },
+
+    #[error(
+        ".rex/config.json is not a JSON object and was left as it is, so the plugin stays off in this repo; make its top level an object or remove it, then run rex init again"
+    )]
+    ConfigNotObject,
+
+    #[error(
+        "could not run \"{command}\", so the super-rex plugin is not installed; check the Claude Code install, then run rex init again"
+    )]
+    PluginNotRun {
+        command: String,
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error(
+        "\"{command}\" exited with {status}, so the super-rex plugin is not installed; fix what it names, or give another --plugin-source, then run rex init again"
+    )]
+    PluginCommand {
+        command: String,
+        status: ExitStatus,
+        #[source]
+        stderr: Option<ToolStderr>,
+    },
+
     /// No fix is given: the store's own error, shown after this text, says
     /// what went wrong, and no one fix covers every case.
     #[error("the store could not be set up")]
@@ -87,6 +127,17 @@ pub enum InitError {
         #[source]
         source: StoreError,
     },
+
+    /// The one migration step that needs the person: a row that names a row
+    /// that is not there can only be dropped or restored, and either is their choice.
+    #[error(
+        ".rex/rex.db is version 1, and {count} {rows} in it {names} a row that is not there, so rex did not migrate it: carrying the {row_or_rows} over or dropping {it_or_them} is your choice, and dropping {it_or_them} loses that record; list {it_or_them} with: sqlite3 .rex/rex.db 'PRAGMA foreign_key_check;' then delete {it_or_them} or restore the store from a backup, and run rex init --with-storage again",
+        rows = if *count == 1 { "row" } else { "rows" },
+        names = if *count == 1 { "names" } else { "name" },
+        row_or_rows = if *count == 1 { "row" } else { "rows" },
+        it_or_them = if *count == 1 { "it" } else { "them" }
+    )]
+    StoreNeedsChoice { count: i64 },
 
     #[error(
         "`pre-commit install` exited with {status}; fix what it names, then run rex init again"
@@ -104,7 +155,36 @@ pub enum InitError {
     Rex(#[from] RexError),
 }
 
-impl CommandError for InitError {}
+impl CommandError for InitError {
+    fn failure_class(&self) -> FailureClass {
+        match self {
+            InitError::NotRepoRoot { .. }
+            | InitError::GitIsFile { .. }
+            | InitError::ClaudeNotFound
+            | InitError::ClaudeVersionUnreadable { .. }
+            | InitError::ClaudeTooOld { .. }
+            | InitError::SettingsNotJson { .. }
+            | InitError::SettingsNotObject
+            | InitError::SettingsUnreadable { .. }
+            | InitError::SettingsLinked { .. }
+            | InitError::ConfigUnreadable { .. }
+            | InitError::ConfigNotJson { .. }
+            | InitError::ConfigNotObject
+            | InitError::PreCommitInstall { .. }
+            | InitError::Incomplete { .. } => FailureClass::Reject,
+            // A repo whose agents run with a safety setting off must not be used
+            // until a person sees it.
+            InitError::SandboxToolsMissing { .. }
+            | InitError::SafetySettingKept { .. }
+            | InitError::StoreNeedsChoice { .. } => FailureClass::Halt,
+            InitError::ClaudeNotRun { .. }
+            | InitError::PluginNotRun { .. }
+            | InitError::PluginCommand { .. } => FailureClass::Retry,
+            InitError::Store { source } => source.failure_class(),
+            InitError::Rex(error) => error.failure_class(),
+        }
+    }
+}
 
 impl InitError {
     /// The text and each of its sources, joined by `: `, as one line.

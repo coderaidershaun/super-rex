@@ -1,0 +1,41 @@
+{
+  "name": "oms",
+  "setup": [],
+  "argv": [
+    "rex",
+    "oms",
+    "--json",
+    "--duration",
+    "none",
+    "--budget",
+    "high",
+    "--autonomy",
+    "high",
+    "--intelligence",
+    "high",
+    "--reliability",
+    "high",
+    "--consequence",
+    "high",
+    "--verification",
+    "low"
+  ],
+  "stdin_file": null,
+  "expect": {
+    "exit": 0,
+    "stdout_json": {
+      "agent": "model-xhigh-effort-max",
+      "demand": "model-xhigh-effort-max",
+      "rules": [
+        "T1",
+        "T2",
+        "E1",
+        "E2",
+        "E4"
+      ],
+      "conflict": [],
+      "inputs": "-HHHHHL",
+      "version": 2
+    }
+  }
+}

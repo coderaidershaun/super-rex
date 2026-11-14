@@ -4,6 +4,56 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.8.0 - 2026-11-14
+
+SuperRex is now a Claude Code plugin with a mod inside it. The skills, the skill library and the grid agents ship in the plugin, and the mod does the live work that the `rex` hooks did: it records each agent, checks and builds each brief, refuses a new agent over the spend limit, cuts test output, and merges. To move a repo from 0.7, read [docs/upgrade-0.8.md](docs/upgrade-0.8.md).
+
+### Added
+
+- The `super-rex` plugin, with its marketplace in `.claude-plugin/marketplace.json`. It holds the 6 skills that you start, now named `/super-rex:<skill>` (such as `/super-rex:orchestration-builder`), the library of 24 skills (with `rex-gap-ts`, a gap skill for TypeScript) and the 20 grid agents, now named `super-rex:model-<tier>-effort-<level>`. `rex init` installs it at project scope through `claude plugin marketplace add` and `claude plugin install`. `--plugin-source <path or owner/repo>` names another marketplace, such as `.` for a working copy.
+- The mod, below `plugin/hooks/`. It keeps the live record of each job (the book), and marks a job `degraded` when a part of it fails, never blocking a prompt, a tool call or a new agent. It reads your prompts: `/rex prompts <off|observe|improve>` sets whether it records them and whether it adds a restatement of a request that starts a job as context, written by a Sonnet completion. Your text is never changed. In every mode it reads a merge answer (`merge: yes`) and a spend limit (`Set the spend limit of this job to <usd> dollars`) from your words.
+- The mod checks each brief of a job once, for its `Task:` line and its five sections `Outcome:`, `Scope:`, `Context:`, `Acceptance:` and `Limits:`, and sends it back once with the findings. Then it builds the brief that the agent gets: the tag lines, a `<skills>` block with the full text and hash of each read-first skill and a line for each open-when skill, the author's text unchanged, the text for the agent's model and effort from `rex-agent-prompting`, the sandbox text and the `Return:` line.
+- Tools for the skills, each named `mcp__super-rex__rex_<name>`: `rex_skill`, `rex_status`, `rex_job_open`, `rex_recall`, `rex_job_plan`, `rex_job_close` and `rex_merge`. The mod reads the caller from Claude Code, never from an argument, and a builder can act only on its own job. <!-- T9: confirm after T6 and T7: rex_assign; rex_build, rex_continue, rex_note and rex_ask_owner. -->
+- `rex_skill` gives a skill file by name, with its source and hash, from the repo's `.rex/skills/`, then a job's own skills, then the plugin, then `~/.claude/skills/`. Skill text names a file as `<skill>/<file>.md`, never by a folder, because the plugin's folder changes with each version.
+- `rex_merge`, the only way a job merges. It reads the repo, the branch and the base from the caller's job, takes a merge lock for the repo, checks that the branch is one squash commit over `origin/<base>` and that the job has a merge answer from you (or from the master's policy), and pushes it to the base as a fast forward.
+- The `/rex` command, which runs at once and costs no model call: `watch`, `status`, `jobs`, `doctor`, `prompts` and `limit`. A sub-command that changes something runs only from your own typing. <!-- T9: confirm after T7: master, policy, answer. -->
+- A band line above the prompt while a job runs, with its status, agents, spend and limit, depth, questions and permission prompts, and a pane (`/rex watch`) with a header and the tabs Jobs, Tree, Decisions and Questions. A question has one Answer button for each option.
+- Master runs. <!-- T9: confirm after T7. --> `/rex master <goal>` or `/rex master @<file>` starts a master that acts as you within a policy that only you change (`/rex policy`), splits the goal into jobs, and starts a builder for each through `rex_build`. It asks you through `rex_ask_owner`, and you answer in the pane or with `/rex answer`. `/rex master resume` picks a tree up in a new session. Master runs need storage.
+- Storage modes. Without `--with-storage`, the record of a job is the book, in memory, and ends with the session. `rex init --with-storage` writes `storage: on` in `.rex/config.json`, and the mod then sends each change to the store. Recall, feedback, the cost of record and master runs need it.
+- `.rex/config.json`, which `rex init` writes and the mod reads: `storage`, `depth`, `jobs_from_sdk` and `min_claude_code`. It is in Git.
+- `rex init --depth <levels>` and the setting `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`, 4 by default, which a master run needs. A higher value of yours is kept, and a lower one is kept with a warning. The mod lets an agent start at depth 4 only below a builder that a master started.
+- Deny rules that keep merges and the record out of an agent's hands: `Bash(gh pr merge:*)`, `Bash(git push origin main:*)`, `Bash(git push origin HEAD:main:*)`, `Bash(rex ingest:*)`, `Bash(rex migrate:*)` and `Bash(rex limit:*)`.
+- `rex migrate`, which moves a 0.7 store (version 1) to version 2 in one transaction and keeps each job. It is safe to run twice. Every other command refuses a version 1 store with `store is version 1; run rex migrate`.
+- `rex ingest`, the mod's write path: one batch of events on stdin, a secret for each session, the same batch twice taken as one, and `last_sequence=<n>` as its answer. Agents may not run it.
+- `rex doctor`, which reports whether the binary, the store, the config, the plugin and Claude Code fit, with one `problem=` line for each thing to fix.
+- `rex tree show [<tree>] [--json]`, which prints a master tree with its jobs and its questions.
+- `rex limit <job> --json`, and the limit source `policy`.
+- `rex worktree add` and `rex worktree remove`, which make and remove a job's worktree in `<repo>.worktrees/` and list it in `permissions.additionalDirectories`, so that `git commit` works there inside the sandbox with its hooks still sandboxed. `rex init` excludes them from the sandbox and allows them with no prompt (not with `--strict`), lists the worktrees it finds and takes out those that are gone.
+- The shared fixtures in `fixtures/shared/`: each call that the mod makes to `rex` with its expected output, and the tables that both sides use (the 44 `rex oms` cases, the limits, the prices, the hash vectors and the tools). A Rust test and a test of the mod check each one.
+
+### Changed
+
+- `rex init` installs no files of skills or agents. It writes the settings, `.rex/config.json`, the plugin, `AGENTS.md`, `.gitignore`, the pre-commit config, and with `--with-storage` the store. It needs Claude Code 2.1.323 or later. One run finishes the upgrade of a 0.7 repo. It removes the hook entries that rex 0.7 wrote for `rex hook`, `rex gate` and `rex test-hook`, which would fail on every event now. It removes the stopgap entries `git *`, `git:*`, `Bash(git *)`, `Bash(git:*)` and `Bash(cd <parent>/*)`, each with a notice. It removes each unchanged copy that rex 0.4 to 0.7 put in `.rex/skills/`, `.claude/skills/` or `.claude/agents/`, and replaces an unchanged 0.7 block in `.gitignore`, one line for each. A copy or a block that you changed is kept, with a warning that says what to change, and the run does not fail.
+- The `.gitignore` block now tracks `.rex/config.json` and `.rex/skills/`, the skills of the repo itself, and ignores only the store, the plans, the worktrees, the orchestrators and the live files in `.rex/`.
+- The builder is `/super-rex:orchestration-builder`. It stops at step 1 when the mod is not loaded, opens, plans and closes its job with the mod's tools, and asks the merge question in one fixed form, `Merge this job to main when its checks pass?`, with the options `Yes, merge` and `No, keep the branch`. A job's branch is `rex/<job ID>`.
+- The spend gate is in the mod. It refuses a new agent at the Agent call and again at the spawn, and the refusal now names `/rex limit <job> <usd>`. Before it refuses, it reads a limit that you set with `rex limit <job> --set`.
+- Test output is cut in the mod, from the result of the Bash tool, and a failed run reaches the agent whole. `rex test-filter` stays for a test run at a shell.
+- `rex-deliver` makes one squash commit over `origin/<base>` and merges only through `rex_merge`, and only in the job's own repo. With no merge, it opens a pull request or keeps the branch. Job worktrees live in `<repo>.worktrees/<job ID>`, beside the main checkout, and are made and removed with `rex worktree`. Commit and push run inside the sandbox with an absolute `-C` path.
+- `rex-feedback` never edits a shipped skill in the plugin. On its first change, the skill is copied into `.rex/skills/<name>/`, which `rex_skill` reads first.
+- The store is version 2. A job has an origin (`composer`, `bridge`, `sdk` or `master`) in place of `asked_by`, a builder, its places, the source of its merge answer, its limit, its degraded marks and its tree. New tables hold the decisions, the skill manifests, the skills each run opened, the events the mod sent, the master trees and the questions. The status `lost` is new.
+- `rex job show --json` and `rex jobs --json` give the fields of version 2. `rex job show` prints `origin`, `builder`, `tree`, `merge`, `merge_source`, the places, `limit_usd`, `limit_source` and `degraded`.
+- `rex skills check` rules B3 and B4 check skill files named as `<skill>/<file>.md` against `plugin/skills`, `plugin/library` and the repo's `.rex/skills`, and a path that names a skill file by its folder is a finding. B3 keeps each link inside its own skill. `rex skills check` takes a folder of skills.
+- Text that names the library count says 24.
+
+### Removed
+
+- `rex job create`, `rex job plan` and `rex job close`. The builder opens, plans and closes a job with `rex_job_open`, `rex_job_plan` and `rex_job_close`. `rex job` keeps only `rex job show`.
+- `rex hook`, and with it the event log `.rex/events.jsonl`. The mod records each agent and sends the events to `rex ingest`.
+- `rex gate`. The spend gate is in the mod.
+- `rex test-hook`. The mod cuts test output.
+- `rex init --force` and `rex init --no-hooks`. `rex init` copies no skill files that `--force` could overwrite, and registers no hooks that `--no-hooks` could leave out.
+- The skill files `rex-deliver/github-merge.md` and `rex-deliver/no-remote-or-no-gh.md`: the merge with `gh pr merge` and the local squash merge are gone. `rex_merge` is the only way to merge.
+
 ## 0.7.0 - 2026-11-12
 
 ### Added

@@ -10,7 +10,7 @@ use std::time::SystemTime;
 
 use super::stdout::print_line_to_stdout;
 use crate::capture::{self, CaptureError, JobRuns};
-use crate::error::{CommandError, RexError};
+use crate::error::{CommandError, FailureClass, RexError};
 use crate::store::status::{Shown, Status, StatusError};
 use crate::store::{JobId, Store, StoreError, StorePaths};
 
@@ -77,8 +77,31 @@ pub enum JobsError {
 }
 
 impl CommandError for JobsError {
+    fn failure_class(&self) -> FailureClass {
+        match self {
+            JobsError::BadDate { .. } | JobsError::Json(_) => FailureClass::Reject,
+            JobsError::StoredStatus { .. } | JobsError::StoredId { .. } => FailureClass::Halt,
+            JobsError::Store(error) => error.failure_class(),
+            JobsError::Capture(error) => error.failure_class(),
+            JobsError::Rex(error) => error.failure_class(),
+        }
+    }
+
     fn is_usage(&self) -> bool {
         matches!(self, JobsError::BadDate { .. })
+    }
+    fn exit_code(&self) -> u8 {
+        match self {
+            JobsError::Store(error) => error.exit_code(),
+            JobsError::Capture(error) => error.exit_code(),
+            _ => {
+                if self.is_usage() {
+                    2
+                } else {
+                    1
+                }
+            }
+        }
     }
 }
 

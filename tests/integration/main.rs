@@ -3,7 +3,9 @@
 
 mod capture;
 mod codebase;
+mod commands;
 mod experience;
 mod init;
 mod oms_skills;
 mod store_jobs;
+mod worktree;

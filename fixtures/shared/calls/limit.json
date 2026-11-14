@@ -1,0 +1,23 @@
+{
+  "name": "limit",
+  "setup": [
+    "fixtures/shared/ingest/batch-open-stream.json",
+    "fixtures/shared/ingest/batch-example.json"
+  ],
+  "argv": [
+    "rex",
+    "limit",
+    "0gaq820001",
+    "--json"
+  ],
+  "stdin_file": null,
+  "expect": {
+    "exit": 0,
+    "stdout_json": {
+      "job": "0gaq820001",
+      "spent_usd": 0.0,
+      "limit_usd": 10.0,
+      "source": "default"
+    }
+  }
+}

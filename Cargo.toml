@@ -1,6 +1,6 @@
 [package]
 name = "super-rex"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 # `rusqlite` asks for 1.89, the highest of any package in the build. No lower
 # version would compile it.
@@ -12,7 +12,7 @@ repository = "https://github.com/coderaidershaun/super-rex"
 readme = "README.md"
 keywords = ["agent", "claude", "orchestration", "skills", "cli"]
 categories = ["command-line-utilities", "development-tools"]
-include = [".claude/skills/**/*", ".claude/agents/**/*", ".rex/skills/**/*", "src/**/*", "tests/**/*", "build.rs", "Cargo.toml", "README.md", "LICENSE"]
+include = ["plugin/skills/**/*", "plugin/agents/**/*", "plugin/library/**/*", "plugin/.claude-plugin/plugin.json", "fixtures/shared/**/*", "src/**/*", "tests/**/*", "build.rs", "Cargo.toml", "README.md", "LICENSE"]
 
 [[bin]]
 name = "rex"
@@ -31,10 +31,11 @@ ratatui = { version = "0.30.2", default-features = false, features = ["crossterm
 rusqlite = { version = "0.41.1", default-features = false, features = ["bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1.0.154", default-features = false, features = ["std", "preserve_order"] }
+sha2 = { version = "0.11.1", default-features = false }
 thiserror = { version = "2.0.21", default-features = false }
 yaml-rust2 = { version = "0.13.0", default-features = false }
 
 [dev-dependencies]
 assert_cmd = { version = "2.2.2", default-features = false }
-sha2 = { version = "0.11.1", default-features = false }
+regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-perl"] }
 tempfile = { version = "3.27.0", default-features = false }

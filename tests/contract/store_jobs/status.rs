@@ -1,5 +1,5 @@
-//! What `status::apply` promises to the job commands and to `rex feedback`:
-//! each row of the one transition table, with the history rows it writes.
+//! What `status::apply` promises to `rex ingest` and to `rex feedback`: each
+//! row of the one transition table, with the history rows it writes.
 
 use rusqlite::params;
 use super_rex::store::status::{self, Change, Closed, Event, Status, Verdict};
@@ -7,7 +7,7 @@ use super_rex::store::{Accepts, JobId, Store, StoreError, StorePaths};
 
 const SEEDED_AT: &str = "2000-01-01T00:00:00.000Z";
 
-const ALL: [Status; 9] = [
+const ALL: [Status; 10] = [
     Status::Created,
     Status::Planned,
     Status::Blocked,
@@ -17,13 +17,15 @@ const ALL: [Status; 9] = [
     Status::Rejected,
     Status::Analyzed,
     Status::Cancelled,
+    Status::Lost,
 ];
 
-const CLOSES: [Closed; 4] = [
+const CLOSES: [Closed; 5] = [
     Closed::Delivered,
     Closed::Blocked,
     Closed::Failed,
     Closed::Cancelled,
+    Closed::Lost,
 ];
 
 const ACCEPTED: Event = Event::Feedback {
@@ -93,40 +95,37 @@ fn transition_table() -> Vec<Case> {
         },
     ];
     let not_created: Vec<Status> = ALL.into_iter().filter(|s| *s != Created).collect();
-    let not_delivered = [
-        Event::Close(Closed::Blocked),
-        Event::Close(Closed::Failed),
-        Event::Close(Closed::Cancelled),
-    ];
 
     let mut cases = Vec::new();
     cases.extend(rows(&[Created], &[Event::Plan], |_| {
         Expect::Steps(vec![Planned])
     }));
     cases.extend(rows(&not_created, &[Event::Plan], |_| Expect::Refused {
-        event: "rex job plan",
+        event: "job.plan",
         accepts: Accepts::CreatedJob,
     }));
-    cases.extend(rows(&[Created], &not_delivered, |event| {
+    cases.extend(rows(&[Created, Planned, Blocked], &closes, |event| {
         Expect::Steps(vec![closed_status(event)])
     }));
-    cases.extend(rows(&[Created], &[Event::Close(Closed::Delivered)], |_| {
+    // A close sent again with the status the job has is one close.
+    for closed in [Delivered, Failed, Cancelled, Lost] {
+        cases.extend(rows(&[closed], &closes, |event| {
+            if closed_status(event) == closed {
+                Expect::Steps(vec![])
+            } else {
+                Expect::Refused {
+                    event: "job.close",
+                    accepts: Accepts::OpenOrBlockedJob,
+                }
+            }
+        }));
+    }
+    cases.extend(rows(&[Accepted, Rejected, Analyzed], &closes, |_| {
         Expect::Refused {
-            event: "rex job close --status delivered",
-            accepts: Accepts::PlannedOrBlockedJob,
+            event: "job.close",
+            accepts: Accepts::OpenOrBlockedJob,
         }
     }));
-    cases.extend(rows(&[Planned, Blocked], &closes, |event| {
-        Expect::Steps(vec![closed_status(event)])
-    }));
-    cases.extend(rows(
-        &[Delivered, Failed, Cancelled, Accepted, Rejected, Analyzed],
-        &closes,
-        |_| Expect::Refused {
-            event: "rex job close",
-            accepts: Accepts::OpenOrBlockedJob,
-        },
-    ));
     cases.extend(rows(&[Created, Planned], &feedbacks, |_| {
         Expect::NoOutcomeYet
     }));
@@ -147,7 +146,7 @@ fn transition_table() -> Vec<Case> {
         Expect::AnalysisDue
     }));
     cases.extend(rows(
-        &[Blocked, Failed, Cancelled, Analyzed],
+        &[Blocked, Failed, Cancelled, Analyzed, Lost],
         &feedbacks,
         |_| Expect::Steps(vec![]),
     ));
@@ -166,9 +165,9 @@ fn seed_job(store: &mut Store, id: &str, status: Status) {
     store
         .write(|tx| {
             tx.execute(
-                "INSERT INTO job (id, request, asked_by, class_version, work_type, size, consequence,
+                "INSERT INTO job (id, request, origin, class_version, work_type, size, consequence,
                                   languages, merge_agreed, session_id, status, created_at, updated_at)
-                 VALUES (?1, 'fix the parser', 'human', 1, 'fix', 'small', 'low', 'rust', 1,
+                 VALUES (?1, 'fix the parser', 'composer', 1, 'fix', 'small', 'low', 'rust', 1,
                          'session-' || ?1, ?2, ?3, ?3)",
                 params![id, status.to_string(), SEEDED_AT],
             )?;
@@ -290,7 +289,6 @@ fn every_row_of_the_transition_table() {
     let paths = StorePaths {
         root: temp.path().join("repo"),
         db: dir.join("rex.db"),
-        event_log: dir.join("events.jsonl"),
         orchestrators: dir.join("orchestrators"),
         dir,
     };

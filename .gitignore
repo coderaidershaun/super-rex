@@ -1,14 +1,15 @@
 /target
 .scratch
 
-# This repo's own block, under the marker of `rex init`, so `rex init` here
-# adds no block of its own. Unlike that block it keeps `.claude/skills/`,
-# `.claude/agents/` and `.rex/skills/` in Git: they are the source of the
-# bundle. `!/.rex/` wins over an ignore of all of `.rex/` in a checkout's own
-# exclude file.
+# The block `rex init` writes, as this version writes it, so `rex init` here
+# changes nothing and warns about nothing. The bundle's source is `plugin/`,
+# so nothing below `.claude/` or `.rex/` is tracked.
 # rex:ignore superrex
 .claude/settings.local.json
 /.claude/worktrees/
-!/.rex/
-/.rex/*
-!/.rex/skills/
+/.rex/rex.db*
+/.rex/events.jsonl
+/.rex/orchestrators/
+/.rex/plans/
+/.rex/worktrees/
+/.rex/live/

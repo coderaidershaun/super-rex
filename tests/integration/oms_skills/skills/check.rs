@@ -1,5 +1,5 @@
 //! `rex skills check`: a skill that passes, the rule each bad skill breaks,
-//! and a bad path.
+//! a folder of skills, and a bad path.
 
 use std::fs;
 use std::path::PathBuf;
@@ -9,18 +9,18 @@ use super::{rex_skills, text_of, write};
 
 const CLEAN_SKILL: &str = "---\nname: clean\ndescription: A skill that breaks no rule.\n\
     when_to_use: >\n  Use when a test needs a clean skill.\nuser-invocable: true\n---\n\
-    Read [the reference](reference.md#top) and `.claude/skills/clean/SKILL.md`.\n";
+    Read [the reference](reference.md#top) and `clean/SKILL.md`.\n";
 
 const CLEAN_REFERENCE: &str =
     "Back to [the skill](SKILL.md). See [the web](https://example.com/page.md).\n";
 
-const LIBRARY_SKILL: &str = "---\nname: lib\ndescription: A library skill that breaks no rule.\n\
-    when_to_use: >\n  Use when a test needs a library skill.\n---\n\
-    Read [the reference](reference.md), `.rex/skills/lib/reference.md` and \
-    `.claude/skills/clean/SKILL.md`.\n";
+const LIBRARY_SKILL: &str = "---\nname: lib\ndescription: A repo skill that breaks no rule.\n\
+    when_to_use: >\n  Use when a test needs a repo skill.\n---\n\
+    Read [the reference](reference.md), `lib/reference.md` and `lib`.\n";
 
-/// A repo whose skills folder holds the skill `clean` and whose library holds
-/// the skill `lib`, and an empty home folder. Commands run from the repo root.
+/// A repo whose `.claude/skills` holds the skill `clean` and whose repo
+/// skills (`.rex/skills`) hold the skill `lib`, and an empty home folder.
+/// Commands run from the repo root.
 struct CheckFixture {
     _temp: tempfile::TempDir,
     root: PathBuf,
@@ -79,25 +79,32 @@ fn skills_check_prints_ok_for_a_skill_that_passes() {
     );
     assert_eq!(output.status.code(), Some(0));
 
-    // A repo with no skills folder and no library of its own: the bundle
-    // stands in for both, as `rex init` would install it.
-    let bare = fixture.root.join("bare");
-    fs::create_dir_all(bare.join(".git")).expect("make .git");
-    write(
-        &bare.join("drafts/draft/SKILL.md"),
-        &(header("draft", DESCRIPTION, WHEN_TO_USE)
-            + &format!(
-                "Read `{}` and `{}`.\n",
-                bundled_sibling(".claude/skills"),
-                bundled_sibling(".rex/skills")
-            )),
-    );
-    let output = rex_skills(
-        &bare,
-        &fixture.root.join("home"),
-        &["check", "drafts/draft"],
-    );
+    // A file of a skill that the plugin ships resolves in any repo, one with
+    // repo skills of its own too, because `rex_skill` reads the plugin.
+    let text = header("draft", DESCRIPTION, WHEN_TO_USE)
+        + &format!(
+            "Read `{}` and `{}`.\n",
+            bundled_sibling(super_rex::bundle::SKILLS_ROOT),
+            bundled_sibling(super_rex::bundle::LIBRARY_ROOT)
+        );
+    write(&fixture.repo().join("drafts/draft/SKILL.md"), &text);
+    let output = fixture.check(&["drafts/draft"]);
     assert_eq!(text_of(&output.stdout), "ok drafts/draft\n");
+    assert_eq!(output.status.code(), Some(0));
+}
+
+#[test]
+fn skills_check_takes_a_folder_of_skills_as_each_skill_in_it() {
+    let fixture = CheckFixture::new();
+    fixture.add("second/SKILL.md", &good_skill("second"));
+
+    let output = fixture.check(&[".claude/skills", ".rex/skills"]);
+
+    assert_eq!(text_of(&output.stderr), "");
+    assert_eq!(
+        text_of(&output.stdout),
+        "ok .claude/skills/clean\nok .claude/skills/second\nok .rex/skills/lib\n"
+    );
     assert_eq!(output.status.code(), Some(0));
 }
 
@@ -106,6 +113,10 @@ const WHEN_TO_USE: &str = "Use when a test needs it.";
 
 fn header(name: &str, description: &str, when_to_use: &str) -> String {
     format!("---\nname: {name}\ndescription: {description}\nwhen_to_use: {when_to_use}\n---\n")
+}
+
+fn good_skill(name: &str) -> String {
+    header(name, DESCRIPTION, WHEN_TO_USE) + "Body.\n"
 }
 
 /// One skill that breaks `rule` and no other. The last file is the one the
@@ -168,22 +179,24 @@ fn bad_skills() -> Vec<BadSkill> {
                 ("reference.md", "See [gone](gone.md).\n".to_owned()),
             ],
         },
+        // `rex_skill` reads a file inside one skill only, so a link into
+        // another skill names a file that no agent can open by it.
+        one(
+            "bad-b3-other-skill",
+            "B3",
+            good("bad-b3-other-skill") + "Read [clean](../clean/reference.md).\n",
+        ),
         one(
             "bad-b4",
             "B4",
-            good("bad-b4") + "Read `.claude/skills/no-such-skill/SKILL.md`.\n",
+            good("bad-b4") + "Read `rex-no-such-skill/SKILL.md`.\n",
         ),
+        // The 0.7 form, with the folder, breaks once the skill moves to the
+        // plugin, whose folder changes with each version.
         one(
             "bad-b4-folder",
             "B4",
-            good("bad-b4-folder") + "Read `.claude/skills/lib/SKILL.md`.\n",
-        ),
-        // The repo has a library, so a bundled file that it does not hold is
-        // not there for an agent to read.
-        one(
-            "bad-b4-bundled",
-            "B4",
-            good("bad-b4-bundled") + &format!("Read `{}`.\n", bundled_sibling(".rex/skills")),
+            good("bad-b4-folder") + "Read `.rex/skills/lib/SKILL.md`.\n",
         ),
         BadSkill {
             folder: "bad-b4-file",
@@ -197,28 +210,30 @@ fn bad_skills() -> Vec<BadSkill> {
     ]
 }
 
-/// The path of a Markdown file besides `SKILL.md` of a bundled skill in
-/// `root`, such as `.rex/skills/rex-code-tdd/mocking.md`.
+/// The name of a Markdown file besides `SKILL.md` of a skill that the plugin
+/// ships in `root`, as skill text names it, such as `rex-code-tdd/mocking.md`.
 fn bundled_sibling(root: &str) -> String {
     super_rex::bundle::walk()
         .into_iter()
         .find_map(|(path, _)| {
             let file = path.strip_prefix(root).ok()?;
             let is_sibling = file.extension()? == "md" && file.file_name()? != "SKILL.md";
-            is_sibling.then(|| path.display().to_string())
+            is_sibling.then(|| file.display().to_string())
         })
         .unwrap_or_else(|| panic!("a skill in {root} has a Markdown file besides SKILL.md"))
 }
 
-/// Paths to files of skills that are right: one folder down in this skill, in
-/// another skill of the repo, in the repo's library, and a template. The one
-/// wrong path, at the end of a sentence, names a file that `clean` does not
-/// have.
+/// Names of skill files that are right: one folder down in this skill, in
+/// another skill of `.claude/skills`, in the repo skills, in the plugin, and
+/// a template. A repo path whose first folder is no skill is not a skill
+/// file. The one wrong name is a file that `clean` does not have.
 fn paths_to_skill_files() -> String {
-    "Read `.claude/skills/bad-b4-file/os/notes.md`, `.claude/skills/clean/reference.md`, \
-     `.rex/skills/lib/reference.md` and `.claude/skills/<name>/<file>.md`.\n\
-     Then read .claude/skills/clean/gone.md.\n"
-        .to_owned()
+    format!(
+        "Read `bad-b4-file/os/notes.md`, `clean/reference.md`, `lib/reference.md`, `{}`, \
+         `<skill>/<file>.md` and `tests/integration/README.md`.\n\
+         Then read `clean/gone.md`.\n",
+        bundled_sibling(super_rex::bundle::LIBRARY_ROOT)
+    )
 }
 
 #[test]
@@ -254,14 +269,7 @@ fn skills_check_names_the_rule_each_bad_skill_breaks() {
         assert_eq!(output.status.code(), Some(1), "{folder}");
     }
 
-    let mut every_path = vec![".claude/skills/clean".to_owned()];
-    every_path.extend(
-        skills
-            .iter()
-            .map(|bad| format!(".claude/skills/{}", bad.folder)),
-    );
-    let every_path: Vec<&str> = every_path.iter().map(String::as_str).collect();
-    let output = fixture.check(&every_path);
+    let output = fixture.check(&[".claude/skills"]);
 
     assert_eq!(text_of(&output.stdout).lines().count(), 18);
     assert_eq!(
@@ -270,20 +278,41 @@ fn skills_check_names_the_rule_each_bad_skill_breaks() {
     );
     assert_eq!(output.status.code(), Some(1));
 
-    let output = fixture.check(&[".claude/skills/bad-b4-folder"]);
-    assert_eq!(
-        text_of(&output.stdout),
-        ".claude/skills/bad-b4-folder/SKILL.md: B4: .claude/skills/lib/SKILL.md names `lib`, \
-         a skill in .rex/skills/; write .rex/skills/lib/SKILL.md\n",
-        "a path to the wrong folder says which folder holds the skill"
-    );
+    for (folder, finding) in [
+        (
+            "bad-b4",
+            "SKILL.md: B4: rex-no-such-skill/SKILL.md names `rex-no-such-skill`, \
+             which is no skill in plugin/skills, plugin/library or .rex/skills",
+        ),
+        (
+            "bad-b4-folder",
+            "SKILL.md: B4: .rex/skills/lib/SKILL.md names a skill file by its folder, \
+             which changes with each plugin version; write lib/SKILL.md and read it with rex_skill",
+        ),
+        (
+            "bad-b4-file",
+            "SKILL.md: B4: clean/gone.md is not a file of the skill `clean`",
+        ),
+        (
+            "bad-b3-other-skill",
+            "SKILL.md: B3: link `../clean/reference.md` does not point to a file of this skill; \
+             name a file of another skill as `<skill>/<file>.md`",
+        ),
+    ] {
+        let output = fixture.check(&[&format!(".claude/skills/{folder}")]);
+        assert_eq!(
+            text_of(&output.stdout),
+            format!(".claude/skills/{folder}/{finding}\n"),
+            "{folder}"
+        );
+    }
 }
 
 #[test]
 fn skills_check_rejects_a_bad_path_before_checking() {
     let fixture = CheckFixture::new();
     write(&fixture.repo().join("README.md"), "Not a skill.\n");
-    fs::create_dir_all(fixture.repo().join("no-skill-file")).expect("make folder");
+    fs::create_dir_all(fixture.repo().join("no-skill-file/empty")).expect("make folder");
 
     for (paths, code) in [
         (vec![".claude/skills/clean", "no-such-skill"], 1),

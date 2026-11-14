@@ -1,42 +1,56 @@
 //! The skills copy the keys and lines of `rex` output into their text, so each
 //! one they name must be in what the command really prints.
 
+use std::cell::Cell;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use assert_cmd::Command;
-use serde_json::Value;
+use serde_json::{Value, json};
 use super_rex::bundle::walk;
 use super_rex::store::{Store, StoreError, StorePaths};
 
-const DECIDE: &str = ".claude/skills/orchestration-builder/decide.md";
-const RUN: &str = ".claude/skills/orchestration-builder/run.md";
-const OPEN_JOB: &str = ".claude/skills/orchestration-builder/open-job.md";
-const STAGE_1: &str = ".claude/skills/orchestration-builder/stages/1-skills/stage.md";
-const STAGE_3: &str = ".claude/skills/orchestration-builder/stages/3-orchestration/stage.md";
-const BRIEFS: &str = ".claude/skills/orchestration-builder/stages/3-orchestration/briefs.md";
-const DELIVER: &str = ".claude/skills/rex-deliver/SKILL.md";
-const FEEDBACK: &str = ".claude/skills/rex-feedback/SKILL.md";
-const CAUSE: &str = ".claude/skills/rex-feedback/cause.md";
+const DECIDE: &str = "plugin/skills/orchestration-builder/decide.md";
+const OPEN_JOB: &str = "plugin/skills/orchestration-builder/open-job.md";
+const STAGE_1: &str = "plugin/skills/orchestration-builder/stages/1-skills/stage.md";
+const STAGE_3: &str = "plugin/skills/orchestration-builder/stages/3-orchestration/stage.md";
+const BRIEFS: &str = "plugin/skills/orchestration-builder/stages/3-orchestration/briefs.md";
+const DELIVER: &str = "plugin/skills/rex-deliver/SKILL.md";
+const FEEDBACK: &str = "plugin/skills/rex-feedback/SKILL.md";
+const CAUSE: &str = "plugin/skills/rex-feedback/cause.md";
 
 /// A plan with a capped role, the decision-maker that the builder adds, and
-/// skills for two roles.
-const PLAN: &str = r#"{
-  "orchestrator": "pipeline",
-  "skills": ["rex-code-tdd", "rex-code-philosophy"],
-  "breakdown": "1. Reject zero.",
-  "roles": [
-    {"role": "engineer", "intelligence": "high", "reliability": "high", "consequence": "high", "verification": "low", "skills": ["rex-code-tdd", "rex-code-philosophy"]},
-    {"role": "reviewer", "intelligence": "medium", "reliability": "medium", "consequence": "medium", "verification": "high", "skills": ["rex-code-philosophy"]},
-    {"role": "decision-maker", "intelligence": "high", "reliability": "medium", "consequence": "high", "verification": "medium"}
-  ]
-}"#;
+/// skills for two roles, as the plugin sends it.
+fn plan() -> Value {
+    let role = |name: &str, ratings: [&str; 4]| {
+        json!({ "role": name, "intelligence": ratings[0], "reliability": ratings[1],
+                "consequence": ratings[2], "verification": ratings[3],
+                "grid_agent": "model-high-effort-high", "conflict": null, "oms_version": 2 })
+    };
+    let task = |id: &str, role: &str, skills: &[&str]| json!({ "id": id, "role": role, "skills": skills, "open_when": [] });
+    json!({
+        "orchestrator": "pipeline",
+        "breakdown": "1. Reject zero.",
+        "tasks": [
+            task("T1", "engineer", &["rex-code-tdd", "rex-code-philosophy"]),
+            task("T2", "reviewer", &["rex-code-philosophy"])
+        ],
+        "roles": [
+            role("engineer", ["high", "high", "high", "low"]),
+            role("reviewer", ["medium", "medium", "medium", "high"]),
+            role("decision-maker", ["high", "medium", "high", "medium"])
+        ],
+        "manifest": []
+    })
+}
 
 /// A repo with a store, two orchestrators, one skill, and a home folder.
 struct World {
     _temp: tempfile::TempDir,
     paths: StorePaths,
     home: PathBuf,
+    /// The number of the next session, so each job has a session of its own.
+    sessions: Cell<u32>,
 }
 
 impl World {
@@ -47,6 +61,7 @@ impl World {
         fs::create_dir_all(repo.join(".git")).unwrap();
         let paths = StorePaths::locate(&repo).unwrap();
         drop(Store::create(&paths).unwrap());
+        fs::write(paths.dir.join("config.json"), r#"{"storage": "on"}"#).unwrap();
         let skill = |folder: &Path, name: &str| {
             fs::create_dir_all(folder.join(name)).unwrap();
             fs::write(
@@ -64,6 +79,7 @@ impl World {
             _temp: temp,
             paths,
             home,
+            sessions: Cell::new(1),
         }
     }
 
@@ -73,7 +89,7 @@ impl World {
             .unwrap()
             .current_dir(&self.paths.root)
             .env("HOME", &self.home)
-            .env("CLAUDE_CODE_SESSION_ID", "contract-session")
+            .env("CLAUDE_CODE_SESSION_ID", "contract-session-1")
             .env_remove("REX_STORE")
             .env_remove("CLAUDE_PROJECT_DIR")
             .env_remove("CLAUDE_EFFORT")
@@ -86,37 +102,52 @@ impl World {
         String::from_utf8(output.stdout).unwrap()
     }
 
-    fn open_job(&self) -> String {
-        let created = self.rex(
+    /// Sends `events` of `session` through `rex ingest`, numbered from `first`.
+    fn ingest(&self, session: &str, first: usize, events: &[Value]) {
+        let mut numbered = Vec::new();
+        for (index, event) in events.iter().enumerate() {
+            let mut event = event.clone();
+            event["seq"] = json!(first + index);
+            numbered.push(event);
+        }
+        let batch = json!({ "version": 1, "session": session, "stream": "aaaaaaaaaaaaaaaa",
+                            "secret": "1".repeat(64), "events": numbered });
+        self.rex(&["ingest"], &batch.to_string());
+    }
+
+    /// Opens a job of a session of its own, with a merge answer of yes, and
+    /// gives its ID and session.
+    fn open_job(&self) -> (String, String) {
+        let number = self.sessions.get();
+        self.sessions.set(number + 1);
+        let job = format!("0gaq82000{number}");
+        let session = format!("contract-session-{number}");
+        let event = |kind: &str, data: Value| {
+            json!({ "at": format!("2026-11-13T20:00:0{number}.000Z"), "kind": kind,
+                    "agent": "main", "job": job, "data": data })
+        };
+        self.ingest(
+            &session,
+            1,
             &[
-                "job",
-                "create",
-                "--request-file",
-                "-",
-                "--asked-by",
-                "human",
-                "--merge",
-                "yes",
-                "--type",
-                "fix",
-                "--size",
-                "medium",
-                "--consequence",
-                "high",
-                "--lang",
-                "rust",
-                "--budget",
-                "low",
+                event("job.open", json!({
+                    "owner": { "session": session, "builder": "main" }, "origin": "composer",
+                    "request": "Reject a quantity of zero.\n", "restatement": null, "repo": ".",
+                    "branch": format!("rex/{job}"), "base": "main", "worktree": null, "type": "fix",
+                    "size": "medium", "consequence": "high", "langs": ["rust"],
+                    "prefs": { "duration": null, "budget": "low", "autonomy": null },
+                    "limit_nano": 10_000_000_000_u64, "limit_source": "default", "tree": null,
+                    "depends_on": [], "merge_after": [] })),
+                event("job.merge_answer", json!({ "answer": "yes", "source": "dialog", "question": null, "policy_hash": null })),
             ],
-            "Reject a quantity of zero.\n",
         );
-        value(&created, "job").to_owned()
+        (job, session)
     }
 
     /// One engineer run that opened one of its two skills, and `alpha`, which
     /// it was not given, and that returned a final message of 2,500
     /// characters. A second engineer run returned a short one.
-    fn add_run(&self, job: &str) {
+    fn add_run(&self, job: &str, session: &str) {
         Store::open(&self.paths)
             .unwrap()
             .write(|tx| {
@@ -124,17 +155,17 @@ impl World {
                     "INSERT INTO sub_agent_run (job_id, session_id, agent_id, depth, role,
                                                 skills_opened, final_message, first_seen_at,
                                                 started_at, stopped_at)
-                     VALUES (?1, 'contract-session', 'a1b8', 1, 'engineer', 'alpha,rex-code-tdd',
+                     VALUES (?1, ?3, 'a1b8', 1, 'engineer', 'alpha,rex-code-tdd',
                              ?2,
                              strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                              strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                              strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-                            (?1, 'contract-session', 'a1b9', 1, 'engineer', 'rex-code-tdd',
+                            (?1, ?3, 'a1b9', 1, 'engineer', 'rex-code-tdd',
                              'Done. Report: /repo/.rex/plans/job/engineer.md',
                              strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                              strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
                              strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
-                    [job, &"x".repeat(2500)],
+                    [job, &"x".repeat(2500), session],
                 )
                 .map_err(StoreError::from)
             })
@@ -144,13 +175,6 @@ impl World {
     fn json(&self, args: &[&str]) -> Value {
         serde_json::from_str(&self.rex(args, "")).unwrap()
     }
-}
-
-fn value<'a>(stdout: &'a str, key: &str) -> &'a str {
-    stdout
-        .lines()
-        .find_map(|line| line.strip_prefix(key)?.strip_prefix('='))
-        .unwrap_or_else(|| panic!("no {key}= line in:\n{stdout}"))
 }
 
 fn skill_text(path: &str) -> String {
@@ -296,39 +320,23 @@ fn each_key_the_skills_copy_is_in_the_real_output() {
     let mut gaps = Vec::new();
 
     // Job A runs and is rejected, so job B recalls its lesson and orchestrator.
-    let job_a = world.open_job();
-    let planned = world.rex(&["job", "plan", &job_a, "--plan-file", "-"], PLAN);
-    gaps.extend(unprinted(
-        DECIDE,
-        &block(DECIDE, "job=<job ID>\nstatus=planned"),
-        &planned,
-    ));
-    world.add_run(&job_a);
-    let deliveries = r#"[{"repo": ".", "branch": "fix/zero", "merge_commit": "3f2a9c1e8b7d6a5f4e3d2c1b0a9f8e7d6c5b4a39", "outcome": "merged"}]"#;
-    let closed = world.rex(
-        &[
-            "job",
-            "close",
-            &job_a,
-            "--status",
-            "delivered",
-            "--outcome",
-            "Zero is rejected",
-            "--deliveries-file",
-            "-",
-        ],
-        deliveries,
+    // The plugin plans and closes a job now, through rex ingest, so the text that
+    // copies the output of the job commands of rex 0.7 is not checked here.
+    let (job_a, session_a) = world.open_job();
+    let time = |second: u32| format!("2026-11-13T20:01:0{second}.000Z");
+    world.ingest(
+        &session_a,
+        3,
+        &[json!({ "at": time(1), "kind": "job.plan", "agent": "main", "job": job_a, "data": plan() })],
     );
-    gaps.extend(unprinted(RUN, &block(RUN, "missed_skills=<n>"), &closed));
-    // `alpha` has 16 words in its `SKILL.md`. The assigned skill is not listed.
-    assert!(
-        closed.contains("\nextra_skills=1\nextra_skill.1=engineer alpha skill_md_words=16\n"),
-        "{closed}"
-    );
-    // Only the long final message is flagged, with its role and its length.
-    assert!(
-        closed.ends_with("\nlong_messages=1\nlong_message.1=engineer a1b8 chars=2500\n"),
-        "{closed}"
+    world.add_run(&job_a, &session_a);
+    world.ingest(
+        &session_a,
+        4,
+        &[json!({ "at": time(2), "kind": "job.close", "agent": "main", "job": job_a, "data": {
+            "status": "delivered", "outcome": "Zero is rejected",
+            "deliveries": [{ "repo": ".", "branch": "fix/zero", "pr": null, "outcome": "merged",
+                             "merge_commit": "3f2a9c1e8b7d6a5f4e3d2c1b0a9f8e7d6c5b4a39", "note": null }] } })],
     );
     let feedback = world.rex(
         &[
@@ -358,7 +366,7 @@ fn each_key_the_skills_copy_is_in_the_real_output() {
         ));
     }
 
-    let job_b = world.open_job();
+    let (job_b, _) = world.open_job();
     let recalled = world.rex(&["recall", &job_b], "");
     gaps.extend(unprinted(
         DECIDE,

@@ -1,6 +1,5 @@
-//! Integration tests of the store and the job commands.
+//! Integration tests of the store, `rex ingest` and `rex job show`.
 
-mod delivery;
 mod fixture;
-mod job_lifecycle;
-mod one_open_job;
+mod lifecycle;
+mod migrate;

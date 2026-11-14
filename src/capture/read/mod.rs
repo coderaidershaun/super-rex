@@ -11,7 +11,6 @@ mod state;
 use std::time::{Duration, SystemTime};
 
 use super::error::CaptureError;
-use super::intake;
 use super::recovery;
 use super::rows::{self, StoredJob};
 use super::runs::JobRuns;
@@ -23,7 +22,6 @@ pub(super) fn job_runs(
     job: &JobId,
     now: SystemTime,
 ) -> Result<JobRuns, CaptureError> {
-    intake::take_in(store)?;
     let stored_job = rows::job(store.conn(), job)?.ok_or_else(|| StoreError::JobNotFound {
         job: job.to_string(),
         store: store.paths().dir.clone(),

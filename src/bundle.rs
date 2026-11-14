@@ -1,22 +1,22 @@
-//! The skills, the agent grid and the skill library that `rex init` installs,
-//! embedded in the binary so that it needs no network or source checkout.
+//! The skills, the agent grid and the skill library that the plugin ships,
+//! embedded in the binary so that `rex skills check` knows every file a skill may name.
 
 use std::path::{Path, PathBuf};
 
 use include_dir::{Dir, include_dir};
 
-// Three roots, not all of `.claude` and `.rex`, so that nothing else in those
-// folders, such as a local settings file or the store, can be embedded.
-static EMBEDDED_SKILLS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/skills");
-static EMBEDDED_AGENTS: Dir = include_dir!("$CARGO_MANIFEST_DIR/.claude/agents");
-static EMBEDDED_LIBRARY: Dir = include_dir!("$CARGO_MANIFEST_DIR/.rex/skills");
+// Three roots, not all of `plugin`, so that the mod's code and the files the
+// engine writes there are never embedded.
+static EMBEDDED_SKILLS: Dir = include_dir!("$CARGO_MANIFEST_DIR/plugin/skills");
+static EMBEDDED_AGENTS: Dir = include_dir!("$CARGO_MANIFEST_DIR/plugin/agents");
+static EMBEDDED_LIBRARY: Dir = include_dir!("$CARGO_MANIFEST_DIR/plugin/library");
 
 /// The folder, relative to the repo root, of each embedded root: the skills
 /// Claude Code lists, the agent grid, and the library of skills that agents
 /// read by path.
-pub const SKILLS_ROOT: &str = ".claude/skills";
-pub const AGENTS_ROOT: &str = ".claude/agents";
-pub const LIBRARY_ROOT: &str = ".rex/skills";
+pub const SKILLS_ROOT: &str = "plugin/skills";
+pub const AGENTS_ROOT: &str = "plugin/agents";
+pub const LIBRARY_ROOT: &str = "plugin/library";
 pub const ROOTS: [&str; 3] = [SKILLS_ROOT, AGENTS_ROOT, LIBRARY_ROOT];
 
 /// The one of [`ROOTS`] that holds `path`, a path as [`walk`] gives it.
@@ -26,8 +26,8 @@ pub fn root_of(path: &Path) -> Option<&'static str> {
 }
 
 /// List every embedded file, paired with its contents, as a path relative to
-/// the repo root: `.claude/skills/<skill>/<file>`, `.claude/agents/<file>` or
-/// `.rex/skills/<skill>/<file>`. A file or folder whose name starts with `.`
+/// the repo root: `plugin/skills/<skill>/<file>`, `plugin/agents/<file>` or
+/// `plugin/library/<skill>/<file>`. A file or folder whose name starts with `.`
 /// is left out, at any depth below its root.
 #[must_use]
 pub fn walk() -> Vec<(PathBuf, &'static [u8])> {
@@ -91,8 +91,8 @@ mod tests {
         assert_eq!(
             paths,
             [
-                PathBuf::from(".rex/skills/README.md"),
-                PathBuf::from(".rex/skills/skill/SKILL.md")
+                PathBuf::from("plugin/library/README.md"),
+                PathBuf::from("plugin/library/skill/SKILL.md")
             ]
         );
     }

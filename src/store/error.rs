@@ -4,7 +4,7 @@
 use std::fmt;
 use std::path::{Path, PathBuf};
 
-use crate::error::CommandError;
+use crate::error::{CommandError, FailureClass};
 
 /// Failure from finding, opening or writing the store.
 #[derive(thiserror::Error, Debug)]
@@ -32,6 +32,19 @@ pub enum StoreError {
 
     #[error("{} has no SuperRex schema; run rex init in {}", db.display(), root.display())]
     NotInitialised { db: PathBuf, root: PathBuf },
+
+    /// The text is the one the plugin and the person read; the path is in `db`.
+    #[error("store is version 1; run rex migrate")]
+    VersionOne { db: PathBuf },
+
+    #[error("migrate refused: store version {found} is not 1 or 2")]
+    UnknownVersion { db: PathBuf, found: i64 },
+
+    #[error(
+        "migrate refused: {count} rows of {} name a row that is not there, so nothing was changed; restore the store from a backup or remove those rows",
+        db.display()
+    )]
+    BrokenReferences { db: PathBuf, count: i64 },
 
     #[error(
         "{} has schema version {found}, but this rex supports version {supported}; install a newer rex",
@@ -77,7 +90,7 @@ pub enum StoreError {
     )]
     NoOpenJob { session: String, store: PathBuf },
 
-    /// `event` is the command as the caller typed it, such as `rex job plan`.
+    /// `event` is the event kind that was refused, such as `job.plan`.
     #[error("job {job} is {status}, and {event} accepts only {accepts}; {}", .accepts.fix())]
     Refused {
         job: String,
@@ -87,7 +100,7 @@ pub enum StoreError {
     },
 
     #[error(
-        "job {job} is {status} and has no final outcome yet; close it with rex job close first"
+        "job {job} is {status} and has no final outcome yet; give feedback once its builder has closed it"
     )]
     NoOutcomeYet { job: String, status: String },
 
@@ -101,25 +114,18 @@ pub enum StoreError {
 /// its own fix, so the error can say what to do next.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Accepts {
-    /// `rex job plan`: a job is planned once.
+    /// `job.plan`: a job is planned once.
     CreatedJob,
-    /// `rex job close --status delivered` on a job that was never planned.
-    PlannedOrBlockedJob,
-    /// `rex job close` on a job that is already closed.
+    /// `job.close` on a job that is already closed with another status.
     OpenOrBlockedJob,
 }
 
 impl Accepts {
     fn fix(self) -> &'static str {
         match self {
-            Accepts::CreatedJob => {
-                "a job is planned once, and a builder that got existing=yes records no plan of its own"
-            }
-            Accepts::PlannedOrBlockedJob => {
-                "record the plan with rex job plan first, or close it as blocked, failed or cancelled"
-            }
+            Accepts::CreatedJob => "a job is planned once; send a job.amend to change its plan",
             Accepts::OpenOrBlockedJob => {
-                "a closed job is not closed again; open a new job for new work"
+                "a closed job is not closed again with another status; open a new job for new work"
             }
         }
     }
@@ -129,14 +135,51 @@ impl fmt::Display for Accepts {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let text = match self {
             Accepts::CreatedJob => "a created job",
-            Accepts::PlannedOrBlockedJob => "a planned or blocked job",
             Accepts::OpenOrBlockedJob => "a created, planned or blocked job",
         };
         f.write_str(text)
     }
 }
 
-impl CommandError for StoreError {}
+impl CommandError for StoreError {
+    fn failure_class(&self) -> FailureClass {
+        match self {
+            StoreError::VersionOne { .. }
+            | StoreError::UnknownVersion { .. }
+            | StoreError::BrokenReferences { .. }
+            | StoreError::NewerSchema { .. } => FailureClass::Halt,
+            StoreError::Sqlite { .. } | StoreError::Io { .. } => FailureClass::Retry,
+            StoreError::NotInGitRepo { .. }
+            | StoreError::UnsupportedLayout { .. }
+            | StoreError::NotFound { .. }
+            | StoreError::NotInitialised { .. }
+            | StoreError::ClockOutOfRange { .. }
+            | StoreError::JobNotFound { .. }
+            | StoreError::NoOpenJob { .. }
+            | StoreError::Refused { .. }
+            | StoreError::NoOutcomeYet { .. }
+            | StoreError::AnalysisDue { .. } => FailureClass::Reject,
+        }
+    }
+
+    /// A store that must be migrated, or that no rex knows, stops the command
+    /// before it reads anything, with exit 2.
+    fn exit_code(&self) -> u8 {
+        match self {
+            StoreError::VersionOne { .. }
+            | StoreError::UnknownVersion { .. }
+            | StoreError::BrokenReferences { .. } => 2,
+            _ => 1,
+        }
+    }
+
+    fn is_bare_line(&self) -> bool {
+        matches!(
+            self,
+            StoreError::UnknownVersion { .. } | StoreError::BrokenReferences { .. }
+        )
+    }
+}
 
 impl From<rusqlite::Error> for StoreError {
     fn from(source: rusqlite::Error) -> Self {

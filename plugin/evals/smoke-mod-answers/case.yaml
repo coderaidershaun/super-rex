@@ -1,0 +1,28 @@
+# Release smoke: the mod loads in a real session of this Claude Code build, and its rex_status tool answers from the book.
+# Run: claude plugin eval plugin --case smoke-mod-answers --ablation none --runs 1 --model sonnet --judge-model sonnet --scaffold --allow-tools mcp__super-rex__rex_status --no-publish
+schema_version: "1.0"
+name: smoke-mod-answers
+description: The mod loads, registers rex_status, and answers job=none in a session with no job.
+tags: [release, smoke]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: >-
+    Call the tool mcp__super-rex__rex_status with no arguments. Then reply with
+    the first line of its result, exactly as the tool gave it, and nothing else.
+  model: sonnet
+  max_turns: 4
+  timeout_seconds: 180
+  allowed_tools: [mcp__super-rex__rex_status]
+  disallowed_tools: [Agent]
+runs: 1
+graders:
+  - type: tool_used
+    name: rex_status was called
+    tool: mcp__super-rex__rex_status
+    min: 1
+  - type: regex
+    name: the reply is the first line the mod gave
+    target: last_message
+    pattern: "^job=none$"
+    flags: m

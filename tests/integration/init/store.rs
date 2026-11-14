@@ -3,7 +3,7 @@
 
 use std::fs;
 
-use super::support::{ONE_STEP_FAILED, SKILL_MARKER, installed, repo, rex_init_failed};
+use super::support::{ONE_STEP_FAILED, repo, rex_init_failed};
 
 // A store that cannot be set up must not stop the rest of the install, and
 // the person must see why it failed.
@@ -17,12 +17,12 @@ fn a_store_that_cannot_be_set_up_is_reported_after_the_rest_is_done() {
     )
     .expect("write orchestrators file");
 
-    let printed = rex_init_failed(&repo, &[]);
+    let printed = rex_init_failed(&repo, &["--with-storage"]);
 
     let stdout = printed.stdout;
-    assert!(!stdout.contains(".rex/"), "got: {stdout}");
+    assert!(!stdout.contains(".rex/rex.db"), "got: {stdout}");
     assert!(stdout.contains("rex init: pre-commit hooks installed\n"));
-    assert!(installed(&repo, SKILL_MARKER).is_file());
+    assert!(repo.path().join("AGENTS.md").is_file());
 
     let orchestrators = repo
         .path()

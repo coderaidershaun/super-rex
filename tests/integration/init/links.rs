@@ -6,96 +6,51 @@ use std::os::unix::fs::symlink;
 
 use tempfile::tempdir;
 
-use super::support::{
-    AGENT_MARKER, ONE_STEP_FAILED, SKILL_MARKER, installed, repo, rex_init_failed, rex_init_ok,
-    settings_path,
-};
+use super::support::{ONE_STEP_FAILED, repo, rex_init_failed, rex_init_ok, settings_path};
 
-// This test must never be deleted. A project can hold a symlink where a skill
-// file belongs. Writing through it would replace a file outside the project,
-// such as a shell profile.
+// This test must never be deleted. A project can hold a symlink where the
+// config belongs. Writing through it would replace a file outside the project,
+// such as a shell profile, and a link that points at nothing would make rex
+// create a file there.
 #[test]
-fn force_never_overwrites_the_file_a_symlink_points_at() {
-    let first = repo();
+fn a_linked_config_is_never_written_through() {
     let elsewhere = tempdir().expect("create tempdir");
-    let marker = installed(&first, SKILL_MARKER);
-    fs::create_dir_all(marker.parent().expect("marker has a folder")).expect("create skill folder");
-    let outside = elsewhere.path().join("outside.txt");
-    fs::write(&outside, "precious").expect("write outside file");
-    symlink(&outside, &marker).expect("create symlink");
-    // An agent file is guarded the same way.
-    let agent = installed(&first, AGENT_MARKER);
-    fs::create_dir_all(agent.parent().expect("agent has a folder")).expect("create agents folder");
-    let outside_agent = elsewhere.path().join("outside-agent.md");
-    fs::write(&outside_agent, "precious").expect("write outside agent file");
-    symlink(&outside_agent, &agent).expect("create agent symlink");
+    let linked = repo();
+    fs::create_dir_all(linked.path().join(".rex")).expect("create .rex");
+    let outside = elsewhere.path().join("outside.json");
+    fs::write(&outside, "{\"storage\": \"off\"}\n").expect("write outside file");
+    symlink(&outside, linked.path().join(".rex/config.json")).expect("create symlink");
 
-    let stderr = rex_init_ok(&first, &["--force"]).stderr;
+    let stderr = rex_init_ok(&linked, &["--with-storage"]).stderr;
 
     assert_eq!(
         fs::read_to_string(&outside).expect("read outside file"),
-        "precious"
+        "{\"storage\": \"off\"}\n"
     );
     assert!(
-        fs::symlink_metadata(&marker)
-            .expect("stat marker skill")
-            .file_type()
-            .is_symlink(),
-        "the symlink must still be a symlink"
-    );
-    assert!(
-        stderr.contains("rex init: skipped ./.rex/skills/rex-skill-language/SKILL.md: it or a folder above it is a symbolic link"),
-        "got: {stderr}"
-    );
-    assert_eq!(
-        fs::read_to_string(&outside_agent).expect("read outside agent file"),
-        "precious"
-    );
-    assert!(
-        stderr.contains("rex init: skipped ./.claude/agents/model-medium-effort-medium.md: it or a folder above it is a symbolic link"),
+        stderr.contains("rex init: skipped ")
+            && stderr.contains("config.json: it is a symbolic link"),
         "got: {stderr}"
     );
 
-    // A link that points at nothing must not make rex create a file there,
-    // and a linked skill folder must receive nothing.
-    let second = repo();
-    let dangling_target = elsewhere.path().join("created-outside.txt");
-    let agent = installed(&second, AGENT_MARKER);
-    fs::create_dir_all(agent.parent().expect("agent has a folder")).expect("create agents folder");
-    symlink(&dangling_target, &agent).expect("create dangling symlink");
-    let skills = second.path().join(".rex/skills");
-    fs::create_dir_all(&skills).expect("create skills dir");
-    let outside_dir = elsewhere.path().join("outside-dir");
-    fs::create_dir_all(&outside_dir).expect("create outside dir");
-    symlink(&outside_dir, skills.join("rex-skill-language")).expect("create folder symlink");
+    let dangling = repo();
+    fs::create_dir_all(dangling.path().join(".rex")).expect("create .rex");
+    let target = elsewhere.path().join("created-outside.json");
+    symlink(&target, dangling.path().join(".rex/config.json")).expect("create dangling symlink");
 
-    let stderr = rex_init_ok(&second, &["--force"]).stderr;
+    rex_init_ok(&dangling, &[]);
 
     assert!(
-        !dangling_target.exists(),
+        !target.exists(),
         "rex must not create a file where the symlink points"
     );
-    assert_eq!(
-        fs::read_dir(&outside_dir)
-            .expect("read outside dir")
-            .count(),
-        0
-    );
     assert!(
-        stderr.contains("rex init: skipped ./.rex/skills/rex-skill-language/SKILL.md: it or a folder above it is a symbolic link"),
-        "got: {stderr}"
-    );
-    assert!(
-        stderr.contains("rex init: skipped ./.claude/agents/model-medium-effort-medium.md: it or a folder above it is a symbolic link"),
-        "got: {stderr}"
-    );
-    assert!(
-        second.path().join("AGENTS.md").is_file(),
+        dangling.path().join("AGENTS.md").is_file(),
         "the rest of the install must still happen"
     );
 }
 
-// This test must never be deleted. The same hazard as a linked skill file:
+// This test must never be deleted. The same hazard as a linked config:
 // a write through a link lands on whatever it points at, outside the project.
 // AGENTS.md is the one rex changes in place rather than only creating, so a
 // link here would edit a file the person never named. A link that points at
@@ -135,8 +90,8 @@ fn a_symlinked_agents_md_is_left_alone_and_its_target_untouched() {
         );
     }
     assert!(
-        installed(&repo, SKILL_MARKER).is_file(),
-        "the skill bundle must still be installed"
+        repo.path().join(".rex/config.json").is_file(),
+        "the rest of the install must still happen"
     );
     assert!(
         stderr.contains("rex init: skipped ./AGENTS.md: it is a symbolic link"),
@@ -162,7 +117,7 @@ fn a_linked_settings_file_is_not_written_through() {
         fs::read_to_string(&outside).expect("read outside file"),
         "{}\n"
     );
-    assert!(installed(&linked_file, SKILL_MARKER).is_file());
+    assert!(linked_file.path().join(".rex/config.json").is_file());
     assert_eq!(
         printed.stderr,
         format!(

@@ -1,0 +1,139 @@
+{
+  "about": "Anthropic's first-party list prices of the Claude API as of 2026-11, in billionths of a dollar per token, as the binary prices a transcript for the cost of record. A request of a model that is not here is unpriced. A request whose prompt (input + cache read + cache write tokens) is above above_prompt_tokens of a second_card model uses that card. A request with usage speed fast costs factor times the price, only on a fast_mode model; on another model it is unpriced. A cache write with no split by duration is priced as cache_write_5m. A Rust test pins these numbers to the binary.",
+  "unit": "nanodollars per token",
+  "as_of": "2026-11",
+  "models": {
+    "claude-fable-5-2": {
+      "input": 8000,
+      "cache_write_5m": 10000,
+      "cache_write_1h": 16000,
+      "cache_read": 200,
+      "output": 40000
+    },
+    "claude-mythos-5-2": {
+      "input": 8000,
+      "cache_write_5m": 10000,
+      "cache_write_1h": 16000,
+      "cache_read": 200,
+      "output": 40000
+    },
+    "claude-fable-5-1": {
+      "input": 10000,
+      "cache_write_5m": 12500,
+      "cache_write_1h": 20000,
+      "cache_read": 250,
+      "output": 50000
+    },
+    "claude-mythos-5-1": {
+      "input": 10000,
+      "cache_write_5m": 12500,
+      "cache_write_1h": 20000,
+      "cache_read": 250,
+      "output": 50000
+    },
+    "claude-fable-5": {
+      "input": 10000,
+      "cache_write_5m": 12500,
+      "cache_write_1h": 20000,
+      "cache_read": 1000,
+      "output": 50000
+    },
+    "claude-mythos-5": {
+      "input": 10000,
+      "cache_write_5m": 12500,
+      "cache_write_1h": 20000,
+      "cache_read": 1000,
+      "output": 50000
+    },
+    "claude-opus-5-5": {
+      "input": 4000,
+      "cache_write_5m": 5000,
+      "cache_write_1h": 8000,
+      "cache_read": 200,
+      "output": 20000
+    },
+    "claude-opus-5": {
+      "input": 5000,
+      "cache_write_5m": 6250,
+      "cache_write_1h": 10000,
+      "cache_read": 500,
+      "output": 25000
+    },
+    "claude-opus-4-8": {
+      "input": 5000,
+      "cache_write_5m": 6250,
+      "cache_write_1h": 10000,
+      "cache_read": 500,
+      "output": 25000
+    },
+    "claude-opus-4-7": {
+      "input": 5000,
+      "cache_write_5m": 6250,
+      "cache_write_1h": 10000,
+      "cache_read": 500,
+      "output": 25000
+    },
+    "claude-opus-4-6": {
+      "input": 5000,
+      "cache_write_5m": 6250,
+      "cache_write_1h": 10000,
+      "cache_read": 500,
+      "output": 25000
+    },
+    "claude-sonnet-5-5": {
+      "input": 2000,
+      "cache_write_5m": 2500,
+      "cache_write_1h": 4000,
+      "cache_read": 100,
+      "output": 10000
+    },
+    "claude-sonnet-5": {
+      "input": 2000,
+      "cache_write_5m": 2500,
+      "cache_write_1h": 4000,
+      "cache_read": 200,
+      "output": 10000
+    },
+    "claude-sonnet-4-6": {
+      "input": 3000,
+      "cache_write_5m": 3750,
+      "cache_write_1h": 6000,
+      "cache_read": 300,
+      "output": 15000
+    },
+    "claude-haiku-5-5": {
+      "input": 100,
+      "cache_write_5m": 125,
+      "cache_write_1h": 200,
+      "cache_read": 10,
+      "output": 500
+    },
+    "claude-haiku-4-5": {
+      "input": 1000,
+      "cache_write_5m": 1250,
+      "cache_write_1h": 2000,
+      "cache_read": 100,
+      "output": 5000
+    }
+  },
+  "second_card": {
+    "claude-haiku-5-5": {
+      "above_prompt_tokens": 100000,
+      "rates": {
+        "input": 500,
+        "cache_write_5m": 625,
+        "cache_write_1h": 1000,
+        "cache_read": 50,
+        "output": 2500
+      }
+    }
+  },
+  "fast_mode": {
+    "factor": 2,
+    "models": [
+      "claude-opus-5-5",
+      "claude-fable-5-2",
+      "claude-mythos-5-2"
+    ]
+  }
+}

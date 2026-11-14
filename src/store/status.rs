@@ -27,20 +27,23 @@ pub enum Status {
     Rejected,
     Analyzed,
     Cancelled,
+    /// Closed because its session ended before the job did and nothing came back.
+    Lost,
 }
 
 /// The statuses of an open job, as the list of an SQL `IN`. An open job still
-/// takes new sub-agents, and a session has at most one, which the unique index
+/// takes new sub-agents, and an owner has at most one, which the unique index
 /// of the schema enforces with the same list.
 pub(crate) const OPEN_STATUSES_SQL: &str = "('created', 'planned')";
 
-/// The statuses that `rex job close` can give.
+/// The statuses that closing a job can give.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Closed {
     Delivered,
     Blocked,
     Failed,
     Cancelled,
+    Lost,
 }
 
 /// The two feedback verdicts.
@@ -50,7 +53,7 @@ pub enum Verdict {
     Rejected,
 }
 
-/// What happened to a job. Creating a job is not an event: `rex job create`
+/// What happened to a job. Opening a job is not an event: `rex ingest`
 /// inserts the row and its first history row itself.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Event {
@@ -81,17 +84,31 @@ pub enum Shown {
 /// Text that is not one of the nine stored statuses.
 #[derive(thiserror::Error, Debug)]
 #[error(
-    "{text} is not a stored job status; one of created, planned, blocked, failed, delivered, accepted, rejected, analyzed, cancelled"
+    "{text} is not a stored job status; one of created, planned, blocked, failed, delivered, accepted, rejected, analyzed, cancelled, lost"
 )]
 pub struct StatusError {
     text: String,
 }
 
-/// Moves the job by the transition table and writes one history row per step.
-/// A close always writes a row, even `blocked` to `blocked`. A feedback that
-/// leaves the status writes nothing. Run it inside the caller's
-/// [`crate::store::Store::write`], so the caller's own rows and the status
-/// change are one transaction.
+/// Moves the job by the transition table, now, and writes one history row per
+/// step. See [`apply_at`].
+///
+/// # Errors
+/// As [`apply_at`].
+pub fn apply(tx: &Transaction<'_>, job: &JobId, event: Event) -> Result<Change, StoreError> {
+    let now: String = tx.query_row("SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now')", [], |row| {
+        row.get(0)
+    })?;
+    apply_at(tx, job, event, &now)
+}
+
+/// Moves the job by the transition table and writes one history row per step,
+/// all at `at`, a time in the store's form. A close of an open or blocked job
+/// always writes a row, even `blocked` to `blocked`; a close that names the
+/// status the job was closed with already writes nothing, so a close sent twice
+/// is one. A feedback that leaves the status writes nothing. Run it inside the
+/// caller's [`crate::store::Store::write`], so the caller's own rows and the
+/// status change are one transaction.
 ///
 /// # Errors
 /// - [`StoreError::JobNotFound`] if there is no such job.
@@ -101,10 +118,12 @@ pub struct StatusError {
 /// - [`StoreError::Sqlite`] if a read or write fails.
 ///
 /// A refused event writes nothing.
-///
-/// `rex job close --status delivered` while a delivery is blocked is refused by
-/// that command, not here, because the check reads the deliveries.
-pub fn apply(tx: &Transaction<'_>, job: &JobId, event: Event) -> Result<Change, StoreError> {
+pub fn apply_at(
+    tx: &Transaction<'_>,
+    job: &JobId,
+    event: Event,
+    at: &str,
+) -> Result<Change, StoreError> {
     let previous = stored_status(tx, job)?;
     let steps = steps(job, previous, event)?;
     let Some(&current) = steps.last() else {
@@ -114,10 +133,7 @@ pub fn apply(tx: &Transaction<'_>, job: &JobId, event: Event) -> Result<Change, 
         });
     };
 
-    // One time for the whole call, so two rows of one feedback share it.
-    let now: String = tx.query_row("SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now')", [], |row| {
-        row.get(0)
-    })?;
+    let now = at;
     let mut from = previous;
     for &to in &steps {
         tx.execute(
@@ -146,18 +162,15 @@ fn steps(job: &JobId, previous: Status, event: Event) -> Result<Vec<Status>, Sto
     };
     match event {
         // A job is planned once, so a nested builder that plans by mistake fails
-        // instead of replacing its parent's plan.
+        // instead of replacing its parent's plan. A change of plan is an amendment.
         Event::Plan => match previous {
             Created => Ok(vec![Planned]),
-            _ => Err(refused("rex job plan", Accepts::CreatedJob)),
+            _ => Err(refused("job.plan", Accepts::CreatedJob)),
         },
         Event::Close(closed) => match (previous, closed) {
-            (Created, Closed::Delivered) => Err(refused(
-                "rex job close --status delivered",
-                Accepts::PlannedOrBlockedJob,
-            )),
             (Created | Planned | Blocked, closed) => Ok(vec![closed.into()]),
-            _ => Err(refused("rex job close", Accepts::OpenOrBlockedJob)),
+            (previous, closed) if previous == closed.into() => Ok(vec![]),
+            _ => Err(refused("job.close", Accepts::OpenOrBlockedJob)),
         },
         Event::Feedback {
             verdict,
@@ -176,14 +189,14 @@ fn steps(job: &JobId, previous: Status, event: Event) -> Result<Vec<Status>, Sto
                 job: job.to_string(),
             }),
             // Feedback cannot move a blocked job, so its later close still
-            // records the rest; the other three already say how the work ended.
-            (Blocked | Failed | Cancelled | Analyzed, _, _) => Ok(vec![]),
+            // records the rest; the others already say how the work ended.
+            (Blocked | Failed | Cancelled | Analyzed | Lost, _, _) => Ok(vec![]),
         },
     }
 }
 
-/// The open job of `session_id` and its status, if the session has one. It
-/// takes a connection, so it also runs inside a [`crate::store::Store::write`].
+/// The open job of the main loop of `session_id` and its status, if it has
+/// one. It takes a connection, so it also runs inside a [`crate::store::Store::write`].
 ///
 /// # Errors
 /// The read fails, or the stored ID or status is not one rex writes.
@@ -193,7 +206,8 @@ pub(crate) fn open_job(
 ) -> rusqlite::Result<Option<(JobId, Status)>> {
     conn.query_row(
         &format!(
-            "SELECT id, status FROM job WHERE session_id = ?1 AND status IN {OPEN_STATUSES_SQL}"
+            "SELECT id, status FROM job
+             WHERE session_id = ?1 AND builder_agent_id = 'main' AND status IN {OPEN_STATUSES_SQL}"
         ),
         [session_id],
         |row| Ok((row.get(0)?, row.get(1)?)),
@@ -222,7 +236,7 @@ fn store_dir(tx: &Transaction<'_>) -> PathBuf {
 }
 
 impl Status {
-    const ALL: [Status; 9] = [
+    const ALL: [Status; 10] = [
         Status::Created,
         Status::Planned,
         Status::Blocked,
@@ -232,6 +246,7 @@ impl Status {
         Status::Rejected,
         Status::Analyzed,
         Status::Cancelled,
+        Status::Lost,
     ];
 
     /// True for a job that is created or planned, and so still open.
@@ -250,6 +265,7 @@ impl Status {
             Status::Rejected => "rejected",
             Status::Analyzed => "analyzed",
             Status::Cancelled => "cancelled",
+            Status::Lost => "lost",
         }
     }
 }
@@ -264,7 +280,7 @@ impl FromStr for Status {
     type Err = StatusError;
 
     /// # Errors
-    /// [`StatusError`] unless `text` is one of the nine lower-case names.
+    /// [`StatusError`] unless `text` is one of the ten lower-case names.
     fn from_str(text: &str) -> Result<Status, StatusError> {
         Status::ALL
             .into_iter()
@@ -275,7 +291,7 @@ impl FromStr for Status {
     }
 }
 
-/// A stored text that is not one of the nine statuses fails the read of its column.
+/// A stored text that is not one of the ten statuses fails the read of its column.
 impl FromSql for Status {
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Status> {
         let status = value.as_str()?.parse();
@@ -306,6 +322,7 @@ impl From<Closed> for Status {
             Closed::Blocked => Status::Blocked,
             Closed::Failed => Status::Failed,
             Closed::Cancelled => Status::Cancelled,
+            Closed::Lost => Status::Lost,
         }
     }
 }
@@ -351,7 +368,7 @@ mod tests {
             let is_listed = OPEN_STATUSES_SQL.contains(&format!("'{status}'"));
             assert_eq!(is_listed, status.is_open(), "{status}");
         }
-        let one_open_job_index = format!("WHERE status IN {OPEN_STATUSES_SQL};");
+        let one_open_job_index = format!("WHERE status IN {OPEN_STATUSES_SQL} AND");
         assert!(include_str!("schema.sql").contains(&one_open_job_index));
     }
 }

@@ -1,0 +1,29 @@
+{
+  "name": "jobs",
+  "setup": [
+    "fixtures/shared/ingest/batch-open-stream.json",
+    "fixtures/shared/ingest/batch-example.json"
+  ],
+  "argv": [
+    "rex",
+    "jobs",
+    "--json"
+  ],
+  "stdin_file": null,
+  "expect": {
+    "exit": 0,
+    "stdout_json_contains": {
+      "jobs": [
+        {
+          "id": "0gaq820001",
+          "status": "created",
+          "origin": "composer",
+          "builder_agent_id": "main",
+          "tree": null,
+          "request": "Fix the parser. Merge to main: yes",
+          "created_at": "2026-11-13T20:00:02.000Z"
+        }
+      ]
+    }
+  }
+}

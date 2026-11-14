@@ -1,16 +1,18 @@
-//! The record of jobs, roles, sub-agent runs and feedback, kept in one SQLite
-//! file for each repo.
+//! The record of jobs, roles, sub-agent runs, feedback and the plugin's events,
+//! kept in one SQLite file for each repo.
 
 pub mod class;
 mod error;
 pub(crate) mod integer;
 mod job_id;
+mod migrate;
 pub mod orchestrator;
 mod paths;
 pub mod status;
 
 pub use error::{Accepts, Place, Reason, StoreError, Tried};
 pub use job_id::{JobId, JobIdError};
+pub use migrate::Migrated;
 pub use paths::StorePaths;
 
 use std::fs;
@@ -19,7 +21,7 @@ use std::time::Duration;
 use rusqlite::{Connection, OpenFlags, Transaction, TransactionBehavior};
 
 const SCHEMA: &str = include_str!("schema.sql");
-const SCHEMA_VERSION: i64 = 1;
+const SCHEMA_VERSION: i64 = 2;
 
 /// How long a writer waits for another writer before it fails with
 /// `database is locked`.
@@ -46,10 +48,11 @@ pub struct Store {
 
 impl Store {
     /// Makes the store for `rex init`, or opens it if it is already made. A
-    /// store already at version 1 is left exactly as it was, so this is safe to
+    /// store already at version 2 is left exactly as it was, so this is safe to
     /// run twice.
     ///
     /// # Errors
+    /// - [`StoreError::VersionOne`] if the store must be migrated first.
     /// - [`StoreError::NewerSchema`] if the file has a newer schema.
     /// - [`StoreError::Io`] if a folder cannot be made.
     /// - [`StoreError::Sqlite`] if SQLite fails.
@@ -78,7 +81,7 @@ impl Store {
                 .execute_batch(SCHEMA)
                 .map_err(StoreError::sqlite(&paths.db))?,
             SCHEMA_VERSION => {}
-            found => return Err(newer_schema(paths, found)),
+            found => return Err(other_version(paths, found)),
         }
         tx.commit().map_err(StoreError::sqlite(&paths.db))?;
         Ok(Store {
@@ -92,17 +95,11 @@ impl Store {
     /// # Errors
     /// - [`StoreError::NotFound`] if `rex.db` does not exist.
     /// - [`StoreError::NotInitialised`] if it has no schema.
+    /// - [`StoreError::VersionOne`] if it must be migrated first.
     /// - [`StoreError::NewerSchema`] if it has a newer schema.
     /// - [`StoreError::Sqlite`] if SQLite fails.
     pub fn open(paths: &StorePaths) -> Result<Store, StoreError> {
-        if !paths.db.is_file() {
-            let tried = vec![Tried {
-                path: paths.db.clone(),
-                place: Place::Given,
-                reason: Reason::NoDatabase,
-            }];
-            return Err(StoreError::NotFound { tried });
-        }
+        check_file_exists(paths)?;
         let flags = OpenFlags::default().difference(OpenFlags::SQLITE_OPEN_CREATE);
         let conn =
             Connection::open_with_flags(&paths.db, flags).map_err(StoreError::sqlite(&paths.db))?;
@@ -117,7 +114,7 @@ impl Store {
                 db: paths.db.clone(),
                 root: paths.root.clone(),
             }),
-            found => Err(newer_schema(paths, found)),
+            found => Err(other_version(paths, found)),
         }
     }
 
@@ -153,7 +150,8 @@ impl Store {
         Ok(value)
     }
 
-    /// The open job of `session_id` (status `created` or `planned`), if any.
+    /// The open job of the main loop of `session_id` (status `created` or
+    /// `planned`), if any.
     ///
     /// # Errors
     /// [`StoreError::Sqlite`] if the read fails, or if the stored ID is not a
@@ -163,6 +161,19 @@ impl Store {
             status::open_job(&self.conn, session_id).map_err(StoreError::sqlite(&self.paths.db))?;
         Ok(open.map(|(job, _)| job))
     }
+}
+
+/// [`StoreError::NotFound`] unless `rex.db` is there.
+fn check_file_exists(paths: &StorePaths) -> Result<(), StoreError> {
+    if paths.db.is_file() {
+        return Ok(());
+    }
+    let tried = vec![Tried {
+        path: paths.db.clone(),
+        place: Place::Given,
+        reason: Reason::NoDatabase,
+    }];
+    Err(StoreError::NotFound { tried })
 }
 
 /// Settings that belong to each connection, not to the file, so every open
@@ -179,7 +190,12 @@ fn schema_version(conn: &Connection, paths: &StorePaths) -> Result<i64, StoreErr
         .map_err(StoreError::sqlite(&paths.db))
 }
 
-fn newer_schema(paths: &StorePaths, found: i64) -> StoreError {
+fn other_version(paths: &StorePaths, found: i64) -> StoreError {
+    if found == 1 {
+        return StoreError::VersionOne {
+            db: paths.db.clone(),
+        };
+    }
     StoreError::NewerSchema {
         db: paths.db.clone(),
         found,

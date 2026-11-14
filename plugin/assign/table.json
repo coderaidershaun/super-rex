@@ -1,0 +1,264 @@
+{
+  "format": 1,
+  "about": "The assignment table: which skills each kind of work gets. A task fits a row when one criterion of the row holds (OR). A criterion with a rule is decided by code from the task's facts; every other criterion is a question that rex_assign asks the decision agent, who answers yes or no with a reason. placement: read-first = each step of the task needs the row; open-when = the task reaches it in one case; ask = a second question decides. files are sibling files of a skill: always open-when, with their case. cap = most read-first skills of one task; the rest move to open-when by priority (a lower number stays first). A repo changes rows with .rex/assign.json: rows of the same id replace these, new ids are added, ids under remove are dropped.",
+  "cap": 6,
+  "rows": [
+    {
+      "id": "code-rulebooks",
+      "work": "Each task that writes code",
+      "priority": 1,
+      "scope": "code",
+      "placement": "read-first",
+      "criteria": [{ "id": "writes-code", "text": "writes or changes code", "rule": "writes-code" }],
+      "skills": ["rex-code-philosophy", "rex-code-commenting", "rex-code-ergonomics", "rex-code-error-writing"],
+      "files": []
+    },
+    {
+      "id": "gap-skill",
+      "work": "Gap skill of each language that is not rust",
+      "priority": 2,
+      "scope": "code",
+      "placement": "read-first",
+      "criteria": [{ "id": "language-not-rust", "text": "writes code in a language that is not rust", "rule": "language-not-rust" }],
+      "skills": ["rex-gap-{language}"],
+      "files": []
+    },
+    {
+      "id": "tdd",
+      "work": "Builds feature or fixes bug, with tests",
+      "priority": 3,
+      "scope": "code",
+      "placement": "ask",
+      "criteria": [
+        { "id": "builds-feature", "text": "builds a feature with tests" },
+        { "id": "fixes-bug", "text": "fixes a bug with tests" }
+      ],
+      "skills": ["rex-code-tdd"],
+      "files": []
+    },
+    {
+      "id": "unit-tests",
+      "work": "Unit test: inline scaffold for pure function",
+      "priority": 40,
+      "scope": "code",
+      "placement": "ask",
+      "criteria": [{ "id": "unit-test", "text": "writes a unit test of a pure function" }],
+      "skills": ["rex-code-tests-unit-testing"],
+      "files": []
+    },
+    {
+      "id": "contract-tests",
+      "work": "Test of interface between two modules",
+      "priority": 40,
+      "scope": "code",
+      "placement": "ask",
+      "criteria": [{ "id": "contract-test", "text": "tests the interface between two modules" }],
+      "skills": ["rex-code-tests-contract-seams"],
+      "files": []
+    },
+    {
+      "id": "fitness-tests",
+      "work": "Invariant that must always hold, property test",
+      "priority": 40,
+      "scope": "code",
+      "placement": "ask",
+      "criteria": [
+        { "id": "invariant", "text": "tests an invariant that must always hold" },
+        { "id": "property-test", "text": "writes a property test" }
+      ],
+      "skills": ["rex-code-tests-fitness-functions"],
+      "files": []
+    },
+    {
+      "id": "integration-tests",
+      "work": "Test against real outside world: API, exchange, database, WebSocket",
+      "priority": 40,
+      "scope": "code",
+      "placement": "ask",
+      "criteria": [{ "id": "real-world", "text": "tests against the real outside world: an API, an exchange, a database or a WebSocket" }],
+      "skills": ["rex-code-tests-integration-testing"],
+      "files": [{ "skill": "rex-code-tests-integration-testing", "file": "real-funds.md", "case": "a test moves real funds" }]
+    },
+    {
+      "id": "boundary-tests",
+      "work": "Test crosses system boundary: outside API, database, time, randomness, file system",
+      "priority": 40,
+      "scope": "code",
+      "placement": "open-when",
+      "criteria": [
+        { "id": "outside-system", "text": "writes a test that crosses to an outside API or database" },
+        { "id": "time-or-randomness", "text": "writes a test that depends on time or randomness" },
+        { "id": "file-system", "text": "writes a test that crosses the file system" }
+      ],
+      "skills": [],
+      "files": [{ "skill": "rex-code-tdd", "file": "mocking.md", "case": null }]
+    },
+    {
+      "id": "folders",
+      "work": "Creates, splits, or moves file, module, or folder",
+      "priority": 40,
+      "scope": "code",
+      "placement": "ask",
+      "criteria": [
+        { "id": "creates-or-splits", "text": "creates or splits a file, module or folder" },
+        { "id": "moves", "text": "moves a file, module or folder" }
+      ],
+      "skills": ["rex-code-folder-management"],
+      "files": [{ "skill": "rex-code-folder-management", "file": "move.md", "case": "it moves a file, module or folder" }]
+    },
+    {
+      "id": "dependencies",
+      "work": "Adds or upgrades dependency",
+      "priority": 40,
+      "scope": "code",
+      "placement": "ask",
+      "criteria": [{ "id": "adds-or-upgrades", "text": "adds or upgrades a dependency" }],
+      "skills": ["rex-code-external-libraries"],
+      "files": []
+    },
+    {
+      "id": "failure-policy",
+      "work": "Outside input, long-running state, retry, reconnect, main loop",
+      "priority": 30,
+      "scope": "code",
+      "placement": "ask",
+      "criteria": [
+        { "id": "outside-input", "text": "handles outside input" },
+        { "id": "long-running-state", "text": "keeps long-running state" },
+        { "id": "retry-or-reconnect", "text": "retries or reconnects" },
+        { "id": "main-loop", "text": "writes a main loop" }
+      ],
+      "skills": ["rex-code-failure-policy"],
+      "files": [{ "skill": "rex-code-failure-policy", "file": "failure-table.md", "case": "it plans such a feature: writes its failure table" }]
+    },
+    {
+      "id": "design",
+      "work": "New system, feature, or module: design before code",
+      "priority": 20,
+      "scope": "any",
+      "placement": "ask",
+      "criteria": [{ "id": "design-first", "text": "designs a new system, feature or module before its code" }],
+      "skills": ["rex-code-design-sketch", "rex-code-validation-plan"],
+      "files": []
+    },
+    {
+      "id": "spike",
+      "work": "Approach, crate, or outside service not proven",
+      "priority": 20,
+      "scope": "any",
+      "placement": "ask",
+      "criteria": [{ "id": "unproven", "text": "rests on an approach, crate or outside service that is not proven" }],
+      "skills": ["rex-code-spike"],
+      "files": []
+    },
+    {
+      "id": "smells",
+      "work": "Refactor of unfamiliar or old code, OR code audit",
+      "priority": 30,
+      "scope": "code",
+      "placement": "ask",
+      "criteria": [
+        { "id": "refactor-unfamiliar", "text": "refactors unfamiliar or old code" },
+        { "id": "audit", "text": "audits code" }
+      ],
+      "skills": ["rex-code-smells"],
+      "files": [
+        { "skill": "rex-code-folder-management", "file": "audit.md", "case": "it audits code" },
+        { "skill": "rex-code-failure-policy", "file": "audit.md", "case": "it audits code" }
+      ]
+    },
+    {
+      "id": "architecture",
+      "work": "Refactor candidates, module grouping, architecture friction",
+      "priority": 50,
+      "scope": "code",
+      "placement": "ask",
+      "criteria": [{ "id": "architecture-friction", "text": "looks for refactor candidates, module grouping or architecture friction" }],
+      "skills": ["rex-code-improve-codebase-architecture"],
+      "files": []
+    },
+    {
+      "id": "priorities",
+      "work": "Design, plan, or review decision that depends on ranking of qualities",
+      "priority": 50,
+      "scope": "any",
+      "placement": "ask",
+      "criteria": [{ "id": "ranked-decision", "text": "makes a design, plan or review decision that depends on a ranking of qualities" }],
+      "skills": ["rex-code-priorities"],
+      "files": []
+    },
+    {
+      "id": "latency",
+      "work": "Hotpath latency of ns to tens of µs, on Linux host you control",
+      "priority": 30,
+      "scope": "code",
+      "placement": "ask",
+      "criteria": [{ "id": "hot-path", "text": "works on a hot path of nanoseconds to tens of microseconds, on a Linux host it controls" }],
+      "skills": ["rex-code-latency"],
+      "files": [{ "skill": "rex-code-latency", "file": "measure.md", "case": "it measures the hot path" }]
+    },
+    {
+      "id": "pr-review",
+      "work": "Review of branch or pull request by agent that wrote none of it",
+      "priority": 20,
+      "scope": "any",
+      "placement": "ask",
+      "criteria": [{ "id": "reviews-others", "text": "reviews a branch or pull request that it wrote none of" }],
+      "skills": ["rex-pr-review"],
+      "files": []
+    },
+    {
+      "id": "diagrams",
+      "work": "Diagram in plan or document",
+      "priority": 60,
+      "scope": "any",
+      "placement": "ask",
+      "criteria": [{ "id": "draws-diagram", "text": "draws a diagram in a plan or document" }],
+      "skills": ["rex-mermaid-diagrams"],
+      "files": []
+    },
+    {
+      "id": "skill-text",
+      "work": "Writes skill, prompt, or agent instructions",
+      "priority": 20,
+      "scope": "any",
+      "placement": "ask",
+      "criteria": [{ "id": "writes-instructions", "text": "writes a skill, a prompt or agent instructions" }],
+      "skills": ["rex-skill-language"],
+      "files": []
+    },
+    {
+      "id": "briefs",
+      "work": "Starts sub-agent, or writes brief for other agent (each lead)",
+      "priority": 30,
+      "scope": "any",
+      "placement": "ask",
+      "criteria": [
+        { "id": "starts-agent", "text": "starts a sub-agent" },
+        { "id": "writes-brief", "text": "writes a brief for another agent" }
+      ],
+      "skills": ["rex-agent-prompting"],
+      "files": []
+    },
+    {
+      "id": "plan-review",
+      "work": "Plan job: review of plan (role `plan-reviewer`)",
+      "priority": 20,
+      "scope": "any",
+      "placement": "read-first",
+      "criteria": [{ "id": "plan-reviewer", "text": "reviews the plan of a plan job (role plan-reviewer)", "rule": "role:plan-reviewer" }],
+      "skills": ["rex-codex-adversarial-review"],
+      "files": []
+    },
+    {
+      "id": "plan-writing",
+      "work": "Plan job: review of plan (role `plan-reviewer`)",
+      "priority": 20,
+      "scope": "any",
+      "placement": "ask",
+      "criteria": [{ "id": "writes-code-plan", "text": "writes the plan of a code plan job" }],
+      "skills": ["rex-code-design-sketch", "rex-code-validation-plan"],
+      "files": []
+    }
+  ]
+}

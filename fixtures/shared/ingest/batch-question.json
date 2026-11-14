@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "session": "00000000-0000-4000-8000-000000000001",
+  "stream": "aaaaaaaaaaaaaaaa",
+  "secret": "1111111111111111111111111111111111111111111111111111111111111111",
+  "events": [
+    {
+      "seq": 5,
+      "at": "2026-11-13T20:00:03.000Z",
+      "kind": "question.ask",
+      "agent": "main",
+      "job": "0gaq820001",
+      "data": {
+        "id": "q1-000000000001",
+        "tree": null,
+        "question": "Merge job 0gaq820001 (rex/0gaq820001) to main of /home/person/repo?",
+        "options": [
+          "Merge",
+          "Keep the branch"
+        ],
+        "recommendation": "Merge",
+        "category": "merge",
+        "merge_for": "0gaq820001"
+      }
+    }
+  ]
+}

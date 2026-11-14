@@ -1,0 +1,43 @@
+{
+  "about": "The mod's tools as the skill text may name them: for each tool the plugin registers, every property name of its input schema at any depth, and the result keys a kit test sees it answer (a <placeholder> stands for any text; with storage on, rex_recall answers the lines of rex recall unchanged, which calls/recall.json pins). later holds the tools of C6 that a later unit registers, with that unit; skill text may name one, but none of its keys. A kit test pins this file to the registered table and the real answers; a Rust test checks every tool name and key in plugin/skills and plugin/library against it.",
+  "tools": {
+    "rex_assign": {
+      "arguments": ["answer", "answers", "consequence", "id", "intelligence", "job", "langs", "question", "reason", "reliability", "role", "roles", "tasks", "verification", "writes_code"],
+      "keys": ["question.<n>", "questions", "role.<role>", "source.<task>.<skill>", "task.<id>.open_when.<skill>", "task.<id>.skills"]
+    },
+    "rex_job_close": {
+      "arguments": ["branch", "deliveries", "job", "merge_commit", "note", "outcome", "pr", "repo", "status"],
+      "keys": ["cost_of_record_usd", "degraded", "job", "not_assembled", "runs", "spent_usd", "status"]
+    },
+    "rex_job_open": {
+      "arguments": ["autonomy", "budget", "consequence", "duration", "langs", "prefs", "request", "size", "type"],
+      "keys": ["base", "branch", "existing", "job", "limit_usd", "merge", "repo", "status", "storage", "worktree"]
+    },
+    "rex_job_plan": {
+      "arguments": ["amend", "breakdown", "consequence", "file", "id", "intelligence", "item", "job", "open_when", "orchestrator", "overrides", "reason", "reliability", "role", "roles", "skill", "skills", "subject", "tasks", "value", "verification", "when"],
+      "keys": ["job", "manifest_files", "orchestrator", "role.<role>", "status"]
+    },
+    "rex_merge": {
+      "arguments": ["job"],
+      "keys": ["base", "branch", "merge_commit", "merged", "question"]
+    },
+    "rex_recall": {
+      "arguments": ["job"],
+      "keys": ["reason", "recall"]
+    },
+    "rex_skill": {
+      "arguments": ["file", "name"],
+      "keys": ["assembly", "file", "hash", "skill", "source"]
+    },
+    "rex_status": {
+      "arguments": ["job"],
+      "keys": ["agents_done", "agents_open", "degraded", "job", "limit_usd", "origin", "phase", "spent_usd", "status"]
+    }
+  },
+  "later": {
+    "rex_ask_owner": "T7",
+    "rex_build": "T7",
+    "rex_continue": "T7",
+    "rex_note": "T7"
+  }
+}

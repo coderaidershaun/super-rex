@@ -1,0 +1,37 @@
+{
+  "about": "The spend limit of a job that no person set: (the agent cap of its size + the main session, counted as session_in_agents agents) x the dollars of one agent at its budget. A job that stated no budget gets budget_when_none. rex limit and rex status warn from warn_percent of the limit. A Rust test pins these numbers to the binary.",
+  "unit": "nanodollars",
+  "agent_cap": {
+    "small": 5,
+    "medium": 6,
+    "large": 10
+  },
+  "session_in_agents": 2,
+  "nano_per_agent": {
+    "low": 1500000000,
+    "medium": 4000000000,
+    "high": 8000000000
+  },
+  "budget_when_none": "medium",
+  "warn_percent": 80,
+  "default_limit_nano": {
+    "small": {
+      "low": 10500000000,
+      "medium": 28000000000,
+      "high": 56000000000,
+      "none": 28000000000
+    },
+    "medium": {
+      "low": 12000000000,
+      "medium": 32000000000,
+      "high": 64000000000,
+      "none": 32000000000
+    },
+    "large": {
+      "low": 18000000000,
+      "medium": 48000000000,
+      "high": 96000000000,
+      "none": 48000000000
+    }
+  }
+}

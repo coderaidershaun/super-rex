@@ -1,0 +1,17 @@
+{
+  "name": "recall",
+  "setup": [
+    "fixtures/shared/ingest/batch-open-stream.json",
+    "fixtures/shared/ingest/batch-example.json"
+  ],
+  "argv": [
+    "rex",
+    "recall",
+    "0gaq820001"
+  ],
+  "stdin_file": null,
+  "expect": {
+    "exit": 0,
+    "stdout": "job=0gaq820001\nrecorded=yes\nlessons=0\norchestrators=0\nunused=0\n"
+  }
+}

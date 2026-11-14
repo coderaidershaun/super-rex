@@ -12,7 +12,7 @@ fn builder_texts() -> Vec<String> {
     walk()
         .into_iter()
         .filter(|(path, _)| {
-            path.starts_with(".claude/skills/orchestration-builder")
+            path.starts_with("plugin/skills/orchestration-builder")
                 && path.extension().is_some_and(|ext| ext == "md")
         })
         .map(|(path, bytes)| {

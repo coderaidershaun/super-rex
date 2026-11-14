@@ -84,20 +84,6 @@ pub fn rex(cwd: &Path, args: &[&str]) -> Command {
     command
 }
 
-/// The same `rex <args>` as [`rex`], as a plain process, so that several can
-/// run at the same moment.
-pub fn rex_process(cwd: &Path, args: &[&str]) -> Process {
-    let mut process = Process::new(assert_cmd::cargo::cargo_bin("rex"));
-    process
-        .current_dir(cwd)
-        .env_remove("REX_STORE")
-        .env_remove("CLAUDE_PROJECT_DIR")
-        .env_remove("CLAUDE_CODE_SESSION_ID")
-        .env_remove("CLAUDE_EFFORT")
-        .args(args);
-    process
-}
-
 /// Runs `command`, checks it succeeded, and gives its standard output.
 pub fn stdout_of(command: &mut Command) -> String {
     let output = command.output().unwrap();
@@ -131,66 +117,48 @@ pub const SESSION: &str = "4f9c2e1a-7b3d-4e8f-9a6c-1d2e3f4a5b6c";
 
 pub const COMMIT: &str = "3f2a9c1e8b7d6a5f4e3d2c1b0a9f8e7d6c5b4a39";
 
-pub const PLAN: &str = r#"{
-  "orchestrator": "pipeline",
-  "skills": ["rex-code-tdd", "rex-code-philosophy", "rex-code-tdd"],
-  "breakdown": "1. Reject zero.\n2. Test it.",
-  "roles": [
-    {"role": "engineer", "intelligence": "high", "reliability": "high", "consequence": "high", "verification": "low"},
-    {"role": "reviewer", "intelligence": "medium", "reliability": "medium", "consequence": "medium", "verification": "high"}
-  ]
-}"#;
-
-pub fn create_args<'a>(extra: &[&'a str]) -> Vec<&'a str> {
-    let mut args = vec![
-        "job",
-        "create",
-        "--request-file",
-        "-",
-        "--asked-by",
-        "human",
-        "--size",
-        "medium",
-        "--consequence",
-        "high",
-    ];
-    args.extend_from_slice(extra);
-    args
+/// Turns storage on in `repo`, as `rex init --with-storage` does.
+pub fn storage_on(repo: &Path) {
+    fs::write(repo.join(".rex/config.json"), r#"{"storage": "on"}"#).unwrap();
 }
 
-/// Opens a job in `session` and gives its ID.
-pub fn open_job(cwd: &Path, session: &str, extra: &[&str]) -> String {
-    let created = stdout_of(
-        rex(cwd, &create_args(extra))
-            .env("CLAUDE_CODE_SESSION_ID", session)
-            .write_stdin("A request.\n"),
-    );
-    value(&created, "job").to_owned()
+/// One event of the plugin, for [`ingest`] to number.
+pub fn event(
+    kind: &str,
+    at: &str,
+    job: Option<&str>,
+    data: serde_json::Value,
+) -> serde_json::Value {
+    serde_json::json!({ "at": at, "kind": kind, "agent": "main", "job": job, "data": data })
 }
 
-/// Records `plan` for `job`, given on standard input.
-pub fn plan(cwd: &Path, job: &str, plan: &str) -> String {
-    stdout_of(rex(cwd, &["job", "plan", job, "--plan-file", "-"]).write_stdin(plan.to_owned()))
+/// Sends `events` of `session` through `rex ingest` in `cwd`, numbered from
+/// `first`, and gives the last sequence number it printed.
+pub fn ingest(cwd: &Path, session: &str, first: usize, events: &[serde_json::Value]) -> String {
+    let numbered: Vec<serde_json::Value> = events
+        .iter()
+        .enumerate()
+        .map(|(index, event)| {
+            let mut event = event.clone();
+            event["seq"] = serde_json::json!(first + index);
+            event
+        })
+        .collect();
+    let batch = serde_json::json!({ "version": 1, "session": session, "stream": "aaaaaaaaaaaaaaaa",
+                                     "secret": "1".repeat(64), "events": numbered });
+    stdout_of(rex(cwd, &["ingest"]).write_stdin(batch.to_string()))
 }
 
-/// `rex job close <job> ...` with the deliveries on standard input.
-pub fn close(cwd: &Path, job: &str, status: &str, deliveries: &str) -> assert_cmd::Command {
-    let mut command = rex(
-        cwd,
-        &[
-            "job",
-            "close",
-            job,
-            "--status",
-            status,
-            "--outcome",
-            "Shop merged",
-            "--deliveries-file",
-            "-",
-        ],
-    );
-    command.write_stdin(deliveries.to_owned());
-    command
+/// The `data` of a job's opening, owned by the main loop of `session`.
+pub fn job_open(session: &str, builder: &str, repo: &Path, job: &str) -> serde_json::Value {
+    serde_json::json!({
+        "owner": { "session": session, "builder": builder }, "origin": "composer",
+        "request": "A request.", "restatement": null, "repo": repo, "branch": format!("rex/{job}"),
+        "base": "main", "worktree": null, "type": "fix", "size": "medium", "consequence": "high",
+        "langs": ["rust"], "prefs": { "duration": null, "budget": null, "autonomy": null },
+        "limit_nano": 32_000_000_000_u64, "limit_source": "default", "tree": null,
+        "depends_on": [], "merge_after": []
+    })
 }
 
 pub fn show_json(cwd: &Path, job: &str) -> serde_json::Value {

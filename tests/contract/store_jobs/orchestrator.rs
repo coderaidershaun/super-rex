@@ -46,7 +46,6 @@ fn index_gives_a_new_version_only_when_content_changes() {
     let paths = StorePaths {
         root: temp.path().join("repo"),
         db: dir.join("rex.db"),
-        event_log: dir.join("events.jsonl"),
         orchestrators: dir.join("orchestrators"),
         dir,
     };

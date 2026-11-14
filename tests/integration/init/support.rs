@@ -7,16 +7,24 @@ use std::process::{Command, Output};
 
 use tempfile::{TempDir, tempdir};
 
-/// The library skill file that every bundle ships, as a path from the repo
-/// root. Tests name no other skill, because which skills ship can change.
-pub const SKILL_MARKER: &str = ".rex/skills/rex-skill-language/SKILL.md";
-
-/// An agent of the grid, for a test that needs a second bundle file.
-pub const AGENT_MARKER: &str = ".claude/agents/model-medium-effort-medium.md";
-
 /// The file the stand-in `pre-commit` writes its arguments to, in the folder
 /// of the stand-in tools.
 pub const PRE_COMMIT_ARGS: &str = "pre-commit-args";
+
+/// The file the stand-in `claude` adds one line to for each `claude plugin`
+/// command, in the folder of the stand-in tools.
+pub const CLAUDE_CALLS: &str = "claude-calls";
+
+/// The two commands that install the plugin from the default source, as the
+/// stand-in `claude` records them.
+pub const PLUGIN_INSTALL_CALLS: &str = "claude plugin marketplace add coderaidershaun/super-rex --scope project\nclaude plugin install super-rex@super-rex --scope project\n";
+
+/// The plugin line of a run that installs it from the default source.
+pub const PLUGIN_INSTALLED: &str = "rex init: plugin super-rex@super-rex installed at project scope from coderaidershaun/super-rex\n";
+
+/// The plugin line of a run that finds it installed.
+pub const PLUGIN_SKIPPED: &str =
+    "rex init: plugin super-rex@super-rex skipped (already installed at project scope)\n";
 
 /// Git sets these when it runs a hook, such as the pre-push hook that runs
 /// these tests. Left in place, they point `git init` and `rex init` at the
@@ -35,8 +43,8 @@ fn without_git_location(command: &mut Command) -> &mut Command {
     command
 }
 
-/// The last line of a first run, which changes all three project files.
-pub const COMMIT_ALL: &str = "rex init: commit AGENTS.md, .gitignore and .pre-commit-config.yaml (git add + git commit); a job works in the main checkout only when it is clean\n";
+/// The last line of a first run, which changes all four project files.
+pub const COMMIT_ALL: &str = "rex init: commit .rex/config.json, AGENTS.md, .gitignore and .pre-commit-config.yaml (git add + git commit); a job works in the main checkout only when it is clean\n";
 
 /// The end of every run that failed one step.
 pub const ONE_STEP_FAILED: &str = "error: rex init did not finish 1 step(s); each is named above\n";
@@ -56,6 +64,26 @@ impl Repo {
 
     pub fn bin(&self) -> &Path {
         self.bin.path()
+    }
+
+    /// Put a stand-in `claude` on PATH that prints `version` and records each
+    /// `claude plugin` command. Its install turns the plugin on in the project
+    /// settings, as Claude Code does at project scope. PATH holds only the
+    /// stand-in tools, so `mkdir` is named by its full path.
+    pub fn write_claude(&self, version: &str) {
+        let calls = self.bin().join(CLAUDE_CALLS);
+        self.write_tool(
+            "claude",
+            &format!(
+                "if [ \"$1\" = plugin ]; then\n  echo \"claude $*\" >> '{}'\n  if [ \"$2\" = install ]; then /bin/mkdir -p .claude && echo '{{\"enabledPlugins\":{{\"super-rex@super-rex\":true}}}}' > .claude/settings.json; fi\n  exit 0\nfi\necho '{version} (Claude Code)'",
+                calls.display()
+            ),
+        );
+    }
+
+    /// The `claude plugin` commands the stand-in `claude` was given, one line each.
+    pub fn claude_calls(&self) -> String {
+        fs::read_to_string(self.bin().join(CLAUDE_CALLS)).unwrap_or_default()
     }
 
     /// Take `tool` off PATH, to test what `rex init` does without it.
@@ -96,7 +124,7 @@ pub fn repo() -> Repo {
         .expect("run git init");
     assert!(git.success(), "git init failed");
 
-    repo.write_tool("claude", "echo '2.1.322 (Claude Code)'");
+    repo.write_claude("2.1.323");
     let args_file = repo.bin().join(PRE_COMMIT_ARGS);
     repo.write_tool(
         "pre-commit",
@@ -179,22 +207,4 @@ pub fn rex_init_failed(repo: &Repo, args: &[&str]) -> Printed {
 /// The file in `repo` that `rex init` merges its settings into.
 pub fn settings_path(repo: &Repo) -> PathBuf {
     repo.path().join(".claude").join("settings.local.json")
-}
-
-pub fn bundle_file_count() -> usize {
-    super_rex::bundle::walk().len()
-}
-
-/// The bundle contents of the file at `bundle_path`.
-pub fn bundle_file(bundle_path: &str) -> &'static [u8] {
-    super_rex::bundle::walk()
-        .into_iter()
-        .find(|(path, _)| path == Path::new(bundle_path))
-        .unwrap_or_else(|| panic!("bundle must contain {bundle_path}"))
-        .1
-}
-
-/// Where the bundle file at `bundle_path` is installed in `repo`.
-pub fn installed(repo: &Repo, bundle_path: &str) -> PathBuf {
-    repo.path().join(bundle_path)
 }

@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "session": "00000000-0000-4000-8000-000000000001",
+  "stream": "aaaaaaaaaaaaaaaa",
+  "secret": "1111111111111111111111111111111111111111111111111111111111111111",
+  "events": [
+    {
+      "seq": 1,
+      "at": "2026-11-13T20:00:00.000Z",
+      "kind": "session.start",
+      "agent": "main",
+      "job": null,
+      "data": {
+        "claude_code": "2.1.323",
+        "plugin": "0.8.0",
+        "storage": "on",
+        "transcript_path": "/home/person/.claude/projects/-repo/00000000-0000-4000-8000-000000000001.jsonl"
+      }
+    },
+    {
+      "seq": 2,
+      "at": "2026-11-13T20:00:01.000Z",
+      "kind": "prompt",
+      "agent": "main",
+      "job": null,
+      "data": {
+        "text": "/super-rex:orchestration-builder Fix the parser. Merge to main: yes",
+        "origin": "composer",
+        "command": {
+          "name": "super-rex:orchestration-builder",
+          "args": "Fix the parser. Merge to main: yes"
+        },
+        "restatement": "Goal: fix the parser. Missing: budget."
+      }
+    },
+    {
+      "seq": 3,
+      "at": "2026-11-13T20:00:02.000Z",
+      "kind": "job.open",
+      "agent": "main",
+      "job": "0gaq820001",
+      "data": {
+        "owner": {
+          "session": "00000000-0000-4000-8000-000000000001",
+          "builder": "main"
+        },
+        "origin": "composer",
+        "request": "Fix the parser. Merge to main: yes",
+        "restatement": "Goal: fix the parser. Missing: budget.",
+        "repo": "/home/person/repo",
+        "branch": "rex/0gaq820001",
+        "base": "main",
+        "worktree": "/home/person/repo.worktrees/0gaq820001",
+        "type": "fix",
+        "size": "small",
+        "consequence": "low",
+        "langs": [
+          "rust"
+        ],
+        "prefs": {
+          "duration": null,
+          "budget": null,
+          "autonomy": null
+        },
+        "limit_nano": 10000000000,
+        "limit_source": "default",
+        "tree": null,
+        "depends_on": [],
+        "merge_after": []
+      }
+    },
+    {
+      "seq": 4,
+      "at": "2026-11-13T20:00:02.000Z",
+      "kind": "job.merge_answer",
+      "agent": "main",
+      "job": "0gaq820001",
+      "data": {
+        "answer": "yes",
+        "source": "person-prompt",
+        "question": null,
+        "policy_hash": null
+      }
+    }
+  ]
+}

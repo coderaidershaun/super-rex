@@ -22,11 +22,12 @@ pub struct JobSummary {
     pub stored_status: String,
     pub request: String,
     pub request_truncated: bool,
-    pub asked_by: String,
-    pub class_version: i64,
-    pub work_type: String,
-    pub size: String,
-    pub consequence: String,
+    pub origin: String,
+    pub builder_agent_id: String,
+    pub tree: Option<String>,
+    pub work_type: Option<String>,
+    pub size: Option<String>,
+    pub consequence: Option<String>,
     pub languages: Vec<String>,
     pub orchestrator: Option<OrchestratorRef>,
     pub merge_agreed: bool,
@@ -135,12 +136,17 @@ impl JobSummary {
             stored_status: row.stored_status,
             request: row.request.chars().take(EXCERPT_CHARS).collect(),
             request_truncated,
-            asked_by: row.asked_by,
-            class_version: row.class_version,
+            origin: row.origin,
+            builder_agent_id: row.builder_agent_id,
+            tree: row.tree,
             work_type: row.work_type,
             size: row.size,
             consequence: row.consequence,
-            languages: row.languages.split(',').map(str::to_owned).collect(),
+            languages: if row.languages == "none" {
+                Vec::new()
+            } else {
+                row.languages.split(',').map(str::to_owned).collect()
+            },
             orchestrator: row
                 .orchestrator
                 .map(|(name, version)| OrchestratorRef { name, version }),
@@ -173,16 +179,23 @@ impl JobSummary {
         self.request.replace("\r\n", " ").replace(['\n', '\r'], " ")
     }
 
-    /// The plain output line: `<id> <status> <type> <size> <consequence> <languages> <created_at> <excerpt>`.
+    /// The plain output line: `<id> <status> <type> <size> <consequence> <languages> <created_at> <excerpt>`,
+    /// with `none` for a value the job does not have.
     pub fn plain_line(&self) -> String {
+        let or_none = |value: &Option<String>| value.clone().unwrap_or_else(|| "none".to_owned());
+        let languages = if self.languages.is_empty() {
+            "none".to_owned()
+        } else {
+            self.languages.join(",")
+        };
         format!(
             "{} {} {} {} {} {} {} {}",
             self.id,
             self.status,
-            self.work_type,
-            self.size,
-            self.consequence,
-            self.languages.join(","),
+            or_none(&self.work_type),
+            or_none(&self.size),
+            or_none(&self.consequence),
+            languages,
             self.created_at,
             self.excerpt_on_one_line(),
         )
@@ -200,5 +213,5 @@ struct JobsDocument<'a> {
 /// # Errors
 /// [`JobsError::Json`] if serialising fails.
 pub fn jobs_json(jobs: &[JobSummary]) -> Result<String, JobsError> {
-    serde_json::to_string(&JobsDocument { schema: 1, jobs }).map_err(JobsError::Json)
+    serde_json::to_string(&JobsDocument { schema: 2, jobs }).map_err(JobsError::Json)
 }

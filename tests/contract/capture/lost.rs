@@ -1,75 +1,46 @@
-//! Lost and late facts: lines that never came, and a transcript record written
+//! Lost and late facts: events that never came, and a transcript record written
 //! after the read. Each gives a correct history, or one marked incomplete.
 
 use std::fs;
 
-use super_rex::capture::{JobRuns, Run, TokenTotal};
+use super_rex::capture::{JobRuns, TokenTotal};
 
 use super::fixture::*;
 
+// A run whose start or end never reached the store, because the plugin was not
+// loaded or its batch was lost, still counts: its transcript is the trusted source.
 #[test]
-fn lost_lines_give_the_same_tree() {
+fn lost_events_give_the_same_tokens() {
     let recorded = runs_without(&[]);
-    let lead = run(&recorded, LEAD).clone();
-    let first_record = Some("2026-11-10T13:10:18.532Z".to_owned());
-    let last_record = Some("2026-11-10T13:10:32.660Z".to_owned());
-
-    // Each case names the fields that come from another source when lines are lost,
-    // with the value that source gives. Every other field of every run is unchanged.
-    let start_lost = Run {
-        // The tie time: the first record of the run's transcript.
-        started_at: first_record.clone(),
-        ..lead.clone()
-    };
-    let stop_lost = Run {
-        // The completed call is the next source of both.
-        stopped_at: Some("2026-11-10T13:10:32.727Z".to_owned()),
-        final_message: Some(
-            "<tools-used-before-summary>Bash, Edit, Read, Write</tools-used-before-summary>\n\nLEAD DONE"
-                .to_owned(),
-        ),
-        ..lead.clone()
-    };
-    let call_lost = Run {
-        // Stop minus start, as no completed call gave it.
-        duration_ms: Some(14_136),
-        ..lead.clone()
-    };
-    let all_lost = Run {
-        // Recovered from the metadata file and the transcript alone.
-        started_at: first_record,
-        stopped_at: last_record,
-        duration_ms: Some(14_128),
-        ..lead.clone()
-    };
-
-    let [start, stop, call] = [0, 1, 2];
-    for (lost, expected) in [
-        (vec![start], start_lost),
-        (vec![stop], stop_lost),
-        (vec![call], call_lost),
-        (vec![start, stop, call], all_lost),
-    ] {
-        let mut runs = runs_without(&lost);
-        assert!(!runs.incomplete, "lines {lost:?} lost");
-        assert_eq!(runs.damaged_log_lines, lost.len() as u64);
-        assert_eq!((runs.open, runs.finished, runs.unconfirmed), (0, 6, 0));
-        assert_eq!(run(&runs, LEAD), &expected, "lines {lost:?} lost");
-        runs.runs.retain(|run| run.agent_id != LEAD);
-        let mut others = recorded.clone();
-        others.runs.retain(|run| run.agent_id != LEAD);
-        assert_eq!(runs.runs, others.runs, "lines {lost:?} lost");
+    let [start, stop] = [0, 1];
+    for lost in [vec![start], vec![stop], vec![start, stop]] {
+        let runs = runs_without(&lost);
+        assert!(!runs.incomplete, "events {lost:?} of LEAD lost");
+        assert!(agent_ids(&runs).contains(&LEAD), "{:?}", agent_ids(&runs));
+        assert_eq!(
+            run(&runs, LEAD).tokens,
+            run(&recorded, LEAD).tokens,
+            "events {lost:?} lost"
+        );
+        assert_eq!(runs.tokens, recorded.tokens, "events {lost:?} lost");
+        let mut others = runs.runs.clone();
+        others.retain(|run| run.agent_id != LEAD);
+        let mut recorded_others = recorded.runs.clone();
+        recorded_others.retain(|run| run.agent_id != LEAD);
+        assert_eq!(others, recorded_others, "events {lost:?} lost");
     }
 
-    // The metadata files of LEAD and WORKER lost: each depth is one more than the
-    // parent's, and the main session counts as depth 0.
+    // The metadata files of LEAD and WORKER lost: nothing of what the plugin
+    // reported is lost with them.
     let mut fixture = fixture_without(&[]);
     for agent in [LEAD, WORKER] {
         fs::remove_file(fixture.metadata(agent)).unwrap();
     }
     let runs = fixture.read(JOB_A, AFTER_SESSION);
     assert!(!runs.incomplete, "metadata files lost");
-    assert_eq!(runs.runs, recorded.runs, "metadata files lost");
+    for (now, was) in runs.runs.iter().zip(&recorded.runs) {
+        assert_eq!(now.tokens, was.tokens, "{} tokens", now.agent_id);
+    }
 
     // A run whose transcript was never read has no list of skills, which is
     // not the empty list of a read transcript that opened none.
@@ -81,9 +52,9 @@ fn lost_lines_give_the_same_tree() {
     assert_eq!(run(&runs, WORKER).skills_opened, None);
     assert_eq!(run(&recorded, WORKER).skills_opened, Some(vec![]));
 
-    // All three lines lost, and the transcript that would recover the run cannot be
+    // Both events lost, and the transcript that would recover the run cannot be
     // read: the run is not found, and the history is marked.
-    let mut fixture = fixture_without(&[start, stop, call]);
+    let mut fixture = fixture_without(&[start, stop]);
     let transcript = fixture.transcript(LEAD);
     fs::remove_file(&transcript).unwrap();
     fs::create_dir(&transcript).unwrap();
@@ -159,29 +130,28 @@ fn late_transcript_record_is_counted_before_final() {
     assert!(!settled.incomplete);
 }
 
-/// The runs of the recorded session read after it, with LEAD's lines at `lost` cut short.
+/// The runs of the recorded session read after it, with LEAD's events at `lost`
+/// never sent.
 fn runs_without(lost: &[usize]) -> JobRuns {
     fixture_without(lost).read(JOB_A, AFTER_SESSION)
 }
 
-/// The recorded session in the log, with LEAD's lines at `lost` (0 = start, 1 = stop,
-/// 2 = completed call) cut short, as a short write on a full disk leaves them.
+/// The recorded session sent through `rex ingest`, with LEAD's events at `lost`
+/// (0 = start, 1 = stop) left out.
 fn fixture_without(lost: &[usize]) -> Fixture {
     let mut fixture = Fixture::new();
     fixture.open_job(JOB_A, BEFORE_SESSION).unwrap();
     let lead_lines = fixture.lines_of(LEAD);
-    let lost: Vec<&String> = lost.iter().map(|index| &lead_lines[*index]).collect();
-    let logged: Vec<&str> = fixture
+    let lost: Vec<String> = lost
+        .iter()
+        .map(|index| lead_lines[*index].clone())
+        .collect();
+    let sent: Vec<String> = fixture
         .lines
         .iter()
-        .map(|line| {
-            if lost.contains(&line) {
-                &line[..line.len() / 2]
-            } else {
-                line.as_str()
-            }
-        })
+        .filter(|line| !lost.contains(line))
+        .cloned()
         .collect();
-    fixture.append(&logged);
+    fixture.append(&sent);
     fixture
 }

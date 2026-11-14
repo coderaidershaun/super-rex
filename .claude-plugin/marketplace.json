@@ -1,0 +1,13 @@
+{
+  "name": "super-rex",
+  "owner": { "name": "Shaun McDonogh" },
+  "description": "The SuperRex plugin: skills, the agent grid, and a mod that plans, records, gates and merges each job of Claude Code sub-agents",
+  "plugins": [
+    {
+      "name": "super-rex",
+      "source": "./plugin",
+      "version": "0.8.0",
+      "description": "Plans and runs a job with Claude Code sub-agents: skills, the agent grid, and a mod that records, gates and assembles every agent of the job"
+    }
+  ]
+}

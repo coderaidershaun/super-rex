@@ -1,36 +1,12 @@
-//! What `rex job plan` promises about the selection function: each role's
-//! stored record is exactly what the function returns for the job's and the
-//! role's inputs, so the record and the function never disagree.
+//! What `rex ingest` promises about the selection function when it takes in a
+//! plan: each role's stored record is exactly what the function returns for the
+//! job's and the role's inputs, so the record and the function never disagree.
 
-use std::fs;
-use std::path::Path;
-
-use assert_cmd::Command;
 use rusqlite::Row;
+use serde_json::json;
 use super_rex::oms::{self, Inputs, Level};
-use super_rex::store::{Store, StorePaths};
 
-use super::store::git;
-
-fn rex(cwd: &Path, args: &[&str], stdin: &str) -> String {
-    let output = Command::cargo_bin("rex")
-        .unwrap()
-        .current_dir(cwd)
-        .env_remove("REX_STORE")
-        .env_remove("CLAUDE_PROJECT_DIR")
-        .env_remove("CLAUDE_CODE_SESSION_ID")
-        .env_remove("CLAUDE_EFFORT")
-        .args(args)
-        .write_stdin(stdin.to_owned())
-        .output()
-        .unwrap();
-    assert!(
-        output.status.success(),
-        "rex {args:?}: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    String::from_utf8(output.stdout).unwrap()
-}
+use crate::calls::harness::World;
 
 fn level(row: &Row<'_>, column: &str) -> Option<Level> {
     let text: Option<String> = row.get(column).unwrap();
@@ -54,58 +30,43 @@ struct Record {
 }
 
 #[test]
-fn plan_records_what_oms_returns() {
-    let temp = tempfile::tempdir().unwrap();
-    let repo = temp.path().join("shop");
-    fs::create_dir_all(&repo).unwrap();
-    git(&repo, &["init", "-q"]);
-    let paths = StorePaths::locate(&repo).unwrap();
-    Store::create(&paths).unwrap();
-    fs::create_dir_all(paths.orchestrators.join("pipeline")).unwrap();
-
-    let created = rex(
-        &repo,
-        &[
-            "job",
-            "create",
-            "--session",
-            "s1",
-            "--request-file",
-            "-",
-            "--asked-by",
-            "human",
-            "--merge",
-            "yes",
-            "--type",
-            "feature",
-            "--size",
-            "large",
-            "--consequence",
-            "high",
-            "--lang",
-            "rust",
-            "--duration",
-            "long",
-            "--budget",
-            "low",
-            "--autonomy",
-            "high",
-        ],
-        "Add a search page.",
+fn ingest_of_a_plan_records_what_oms_returns() {
+    let world = World::new();
+    let open_stream = world.ingest_file("fixtures/shared/ingest/batch-open-stream.json");
+    assert!(open_stream.status.success());
+    let job = "0gaq820002";
+    let role = |name: &str, ratings: [&str; 4]| {
+        json!({ "role": name, "intelligence": ratings[0], "reliability": ratings[1],
+                "consequence": ratings[2], "verification": ratings[3],
+                "grid_agent": "model-medium-effort-medium", "conflict": null, "oms_version": 2 })
+    };
+    let batch = json!({
+        "version": 1, "session": "00000000-0000-4000-8000-000000000001",
+        "stream": "aaaaaaaaaaaaaaaa", "secret": "1".repeat(64),
+        "events": [
+            { "seq": 1, "at": "2026-11-13T20:00:02.000Z", "kind": "job.open", "agent": "main", "job": job,
+              "data": { "owner": { "session": "00000000-0000-4000-8000-000000000001", "builder": "main" },
+                        "origin": "composer", "request": "Add a search page.", "restatement": null,
+                        "repo": "/r", "branch": "rex/0gaq820002", "base": "main", "worktree": null,
+                        "type": "feature", "size": "large", "consequence": "high", "langs": ["rust"],
+                        "prefs": { "duration": "high", "budget": "low", "autonomy": "high" },
+                        "limit_nano": 1, "limit_source": "default", "tree": null,
+                        "depends_on": [], "merge_after": [] } },
+            { "seq": 2, "at": "2026-11-13T20:01:00.000Z", "kind": "job.plan", "agent": "main", "job": job,
+              "data": { "orchestrator": "pipeline", "breakdown": "Build it.", "tasks": [], "manifest": [],
+                        "roles": [ role("architect", ["high", "high", "high", "high"]),
+                                   role("engineer", ["medium", "none", "low", "low"]),
+                                   role("scout", ["none", "none", "none", "none"]) ] } }
+        ]
+    });
+    let output = world.ingest(batch.to_string().as_bytes());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
     );
-    let job = created
-        .lines()
-        .next()
-        .unwrap()
-        .strip_prefix("job=")
-        .unwrap();
-    let plan = r#"{"orchestrator": "pipeline", "skills": [], "breakdown": "Build it.", "roles": [
-        {"role": "architect", "intelligence": "high", "reliability": "high", "consequence": "high", "verification": "high"},
-        {"role": "engineer", "intelligence": "medium", "reliability": "none", "consequence": "low", "verification": "low"},
-        {"role": "scout", "intelligence": "none", "reliability": "none", "consequence": "none", "verification": "none"}]}"#;
-    rex(&repo, &["job", "plan", job, "--plan-file", "-"], plan);
 
-    let store = Store::open(&paths).unwrap();
+    let store = world.store();
     let mut statement = store
         .conn()
         .prepare("SELECT * FROM role WHERE job_id = ?1 ORDER BY rowid")
@@ -172,7 +133,7 @@ fn plan_records_what_oms_returns() {
         let rules: Vec<&str> = selection.rules.iter().map(|rule| rule.id()).collect();
         let conflict: Vec<&str> = selection.conflict.iter().map(|cap| cap.name()).collect();
         let expected = Record {
-            agent: Some(selection.agent.to_string()),
+            agent: Some("model-medium-effort-medium".to_owned()),
             demand: Some(selection.demand.to_string()),
             rules: Some(rules.join(",")),
             conflict: Some(if conflict.is_empty() {

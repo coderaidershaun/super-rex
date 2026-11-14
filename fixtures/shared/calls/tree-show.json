@@ -1,0 +1,22 @@
+{
+  "name": "tree-show",
+  "setup": [
+    "fixtures/shared/ingest/batch-open-stream.json",
+    "fixtures/shared/ingest/batch-example.json"
+  ],
+  "argv": [
+    "rex",
+    "tree",
+    "show",
+    "--json"
+  ],
+  "stdin_file": null,
+  "expect": {
+    "exit": 0,
+    "stdout_json": {
+      "tree": null,
+      "jobs": [],
+      "questions": []
+    }
+  }
+}

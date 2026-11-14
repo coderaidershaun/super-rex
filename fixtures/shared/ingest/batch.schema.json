@@ -1,0 +1,1662 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/coderaidershaun/super-rex/fixtures/shared/ingest/batch.schema.json",
+  "title": "One batch of events from the super-rex mod to rex ingest",
+  "type": "object",
+  "required": [
+    "version",
+    "session",
+    "stream",
+    "secret",
+    "events"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "session": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stream": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "secret": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "required": [
+          "seq",
+          "at",
+          "kind",
+          "agent",
+          "job",
+          "data"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "seq": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
+          "kind": {
+            "enum": [
+              "decision",
+              "job.amend",
+              "job.close",
+              "job.degraded",
+              "job.done_check",
+              "job.limit",
+              "job.merge_answer",
+              "job.open",
+              "job.plan",
+              "job.rebind",
+              "job.wake",
+              "merge.done",
+              "prompt",
+              "question.answer",
+              "question.ask",
+              "run.end",
+              "run.mark",
+              "run.start",
+              "session.start",
+              "skill.open",
+              "tree.close",
+              "tree.link",
+              "tree.note",
+              "tree.open",
+              "tree.state"
+            ]
+          },
+          "agent": {
+            "type": "string"
+          },
+          "job": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-z]{10}$"
+          },
+          "data": {
+            "type": "object"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "decision"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "assignment_id",
+                    "subject",
+                    "item",
+                    "value",
+                    "source",
+                    "reason",
+                    "table_version",
+                    "overlay_version"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "assignment_id": {
+                      "type": "string"
+                    },
+                    "subject": {
+                      "type": "string"
+                    },
+                    "item": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "enum": [
+                        "rule",
+                        "decision-agent",
+                        "override",
+                        "plan"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "table_version": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "overlay_version": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "job.amend"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "tasks",
+                    "roles"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "tasks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "role",
+                          "skills",
+                          "open_when"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "skills": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "open_when": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "skill",
+                                "file",
+                                "when"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "skill": {
+                                  "type": "string"
+                                },
+                                "file": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "when": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "role",
+                          "intelligence",
+                          "reliability",
+                          "consequence",
+                          "verification",
+                          "grid_agent",
+                          "conflict",
+                          "oms_version"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "role": {
+                            "type": "string"
+                          },
+                          "intelligence": {
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                              "none"
+                            ]
+                          },
+                          "reliability": {
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                              "none"
+                            ]
+                          },
+                          "consequence": {
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                              "none"
+                            ]
+                          },
+                          "verification": {
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                              "none"
+                            ]
+                          },
+                          "grid_agent": {
+                            "type": "string"
+                          },
+                          "conflict": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "oms_version": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "job.close"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "outcome",
+                    "deliveries"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "delivered",
+                        "blocked",
+                        "failed",
+                        "cancelled",
+                        "lost"
+                      ]
+                    },
+                    "outcome": {
+                      "type": "string"
+                    },
+                    "deliveries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "repo",
+                          "branch",
+                          "pr",
+                          "outcome",
+                          "merge_commit",
+                          "note"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "repo": {
+                            "type": "string"
+                          },
+                          "branch": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "pr": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "outcome": {
+                            "enum": [
+                              "merged",
+                              "pr-open",
+                              "kept-local",
+                              "blocked"
+                            ]
+                          },
+                          "merge_commit": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "job.degraded"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "mark"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "mark": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "job.done_check"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "check",
+                    "result"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "check": {
+                      "enum": [
+                        "fetched",
+                        "merged",
+                        "base_current",
+                        "branches_gone",
+                        "worktrees_gone",
+                        "output_exists",
+                        "checks_on_base"
+                      ]
+                    },
+                    "result": {
+                      "enum": [
+                        "pass",
+                        "fail",
+                        "not-set"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "job.limit"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "limit_nano",
+                    "source"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "limit_nano": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "source": {
+                      "enum": [
+                        "default",
+                        "set",
+                        "policy"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "job.merge_answer"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "answer",
+                    "source",
+                    "question",
+                    "policy_hash"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "answer": {
+                      "enum": [
+                        "yes",
+                        "no"
+                      ]
+                    },
+                    "source": {
+                      "enum": [
+                        "dialog",
+                        "person-prompt",
+                        "sdk-prompt",
+                        "question",
+                        "policy"
+                      ]
+                    },
+                    "policy_hash": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "question": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "job.open"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "owner",
+                    "origin",
+                    "request",
+                    "restatement",
+                    "repo",
+                    "branch",
+                    "base",
+                    "worktree",
+                    "type",
+                    "size",
+                    "consequence",
+                    "langs",
+                    "prefs",
+                    "limit_nano",
+                    "limit_source",
+                    "tree",
+                    "depends_on",
+                    "merge_after"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "owner": {
+                      "type": "object",
+                      "required": [
+                        "session",
+                        "builder"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "session": {
+                          "type": "string"
+                        },
+                        "builder": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "origin": {
+                      "enum": [
+                        "composer",
+                        "bridge",
+                        "sdk",
+                        "master"
+                      ]
+                    },
+                    "request": {
+                      "type": "string"
+                    },
+                    "restatement": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "repo": {
+                      "type": "string"
+                    },
+                    "branch": {
+                      "type": "string"
+                    },
+                    "base": {
+                      "type": "string"
+                    },
+                    "worktree": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "type": {
+                      "enum": [
+                        "feature",
+                        "fix",
+                        "refactor",
+                        "chore",
+                        "research",
+                        "other",
+                        null
+                      ]
+                    },
+                    "size": {
+                      "enum": [
+                        "small",
+                        "medium",
+                        "large",
+                        null
+                      ]
+                    },
+                    "consequence": {
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        null
+                      ]
+                    },
+                    "langs": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "prefs": {
+                      "type": "object",
+                      "required": [
+                        "duration",
+                        "budget",
+                        "autonomy"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "duration": {
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high",
+                            null
+                          ]
+                        },
+                        "budget": {
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high",
+                            null
+                          ]
+                        },
+                        "autonomy": {
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high",
+                            null
+                          ]
+                        }
+                      }
+                    },
+                    "limit_nano": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "limit_source": {
+                      "enum": [
+                        "default",
+                        "set",
+                        "policy"
+                      ]
+                    },
+                    "tree": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "depends_on": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "merge_after": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "job.plan"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "orchestrator",
+                    "breakdown",
+                    "tasks",
+                    "roles",
+                    "manifest"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "orchestrator": {
+                      "type": "string"
+                    },
+                    "breakdown": {
+                      "type": "string"
+                    },
+                    "tasks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "role",
+                          "skills",
+                          "open_when"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "skills": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "open_when": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "skill",
+                                "file",
+                                "when"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "skill": {
+                                  "type": "string"
+                                },
+                                "file": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "when": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "role",
+                          "intelligence",
+                          "reliability",
+                          "consequence",
+                          "verification",
+                          "grid_agent",
+                          "conflict",
+                          "oms_version"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "role": {
+                            "type": "string"
+                          },
+                          "intelligence": {
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                              "none"
+                            ]
+                          },
+                          "reliability": {
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                              "none"
+                            ]
+                          },
+                          "consequence": {
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                              "none"
+                            ]
+                          },
+                          "verification": {
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                              "none"
+                            ]
+                          },
+                          "grid_agent": {
+                            "type": "string"
+                          },
+                          "conflict": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "oms_version": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        }
+                      }
+                    },
+                    "manifest": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "skill",
+                          "file",
+                          "hash",
+                          "source"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "skill": {
+                            "type": "string"
+                          },
+                          "file": {
+                            "type": "string"
+                          },
+                          "hash": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "source": {
+                            "enum": [
+                              "main",
+                              "plugin",
+                              "user",
+                              "worktree"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "job.rebind"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "owner"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "owner": {
+                      "type": "object",
+                      "required": [
+                        "session",
+                        "builder"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "session": {
+                          "type": "string"
+                        },
+                        "builder": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "job.wake"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "reason",
+                    "count"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason": {
+                      "enum": [
+                        "stuck",
+                        "retry"
+                      ]
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "merge.done"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "repo",
+                    "base",
+                    "merge_commit"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "repo": {
+                      "type": "string"
+                    },
+                    "base": {
+                      "type": "string"
+                    },
+                    "merge_commit": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "prompt"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "text",
+                    "origin"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    },
+                    "origin": {
+                      "enum": [
+                        "composer",
+                        "bridge",
+                        "sdk",
+                        "master"
+                      ]
+                    },
+                    "command": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "args"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "args": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "restatement": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "question.answer"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "option",
+                    "source"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "option": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "enum": [
+                        "dialog",
+                        "pane",
+                        "command"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "question.ask"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "tree",
+                    "question",
+                    "options",
+                    "recommendation",
+                    "category",
+                    "merge_for"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "tree": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "question": {
+                      "type": "string"
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 2,
+                      "maxItems": 4
+                    },
+                    "recommendation": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "enum": [
+                        "merge",
+                        "scope",
+                        "spend",
+                        "other"
+                      ]
+                    },
+                    "merge_for": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "run.end"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "agent_id",
+                    "reason",
+                    "tokens",
+                    "spent_nano",
+                    "final_message"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "agent_id": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "enum": [
+                        "answer",
+                        "aborted",
+                        "refusal",
+                        "error",
+                        "lost"
+                      ]
+                    },
+                    "tokens": {
+                      "type": "object",
+                      "required": [
+                        "input",
+                        "output",
+                        "cache_read",
+                        "cache_creation"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "input": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "output": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "cache_read": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "cache_creation": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    },
+                    "spent_nano": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "final_message": {
+                      "type": "string"
+                    },
+                    "transcript_path": {
+                      "type": "string"
+                    },
+                    "output_file": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "run.mark"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "agent_id",
+                    "mark"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "agent_id": {
+                      "type": "string"
+                    },
+                    "mark": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "run.start"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "agent_id",
+                    "parent",
+                    "parent_source",
+                    "depth",
+                    "agent_type",
+                    "planned",
+                    "role",
+                    "task",
+                    "tool_use_id",
+                    "brief_hash",
+                    "assembled",
+                    "lint",
+                    "skills_attached",
+                    "tree"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "agent_id": {
+                      "type": "string"
+                    },
+                    "parent": {
+                      "type": "string"
+                    },
+                    "parent_source": {
+                      "enum": [
+                        "engine",
+                        "mod"
+                      ]
+                    },
+                    "depth": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "agent_type": {
+                      "type": "string"
+                    },
+                    "planned": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "role": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "task": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "tool_use_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "brief_hash": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "assembled": {
+                      "enum": [
+                        "yes",
+                        "no",
+                        "late"
+                      ]
+                    },
+                    "lint": {
+                      "enum": [
+                        "pass",
+                        "passed-marked",
+                        null
+                      ]
+                    },
+                    "skills_attached": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "tree": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "session.start"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "claude_code",
+                    "plugin",
+                    "storage"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "claude_code": {
+                      "type": "string"
+                    },
+                    "plugin": {
+                      "type": "string"
+                    },
+                    "storage": {
+                      "enum": [
+                        "on",
+                        "off"
+                      ]
+                    },
+                    "transcript_path": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "skill.open"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "agent_id",
+                    "skill",
+                    "file",
+                    "hash",
+                    "how"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "agent_id": {
+                      "type": "string"
+                    },
+                    "skill": {
+                      "type": "string"
+                    },
+                    "file": {
+                      "type": "string"
+                    },
+                    "hash": {
+                      "type": "string"
+                    },
+                    "how": {
+                      "enum": [
+                        "attached",
+                        "rex_skill",
+                        "read"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "tree.close"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "tree",
+                    "state",
+                    "report_file"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "tree": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "done",
+                        "blocked",
+                        "lost"
+                      ]
+                    },
+                    "report_file": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "tree.link"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "tree",
+                    "job",
+                    "agent_id"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "tree": {
+                      "type": "string"
+                    },
+                    "job": {
+                      "type": "string"
+                    },
+                    "agent_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "tree.note"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "tree",
+                    "text"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "tree": {
+                      "type": "string"
+                    },
+                    "text": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "tree.open"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "charter",
+                    "charter_hash",
+                    "policy_hash",
+                    "cap_nano",
+                    "session"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "charter": {
+                      "type": "string"
+                    },
+                    "charter_hash": {
+                      "type": "string"
+                    },
+                    "policy_hash": {
+                      "type": "string"
+                    },
+                    "cap_nano": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "session": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "tree.state"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "tree",
+                    "state"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "tree": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "running",
+                        "paused",
+                        "blocked"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

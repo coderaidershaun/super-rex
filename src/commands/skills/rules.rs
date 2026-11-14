@@ -2,6 +2,7 @@
 //! gives it files from disk; the bundle tests give it files embedded in the
 //! binary, so both use exactly the same rules.
 
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use super::SKILL_FILE;
@@ -92,13 +93,15 @@ pub enum Rule {
     /// `SKILL.md` has at most 500 lines. A loaded skill stays in context, so
     /// long material belongs in files that the skill links to.
     B2,
-    /// Each link to a Markdown file points to a file in the skills folder. A
-    /// link out of that folder breaks once the skill is installed in another repo.
+    /// Each link to a Markdown file points to a file of the same skill. An
+    /// agent reads a skill file with `rex_skill`, which reads only inside one
+    /// skill, so a link out of it names a file the agent cannot open.
     B3,
-    /// Each `.claude/skills/<name>/<file>.md` and `.rex/skills/<name>/<file>.md`
-    /// names a Markdown file of a known skill in that folder: its `SKILL.md`,
-    /// or a file in its folder or below it. An agent told to read a file that
-    /// is not there goes on without it.
+    /// Each code span `<skill>/<file>.md` names a Markdown file of a skill in
+    /// `plugin/skills`, `plugin/library` or `.rex/skills`: its `SKILL.md`, or a
+    /// file in its folder or below it. A span never names a skill file by its
+    /// folder, because the plugin's folder changes with each version. An
+    /// agent told to read a file that is not there goes on without it.
     B4,
     /// The text after the header of `SKILL.md` has at most 1,500 words. An
     /// agent reads all of `SKILL.md`, so the text for one step or one case
@@ -181,9 +184,14 @@ pub fn check_skill(skill: &Skill, known: &KnownSkills) -> Vec<Finding> {
         }
         None => finding(skill_md, Rule::H1, "SKILL.md is missing".to_owned()),
     }
+    let own_files: BTreeSet<PathBuf> = skill
+        .files
+        .iter()
+        .map(|file| Path::new(&skill.folder).join(&file.path))
+        .collect();
     for file in &skill.files {
         let in_skills_folder = Path::new(&skill.folder).join(&file.path);
-        for message in broken_links(&in_skills_folder, &file.text, &known.files) {
+        for message in broken_links(&in_skills_folder, &file.text, &own_files) {
             finding(&file.path, Rule::B3, message);
         }
         for message in unknown_skill_paths(&file.text, known) {
@@ -284,7 +292,7 @@ fn name_problem(folder: &str, header: &Header) -> Option<String> {
 
 /// True when `name` has the name form of rule H3, which a skill folder must
 /// have.
-pub(crate) fn is_skill_name(name: &str) -> bool {
+fn is_skill_name(name: &str) -> bool {
     let words_are_valid = name.split('-').all(|word| {
         !word.is_empty()
             && word

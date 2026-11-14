@@ -1,7 +1,6 @@
-//! Integration tests of the hook, the spend gate, the intake of hook events and `rex status`.
+//! Integration tests of capture on the recorded session, `rex limit` and `rex status`.
 
-mod gate;
-mod hook;
+mod limit;
 mod main_transcript;
 mod status;
 mod transcript;

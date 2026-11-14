@@ -8,18 +8,21 @@ mod references;
 mod rules;
 
 pub use references::KnownSkills;
-pub(crate) use rules::is_skill_name;
 pub use rules::{Finding, Rule, Skill, SkillFile, check_skill};
 
 use std::io;
 use std::path::{Path, PathBuf};
 
-use crate::error::{CommandError, RexError};
+use crate::error::{CommandError, FailureClass, RexError};
 
 use header::Header;
 
 /// The file that makes a folder a skill.
 const SKILL_FILE: &str = "SKILL.md";
+
+/// The folders of a repo, and of the user's home for the first, that `rex skills list` reads.
+pub(crate) const REPO_SKILLS_FOLDER: &str = ".claude/skills";
+pub(crate) const REPO_LIBRARY_FOLDER: &str = ".rex/skills";
 
 /// The `description` of the `SKILL.md` at `skill_file`, as one line (the text
 /// `rex skills list` prints). `None` when the file cannot be read, has no
@@ -51,10 +54,10 @@ pub enum SkillsCommand {
 
     /// Check skills against the rules for their header and text.
     #[command(
-        after_help = "Prints `ok <path>` for each skill that passes, and `<path>: <rule>: <what is wrong>` for each finding. Exits 1 when there is at least one finding."
+        after_help = "Prints `ok <path>` for each skill that passes, and `<path>: <rule>: <what is wrong>` for each finding. Exits 1 when there is at least one finding. A skill file that the text names as `<skill>/<file>.md` must be in plugin/skills or plugin/library of the plugin, in the repo's .rex/skills, or beside a skill that is checked."
     )]
     Check {
-        /// A `SKILL.md` file or a skill folder.
+        /// A `SKILL.md` file, a skill folder, or a folder of skill folders.
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
@@ -73,7 +76,7 @@ pub enum SkillsError {
     #[error("{} does not exist", path.display())]
     Missing { path: PathBuf },
 
-    #[error("{} is a folder with no SKILL.md", path.display())]
+    #[error("{} is a folder with no SKILL.md and no skill folder in it", path.display())]
     NoSkillFile { path: PathBuf },
 
     #[error("{} is not named SKILL.md; give a SKILL.md file or a skill folder", path.display())]
@@ -104,6 +107,18 @@ impl SkillsError {
 }
 
 impl CommandError for SkillsError {
+    fn failure_class(&self) -> FailureClass {
+        match self {
+            SkillsError::Read { .. } => FailureClass::Retry,
+            SkillsError::Missing { .. }
+            | SkillsError::NoSkillFile { .. }
+            | SkillsError::NotSkillFile { .. }
+            | SkillsError::Findings { .. }
+            | SkillsError::Json { .. } => FailureClass::Reject,
+            SkillsError::Rex(error) => error.failure_class(),
+        }
+    }
+
     fn is_usage(&self) -> bool {
         matches!(self, SkillsError::NotSkillFile { .. })
     }

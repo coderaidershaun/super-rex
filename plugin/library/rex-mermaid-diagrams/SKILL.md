@@ -1,0 +1,237 @@
+---
+name: rex-mermaid-diagrams
+description: >
+  Guide to software diagrams in Mermaid syntax. Types: class, sequence,
+  flowchart, ERD, C4, architecture, state, git graph, pie, gantt, and others.
+when_to_use: >
+  Use when you create, visualize, or document software with diagrams, or
+  explain architecture, database design, code structure, or user or
+  application flows, or for "diagram", "visualize", "model", "map out", "show
+  the flow".
+---
+
+# Mermaid Diagramming
+
+Create professional software diagrams with Mermaid's text-based syntax. Mermaid renders diagrams from simple text definitions. So diagrams are version-controllable, easy to update, and maintainable alongside code.
+
+## Core Syntax Structure
+
+All Mermaid diagrams use this pattern:
+
+```mermaid
+diagramType
+  definition content
+```
+
+**Key principles:**
+
+- First line declares diagram type (e.g., `classDiagram`, `sequenceDiagram`, `flowchart`)
+- Use `%%` for comments
+- Line breaks and indentation improve readability, but Mermaid does not require them
+- Unknown words break diagrams. Parameters fail silently
+
+## Diagram Type Selection Guide
+
+**Choose right diagram type:**
+
+1. **Class Diagrams** - Domain modeling, OOP design, entity relationships
+   - Domain-driven design documentation
+   - Object-oriented class structures
+   - Entity relationships and dependencies
+
+2. **Sequence Diagrams** - Temporal interactions, message flows
+   - API request/response flows
+   - User authentication flows
+   - System component interactions
+   - Method call sequences
+
+3. **Flowcharts** - Processes, algorithms, decision trees
+   - User journeys and workflows
+   - Business processes
+   - Algorithm logic
+   - Deployment pipelines
+
+4. **Entity Relationship Diagrams (ERD)** - Database schemas
+   - Table relationships
+   - Data modeling
+   - Schema design
+
+5. **C4 Diagrams** - Software architecture at multiple levels
+   - System Context (systems and users)
+   - Container (applications, databases, services)
+   - Component (internal structure)
+   - Code (class/interface level)
+
+6. **State Diagrams** - State machines, lifecycle states
+7. **Git Graphs** - Version control branching strategies
+8. **Gantt Charts** - Project timelines, scheduling
+9. **Pie/Bar Charts** - Data visualization
+
+## Quick Start Examples
+
+### Class Diagram (Domain Model)
+
+```mermaid
+classDiagram
+    Title -- Genre
+    Title *-- Season
+    Title *-- Review
+    User --> Review : creates
+
+    class Title {
+        +string name
+        +int releaseYear
+        +play()
+    }
+
+    class Genre {
+        +string name
+        +getTopTitles()
+    }
+```
+
+### Sequence Diagram (API Flow)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API
+    participant Database
+
+    User->>API: POST /login
+    API->>Database: Query credentials
+    Database-->>API: Return user data
+    alt Valid credentials
+        API-->>User: 200 OK + JWT token
+    else Invalid credentials
+        API-->>User: 401 Unauthorized
+    end
+```
+
+### Flowchart (User Journey)
+
+```mermaid
+flowchart TD
+    Start([User visits site]) --> Auth{Authenticated?}
+    Auth -->|No| Login[Show login page]
+    Auth -->|Yes| Dashboard[Show dashboard]
+    Login --> Creds[Enter credentials]
+    Creds --> Validate{Valid?}
+    Validate -->|Yes| Dashboard
+    Validate -->|No| Error[Show error]
+    Error --> Login
+```
+
+### ERD (Database Schema)
+
+```mermaid
+erDiagram
+    USER ||--o{ ORDER : places
+    ORDER ||--|{ LINE_ITEM : contains
+    PRODUCT ||--o{ LINE_ITEM : includes
+
+    USER {
+        int id PK
+        string email UK
+        string name
+        datetime created_at
+    }
+
+    ORDER {
+        int id PK
+        int user_id FK
+        decimal total
+        datetime created_at
+    }
+```
+
+## Detailed References
+
+IF diagram type has no Quick Start example above, OR diagram needs more than that example shows, THEN read reference file of its type:
+
+| Read | When diagram needs |
+| --- | --- |
+| `rex-mermaid-diagrams/references/class-diagrams.md` | Domain modeling, relationships (association, composition, aggregation, inheritance), multiplicity, methods/properties |
+| `rex-mermaid-diagrams/references/sequence-diagrams.md` | Actors, participants, messages (sync/async), activations, loops, alt/opt/par blocks, notes |
+| `rex-mermaid-diagrams/references/flowcharts.md` | Node shapes, connections, decision logic, subgraphs, styling |
+| `rex-mermaid-diagrams/references/erd-diagrams.md` | Entities, relationships, cardinality, keys, attributes |
+| `rex-mermaid-diagrams/references/c4-diagrams.md` | System context, container, component diagrams, boundaries |
+| `rex-mermaid-diagrams/references/architecture-diagrams.md` | Cloud services, infrastructure, CI/CD deployments |
+| `rex-mermaid-diagrams/references/advanced-features.md` | Themes, styling, configuration, layout options beyond Configuration and Theming below |
+
+## Best Practices
+
+1. **Start Simple** - Start with core entities/components. Add details incrementally
+2. **Use Meaningful Names** - Clear labels make diagrams self-documenting
+3. **Comment Extensively** - Use `%%` comments to explain complex relationships
+4. **Keep Focused** - One diagram per concept. Split large diagrams into multiple focused views
+5. **Version Control** - Store `.mmd` files alongside code for easy updates
+6. **Add Context** - Include titles and notes to explain diagram purpose
+7. **Iterate** - Refine diagrams as understanding evolves
+
+## Configuration and Theming
+
+Configure diagrams with frontmatter:
+
+```mermaid
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#ff6b6b"
+---
+flowchart LR
+    A --> B
+```
+
+**Available themes:** default, forest, dark, neutral, base
+
+**Layout options:**
+
+- `layout: dagre` (default) - Classic balanced layout
+- `layout: elk` - Advanced layout for complex diagrams (requires integration)
+
+**Look options:**
+
+- `look: classic` - Traditional Mermaid style
+- `look: handDrawn` - Sketch-like appearance
+
+## Exporting and Rendering
+
+**Native support in:**
+
+- GitHub/GitLab - Automatically renders in Markdown
+- VS Code - With Markdown Mermaid extension
+- Notion, Obsidian, Confluence - Built-in support
+
+**Export options:**
+
+- [Mermaid Live Editor](https://mermaid.live) - Online editor with PNG/SVG export
+- Mermaid CLI - `npm install -g @mermaid-js/mermaid-cli` then `mmdc -i input.mmd -o output.png`
+- Docker - `docker run --rm -v $(pwd):/data minlag/mermaid-cli -i /data/input.mmd -o /data/output.png`
+
+## Common Pitfalls
+
+- **Breaking characters** - Avoid `{}` in comments. Use proper escape sequences for special characters
+- **Syntax errors** - Misspellings break diagrams. Validate syntax in Mermaid Live
+- **Overcomplexity** - Split complex diagrams into multiple focused views
+- **Missing relationships** - Document all important connections between entities
+
+## When to Create Diagrams
+
+**Always diagram when:**
+
+- You start new projects or features
+- You document complex systems
+- You explain architecture decisions
+- You design database schemas
+- You plan refactoring efforts
+- You onboard new team members
+
+**Use diagrams to:**
+
+- Align stakeholders on technical decisions
+- Document domain models collaboratively
+- Visualize data flows and system interactions
+- Plan before you code
+- Create living documentation that evolves with code

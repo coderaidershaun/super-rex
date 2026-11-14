@@ -4,9 +4,7 @@
 use std::fs;
 
 use super::expected::{read_settings, write_settings};
-use crate::init::support::{
-    ONE_STEP_FAILED, SKILL_MARKER, installed, repo, rex_init_failed, settings_path,
-};
+use crate::init::support::{ONE_STEP_FAILED, repo, rex_init_failed, settings_path};
 
 // A file rex cannot read as a JSON object is still the person's: writing it
 // would lose whatever they meant it to hold.
@@ -20,7 +18,8 @@ fn a_settings_file_that_is_not_json_is_left_alone_and_the_run_fails() {
 
     assert_eq!(read_settings(&not_json), broken);
     assert!(
-        installed(&not_json, SKILL_MARKER).is_file() && not_json.path().join("AGENTS.md").is_file(),
+        not_json.path().join(".rex/config.json").is_file()
+            && not_json.path().join("AGENTS.md").is_file(),
         "the rest of the install must still happen"
     );
     assert!(

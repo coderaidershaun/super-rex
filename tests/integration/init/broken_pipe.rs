@@ -4,7 +4,7 @@
 use std::io::Write;
 use std::process::{Command, Output, Stdio};
 
-use super::support::{Repo, SKILL_MARKER, repo};
+use super::support::{Repo, repo};
 
 /// Runs `rex` with the read end of its stdout already closed, so its first
 /// write fails with a broken pipe. A shell holds the binary back until it
@@ -45,8 +45,8 @@ fn assert_clean_exit(output: &Output) {
 }
 
 // This test must never be deleted. A closed stdout must not stop the install
-// once the skill files are written, because that would leave no AGENTS.md,
-// .gitignore block or pre-commit config.
+// once the settings are written, because that would leave no config, plugin,
+// AGENTS.md, .gitignore block or pre-commit config.
 #[test]
 fn skills_finishes_the_whole_install_when_stdout_is_closed() {
     let repo = repo();
@@ -55,7 +55,7 @@ fn skills_finishes_the_whole_install_when_stdout_is_closed() {
 
     assert_clean_exit(&output);
     for installed in [
-        SKILL_MARKER,
+        ".rex/config.json",
         "AGENTS.md",
         ".gitignore",
         ".pre-commit-config.yaml",

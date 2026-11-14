@@ -6,9 +6,7 @@ use std::fs;
 
 use yaml_rust2::YamlLoader;
 
-use super::support::{
-    COMMIT_ALL, PRE_COMMIT_ARGS, SKILL_MARKER, installed, repo, rex_init, rex_init_ok,
-};
+use super::support::{COMMIT_ALL, PRE_COMMIT_ARGS, repo, rex_init, rex_init_ok};
 
 /// The `stages` of the local hook called `id` in `config`. `None` means the
 /// hook has no `stages` line, so it runs at commit.
@@ -155,7 +153,7 @@ fn a_failed_pre_commit_install_exits_with_its_error_text_after_the_rest_is_done(
         "rex init: failed: `pre-commit install` exited with exit status: 1; fix what it names, then run rex init again: Cowardly refusing to install hooks with core.hooksPath set Run git config --unset-all core.hooksPath\n\
          error: rex init did not finish 1 step(s); each is named above\n"
     );
-    assert!(installed(&repo, SKILL_MARKER).is_file());
+    assert!(repo.path().join(".rex/config.json").is_file());
     assert!(repo.path().join("AGENTS.md").is_file());
     assert!(repo.path().join(".pre-commit-config.yaml").is_file());
 }

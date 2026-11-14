@@ -1,0 +1,69 @@
+# Live run 1 as an eval case: one small fix through the builder skill, end to end, with storage on; needs T6, because stage 1 of the builder records its skills with rex_assign.
+# Run with the job binary first on PATH: claude plugin eval plugin --case builder-small-fix-storage-on --ablation none --runs 1 --model sonnet --judge-model sonnet --scaffold --allow-tools Bash Edit Write ToolSearch 'mcp__super-rex__*' --no-publish
+# The equal token sums of the mod and the binary are not graded here: the live run compares rex_job_close spent_usd with rex job show --json after the session.
+schema_version: "1.0"
+name: builder-small-fix-storage-on
+description: needs T6. A person's small fix opens a job, plans it, delivers one squash commit through rex_merge, and closes delivered, with storage on.
+tags: [needs-t6, live-run-1, builder]
+context:
+  scaffold_script: scaffold.sh
+execution:
+  prompt: >-
+    /super-rex:orchestration-builder Fix the spelling of "recieve" in NOTES.md.
+    Merge to main: yes.
+  model: sonnet
+  max_turns: 200
+  timeout_seconds: 3600
+  # dontAsk refuses any agent type not listed: only the grid agents of tiers medium (Sonnet) and high (Opus) can start,
+  # so no Haiku or Fable agent runs. disallowed_tools takes bare tool names only, so it cannot name an agent type.
+  allowed_tools:
+    - Read
+    - Glob
+    - Grep
+    - Edit
+    - Write
+    - Bash
+    - ToolSearch
+    - TodoWrite
+    - 'mcp__super-rex__*'
+    - Agent(super-rex:model-medium-effort-low)
+    - Agent(super-rex:model-medium-effort-medium)
+    - Agent(super-rex:model-medium-effort-high)
+    - Agent(super-rex:model-medium-effort-xhigh)
+    - Agent(super-rex:model-medium-effort-max)
+    - Agent(super-rex:model-high-effort-low)
+    - Agent(super-rex:model-high-effort-medium)
+    - Agent(super-rex:model-high-effort-high)
+    - Agent(super-rex:model-high-effort-xhigh)
+    - Agent(super-rex:model-high-effort-max)
+runs: 1
+graders:
+  - type: tool_order
+    name: the job opens before it is planned
+    before: mcp__super-rex__rex_job_open
+    after: mcp__super-rex__rex_job_plan
+  - type: tool_order
+    name: the plan comes before the merge
+    before: mcp__super-rex__rex_job_plan
+    after: mcp__super-rex__rex_merge
+  - type: tool_order
+    name: the merge comes before the close
+    before: mcp__super-rex__rex_merge
+    after: mcp__super-rex__rex_job_close
+  - type: regex
+    name: the job's merge answer came from the prompt
+    target: trace
+    pattern: "merge=yes"
+  - type: regex
+    name: rex_merge pushed the squash commit
+    target: trace
+    pattern: "merged=yes"
+  - type: regex
+    name: the job closed delivered with a cost of record
+    target: trace
+    pattern: "status=delivered[\\s\\S]*cost_of_record_usd=|cost_of_record_usd=[\\s\\S]*status=delivered"
+  - type: regex
+    name: no gate refused anything
+    target: trace
+    pattern: "rex gate:"
+    match: not_contains

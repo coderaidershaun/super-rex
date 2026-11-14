@@ -66,7 +66,6 @@ impl Read<'_> {
             cost,
             session_cost,
             incomplete,
-            damaged_log_lines: rows::damaged_lines(conn)?,
             last_active_ms,
             runs,
         })

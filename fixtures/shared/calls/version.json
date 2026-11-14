@@ -1,0 +1,13 @@
+{
+  "name": "version",
+  "setup": [],
+  "argv": [
+    "rex",
+    "--version"
+  ],
+  "stdin_file": null,
+  "expect": {
+    "exit": 0,
+    "stdout_pattern": "^rex \\d+\\.\\d+\\.\\d+\\n$"
+  }
+}

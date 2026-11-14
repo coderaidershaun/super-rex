@@ -23,8 +23,9 @@ struct LoadedSkill {
     /// with the file's path inside the skill.
     written_folder: PathBuf,
     skill: Skill,
-    /// The skills and Markdown files of the folder that holds the skill.
-    neighbours: KnownSkills,
+    /// Each Markdown file of each skill in the folder that holds the skill,
+    /// as `<skill>/<file>`.
+    neighbours: BTreeSet<PathBuf>,
 }
 
 impl LoadedSkill {
@@ -36,20 +37,9 @@ impl LoadedSkill {
             let text = read_text(&folder.join(&file))?;
             files.push(SkillFile { path: file, text });
         }
-        let skills_folder = folder.parent().unwrap_or(&folder);
-        let mut neighbours = KnownSkills {
-            files: markdown_files(skills_folder)?.into_iter().collect(),
-            ..KnownSkills::default()
-        };
-        // Any skills folder that is not a skill library counts as a
-        // `.claude/skills/`, so a skill checked outside a repo still knows
-        // its neighbours.
-        let neighbour_paths = skill_paths(skills_folder)?;
-        if skills_folder.ends_with(LIBRARY_ROOT) {
-            neighbours.library_paths = neighbour_paths;
-        } else {
-            neighbours.skill_paths = neighbour_paths;
-        }
+        // The skills beside it are known wherever it is, so a skill checked
+        // in its own folder, before it moves to the plugin, knows them.
+        let neighbours = skill_paths(folder.parent().unwrap_or(&folder))?;
 
         Ok(LoadedSkill {
             written: written.to_path_buf(),
@@ -61,6 +51,24 @@ impl LoadedSkill {
             neighbours,
         })
     }
+}
+
+/// The skills that `written` names: itself, or, for a folder with no
+/// `SKILL.md` whose folders hold skills, each of those, in name order.
+fn skills_of(cwd: &Path, written: &Path) -> Result<Vec<PathBuf>, SkillsError> {
+    let path = cwd.join(written);
+    if !path.is_dir() || path.join(SKILL_FILE).is_file() {
+        return Ok(vec![written.to_path_buf()]);
+    }
+    let mut names: Vec<_> = list::skill_folders(&path)?
+        .iter()
+        .map(|folder| file_name(folder))
+        .collect();
+    if names.is_empty() {
+        return Ok(vec![written.to_path_buf()]);
+    }
+    names.sort();
+    Ok(names.into_iter().map(|name| written.join(name)).collect())
 }
 
 /// The `SKILL.md` that `written` names, and the skill folder as the user
@@ -167,44 +175,28 @@ fn skill_paths(skills_folder: &Path) -> Result<BTreeSet<PathBuf>, SkillsError> {
     Ok(paths)
 }
 
-/// [`skill_paths`] of the skills that `rex skills list` finds from `cwd`, each
-/// in the set of its folder: the library's, or that of a `.claude/skills/`.
-/// For a repo with no such folder of its own, the bundle stands in for it,
-/// with the files that `rex init` would install there.
-fn skill_paths_outside(cwd: &Path) -> Result<KnownSkills, SkillsError> {
-    let mut known = KnownSkills::default();
-    // When the repo's skills folder is the user's, `places` gives no repo
-    // place, and the user's folder is the repo's own.
-    let (mut has_skills_folder, mut has_library) = (true, false);
+/// Each Markdown file of each skill that the repo of `cwd` holds in
+/// `.rex/skills`, and of each skill that the plugin ships, which the binary
+/// holds, as `<skill>/<file>`. These are the folders `rex_skill` reads for
+/// every agent of the repo.
+fn skill_paths_outside(cwd: &Path) -> Result<BTreeSet<PathBuf>, SkillsError> {
+    let mut paths = BTreeSet::new();
     for place in list::places(cwd)? {
-        let paths = skill_paths(&place.folder)?;
-        match place.source {
-            Source::Library => {
-                has_library |= place.folder.is_dir();
-                known.library_paths.extend(paths);
-            }
-            Source::Repo => {
-                has_skills_folder = place.folder.is_dir();
-                known.skill_paths.extend(paths);
-            }
-            Source::User => known.skill_paths.extend(paths),
+        if place.source == Source::Library {
+            paths.extend(skill_paths(&place.folder)?);
         }
     }
     for (path, _) in bundle::walk() {
         if path.extension() != Some(OsStr::new("md")) {
             continue;
         }
-        if let Ok(in_library) = path.strip_prefix(LIBRARY_ROOT) {
-            if !has_library {
-                known.library_paths.insert(in_library.to_path_buf());
+        for root in [SKILLS_ROOT, LIBRARY_ROOT] {
+            if let Ok(in_root) = path.strip_prefix(root) {
+                paths.insert(in_root.to_path_buf());
             }
-        } else if let Ok(in_skills_folder) = path.strip_prefix(SKILLS_ROOT)
-            && !has_skills_folder
-        {
-            known.skill_paths.insert(in_skills_folder.to_path_buf());
         }
     }
-    Ok(known)
+    Ok(paths)
 }
 
 /// Check each skill in `paths` and print one `ok` line for each skill that
@@ -219,20 +211,20 @@ fn skill_paths_outside(cwd: &Path) -> Result<KnownSkills, SkillsError> {
 pub(super) fn run(cwd: &Path, paths: &[PathBuf]) -> Result<(), SkillsError> {
     let mut skills = Vec::new();
     for path in paths {
-        skills.push(LoadedSkill::load(cwd, path)?);
+        for skill in skills_of(cwd, path)? {
+            skills.push(LoadedSkill::load(cwd, &skill)?);
+        }
     }
-    let outside = skill_paths_outside(cwd)?;
+    let mut known = KnownSkills {
+        paths: skill_paths_outside(cwd)?,
+    };
+    for loaded in &skills {
+        known.paths.extend(loaded.neighbours.iter().cloned());
+    }
 
     let mut findings = 0;
     let mut skills_with_findings = 0;
     for loaded in &skills {
-        let mut known = loaded.neighbours.clone();
-        known
-            .skill_paths
-            .extend(outside.skill_paths.iter().cloned());
-        known
-            .library_paths
-            .extend(outside.library_paths.iter().cloned());
         let found = check_skill(&loaded.skill, &known);
         if found.is_empty() {
             print_line_to_stdout(&format!("ok {}", loaded.written.display()))?;

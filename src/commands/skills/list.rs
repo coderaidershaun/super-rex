@@ -9,8 +9,8 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use super::header::Header;
+use super::{REPO_LIBRARY_FOLDER as LIBRARY_ROOT, REPO_SKILLS_FOLDER as SKILLS_ROOT};
 use super::{SKILL_FILE, SkillsError};
-use crate::bundle::{LIBRARY_ROOT, SKILLS_ROOT};
 use crate::commands::stdout::{print_line_to_stdout, print_to_stdout};
 use crate::store::StorePaths;
 

@@ -3,7 +3,7 @@
 
 use std::fs;
 
-use super::support::{Repo, SKILL_MARKER, installed, repo, rex_init, rex_init_failed};
+use super::support::{Repo, repo, rex_init, rex_init_failed};
 
 /// The names in the top folder of `repo`, sorted.
 fn names_in(repo: &Repo) -> Vec<String> {
@@ -44,15 +44,15 @@ fn claude_missing_or_too_old_stops_before_any_write() {
     too_old.write_tool("claude", "echo '2.1.300 (Claude Code)'");
     assert_stopped_with(
         &too_old,
-        "Claude Code 2.1.300 is older than 2.1.322, the oldest version SuperRex works with; run claude update, then run rex init again",
+        "Claude Code 2.1.300 is older than 2.1.323, the oldest version SuperRex works with; run claude update, then run rex init again",
     );
 
-    // As text, 2.1.1000 sorts before 2.1.322. As numbers it is newer.
+    // As text, 2.1.1000 sorts before 2.1.323. As numbers it is newer.
     let newer = repo();
-    newer.write_tool("claude", "echo '2.1.1000 (Claude Code)'");
+    newer.write_claude("2.1.1000");
     let output = rex_init(&newer, &[]);
     assert!(output.status.success(), "a newer Claude Code must pass");
-    assert!(installed(&newer, SKILL_MARKER).is_file());
+    assert!(newer.path().join(".rex/config.json").is_file());
 }
 
 #[test]
@@ -70,7 +70,7 @@ fn linux_sandbox_tools_missing_fails_after_the_install() {
         let output = rex_init(&repo, &[]);
 
         assert!(
-            installed(&repo, SKILL_MARKER).is_file(),
+            repo.path().join(".rex/config.json").is_file(),
             "the install runs in full"
         );
         let stderr = String::from_utf8(output.stderr).expect("utf8 stderr");

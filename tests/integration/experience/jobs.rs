@@ -30,7 +30,7 @@ fn jobs_json_keeps_its_fixed_shape() {
     assert_eq!(run.code, 0, "{}", run.stderr);
     assert_eq!(run.stdout_lines().len(), 1);
     let document: serde_json::Value = serde_json::from_str(&run.stdout).unwrap();
-    assert_eq!(document["schema"], 1);
+    assert_eq!(document["schema"], 2);
 
     // Newest first; the keys of one job object in their fixed order.
     let jobs = document["jobs"].as_array().unwrap();
@@ -52,8 +52,9 @@ fn jobs_json_keeps_its_fixed_shape() {
             "stored_status",
             "request",
             "request_truncated",
-            "asked_by",
-            "class_version",
+            "origin",
+            "builder_agent_id",
+            "tree",
             "work_type",
             "size",
             "consequence",
@@ -92,6 +93,9 @@ fn jobs_json_keeps_its_fixed_shape() {
     assert_eq!(delivered["tokens"], serde_json::Value::Null);
     assert_eq!(delivered["cost"], serde_json::Value::Null);
     assert_eq!(delivered["has_feedback"], false);
+    assert_eq!(delivered["origin"], "composer");
+    assert_eq!(delivered["builder_agent_id"], "main");
+    assert_eq!(delivered["tree"], serde_json::Value::Null);
 
     // A long request is cut at 200 characters and says so.
     assert_eq!(jobs[1]["request"].as_str().unwrap().chars().count(), 200);
@@ -102,7 +106,7 @@ fn jobs_json_keeps_its_fixed_shape() {
     let none = fixture.rex(&["jobs", "--json", "--search", "nothing-like-this"]);
     assert_eq!(
         (none.code, none.stdout.as_str()),
-        (0, "{\"schema\":1,\"jobs\":[]}\n")
+        (0, "{\"schema\":2,\"jobs\":[]}\n")
     );
     let found = fixture.rex(&["jobs", "--json", "--search", "JSON", "--search", "STATUS"]);
     assert!(found.stdout.contains(JOB_B) && !found.stdout.contains(JOB_A));
@@ -127,7 +131,7 @@ fn jobs_json_keeps_its_fixed_shape() {
     ]);
     assert_eq!(
         (reversed.code, reversed.stdout.as_str()),
-        (0, "{\"schema\":1,\"jobs\":[]}\n")
+        (0, "{\"schema\":2,\"jobs\":[]}\n")
     );
     let bad = fixture.rex(&["jobs", "--since", "10/11/2026"]);
     assert_eq!(bad.code, 2);

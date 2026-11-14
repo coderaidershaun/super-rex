@@ -1,6 +1,6 @@
 //! Finds the one store of a repository from any folder of it, including a
 //! sub-folder or a Git worktree. It only reads files and never runs `git`, so
-//! the hook that calls it on every event stays fast.
+//! the plugin's calls of rex stay fast.
 
 use std::ffi::{OsStr, OsString};
 use std::fs;
@@ -18,8 +18,6 @@ pub struct StorePaths {
     pub dir: PathBuf,
     /// `<dir>/rex.db`
     pub db: PathBuf,
-    /// `<dir>/events.jsonl`
-    pub event_log: PathBuf,
     /// `<dir>/orchestrators`
     pub orchestrators: PathBuf,
 }
@@ -142,7 +140,6 @@ impl StorePaths {
     fn with(dir: PathBuf, root: PathBuf) -> StorePaths {
         StorePaths {
             db: dir.join("rex.db"),
-            event_log: dir.join("events.jsonl"),
             orchestrators: dir.join("orchestrators"),
             root,
             dir,

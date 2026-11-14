@@ -1,7 +1,6 @@
 //! One module per `rex` command (`catalog` serves `rex commands`, `codebase` also
-//! serves `rex smells`, `gate` also serves `rex limit`, `test_output` serves
-//! `rex test-hook` and `rex test-filter`), each with a `run` handler, plus the
-//! private helpers that the commands share.
+//! serves `rex smells`), each with a `run` handler, plus the private helpers that
+//! the commands share.
 //!
 //! A command has an options struct that derives `clap::Args` and one
 //! `run(cwd, options)` that returns the command's own error type, which
@@ -20,23 +19,27 @@
 //! Print through `stdout`, which treats a reader that closes the pipe early as
 //! success. Modules outside this folder never print.
 
-// SMELL: this folder holds 17 modules, more than the 12 that one folder may hold.
-// Fourteen of them are commands, so the fix is to group commands that belong
+// SMELL: this folder holds 21 modules, more than the 12 that one folder may hold.
+// Eighteen of them are commands, so the fix is to group commands that belong
 // together, as `codebase` groups two, and each such group changes public paths.
 pub mod catalog;
 pub mod codebase;
+pub mod doctor;
 pub mod feedback;
-pub mod gate;
-pub mod hook;
+pub mod ingest;
 pub mod init;
 pub mod job;
 pub mod jobs;
+pub mod limit;
 mod links;
+pub mod migrate;
 pub mod oms;
 pub mod recall;
 pub mod skills;
 pub mod status;
 mod stdout;
-pub mod test_output;
+pub mod test_filter;
 mod token_text;
+pub mod tree;
 pub mod watch;
+pub mod worktree;

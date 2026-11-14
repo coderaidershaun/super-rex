@@ -1,0 +1,15 @@
+{
+  "name": "ingest",
+  "setup": [
+    "fixtures/shared/ingest/batch-open-stream.json"
+  ],
+  "argv": [
+    "rex",
+    "ingest"
+  ],
+  "stdin_file": "fixtures/shared/ingest/batch-example.json",
+  "expect": {
+    "exit": 0,
+    "stdout": "last_sequence=4\n"
+  }
+}

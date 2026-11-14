@@ -279,9 +279,9 @@ mod tests {
         store
             .conn()
             .execute(
-                "INSERT INTO job (id, request, asked_by, class_version, work_type, size, \
+                "INSERT INTO job (id, request, origin, class_version, work_type, size, \
                  consequence, languages, merge_agreed, session_id, status, created_at, updated_at) \
-                 VALUES (?1, 'A request.', 'human', 1, 'fix', 'small', 'low', 'rust', 0, ?1, ?2, \
+                 VALUES (?1, 'A request.', 'composer', 1, 'fix', 'small', 'low', 'rust', 0, ?1, ?2, \
                  ?3, ?3)",
                 (id, status, created_at),
             )

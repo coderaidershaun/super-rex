@@ -1,8 +1,7 @@
-//! Contract tests of the hook, the intake of hook events and `rex status`.
+//! Contract tests of capture: the runs `rex ingest` recorded, read with their
+//! transcripts into the cost of record.
 
 mod fixture;
-mod jobs;
 mod lock;
 mod lost;
 mod tree;
-mod woken;

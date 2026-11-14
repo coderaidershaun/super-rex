@@ -29,14 +29,19 @@ pub struct JobListRow {
     pub split: String,
 }
 
+/// A value the job may lack, as the screen shows it.
+fn or_none(value: Option<&str>) -> String {
+    value.unwrap_or("none").to_owned()
+}
+
 impl JobListRow {
     pub fn of(summary: &JobSummary) -> JobListRow {
         JobListRow {
             id: summary.id.clone(),
             status: summary.status.clone(),
-            work_type: summary.work_type.clone(),
-            size: summary.size.clone(),
-            consequence: summary.consequence.clone(),
+            work_type: or_none(summary.work_type.as_deref()),
+            size: or_none(summary.size.as_deref()),
+            consequence: or_none(summary.consequence.as_deref()),
             languages: summary.languages.join(","),
             created_at: summary.created_at.clone(),
             excerpt: summary.excerpt_on_one_line(),

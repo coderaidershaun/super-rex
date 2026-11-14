@@ -247,11 +247,11 @@ impl JobBuilder<'_> {
         self.fixture
             .conn
             .execute(
-                "INSERT INTO job (id, request, asked_by, class_version, work_type, size,
+                "INSERT INTO job (id, request, origin, class_version, work_type, size,
                                   consequence, languages, merge_agreed, session_id,
                                   experience_recalled, orchestrator_name,
                                   orchestrator_version, status, created_at, updated_at)
-                 VALUES (?1, ?12, 'human', 1, ?2, ?3, ?4, ?5, 0, ?6, ?7, ?8, ?9, ?10,
+                 VALUES (?1, ?12, 'composer', 1, ?2, ?3, ?4, ?5, 0, ?6, ?7, ?8, ?9, ?10,
                          ?11, ?11)",
                 rusqlite::params![
                     self.id,

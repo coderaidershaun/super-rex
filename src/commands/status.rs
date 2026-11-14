@@ -8,10 +8,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use rusqlite::Connection;
 
 use crate::capture::{CaptureError, Cost, JobRuns, Run, RunState, TokenTotal, job_runs};
-use crate::commands::gate::SpendLimit;
+use crate::commands::limit::SpendLimit;
 use crate::commands::stdout::print_line_to_stdout;
 use crate::commands::token_text::{cost_text, split_text};
-use crate::error::{CommandError, RexError};
+use crate::error::{CommandError, FailureClass, RexError};
 use crate::store::status::{OPEN_STATUSES_SQL, Shown, Status};
 use crate::store::{JobId, Store, StoreError, StorePaths};
 
@@ -35,7 +35,29 @@ pub enum StatusError {
     Rex(#[from] RexError),
 }
 
-impl CommandError for StatusError {}
+impl CommandError for StatusError {
+    fn failure_class(&self) -> FailureClass {
+        match self {
+            StatusError::Store(error) => error.failure_class(),
+            StatusError::Capture(error) => error.failure_class(),
+            StatusError::Rex(error) => error.failure_class(),
+        }
+    }
+
+    fn exit_code(&self) -> u8 {
+        match self {
+            StatusError::Store(error) => error.exit_code(),
+            StatusError::Capture(error) => error.exit_code(),
+            _ => {
+                if self.is_usage() {
+                    2
+                } else {
+                    1
+                }
+            }
+        }
+    }
+}
 
 /// Prints the runs of one job, or of every job that is created or planned.
 ///
@@ -57,18 +79,12 @@ pub fn run(cwd: &Path, options: StatusOptions) -> Result<(), StatusError> {
         print_line_to_stdout("no open job")?;
     }
 
-    let mut damaged_log_lines = 0;
     for job in &jobs {
         let runs = job_runs(&mut store, job, now)?;
         let stored = stored_status(store.conn(), job).map_err(StoreError::from)?;
         for line in job_lines(&store, now, job, stored, &runs)? {
             print_line_to_stdout(&line)?;
         }
-        damaged_log_lines = runs.damaged_log_lines;
-    }
-    // The count is for the whole log, so it is the same for every job.
-    if damaged_log_lines > 0 {
-        print_line_to_stdout(&format!("event log: {damaged_log_lines} damaged lines"))?;
     }
     Ok(())
 }

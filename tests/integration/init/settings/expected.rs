@@ -7,8 +7,8 @@ use serde_json::{Value, json};
 
 use crate::init::support::{Repo, settings_path};
 
-/// The `hooks` value that `rex init` writes, word for word.
-pub(super) const HOOKS: &str = r#"{
+/// The hook entries that rex 0.7 wrote, word for word, which `rex init` takes out.
+pub(super) const OLD_HOOKS: &str = r#"{
     "SubagentStart": [{ "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }],
     "SubagentStop":  [{ "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }],
     "PostToolUse":   [{ "matcher": "Agent|Task", "hooks": [{ "type": "command", "command": "rex hook >/dev/null 2>&1 || true", "timeout": 10 }] }],
@@ -18,15 +18,19 @@ pub(super) const HOOKS: &str = r#"{
     ]
 }"#;
 
-/// The allow rules that `rex init` writes beside the hooks, so a test command
-/// piped into the filter needs no rule beyond the test command's own.
-pub(super) const FILTER_RULES: [&str; 2] = ["Bash(rex test-filter)", "Bash(set -o pipefail)"];
+/// The deny rules that keep merges and the record out of an agent's hands.
+pub(super) const PLUGIN_DENY_RULES: [&str; 6] = [
+    "Bash(gh pr merge:*)",
+    "Bash(git push origin main:*)",
+    "Bash(git push origin HEAD:main:*)",
+    "Bash(rex ingest:*)",
+    "Bash(rex migrate:*)",
+    "Bash(rex limit:*)",
+];
 
-/// `settings` with the hooks and the filter's allow rule that `rex init`
-/// writes unless the hooks are left out.
-pub(super) fn hooked(mut settings: Value) -> Value {
-    settings["hooks"] = serde_json::from_str(HOOKS).expect("hooks JSON");
-    settings["permissions"]["allow"] = json!(FILTER_RULES);
+/// `settings` with the sub-agent depth that `rex init` writes when the person set none.
+pub(super) fn with_depth(mut settings: Value) -> Value {
+    settings["env"] = json!({ "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "4" });
     settings
 }
 
@@ -50,13 +54,19 @@ pub(super) fn parent_of(repo: &Repo) -> String {
 /// The safety settings `rex init` writes for `repo`, in their order.
 /// The commands that `rex init` lets run outside the sandbox, except with
 /// `--strict`.
-const OUTSIDE_SANDBOX: [&str; 5] = [
+const OUTSIDE_SANDBOX: [&str; 6] = [
     "git worktree *",
     "git merge *",
     "git pull *",
     "git switch *",
     "rex init*",
+    "rex worktree *",
 ];
+
+/// The allow rules that let `rex worktree` run outside the sandbox with no
+/// prompt, except with `--strict`.
+pub(super) const WORKTREE_ALLOW_RULES: [&str; 2] =
+    ["Bash(rex worktree add *)", "Bash(rex worktree remove *)"];
 
 pub(super) fn safety_settings(repo: &Repo) -> Value {
     json!({
@@ -75,7 +85,10 @@ pub(super) fn safety_settings(repo: &Repo) -> Value {
         "permissions": {
             "additionalDirectories": [parent_of(repo)],
             "blockWritesOutsideWorkingDirectories": true,
-            "deny": ["Bash(sudo *)", "Bash(git push --force*)", "Bash(cargo publish*)", "Bash(gh pr merge*--admin*)"]
+            "deny": ["Bash(sudo *)", "Bash(git push --force*)", "Bash(cargo publish*)", "Bash(gh pr merge*--admin*)",
+                     PLUGIN_DENY_RULES[0], PLUGIN_DENY_RULES[1], PLUGIN_DENY_RULES[2],
+                     PLUGIN_DENY_RULES[3], PLUGIN_DENY_RULES[4], PLUGIN_DENY_RULES[5]],
+            "allow": WORKTREE_ALLOW_RULES
         }
     })
 }
