@@ -16,6 +16,7 @@ import type {
   RexQuestion,
   RexRole,
   RexTask,
+  RexTree,
 } from '../../types'
 import { assertNever } from './failure'
 import { findJob, isOpen, NO_TOKENS, queued, replaceJob, withMark } from './events'
@@ -362,4 +363,26 @@ export function mergeDoneIn(book: RexBook, jobId: string, done: MergeDone, at: n
   const isKnown = job.deliveries.some(old => old.outcome === 'merged' && old.mergeCommit === done.mergeCommit)
   const merged = isKnown ? book : replaceJob(book, jobId, old => ({ ...old, deliveries: [...old.deliveries, delivery], updatedAt: at }))
   return queued(merged, at, 'merge.done', job.owner.builder, jobId, { repo: done.repo, base: done.base, merge_commit: done.mergeCommit })
+}
+
+/** What a resumed tree brings back from the store: the tree itself, its jobs and its questions, the ones with no job included. */
+export type Restored = { readonly tree: RexTree; readonly jobs: readonly RexJob[]; readonly questions: readonly RexQuestion[] }
+
+function replacedOrAdded<T extends { readonly id: string }>(old: readonly T[], restored: readonly T[]): readonly T[] {
+  const kept = old.map(each => restored.find(back => back.id === each.id) ?? each)
+  return [...kept, ...restored.filter(back => !old.some(each => each.id === back.id))]
+}
+
+/**
+ * Puts a tree, its jobs and its questions back by id, replacing what the book
+ * holds of one id. No event: the store holds them already, and it refuses a
+ * second tree.open of one tree.
+ */
+export function restoreIn(book: RexBook, restored: Restored): RexBook {
+  return {
+    ...book,
+    trees: replacedOrAdded(book.trees, [restored.tree]),
+    jobs: replacedOrAdded(book.jobs, restored.jobs),
+    questions: replacedOrAdded(book.questions, restored.questions),
+  }
 }

@@ -34,6 +34,8 @@ export {
   recordMergeDone,
   recordPrompt,
   recordSkillOpen,
+  repinTree,
+  restoreTree,
   setLimit,
   setMergeAnswer,
   setPromptMode,
@@ -48,7 +50,8 @@ export type { PromptRecord } from './session'
 export { isOpen, openJobs, utcText } from './events'
 export { assertNever, errorText, failureClass } from './failure'
 export type { FailureClass, RexFailure, RexFailureKind } from './failure'
-export type { JobClose, MergeDone, OpenJobInput, PlanAmendment, QuestionInput, WakeReason } from './jobs'
+export { jobWorktree } from './jobs'
+export type { JobClose, MergeDone, OpenJobInput, PlanAmendment, QuestionInput, Restored, WakeReason } from './jobs'
 export type { EndInput, SkillOpen, StartRunInput, StepInput } from './runs'
 export type { TreeInput } from './trees'
 export { pluginVersion } from './config'

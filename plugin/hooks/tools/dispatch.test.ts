@@ -20,6 +20,10 @@ test('every tool of the table is registered at session start, and only rex_skill
   await $.session.start(START)
 
   expect(specs.map(spec => [spec.name, spec.isDeferred])).toEqual([
+    ['rex_build', true],
+    ['rex_continue', true],
+    ['rex_note', true],
+    ['rex_ask_owner', true],
     ['rex_assign', true],
     ['rex_skill', false],
     ['rex_merge', true],

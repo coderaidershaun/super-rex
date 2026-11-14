@@ -1,9 +1,21 @@
 {
   "about": "The mod's tools as the skill text may name them: for each tool the plugin registers, every property name of its input schema at any depth, and the result keys a kit test sees it answer (a <placeholder> stands for any text; with storage on, rex_recall answers the lines of rex recall unchanged, which calls/recall.json pins). later holds the tools of C6 that a later unit registers, with that unit; skill text may name one, but none of its keys. A kit test pins this file to the registered table and the real answers; a Rust test checks every tool name and key in plugin/skills and plugin/library against it.",
   "tools": {
+    "rex_ask_owner": {
+      "arguments": ["category", "job", "options", "question", "recommendation"],
+      "keys": ["question", "state"]
+    },
     "rex_assign": {
       "arguments": ["answer", "answers", "consequence", "id", "intelligence", "job", "langs", "question", "reason", "reliability", "role", "roles", "tasks", "verification", "writes_code"],
       "keys": ["question.<n>", "questions", "role.<role>", "source.<task>.<skill>", "task.<id>.open_when.<skill>", "task.<id>.skills"]
+    },
+    "rex_build": {
+      "arguments": ["budget_usd", "consequence", "depends_on", "intelligence", "merge_after", "ratings", "reliability", "repo", "request", "size", "verification"],
+      "keys": ["builder", "job", "status", "worktree"]
+    },
+    "rex_continue": {
+      "arguments": ["job", "message"],
+      "keys": ["job", "sent"]
     },
     "rex_job_close": {
       "arguments": ["branch", "deliveries", "job", "merge_commit", "note", "outcome", "pr", "repo", "status"],
@@ -21,6 +33,10 @@
       "arguments": ["job"],
       "keys": ["base", "branch", "merge_commit", "merged", "question"]
     },
+    "rex_note": {
+      "arguments": ["job", "text"],
+      "keys": ["noted"]
+    },
     "rex_recall": {
       "arguments": ["job"],
       "keys": ["reason", "recall"]
@@ -34,10 +50,5 @@
       "keys": ["agents_done", "agents_open", "degraded", "job", "limit_usd", "origin", "phase", "spent_usd", "status"]
     }
   },
-  "later": {
-    "rex_ask_owner": "T7",
-    "rex_build": "T7",
-    "rex_continue": "T7",
-    "rex_note": "T7"
-  }
+  "later": {}
 }

@@ -41,12 +41,13 @@ import {
   planJobIn,
   questionIn,
   rebindIn,
+  restoreIn,
   wakeIn,
 } from './jobs'
-import type { JobClose, MergeDone, OpenJobInput, PlanAmendment, QuestionInput, WakeReason } from './jobs'
+import type { JobClose, MergeDone, OpenJobInput, PlanAmendment, QuestionInput, Restored, WakeReason } from './jobs'
 import { endRunIn, lintAttemptIn, runOutputIn, skillOpenIn, startRunIn, stepRunIn } from './runs'
 import type { EndInput, SkillOpen, StartRunInput, StepInput } from './runs'
-import { linkIn, noteIn, pendingIn, tickIn, treeIn, treeStateIn } from './trees'
+import { linkIn, noteIn, pendingIn, repinIn, tickIn, treeIn, treeStateIn } from './trees'
 import type { TreeInput } from './trees'
 
 type Dollar = EngineInterface
@@ -214,6 +215,16 @@ export async function noteTree($: Dollar, tree: string, note: Omit<RexTreeNote, 
 
 export async function tickTree($: Dollar, tree: string, tick: Omit<RexTreeTick, 'at'>): Promise<void> {
   await change($, (book, at) => tickIn(book, tree, { ...tick, at }))
+}
+
+/** Only `/rex master resume` calls it: the tree, its jobs and its questions as the store holds them, with no event. */
+export async function restoreTree($: Dollar, restored: Restored): Promise<void> {
+  await change($, book => restoreIn(book, restored))
+}
+
+/** Only `/rex policy confirm` calls it, for a paused tree of this session, before it sets the tree running again. */
+export async function repinTree($: Dollar, tree: string, policyHash: string): Promise<void> {
+  await change($, book => repinIn(book, tree, policyHash))
 }
 
 export async function closeTree($: Dollar, tree: string, state: RexTree['state'], reportFile: string | null): Promise<void> {

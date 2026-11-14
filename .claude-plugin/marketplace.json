@@ -6,7 +6,7 @@
     {
       "name": "super-rex",
       "source": "./plugin",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "description": "Plans and runs a job with Claude Code sub-agents: skills, the agent grid, and a mod that records, gates and assembles every agent of the job"
     }
   ]

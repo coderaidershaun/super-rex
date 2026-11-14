@@ -16,6 +16,7 @@ import { answer, deny, failureName } from './text'
 export { callerRefusal, jobArgRefusal, ownJobAnyStatus } from './caller'
 export { statusLines } from './status'
 export { runOms } from './plan'
+export { defaultLimitNano } from './limits'
 export type { OmsAnswer, OmsInput } from './plan'
 export { answer, deny, failureName, linesText, usd } from './text'
 

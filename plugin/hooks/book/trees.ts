@@ -78,6 +78,15 @@ export function treeStateIn(book: RexBook, treeId: string, state: RexTree['state
   return queued(closed, at, 'tree.close', agent, null, { tree: treeId, state, report_file: reportFile })
 }
 
+/**
+ * Pins a live tree to the policy hash the person just confirmed, keeping its
+ * master and builders. No event: the store has none that changes a tree's
+ * hash, and a resume pins the tree to the confirmed hash again.
+ */
+export function repinIn(book: RexBook, treeId: string, policyHash: string): RexBook {
+  return replaceTree(book, treeId, old => ({ ...old, policyHash }))
+}
+
 export function pendingIn(book: RexBook, spawn: RexPendingSpawn): RexBook {
   return { ...book, pendingSpawns: [...book.pendingSpawns.filter(old => old.description !== spawn.description), spawn] }
 }

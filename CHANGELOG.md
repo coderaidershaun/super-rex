@@ -4,6 +4,17 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.8.1 - 2026-11-14
+
+### Added
+
+- The master. `/rex master <goal or charter file>` starts a master that runs a tree of jobs, each with its own builder in its own worktree. It runs only from what you type yourself, after a pre-flight check, and needs `rex init --with-storage`. The charter is stored unchanged and goes in every brief.
+- `rex_build`, `rex_continue`, `rex_note` and `rex_ask_owner`, the master's tools. `rex_build` opens a job under the policy and makes its worktree with `rex worktree add`.
+- `/rex policy` and `/rex answer`: the policy file, pinned by its hash, and your answers to the questions a master parks. A changed policy pauses the tree until you confirm it.
+- A watchdog that wakes a stuck builder and retries API errors on a schedule, a policy that can raise a job's spend limit once, the done check of each job, a final report that lists each job, and the `master` view in the pane.
+- `/rex master resume` puts a tree back from the store after a restart and continues or asks, as the policy says.
+- The gate checks `tree-ledger`, `rate-limit-pause`, `max-jobs` and `policy-merge`; each refuses when it fails.
+
 ## 0.8.0 - 2026-11-14
 
 SuperRex is now a Claude Code plugin with a mod inside it. The skills, the skill library and the grid agents ship in the plugin, and the mod does the live work that the `rex` hooks did: it records each agent, checks and builds each brief, refuses a new agent over the spend limit, cuts test output, and merges. To move a repo from 0.7, read [docs/upgrade-0.8.md](docs/upgrade-0.8.md).

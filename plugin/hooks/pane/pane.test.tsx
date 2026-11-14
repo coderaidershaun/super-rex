@@ -136,7 +136,7 @@ test('each pane view draws its rows from the book', async ($, on) => {
 
     await ui.press({ key: 'view-questions' })
     expect(await texts(ui)).toEqual([...HEADER, 'q1-000000000001: Merge job 0gaq820001?', 'recommended: Merge'])
-    expect((await ui.findAll({ type: 'Button' })).map(button => button.key)).toEqual(['view-jobs', 'view-tree', 'view-decisions', 'view-questions', 'answer-q1-000000000001-0', 'answer-q1-000000000001-1'])
+    expect((await ui.findAll({ type: 'Button' })).map(button => button.key)).toEqual(['view-jobs', 'view-tree', 'view-master', 'view-decisions', 'view-questions', 'answer-q1-000000000001-0', 'answer-q1-000000000001-1'])
 
     await ui.press({ key: 'view-jobs' })
     await ui.unmount()
