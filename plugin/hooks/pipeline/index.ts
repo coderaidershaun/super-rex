@@ -12,7 +12,6 @@ import { assembled, isTierFile, outputFileOf, OWN_PARTS } from './parts'
 import { gridOf } from './tiers'
 
 export { assembled, OWN_PARTS } from './parts'
-export { lintFindings } from './lint'
 
 type Assembly = {
   readonly prompt: string

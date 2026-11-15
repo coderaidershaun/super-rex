@@ -11,7 +11,6 @@ export {
   addQuestion,
   amendPlan,
   answerQuestion,
-  bookAtom,
   closeJob,
   closeTree,
   countPermissionAsk,
@@ -46,18 +45,17 @@ export {
   stepRun,
   tickTree,
 } from './api'
-export type { Batch, OpenedJob } from './api'
+export type { Batch } from './api'
 export type { PromptRecord } from './session'
-export { bandJob, isOpen, mainJob, newestOpenJob, openJobs, utcText } from './events'
+export { bandJob, isOpen, mainJob, newestOpenJob, openJobs } from './events'
 export { assertNever, errorText, failureClass } from './failure'
-export type { FailureClass, RexFailure, RexFailureKind } from './failure'
+export type { FailureClass, RexFailure } from './failure'
 export { jobWorktree } from './jobs'
 export type { JobClose, MergeDone, OpenJobInput, PlanAmendment, QuestionInput, Restored, WakeReason } from './jobs'
 export type { EndInput, SkillOpen, StartRunInput, StepInput } from './runs'
 export type { TreeInput } from './trees'
 export { pluginVersion } from './config'
 export { limitIgnoredLine, MAX_LIMIT_USD, readPersonWords } from './words'
-export type { PersonWords } from './words'
 
 export function register(on: On, _parts: Parts): void {
   on('session.start', async ($, e, next) => {

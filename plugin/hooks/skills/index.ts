@@ -7,8 +7,7 @@ import type { Parts, ToolEntry } from '../parts'
 import { findSkill, nameProblem } from './resolve'
 import type { SkillPlaces } from './resolve'
 
-export { findSkill, hashText, nameProblem, resolveSkill, sha256Of, skillFolders } from './resolve'
-export type { ResolvedSkill, SkillLookup, SkillPlaces } from './resolve'
+export { hashText, resolveSkill } from './resolve'
 
 export const SKILL_TOOL: ToolEntry = {
   name: 'rex_skill',

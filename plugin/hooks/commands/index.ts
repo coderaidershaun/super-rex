@@ -6,7 +6,6 @@ import type { Parts } from '../parts'
 import { OWN_SUBCOMMANDS, route } from './router'
 
 export { originRefusal, rexLine, unknownLine } from './router'
-export type { RexLine } from './router'
 
 export const REX_COMMAND = {
   name: 'rex',

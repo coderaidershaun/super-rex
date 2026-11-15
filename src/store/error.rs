@@ -72,11 +72,6 @@ pub enum StoreError {
         source: std::io::Error,
     },
 
-    #[error(
-        "the system clock reads {unix_seconds} seconds since 1970, outside the years 2026 to 2094 that a job ID can hold; set the system clock to the right time"
-    )]
-    ClockOutOfRange { unix_seconds: i64 },
-
     /// `store` is the `.rex` folder that was searched.
     #[error(
         "no job with ID {job} in {}/rex.db; run rex from the session's project folder or a worktree of it, or set REX_STORE",
@@ -153,7 +148,6 @@ impl CommandError for StoreError {
             | StoreError::UnsupportedLayout { .. }
             | StoreError::NotFound { .. }
             | StoreError::NotInitialised { .. }
-            | StoreError::ClockOutOfRange { .. }
             | StoreError::JobNotFound { .. }
             | StoreError::NoOpenJob { .. }
             | StoreError::Refused { .. }
