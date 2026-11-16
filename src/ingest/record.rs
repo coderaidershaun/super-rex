@@ -25,6 +25,11 @@ impl Apply<'_> {
     /// A run of a job gets its row; a run that is no job's, such as a master,
     /// is kept in the event row, and a master is named on its tree. A run that
     /// starts again, as a woken teammate does, keeps its first start.
+    ///
+    /// A read of the transcripts may have made the run's row first, as `rex
+    /// watch` does every two seconds while the plugin sends its events every
+    /// ten. The start then fills each column that row lacks, so the run keeps
+    /// its planned agent, its brief check and its skills.
     pub(super) fn run_start(&self, event: &Event, data: &RunStart) -> Result<(), IngestError> {
         let Some(job) = &event.job else {
             if let Some(tree) = &data.tree {
@@ -46,7 +51,19 @@ impl Apply<'_> {
                                         parent_source, planned_agent, assembled, lint, brief_hash,
                                         skills_attached, transcript_path)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
-             ON CONFLICT (session_id, agent_id) DO UPDATE SET last_started_at = excluded.last_started_at",
+             ON CONFLICT (session_id, agent_id) DO UPDATE SET
+                 last_started_at = excluded.last_started_at,
+                 parent_agent_id = COALESCE(parent_agent_id, excluded.parent_agent_id),
+                 depth = COALESCE(depth, excluded.depth),
+                 role = COALESCE(role, excluded.role),
+                 agent_type = COALESCE(agent_type, excluded.agent_type),
+                 parent_source = COALESCE(parent_source, excluded.parent_source),
+                 planned_agent = COALESCE(planned_agent, excluded.planned_agent),
+                 assembled = COALESCE(assembled, excluded.assembled),
+                 lint = COALESCE(lint, excluded.lint),
+                 brief_hash = COALESCE(brief_hash, excluded.brief_hash),
+                 skills_attached = COALESCE(skills_attached, excluded.skills_attached),
+                 transcript_path = COALESCE(transcript_path, excluded.transcript_path)",
             params![
                 job.as_str(),
                 self.session,

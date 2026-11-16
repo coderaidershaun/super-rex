@@ -4,7 +4,7 @@
 
 # SuperRex
 
-This is version 0.9.0 of SuperRex.
+This is version 0.10.0 of SuperRex.
 
 SuperRex plans and runs a job in your repo with Claude Code's own sub-agents, and keeps a record of how it went. It ships as three parts of one version:
 
@@ -382,11 +382,11 @@ A store of any other version is refused with exit 2, and nothing is written. Age
 ```console
 $ rex doctor
 doctor=ok
-binary=0.9.0
+binary=0.10.0
 store=v2
 storage=on
 claude=2.1.323
-plugin=0.9.0
+plugin=0.10.0
 ```
 
 **`rex job show [<job>] [--json]`**: print one job's record: origin, builder, tree, classification, preferences, merge answer and its source, places, limit, degraded marks, plan, roles with their model selection and skills, deliveries, sub-agent runs with the skills each opened and their tokens and cost, the main session's tokens and cost, the request, the breakdown and the recalled experience. With no job, it shows the open job of the main session of `$CLAUDE_CODE_SESSION_ID`. `status` is the shown status (`running` for a planned job with a sub-agent open), `stored_status` the status as stored. `--json` adds the transitions, each run's brief and final message, the questions, the decisions, the skill manifest and the feedback.

@@ -1,6 +1,7 @@
 //! Reads the trees, jobs, runs and questions of the store into the data of
 //! `rex watch`, the jobs through the function `rex jobs` uses so both agree.
 
+use std::collections::HashMap;
 use std::time::SystemTime;
 
 use rusqlite::Connection;
@@ -21,6 +22,7 @@ use crate::store::{JobId, Store, StoreError};
 pub fn load(store: &mut Store, now: SystemTime) -> Result<Part, WatchError> {
     let summaries = load_summaries(store, &JobFilter::default(), now)?;
     let questions = all_questions(store.conn())?;
+    let mut plans = all_run_plans(store.conn())?;
     let mut jobs = Vec::with_capacity(summaries.len());
     for (summary, runs) in &summaries {
         let id: JobId =
@@ -75,7 +77,14 @@ pub fn load(store: &mut Store, now: SystemTime) -> Result<Part, WatchError> {
             created_at: summary.created_at.clone(),
         };
         jobs.push(JobBundle {
-            runs: runs.runs.iter().map(run_data).collect(),
+            runs: runs
+                .runs
+                .iter()
+                .map(|run| {
+                    let plan = plans.remove(&(summary.id.clone(), run.agent_id.clone()));
+                    run_data(run, plan.unwrap_or_default())
+                })
+                .collect(),
             questions: questions
                 .iter()
                 .filter(|(_, job, _)| job.as_deref() == Some(&summary.id))
@@ -103,14 +112,35 @@ pub fn load(store: &mut Store, now: SystemTime) -> Result<Part, WatchError> {
     Ok(Part { trees, jobs })
 }
 
-fn run_data(run: &Run) -> RunData {
+/// What the plugin recorded of a run beside its cost of record: the task and
+/// the grid agent its plan named, the result of its brief check, the skills it
+/// was given, the skill files it opened, and its report.
+#[derive(Debug, Default)]
+struct RunPlan {
+    task: Option<String>,
+    planned: Option<String>,
+    lint: Option<String>,
+    skills_attached: Vec<String>,
+    /// Each as `skill/file`, in the order opened, each once.
+    skills_opened: Vec<String>,
+    output_file: Option<String>,
+}
+
+/// The skill files are those the plugin saw the run open; a run it saw open
+/// none shows the skills its transcript names.
+fn run_data(run: &Run, plan: RunPlan) -> RunData {
+    let skills_opened = if plan.skills_opened.is_empty() {
+        run.skills_opened.clone().unwrap_or_default()
+    } else {
+        plan.skills_opened
+    };
     RunData {
         agent_id: run.agent_id.clone(),
         parent: run.parent_agent_id.clone(),
         role: run.role.clone(),
-        task: None,
+        task: plan.task,
         agent_type: run.agent_type.clone(),
-        planned: None,
+        planned: plan.planned,
         model: run.model_ran.clone(),
         effort: run.effort_ran.clone(),
         state: match run.state {
@@ -126,11 +156,70 @@ fn run_data(run: &Run) -> RunData {
             TokenTotal::Provisional(counts) | TokenTotal::Final(counts) => Some(counts),
         },
         cost: run.cost,
-        lint: None,
-        skills_attached: Vec::new(),
-        skills_opened: run.skills_opened.clone().unwrap_or_default(),
-        output_file: None,
+        lint: plan.lint,
+        skills_attached: plan.skills_attached,
+        skills_opened,
+        output_file: plan.output_file,
     }
+}
+
+/// The plan side of every run, by job id and agent id. The store keeps a run's
+/// task only in its first `run.start` event, so the task is read from there.
+fn all_run_plans(conn: &Connection) -> Result<HashMap<(String, String), RunPlan>, StoreError> {
+    let mut plans = HashMap::new();
+    let mut statement = conn.prepare(
+        "SELECT run.job_id, run.agent_id, run.planned_agent, run.lint, run.skills_attached,
+                run.output_file, start.task
+         FROM sub_agent_run AS run
+         LEFT JOIN (SELECT session_id, json_extract(data, '$.agent_id') AS agent_id,
+                           json_extract(data, '$.task') AS task, MIN(seq)
+                    FROM ingest_event WHERE kind = 'run.start'
+                    GROUP BY session_id, json_extract(data, '$.agent_id')) AS start
+           ON start.session_id = run.session_id AND start.agent_id = run.agent_id",
+    )?;
+    let rows = statement.query_map([], |row| {
+        let skills_attached: Option<String> = row.get(4)?;
+        Ok((
+            (row.get(0)?, row.get(1)?),
+            RunPlan {
+                task: row.get(6)?,
+                planned: row.get(2)?,
+                lint: row.get(3)?,
+                skills_attached: skills_attached
+                    .as_deref()
+                    .filter(|text| !text.is_empty())
+                    .map_or_else(Vec::new, |text| {
+                        text.split(',').map(str::to_owned).collect()
+                    }),
+                skills_opened: Vec::new(),
+                output_file: row.get(5)?,
+            },
+        ))
+    })?;
+    for row in rows {
+        let (key, plan) = row?;
+        plans.insert(key, plan);
+    }
+
+    let mut statement = conn.prepare(
+        "SELECT run.job_id, run.agent_id, opened.skill, opened.file
+         FROM skill_open AS opened
+         JOIN sub_agent_run AS run
+           ON run.session_id = opened.session_id AND run.agent_id = opened.agent_id
+         ORDER BY opened.at, opened.rowid",
+    )?;
+    let rows = statement.query_map([], |row| {
+        let (skill, file): (String, String) = (row.get(2)?, row.get(3)?);
+        Ok(((row.get(0)?, row.get(1)?), format!("{skill}/{file}")))
+    })?;
+    for row in rows {
+        let (key, opened) = row?;
+        let plan: &mut RunPlan = plans.entry(key).or_default();
+        if !plan.skills_opened.contains(&opened) {
+            plan.skills_opened.push(opened);
+        }
+    }
+    Ok(plans)
 }
 
 fn all_trees(conn: &Connection) -> Result<Vec<TreeData>, StoreError> {
@@ -184,3 +273,7 @@ fn all_questions(conn: &Connection) -> Result<Vec<Placed>, StoreError> {
     }
     Ok(questions)
 }
+
+#[cfg(test)]
+#[path = "stored_tests.rs"]
+mod tests;

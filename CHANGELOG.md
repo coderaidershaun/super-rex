@@ -4,6 +4,15 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.10.0 - 2026-11-16
+
+Install the binary and the plugin of this version together, then start a new session.
+
+### Fixed
+
+- **An agent's screen in `rex watch` keeps its facts once the run is read from the store.** With storage on, a run of a closed job showed `planned -`, `brief check -`, no skills and no report, and lost its task, so `engineer T1` became `engineer`. The screen now shows them from the store, as it does from the live view.
+- **A run that starts while `rex watch` is open keeps its plan in the store.** A refresh of `rex watch` could record the run before the plugin's start event arrived, and the event then left the run's planned agent, brief check and given skills empty. The start event now fills them. A run already stored without them stays as it is.
+
 ## 0.9.0 - 2026-11-16
 
 What works now that did not in 0.8:
