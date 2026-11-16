@@ -27,7 +27,7 @@ export type RexFailure =
   | { readonly kind: 'tree-ledger'; readonly tree: string; readonly spentNano: number; readonly capNano: number }
   | { readonly kind: 'rate-limit-pause'; readonly percent: number; readonly window: string }
   | { readonly kind: 'lint-findings'; readonly findings: readonly string[] }
-  | { readonly kind: 'merge-push-rejected'; readonly exitCode: number; readonly stderr: string }
+  | { readonly kind: 'merge-rejected'; readonly exitCode: number; readonly stderr: string }
   | { readonly kind: 'merge-lock-held'; readonly repo: string; readonly job: string }
   | { readonly kind: 'merge-not-planned'; readonly job: string; readonly status: string }
   | { readonly kind: 'merge-not-fast-forward'; readonly branch: string; readonly base: string }
@@ -71,7 +71,7 @@ export function failureClass(kind: RexFailureKind): FailureClass {
     case 'tree-ledger':
     case 'rate-limit-pause':
     case 'lint-findings':
-    case 'merge-push-rejected':
+    case 'merge-rejected':
     case 'merge-lock-held':
     case 'merge-not-planned':
     case 'merge-not-fast-forward':

@@ -7,9 +7,18 @@ import { PolicyShapeError } from './policy'
 import type { Policy } from './policy'
 import { readPolicy } from './store'
 
+export function isLiveTree(tree: RexTree): boolean {
+  return tree.state === 'running' || tree.state === 'paused'
+}
+
+/** The trees of this session that run, or wait paused for the person to confirm a changed policy. */
+export function liveTrees(book: RexBook): readonly RexTree[] {
+  return book.trees.filter(tree => tree.session === book.session && isLiveTree(tree))
+}
+
 /** The live tree this agent is the master of: running, or paused by a policy change. */
 export function treeOfMaster(book: RexBook, agentId: string | null): RexTree | undefined {
-  return agentId === null ? undefined : book.trees.find(tree => tree.master === agentId && (tree.state === 'running' || tree.state === 'paused'))
+  return agentId === null ? undefined : book.trees.find(tree => tree.master === agentId && isLiveTree(tree))
 }
 
 export type Pinned = { readonly kind: 'pinned'; readonly policy: Policy; readonly hash: string } | { readonly kind: 'refused'; readonly text: string }

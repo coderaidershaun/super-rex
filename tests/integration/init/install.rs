@@ -9,7 +9,8 @@ use std::path::{Path, PathBuf};
 use serde_json::{Value, json};
 
 use super::support::{
-    COMMIT_ALL, PLUGIN_INSTALL_CALLS, PLUGIN_INSTALLED, PLUGIN_SKIPPED, Repo, repo, rex_init_ok,
+    COMMIT_ALL, PLUGIN_INSTALL_CALLS, PLUGIN_INSTALLED, PLUGIN_SKIPPED, Repo, repo, rex_init,
+    rex_init_ok,
 };
 
 /// The block `rex init` adds to `.gitignore`, byte for byte.
@@ -27,6 +28,45 @@ fn config_with_storage(storage: &str) -> Value {
     json!({ "version": 1, "storage": storage, "depth": 4, "jobs_from_sdk": true, "min_claude_code": "2.1.323" })
 }
 
+/// What a run with no storage flag and no terminal prints, once storage stays off.
+const STORAGE_OFF: &str = "rex init: storage is off, so rex jobs, rex job show, recall, feedback, the cost of record and rex master resume have nothing to read, and rex watch shows only the snapshots that sessions wrote in the last week; run rex init --with-storage to turn it on";
+
+#[test]
+fn without_storage_asks_nothing_and_prints_no_notice_and_cannot_be_given_with_with_storage() {
+    let repo = repo();
+
+    let printed = rex_init_ok(&repo, &["--without-storage"]);
+    assert!(
+        !printed.stdout.contains("storage is off"),
+        "{}",
+        printed.stdout
+    );
+    assert!(
+        !printed.stdout.contains("keep a record"),
+        "{}",
+        printed.stdout
+    );
+    assert_eq!(config(&repo), config_with_storage("off"));
+
+    let both = rex_init(&repo, &["--with-storage", "--without-storage"]);
+    assert_eq!(both.status.code(), Some(2), "clap refuses the pair");
+    let stderr = String::from_utf8(both.stderr).expect("utf8 stderr");
+    assert!(stderr.contains("cannot be used with"), "{stderr}");
+
+    rex_init_ok(&repo, &["--with-storage"]);
+    let printed = rex_init_ok(&repo, &["--without-storage"]);
+    assert_eq!(
+        config(&repo),
+        config_with_storage("on"),
+        "a store that is on stays on"
+    );
+    assert!(
+        !printed.stdout.contains("storage is off"),
+        "{}",
+        printed.stdout
+    );
+}
+
 #[test]
 fn fresh_install_writes_the_project_files_and_no_store() {
     let repo = repo();
@@ -36,7 +76,7 @@ fn fresh_install_writes_the_project_files_and_no_store() {
     assert_eq!(
         printed.stdout,
         format!(
-            "{SETTINGS_CREATED}rex init: .rex/config.json created\n{PLUGIN_INSTALLED}rex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}"
+            "{SETTINGS_CREATED}rex init: .rex/config.json created\n{STORAGE_OFF}\n{PLUGIN_INSTALLED}rex init: AGENTS.md created\nrex init: .gitignore created\nrex init: .pre-commit-config.yaml created\nrex init: pre-commit hooks installed\n{COMMIT_ALL}"
         )
     );
     assert_eq!(

@@ -57,6 +57,22 @@ test('a brief that passes lint is assembled once, and its spawn again by tool us
   expect(session.book().runs.find(each => each.agentId === 'a1')?.lint).toBe('pass')
 })
 
+test('two spawns of one role in one tick each get their own report file', async ($, on) => {
+  files(on, SKILL_FILES)
+  const started = spawnsKept(on)
+  const session = world(on, { seed: plannedBook('model-high-effort-high') })
+  await $.session.start(START)
+
+  await Promise.all([
+    $.agent.spawn(spawnInput({ description: 'engineer', subagentType: 'super-rex:model-high-effort-high', prompt: AUTHOR, tool_use_id: 'toolu_1' })),
+    $.agent.spawn(spawnInput({ description: 'engineer', subagentType: 'super-rex:model-high-effort-high', prompt: AUTHOR, tool_use_id: 'toolu_2' })),
+  ])
+
+  const plans = `${ROOT}/.rex/plans/${JOB}`
+  expect(session.book().runs.map(run => run.outputFile).sort()).toEqual([`${plans}/engineer-2.md`, `${plans}/engineer.md`])
+  expect(started.map(each => each.prompt.split('\n\n').at(-1)).sort()).toEqual([returnLine(`${plans}/engineer-2.md`), returnLine(`${plans}/engineer.md`)])
+})
+
 test('lint finds each kind of finding in the author text only', async ($, on) => {
   files(on, SKILL_FILES)
   spawnsKept(on)
@@ -85,14 +101,14 @@ test('resume_spawn_gets_gate_only', async ($, on) => {
   expect(session.book().runs.find(each => each.agentId === 'a1')?.agentType).toBe('super-rex:model-high-effort-high')
 })
 
-test('a teammate, a workflow agent and an agent outside any job pass as they came', async ($, on) => {
+test('a teammate and a workflow agent outside any job pass as they came', async ($, on) => {
   files(on, SKILL_FILES)
   const started = spawnsKept(on)
   world(on, { seed: plannedBook('model-high-effort-high') })
   await $.session.start(START)
 
-  const teammate = spawnInput({ description: 'mate', isTeammate: true, prompt: 'Help.' })
-  const workflow = spawnInput({ description: 'flow', workflow: { runId: 'w1', agentIndex: 0 }, prompt: 'Run.' })
+  const teammate = spawnInput({ description: 'mate', isTeammate: true, prompt: 'Help.', parentAgentId: 'outsider' })
+  const workflow = spawnInput({ description: 'flow', workflow: { runId: 'w1', agentIndex: 0 }, prompt: 'Run.', parentAgentId: 'outsider' })
   await $.agent.spawn(teammate)
   await $.agent.spawn(workflow)
 

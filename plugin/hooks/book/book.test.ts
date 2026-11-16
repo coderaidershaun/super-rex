@@ -202,6 +202,36 @@ test('a run whose grid agent several roles share takes its parent role, else the
   ])
 })
 
+test('a run whose brief names a plan task takes that task role, though its parent role shares its grid agent', () => {
+  const ratings = { intelligence: 'medium', reliability: 'medium', consequence: 'low', verification: 'low' } as const
+  const role = (name: string): RexRole => ({ role: name, ratings, gridAgent: 'model-medium-effort-medium', conflict: null, omsVersion: 2 })
+  const plan = {
+    orchestrator: 'leads',
+    breakdown: 'one lead and its workers on one grid agent',
+    tasks: [
+      { id: 'T1', role: 'worker', skills: [], openWhen: [] },
+      { id: 'T5', role: 'lead', skills: [], openWhen: [] },
+    ],
+    roles: [role('lead'), role('worker')],
+    manifest: [],
+  }
+  const stored = { ...emptyBook(), session: SESSION, storage: 'on' as const, ingest: newIngest('aaaaaaaaaaaaaaaa', '1'.repeat(64)) }
+  const base = planJobIn(openJobIn(stored, JOB_INPUT, '0gaq82j000', START_MS).book, '0gaq82j000', plan, START_MS)
+  const spawn = { toolUseId: null, description: 'agent', isOwnSpawn: false, agentType: 'super-rex:model-medium-effort-medium' }
+  const lead = startRunIn(base, { ...spawn, agentId: 'a1', parentAgentId: null, task: 'T5' }, START_MS)
+  const worker = startRunIn(lead, { ...spawn, agentId: 'a2', parentAgentId: 'a1', task: 'T1' }, START_MS)
+  const untasked = startRunIn(worker, { ...spawn, agentId: 'a3', parentAgentId: 'a1' }, START_MS)
+  const named = startRunIn(startRunIn(lead, { ...spawn, agentId: 'a2', parentAgentId: 'a1' }, START_MS), { ...spawn, agentId: 'a2', parentAgentId: 'a1', task: 'T1' }, START_MS)
+
+  expect(untasked.runs.map(run => [run.agentId, run.role])).toEqual([
+    ['a1', 'lead'],
+    ['a2', 'worker'],
+    ['a3', 'lead'],
+  ])
+  expect(worker.ingest?.queue.at(-1)?.data).toMatchObject({ agent_id: 'a2', role: 'worker', task: 'T1' })
+  expect(named.runs.find(run => run.agentId === 'a2')?.role).toBe('worker')
+})
+
 test('the band speaks of the open job of the main loop, else the newest open job of this session', () => {
   const book = { ...emptyBook(), session: SESSION }
   const first = openJobIn(book, { ...JOB_INPUT, builder: 'a1' }, '0gaq82j001', START_MS).book

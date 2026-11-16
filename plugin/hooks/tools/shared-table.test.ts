@@ -7,10 +7,14 @@ import { CONFIG_OFF, CONFIG_ON, ROOT, spawnInput, START_MS, world } from '../boo
 import type { ProcessAnswer } from '../book/kit'
 import { sharedJson } from '../book/shared'
 import { AUTHOR, plannedBook, SKILL_FILES, spawnsKept } from '../pipeline/assembly.fixture'
-import { BASE_CALL, callFile, files, JOB, ok, plannedAll, promptsPass, resultText, scripted, seededBook } from './act-kit'
+import { callFile, exit, files, FIRST_COMMIT, JOB, ok, ORIGIN_PLACES, plannedAll, promptsPass, resultText, scripted, seededBook, START_HASH, statusCall, WORKTREE_ADD, worktreeList } from './act-kit'
 import type { Scripted } from './act-kit'
 import { jsonField } from './binary'
-import { openJobIn } from '../book/jobs'
+import { mergeDoneIn, openJobIn } from '../book/jobs'
+
+function gitCall(args: readonly string[], answer: ProcessAnswer = ok()): Scripted {
+  return { argv: ['git', '-C', ROOT, ...args], answer }
+}
 
 const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
 const TABLE = sharedJson('fixtures/shared/tables/tools.json')
@@ -92,7 +96,10 @@ function jobStart(origin: PromptOrigin) {
 test('rex_job_open answers each key of the shared tools table', async ($, on) => {
   files(on, {})
   promptsPass(on)
-  world(on, { config: CONFIG_OFF, processAnswer: scripted([BASE_CALL]), modelAnswer: () => RESTATED })
+  // A repo with no commit and an origin that cannot be fetched, so rex_job_open answers base_commit and base_stale too.
+  const unreachable = exit(128, "fatal: '/home/person/origin.git' does not appear to be a git repository\n")
+  const steps = [...FIRST_COMMIT, ...ORIGIN_PLACES, gitCall(['fetch', 'origin', 'main'], unreachable), gitCall(['rev-parse', 'origin/main'], ok(`${START_HASH}\n`)), WORKTREE_ADD, statusCall()]
+  world(on, { config: CONFIG_OFF, processAnswer: scripted(steps), modelAnswer: () => RESTATED })
   await $.session.start(START)
 
   await $.prompt.submit(jobStart({ kind: 'composer' }))
@@ -101,17 +108,63 @@ test('rex_job_open answers each key of the shared tools table', async ($, on) =>
   expect(unseen('rex_job_open', [opened])).toEqual([])
 })
 
+const MERGE = '3f2a9c1e8b7d6a5f4e3d2c1b0a9f8e7d6c5b4a39'
+const WORK_TIP = '77aa88bb99cc00dd11ee22ff33aa44bb55cc66dd'
+
+/** A clean-up in mode origin that removes and keeps one of each: worktree, local branch, branch on origin. */
+function cleanUpOfEachKind(): readonly Scripted[] {
+  const branch = `rex/${JOB}`
+  const unit = `${branch}--parser`
+  const dirs = [`${ROOT}.worktrees/${JOB}`, `${ROOT}.worktrees/${JOB}--parser`]
+  return [
+    ...ORIGIN_PLACES,
+    gitCall(['fetch', '--prune', 'origin']),
+    gitCall(['rev-parse', `refs/heads/${branch}--work`, `refs/heads/${branch}--work^{tree}`, `${MERGE}^{tree}`], ok(`${WORK_TIP}\nt1\nt1\n`)),
+    gitCall(['merge-base', '--is-ancestor', MERGE, 'origin/main']),
+    gitCall(['worktree', 'list', '--porcelain'], worktreeList([{ path: dirs[0] ?? '', branch }, { path: dirs[1] ?? '', branch: unit }])),
+    { argv: ['rex', 'worktree', 'remove', ROOT, dirs[0] ?? ''], answer: ok() },
+    { argv: ['rex', 'worktree', 'remove', ROOT, dirs[1] ?? ''], answer: exit(1, 'error: "git worktree remove" failed: fatal: contains modified or untracked files, use --force to delete it\n') },
+    gitCall(['for-each-ref', '--format=%(refname:short)', `refs/heads/${branch}`, `refs/heads/${branch}--*`], ok(`${branch}\n${unit}\n`)),
+    gitCall(['merge-base', '--is-ancestor', branch, 'origin/main']),
+    gitCall(['branch', '-D', branch]),
+    gitCall(['merge-base', '--is-ancestor', unit, 'origin/main'], exit(1, '')),
+    gitCall(['merge-base', '--is-ancestor', unit, WORK_TIP], exit(1, '')),
+    gitCall(['reflog', 'show', '--format=%gs', `refs/heads/${unit}`, '--'], ok('commit: lexer\n')),
+    gitCall(['for-each-ref', '--format=%(refname:lstrip=3)', `refs/remotes/origin/${branch}`, `refs/remotes/origin/${branch}--*`], ok(`${branch}\n${unit}\n`)),
+    gitCall(['merge-base', '--is-ancestor', `refs/remotes/origin/${branch}`, 'origin/main']),
+    gitCall(['merge-base', '--is-ancestor', `refs/remotes/origin/${unit}`, 'origin/main'], exit(1, '')),
+    gitCall(['merge-base', '--is-ancestor', `refs/remotes/origin/${unit}`, WORK_TIP], exit(1, '')),
+    gitCall(['push', 'origin', '--delete', branch]),
+  ]
+}
+
 test('rex_status and rex_job_close answer each key of the shared tools table', async ($, on) => {
   const show = callFile(sharedJson('fixtures/shared/calls/job-show.json'))
   files(on, {})
-  world(on, { config: CONFIG_ON, seed: seededBook({ storage: 'on' }), processAnswer: scripted([{ argv: show.argv, answer: ok(show.stdout) }]) })
+  const seed = mergeDoneIn(seededBook({ storage: 'on' }), JOB, { repo: ROOT, base: 'main', branch: `rex/${JOB}`, mergeCommit: MERGE }, START_MS)
+  world(on, { config: CONFIG_ON, seed, processAnswer: scripted([...cleanUpOfEachKind(), { argv: show.argv, answer: ok(show.stdout) }]) })
   await $.session.start(START)
 
   const status = await $.tool.call({ tool: 'mcp__super-rex__rex_status' })
-  const closed = await $.tool.call({ tool: 'mcp__super-rex__rex_job_close', status: 'blocked', outcome: 'stopped', deliveries: [] })
+  const closed = await $.tool.call({ tool: 'mcp__super-rex__rex_job_close', status: 'delivered', outcome: 'merged', deliveries: [{ repo: ROOT, outcome: 'merged' }] })
 
   expect(unseen('rex_status', [status])).toEqual([])
   expect(unseen('rex_job_close', [closed])).toEqual([])
+})
+
+test('rex_worktree answers each key of the shared tools table', async ($, on) => {
+  files(on, {})
+  const steps = [
+    gitCall(['worktree', 'list', '--porcelain'], worktreeList()),
+    gitCall(['rev-parse', `refs/heads/rex/${JOB}`], ok(`${START_HASH}\n`)),
+    { argv: ['rex', 'worktree', 'add', ROOT, `${ROOT}.worktrees/${JOB}--parser`, START_HASH, '--branch', `rex/${JOB}--parser`], answer: ok() },
+  ]
+  world(on, { seed: seededBook(), processAnswer: scripted(steps) })
+  await $.session.start(START)
+
+  const made = await $.tool.call({ tool: 'mcp__super-rex__rex_worktree', unit: 'parser' })
+
+  expect(unseen('rex_worktree', [made])).toEqual([])
 })
 
 // With storage on, rex_recall answers the lines of `rex recall` unchanged; the shared call file pins those.
@@ -148,6 +201,7 @@ const TREE_BUILDER = 'b1'
 function gitCalls(branch: string): readonly Scripted[] {
   const git = (args: readonly string[], answer: ProcessAnswer = ok()): Scripted => ({ argv: ['git', '-C', ROOT, ...args], answer })
   return [
+    ...ORIGIN_PLACES,
     git(['fetch', 'origin', 'main']),
     git(['rev-list', '--count', `origin/main..${branch}`], ok('1\n')),
     git(['merge-base', '--is-ancestor', 'origin/main', branch]),

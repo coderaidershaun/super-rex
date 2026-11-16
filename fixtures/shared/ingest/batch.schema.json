@@ -71,6 +71,7 @@
               "run.mark",
               "run.start",
               "session.start",
+              "session.transcript",
               "skill.open",
               "tree.close",
               "tree.link",
@@ -1420,7 +1421,29 @@
                         "on",
                         "off"
                       ]
-                    },
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "session.transcript"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "transcript_path"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
                     "transcript_path": {
                       "type": "string"
                     }

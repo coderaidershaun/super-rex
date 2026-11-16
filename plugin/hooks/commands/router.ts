@@ -3,15 +3,16 @@ import type { CommandRunInput, CommandRunResult, EngineInterface } from 'claude-
 
 import { fail, readBook } from '../book/index'
 import type { Subcommand, Table } from '../parts'
-import { doctor, jobs, prompts, status, watch } from './subcommands'
+import { doctor, jobs, prompts, status, tree, watch } from './subcommands'
 import type { Request } from './subcommands'
 
 /** The order the unknown sub-command line lists names in; a name another module adds follows them. */
-const KNOWN_ORDER = ['watch', 'status', 'jobs', 'doctor', 'prompts', 'limit', 'master', 'policy', 'answer']
+const KNOWN_ORDER = ['watch', 'status', 'tree', 'jobs', 'doctor', 'prompts', 'limit', 'master', 'policy', 'answer']
 
 export const OWN_SUBCOMMANDS: readonly Subcommand[] = [
   { name: 'watch', summary: 'Opens the SuperRex pane', grantsAuthority: false },
-  { name: 'status', summary: 'Shows where a job stands', grantsAuthority: false },
+  { name: 'status', summary: 'Shows where a job or the live master tree stands', grantsAuthority: false },
+  { name: 'tree', summary: 'Prints the outline of the run: each master tree, job and agent by level', grantsAuthority: false },
   { name: 'jobs', summary: 'Lists the jobs', grantsAuthority: false },
   { name: 'doctor', summary: "Runs the binary's check and names the mod's version", grantsAuthority: false },
   { name: 'prompts', summary: 'Sets the prompt mode: off, observe or improve', grantsAuthority: true },
@@ -50,7 +51,9 @@ async function runOwn($: EngineInterface, name: string, request: Request): Promi
     case 'watch':
       return watch($)
     case 'status':
-      return status(request)
+      return status(request, await $.clock.now())
+    case 'tree':
+      return tree(request, await $.clock.now())
     case 'jobs':
       return jobs($, request)
     case 'doctor':

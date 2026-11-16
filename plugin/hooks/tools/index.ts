@@ -7,16 +7,22 @@ import type { Caller, Parts, StatusSection, Table, ToolEntry } from '../parts'
 import { argsOf, field } from './args'
 import { callerIn, callerRefusal } from './caller'
 import { serveJobClose, serveRecall } from './close'
-import { JOB_CLOSE_TOOL, JOB_PLAN_TOOL, OWN_TOOLS, RECALL_TOOL } from './entries'
+import { JOB_CLOSE_TOOL, JOB_PLAN_TOOL, OWN_TOOLS, RECALL_TOOL, WORKTREE_TOOL } from './entries'
 import { serveJobOpen } from './open'
 import { serveJobPlan } from './plan'
 import { OWN_SECTIONS, statusLines } from './status'
 import { answer, deny, failureName } from './text'
+import { serveUnitWorktree } from './unit'
 
 export { callerRefusal, jobArgRefusal, ownJobAnyStatus } from './caller'
 export { statusLines } from './status'
 export { runOms } from './plan'
 export { defaultLimitNano } from './limits'
+export { baseRef, firstCommit, firstCommitRefusal, repoPlaces } from './places'
+export type { RepoPlaces } from './places'
+export { git, hadOwnCommit } from './git'
+export type { Git } from './git'
+export { addWorktree, baseStart, hasWorktree, removeWorktree } from './worktree'
 export { answer, deny, failureName, usd } from './text'
 
 /** The full name of a tool of this plugin: what a `tool.call` matcher names. */
@@ -102,6 +108,7 @@ export function register(on: On, parts: Parts): void {
   on('tool.call', { tool: 'mcp__super-rex__rex_recall' }, ($, e) => serveRecall($, e, RECALL_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_recall', next.error))
   on('tool.call', { tool: 'mcp__super-rex__rex_job_plan' }, ($, e) => serveJobPlan($, e, JOB_PLAN_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_job_plan', next.error))
   on('tool.call', { tool: 'mcp__super-rex__rex_job_close' }, ($, e) => serveJobClose($, e, JOB_CLOSE_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_job_close', next.error))
+  on('tool.call', { tool: 'mcp__super-rex__rex_worktree' }, ($, e) => serveUnitWorktree($, e, WORKTREE_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_worktree', next.error))
 
   registerToolTable(on, parts, TOOL_PREFIX)
 }

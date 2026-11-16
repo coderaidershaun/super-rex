@@ -14,13 +14,15 @@ const JOB_IDS = { type: 'array', items: { type: 'string' } } as const
 export const BUILD_TOOL: ToolEntry = {
   name: 'rex_build',
   description:
-    "Opens one job of your tree and starts its builder in the job's own worktree, with the fixed builder brief and your request. Refused over the policy: spend of the tree, rate limit, job counts, consequence. Answers job, builder, status and worktree.",
+    "Opens one job of your tree and starts its builder in the job's own worktree, with the fixed builder brief and your request. Refused over the policy: spend of the tree, rate limit, job counts, consequence. Answers job, builder, status and worktree, and base_commit=made when the mod made the repo's first commit.",
   inputSchema: {
     type: 'object',
     properties: {
       request: { type: 'string', description: 'What the builder must deliver: the outcome, and the evidence that shows it is done.' },
-      consequence: LEVEL,
+      type: { type: 'string', enum: ['feature', 'fix', 'refactor', 'chore', 'research', 'other'] },
       size: { type: 'string', enum: ['small', 'medium', 'large'] },
+      consequence: LEVEL,
+      langs: { type: 'array', items: { type: 'string' }, description: 'The languages the job changes, such as rust or typescript; [] for none.' },
       repo: { type: 'string', description: 'Left out, the session root; else a path of the policy key repos.' },
       depends_on: { ...JOB_IDS, description: 'Jobs that must be delivered before this one starts.' },
       merge_after: { ...JOB_IDS, description: 'Jobs that must be merged before this one merges.' },
@@ -31,7 +33,7 @@ export const BUILD_TOOL: ToolEntry = {
         required: ['intelligence', 'reliability', 'consequence', 'verification'],
       },
     },
-    required: ['request', 'consequence'],
+    required: ['request', 'type', 'size', 'consequence', 'langs'],
   },
   isDeferred: true,
   callers: ['master'],
@@ -76,7 +78,16 @@ export const ASK_OWNER_TOOL: ToolEntry = {
   callers: ['master'],
 }
 
-export const TOOLS: readonly ToolEntry[] = [BUILD_TOOL, CONTINUE_TOOL, NOTE_TOOL, ASK_OWNER_TOOL]
+export const REPORT_TOOL: ToolEntry = {
+  name: 'rex_report',
+  description:
+    'Ends your tree with your final report, once no job of it is open and no question of it waits. The mod writes the report after its own list of the jobs, and closes the tree as done. Answers tree, state and report (the path of the file).',
+  inputSchema: { type: 'object', properties: { report: { type: 'string', description: 'The final report as Markdown.' } }, required: ['report'] },
+  isDeferred: true,
+  callers: ['master'],
+}
+
+export const TOOLS: readonly ToolEntry[] = [BUILD_TOOL, CONTINUE_TOOL, NOTE_TOOL, ASK_OWNER_TOOL, REPORT_TOOL]
 
 export const BUILD_TOOL_NAME = 'mcp__super-rex__rex_build'
 export const MERGE_TOOL_NAME = 'mcp__super-rex__rex_merge'

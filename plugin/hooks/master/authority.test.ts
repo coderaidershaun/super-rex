@@ -3,7 +3,7 @@ import { expect, test } from 'claude-code/testing'
 import type { PromptOrigin } from 'claude-code'
 
 import { spawnInput } from '../book/kit'
-import { buildRules, byRule, confirmedPolicy, lineOf, MASTER, masterWorld, POLICY_KEY, rex, START, TREE, treeBook } from './master-kit'
+import { buildRules, byRule, confirmedPolicy, KIND, lineOf, MASTER, masterWorld, POLICY_KEY, rex, START, TREE, treeBook } from './master-kit'
 
 const SPAWN_TYPES = ['super-rex:master', 'super-rex:model-high-effort-high'] as const
 const DESCRIPTIONS = ['rex master t1', 'rex master t9', 'rex builder 0gaq820001', 'master'] as const
@@ -14,11 +14,12 @@ test('master_and_builder_start_only_from_person_or_master_tool', { timeoutMs: 30
   const policy = await confirmedPolicy()
   const session = masterWorld(on, { seed: await treeBook(policy), store: { [POLICY_KEY]: policy }, processAnswer: byRule(buildRules('model-high-effort-high')) })
   await $.session.start(START)
-  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', agentId: MASTER, request: 'Fix the parser', consequence: 'low' })
+  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...KIND, agentId: MASTER, request: 'Fix the parser', consequence: 'low' })
   const builder = lineOf(built, 'builder') ?? ''
   const job = lineOf(built, 'job') ?? ''
 
   const modelSpawned: string[] = []
+  const masterDenies: string[] = []
   for (const subagentType of SPAWN_TYPES) {
     for (const description of DESCRIPTIONS) {
       for (const parentAgentId of PARENTS) {
@@ -27,6 +28,9 @@ test('master_and_builder_start_only_from_person_or_master_tool', { timeoutMs: 30
         if (spawned.agentId !== undefined) {
           modelSpawned.push(spawned.agentId)
         }
+        if (spawned.deny !== undefined && subagentType === 'super-rex:master') {
+          masterDenies.push(spawned.deny)
+        }
       }
     }
   }
@@ -34,7 +38,7 @@ test('master_and_builder_start_only_from_person_or_master_tool', { timeoutMs: 30
   const builds = []
   for (const agentId of callers) {
     const caller = agentId === undefined ? {} : { agentId }
-    builds.push(await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...caller, request: 'Build it too', consequence: 'low' }))
+    builds.push(await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...KIND, ...caller, request: 'Build it too', consequence: 'low' }))
   }
   const entries = []
   for (const origin of OTHER_ORIGINS) {
@@ -43,7 +47,10 @@ test('master_and_builder_start_only_from_person_or_master_tool', { timeoutMs: 30
   const offered = await $.agent.offer({ agent: 'super-rex:master', description: 'master', source: 'plugin', provider: { plugin: 'super-rex', tier: 'user' } })
 
   const book = session.book()
-  expect(modelSpawned).toHaveLength(SPAWN_TYPES.length * DESCRIPTIONS.length * PARENTS.length)
+  // A model's spawn of the master type is denied; one of a grid agent runs, and is no builder.
+  expect(modelSpawned).toHaveLength(DESCRIPTIONS.length * PARENTS.length)
+  expect(masterDenies).toHaveLength(DESCRIPTIONS.length * PARENTS.length)
+  expect(masterDenies.every(deny => /^rex master: only \/rex master starts a master, got a spawn by .+; run \/rex master <goal>$/.test(deny))).toBe(true)
   expect(builds.map(each => each.deny === undefined)).toEqual(callers.map(() => false))
   expect(entries.map(entry => entry.text?.includes('only your own typing may run this'))).toEqual(OTHER_ORIGINS.map(() => true))
   expect(offered.isOffered).toBe(false)

@@ -1,10 +1,11 @@
-// The mod's own spawns as the engine raises them: pre-flight 5 at the master's spawn, where the session's permission mode is first known, and the link of a builder to its job.
+// The mod's own spawns as the engine raises them: no master but the mod's own, pre-flight 5 at the master's spawn, where the session's permission mode is first known, and the link of a builder to its job.
 import type { AgentSpawnInput, AgentSpawnResult, EngineInterface } from 'claude-code'
 
 import type { RexPendingSpawn } from '../../types'
 import { fail, linkBuilder, readBook, startRun } from '../book/index'
 import { DEFAULT_POLICY } from './policy'
 import { readPolicy } from './store'
+import { isWakeOnTheWay } from './wake'
 
 /** The pending spawn this event is, when this plugin's own `$.agent.spawn` raised it. */
 export async function ownPending($: EngineInterface, event: AgentSpawnInput, origin: string | undefined): Promise<RexPendingSpawn | undefined> {
@@ -91,6 +92,23 @@ async function recordOwnRun($: EngineInterface, event: AgentSpawnInput, pending:
   if (pending.kind === 'builder' && pending.job !== null) {
     await linkBuilder($, pending.tree, pending.job, agentId)
   }
+}
+
+/**
+ * The master type is offered while a wake of the mod is on the way to a
+ * master, so this check, not the offer, holds the authority: a master starts
+ * only as the mod's own pending spawn, and runs again only by the mod's wake.
+ */
+export async function masterSpawn($: EngineInterface, event: AgentSpawnInput, origin: string | undefined, next: (e: AgentSpawnInput) => Promise<AgentSpawnResult>): Promise<AgentSpawnResult> {
+  const isOwnStart = (await ownPending($, event, origin))?.kind === 'master'
+  const isOwnWake = event.resume !== undefined && isWakeOnTheWay(event.resume.agentId)
+  if (isOwnStart || isOwnWake) {
+    return next(event)
+  }
+  const isModel = origin === undefined || origin === 'engine'
+  const who = event.parentAgentId ?? (isModel ? 'the main loop' : `plugin ${origin}`)
+  await fail($, { kind: 'origin-not-person', action: 'spawn of a master', origin: who })
+  return { deny: `rex master: only /rex master starts a master, got a spawn by ${who}; run /rex master <goal>` }
 }
 
 export async function ownSpawn($: EngineInterface, event: AgentSpawnInput, origin: string | undefined, isInteractive: boolean, next: (e: AgentSpawnInput) => Promise<AgentSpawnResult>): Promise<AgentSpawnResult> {

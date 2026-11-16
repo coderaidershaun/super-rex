@@ -3,32 +3,36 @@ import type { EngineInterface, ToolCallResult } from 'claude-code'
 
 import type { RexBook, RexJob, RexLevel, RexLimit, RexRating, RexRatings, RexTree } from '../../types'
 import { addPendingSpawn, closeJob, fail, jobWorktree, openJob, readBook, rebindJob, setMergeAnswer } from '../book/index'
-import { answer, callerOf, callerRefusal, defaultLimitNano, deny, runOms } from '../tools/index'
+import { addWorktree, answer, baseRef, baseStart, callerOf, callerRefusal, defaultLimitNano, deny, firstCommit, firstCommitRefusal, git, hasWorktree, removeWorktree, repoPlaces, runOms } from '../tools/index'
+import type { RepoPlaces } from '../tools/index'
 import { BUILDER_BRIEF_FILE, readPluginFile } from './agent-type'
-import { isRefused, optionalNumber, optionalObject, optionalText, optionalWord, refused, text, textList, word } from './args'
+import { field, isRefused, optionalNumber, optionalObject, optionalText, refused, text, textList, word } from './args'
 import type { Refused } from './args'
 import { builderBrief } from './brief'
 import { BUILD_TOOL } from './entries'
 import { maxJobsRefusal, rateLimitRefusal, treeLedgerRefusal } from './gates'
+import { masterMoved, wakeAfterRateLimit } from './idle'
 import { isTier, levelRank, tierRank } from './policy'
 import type { Policy, Tier } from './policy'
 import { pinnedPolicy, treeOfMaster } from './pin'
 import { realRoot } from './store'
 import { spawnOwn } from './spawn'
-import { addJobWorktree, baseOf, hasWorktree, removeJobWorktree } from './worktree'
 
 const TOOL = 'rex_build'
 const LEVELS: readonly RexLevel[] = ['low', 'medium', 'high']
 const RATINGS: readonly RexRating[] = ['low', 'medium', 'high', 'none']
 const SIZES = ['small', 'medium', 'large'] as const
+const TYPES = ['feature', 'fix', 'refactor', 'chore', 'research', 'other'] as const
 const MAX_USD = 9_000_000
 /** A tree job runs with no person to ask, which `rex oms` reads as high autonomy. */
 const TREE_PREFS: RexJob['prefs'] = { duration: null, budget: null, autonomy: 'high' }
 
 type BuildArgs = {
   readonly request: string
+  readonly type: NonNullable<RexJob['type']>
+  readonly size: NonNullable<RexJob['size']>
   readonly consequence: RexLevel
-  readonly size: RexJob['size']
+  readonly langs: readonly string[]
   readonly repo: string | null
   readonly dependsOn: readonly string[]
   readonly mergeAfter: readonly string[]
@@ -51,18 +55,29 @@ function ratingsOf(given: object | null, consequence: RexLevel): RexRatings | Re
   return { intelligence, reliability, consequence: rated, verification }
 }
 
+/** The languages the job changes, as lower-case words; a job that changes no code gives []. */
+function langsOf(event: object): readonly string[] | Refused {
+  const value = field(event, 'langs')
+  const isWordList = Array.isArray(value) && value.every((item: unknown) => typeof item === 'string' && item.trim() !== '')
+  return isWordList ? value.map(item => String(item).trim().toLowerCase()) : refused(TOOL, 'langs must be a list of languages', value, 'call it again with langs such as ["rust"], or [] for none')
+}
+
 function buildArgs(event: object): BuildArgs | Refused {
   const request = text(TOOL, event, 'request', 'call it again with the request of the job')
+  const type = word(TOOL, event, 'type', TYPES)
+  const size = word(TOOL, event, 'size', SIZES)
   const consequence = word(TOOL, event, 'consequence', LEVELS)
-  const size = optionalWord(TOOL, event, 'size', SIZES)
+  const langs = langsOf(event)
   const repo = optionalText(TOOL, event, 'repo')
   const dependsOn = textList(TOOL, event, 'depends_on')
   const mergeAfter = textList(TOOL, event, 'merge_after')
   const budgetUsd = optionalNumber(TOOL, event, 'budget_usd', MAX_USD)
   const given = optionalObject(TOOL, event, 'ratings')
   if (isRefused(request)) return request
-  if (isRefused(consequence)) return consequence
+  if (isRefused(type)) return type
   if (isRefused(size)) return size
+  if (isRefused(consequence)) return consequence
+  if (isRefused(langs)) return langs
   if (isRefused(repo)) return repo
   if (isRefused(dependsOn)) return dependsOn
   if (isRefused(mergeAfter)) return mergeAfter
@@ -70,7 +85,7 @@ function buildArgs(event: object): BuildArgs | Refused {
   if (isRefused(given)) return given
   const ratings = ratingsOf(given, consequence)
   if (isRefused(ratings)) return ratings
-  return { request, consequence, size, repo, dependsOn, mergeAfter, budgetUsd, ratings }
+  return { request, type, size, consequence, langs, repo, dependsOn, mergeAfter, budgetUsd, ratings }
 }
 
 /** The limit of a tree job: the master's budget up to `per_job_usd`, else `per_job_usd`, else the default by size. */
@@ -112,6 +127,8 @@ async function gateRefusal($: EngineInterface, book: RexBook, tree: RexTree, pol
   }
   const rate = await closedCheck($, 'rate-limit-pause', async () => rateLimitRefusal((await $.session.usage()).rateLimits, policy))
   if (rate !== null) {
+    // The refusal tells the master to end its turn; with no job open nothing else would wake it.
+    wakeAfterRateLimit($, tree, policy)
     return rate
   }
   return closedCheck($, 'max-jobs', () => Promise.resolve(maxJobsRefusal(book, tree, policy, { consequence: args.consequence, size: args.size })))
@@ -154,31 +171,40 @@ async function cancel($: EngineInterface, job: RexJob, outcome: string): Promise
 }
 
 /** Spawns the builder of a job in its worktree with the fixed brief; a restart tells it to go on from its record. */
-async function spawnBuilder($: EngineInterface, job: RexJob, tree: RexTree, agent: string, request: string, worktree: string, isRestart: boolean) {
+async function spawnBuilder($: EngineInterface, job: RexJob, tree: RexTree, agent: string, request: string, worktree: string, isRestart: boolean, places: RepoPlaces) {
   const description = `rex builder ${job.id}`
   await addPendingSpawn($, { description, kind: 'builder', tree: tree.id, job: job.id })
-  const prompt = builderBrief(await readPluginFile($, BUILDER_BRIEF_FILE), job, request, isRestart)
+  const prompt = builderBrief(await readPluginFile($, BUILDER_BRIEF_FILE), job, request, isRestart, baseRef(places))
   return spawnOwn($, { subagentType: `super-rex:${agent}`, description, prompt, cwd: worktree })
 }
 
-async function startBuilder($: EngineInterface, job: RexJob, tree: RexTree, agent: string, request: string): Promise<ToolCallResult> {
+type Started = { readonly places: RepoPlaces; readonly commit: string; readonly isStale: boolean; readonly isCommitMade: boolean }
+
+async function startBuilder($: EngineInterface, job: RexJob, tree: RexTree, agent: string, request: string, started: Started): Promise<ToolCallResult> {
   const worktree = job.worktree ?? jobWorktree(job.repo, job.id)
-  const added = await addJobWorktree($, { repo: job.repo, base: job.base, branch: job.branch, worktree })
+  const added = await addWorktree($, { repo: job.repo, branch: job.branch, worktree }, started.commit)
   if (added !== null) {
     await cancel($, job, `${added.command} failed: ${added.firstError}`)
     return deny(`${TOOL}: ${added.command} failed for job ${job.id}, got exit ${String(added.exitCode)}: ${added.firstError}; the job is cancelled, call rex_build again`)
   }
-  const spawned = await spawnBuilder($, job, tree, agent, request, worktree, false)
+  const spawned = await spawnBuilder($, job, tree, agent, request, worktree, false, started.places)
   if (spawned.deny !== undefined || spawned.agentId === undefined) {
     const reason = spawned.deny ?? 'no agent id'
     await cancel($, job, `the builder did not start: ${reason}`)
-    await removeJobWorktree($, job.repo, worktree)
+    await removeWorktree($, job.repo, worktree)
     return deny(`${TOOL}: the builder of job ${job.id} did not start, got ${reason}; the job is cancelled, call rex_build again`)
   }
-  return answer([`job=${job.id}`, `builder=${spawned.agentId}`, 'status=created', `worktree=${worktree}`])
+  const notes = [...(started.isCommitMade ? ['base_commit=made'] : []), ...(started.isStale ? ['base_stale=yes'] : [])]
+  return answer([`job=${job.id}`, `builder=${spawned.agentId}`, 'status=created', `worktree=${worktree}`, ...notes])
 }
 
 export type Restarted = { readonly agentId: string } | { readonly refused: string }
+
+/** Where a restarted builder's worktree starts: the tip of its job branch, which holds the job's work, else the base when the branch is gone too. */
+async function restartStart($: EngineInterface, places: RepoPlaces, branch: string): ReturnType<typeof baseStart> {
+  const tip = await git($, places.repo, ['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`])
+  return tip.exitCode === 0 && tip.stdout !== '' ? { kind: 'start', commit: tip.stdout, isStale: false } : baseStart($, places)
+}
 
 /**
  * A new builder for an open job of a resumed tree, whose builder died with the
@@ -196,13 +222,15 @@ export async function restartBuilder($: EngineInterface, job: RexJob, tree: RexT
     return { refused: `rex oms gave no grid agent, got ${oms.line}` }
   }
   const worktree = job.worktree ?? jobWorktree(job.repo, job.id)
+  const places = await repoPlaces($, job.repo)
   if (!(await hasWorktree($, job.repo, worktree))) {
-    const added = await addJobWorktree($, { repo: job.repo, base: job.base, branch: job.branch, worktree })
+    const start = await restartStart($, places, job.branch)
+    const added = start.kind === 'failed' ? start : await addWorktree($, { repo: job.repo, branch: job.branch, worktree }, start.commit)
     if (added !== null) {
       return { refused: `${added.command} failed, got exit ${String(added.exitCode)}: ${added.firstError}` }
     }
   }
-  const spawned = await spawnBuilder($, job, tree, cappedAgent(oms.agent, policy.tier_cap), job.request, worktree, true)
+  const spawned = await spawnBuilder($, job, tree, cappedAgent(oms.agent, policy.tier_cap), job.request, worktree, true, places)
   if (spawned.deny !== undefined || spawned.agentId === undefined) {
     return { refused: `the builder did not start, got ${spawned.deny ?? 'no agent id'}` }
   }
@@ -244,22 +272,36 @@ export async function serveBuild($: EngineInterface, event: { readonly agentId?:
   if (!oms.ok) {
     return deny(`${TOOL}: rex oms gave no grid agent, got ${oms.line}; call it again`)
   }
+  const made = await firstCommit($, repo)
+  const noCommit = firstCommitRefusal(TOOL, repo, made, 'call')
+  if (noCommit !== null) {
+    return deny(noCommit)
+  }
+  const places = await repoPlaces($, repo)
+  const start = await baseStart($, places)
+  if (start.kind === 'failed') {
+    return deny(`${TOOL}: ${start.command} failed for ${repo}, got exit ${String(start.exitCode)}: ${start.firstError}; ask the person to make sure git -C ${repo} ${start.command.slice('git '.length)} works, then call rex_build again`)
+  }
   const opened = await openJob($, {
     builder: 'pending',
     tree: tree.id,
     origin: 'master',
     request: args.request,
     repo,
-    base: await baseOf($, repo),
-    type: null,
+    base: places.base,
+    type: args.type,
     size: args.size,
     consequence: args.consequence,
-    langs: [],
+    langs: args.langs,
     prefs: TREE_PREFS,
     limit,
     dependsOn: args.dependsOn,
     mergeAfter: args.mergeAfter,
   })
   await setPolicyAnswer($, opened.job, policy, args.consequence, hash)
-  return startBuilder($, opened.job, tree, cappedAgent(oms.agent, policy.tier_cap), args.request)
+  const started = await startBuilder($, opened.job, tree, cappedAgent(oms.agent, policy.tier_cap), args.request, { places, commit: start.commit, isStale: start.isStale, isCommitMade: made.kind === 'made' })
+  if (started.deny === undefined) {
+    masterMoved(tree.id)
+  }
+  return started
 }

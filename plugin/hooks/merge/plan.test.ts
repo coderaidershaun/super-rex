@@ -13,10 +13,12 @@ function mergeYes(book: RexBook): RexBook {
   return { ...book, jobs: book.jobs.map(job => ({ ...job, merge: { answer: 'yes', source: 'dialog', question: null, policyHash: null, at: START_MS } })) }
 }
 
-/** Answers every git call of a merge as one clean squash commit over the base, and records each call. */
+/** Answers every git call of a merge as one clean squash commit over the base on origin, and records each call. */
 function cleanGit(calls: ProcessCall[]): (call: ProcessCall) => ReturnType<typeof ok> {
   return call => {
     calls.push(call)
+    if (call.argv.includes('remote')) return ok('origin\n')
+    if (call.argv.includes('for-each-ref')) return ok('refs/remotes/origin/main\n')
     if (call.argv.includes('rev-list')) return ok('1\n')
     if (call.argv.includes('rev-parse')) return ok('c1\n')
     return ok()

@@ -280,6 +280,44 @@ fn dead_section_references(bundle: &BTreeMap<PathBuf, String>) -> Vec<String> {
     dead
 }
 
+/// The step of the builder skill that starts the agents of a job.
+const RUN_STEP: &str = "plugin/skills/orchestration-builder/run.md";
+
+// An agent of a job has no name: the Agent result gives its agent ID, and the
+// mod refuses a `name`. Text that asks for a name sends the builder to look for
+// one, and a rule said twice drifts apart when one copy is changed.
+#[test]
+fn the_builder_skill_names_an_agent_by_its_agent_id_and_forbids_isolation_once() {
+    let bundle: BTreeMap<PathBuf, String> = walk()
+        .into_iter()
+        .map(|(path, bytes)| (path, String::from_utf8_lossy(bytes).into_owned()))
+        .collect();
+
+    let named: Vec<String> = bundle
+        .iter()
+        .filter(|(_, text)| {
+            text.contains("name of challenger agent") || text.contains("<challenger agent>")
+        })
+        .map(|(path, _)| path.display().to_string())
+        .collect();
+    let run = bundle
+        .get(Path::new(RUN_STEP))
+        .unwrap_or_else(|| panic!("the bundle must hold {RUN_STEP}"));
+    let isolation = run
+        .lines()
+        .filter(|line| line.contains("isolation"))
+        .count();
+
+    assert!(
+        named.is_empty(),
+        "these name an agent of a job by a name: {named:?}"
+    );
+    assert_eq!(
+        isolation, 1,
+        "{RUN_STEP} must forbid `isolation` in one line"
+    );
+}
+
 // The links, the assignment table and the section names are how one skill
 // sends an agent to another file. A name that is not there sends every task
 // that the row fits to a file it cannot read, and the agent goes on without it.

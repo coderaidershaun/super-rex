@@ -1,4 +1,4 @@
-// Proves the master's agent type: registered at session start with its procedure and fixed tools, and never offered to a model.
+// Proves the master's agent type: registered at session start with its procedure and fixed tools, which read the code and change nothing, and not offered to a model at rest.
 import { expect, test } from 'claude-code/testing'
 
 import { MASTER_TOOLS } from './agent-type'
@@ -15,6 +15,20 @@ test('no_agent_sees_master_type', async ($, on) => {
   expect(offered.isOffered).toBe(false)
   expect(other.isOffered).toBe(true)
   expect(session.registered).toEqual([{ name: 'master', prompt: PROCEDURE_TEXT, tools: MASTER_TOOLS, model: 'opus', effort: 'high' }])
-  expect(MASTER_TOOLS).toContain('ToolSearch')
-  expect(MASTER_TOOLS).not.toContain('Agent')
+  expect(MASTER_TOOLS).toEqual([
+    'Read',
+    'Glob',
+    'Grep',
+    'ToolSearch',
+    'mcp__super-rex__rex_build',
+    'mcp__super-rex__rex_status',
+    'mcp__super-rex__rex_continue',
+    'mcp__super-rex__rex_note',
+    'mcp__super-rex__rex_ask_owner',
+    'mcp__super-rex__rex_report',
+    'mcp__super-rex__rex_skill',
+  ])
+  for (const tool of ['Agent', 'Bash', 'Write', 'Edit']) {
+    expect(MASTER_TOOLS).not.toContain(tool)
+  }
 })

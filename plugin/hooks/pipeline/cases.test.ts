@@ -56,7 +56,7 @@ test('a brief part another module adds is asked with the brief context and stand
   if (job === undefined) {
     throw new Error('the seeded book holds no job')
   }
-  const ctx = { book, job, run: null, spawn: spawnInput({ subagentType: 'general-purpose' }), role: 'engineer', task: 'T2', files: [] }
+  const ctx = { book, job, run: null, spawn: spawnInput({ subagentType: 'general-purpose' }), role: 'engineer', task: 'T2', files: [], outputFile: `${job.repo}/.rex/plans/${job.id}/engineer.md` }
 
   const brief = assembled(parts.briefParts.entries(), ctx, 'Task: T2')
 

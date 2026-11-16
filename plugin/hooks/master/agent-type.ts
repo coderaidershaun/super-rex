@@ -1,4 +1,4 @@
-// The master's agent type: the procedure file as its prompt, a fixed tool list with no Agent tool, and the policy's model; no model is ever offered it.
+// The master's agent type: the procedure file as its prompt, a fixed tool list with no Agent, Bash, Write or Edit tool, and the policy's model; no model is offered it, and only the mod spawns or resumes it.
 import type { EngineInterface } from 'claude-code'
 
 import { errorText } from '../book/index'
@@ -9,15 +9,18 @@ export const MASTER_TYPE = 'super-rex:master'
 export const PROCEDURE_FILE = 'skills/orchestration-builder/master/procedure.md'
 export const BUILDER_BRIEF_FILE = 'skills/orchestration-builder/master/builder.md'
 
-/** Read reaches the builders' output files; ToolSearch loads the mod tools that wait behind it. */
+/** Read, Glob and Grep look at the code and the builders' output files, and change nothing; ToolSearch loads the mod tools that wait behind it. */
 export const MASTER_TOOLS: readonly string[] = [
   'Read',
+  'Glob',
+  'Grep',
   'ToolSearch',
   'mcp__super-rex__rex_build',
   'mcp__super-rex__rex_status',
   'mcp__super-rex__rex_continue',
   'mcp__super-rex__rex_note',
   'mcp__super-rex__rex_ask_owner',
+  'mcp__super-rex__rex_report',
   'mcp__super-rex__rex_skill',
 ]
 

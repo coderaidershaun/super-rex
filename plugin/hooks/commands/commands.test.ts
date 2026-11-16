@@ -1,8 +1,9 @@
-// Proves the /rex router: its sub-commands, the authority check on the person's own typing, and the calls to the binary against their shared files.
+// Proves the /rex router: its sub-commands, the outline of /rex tree and the tree's lines of /rex status, the authority check on the person's own typing, and the calls to the binary against their shared files.
 import { expect, test } from 'claude-code/testing'
 import type { CommandRunInput, PromptOrigin } from 'claude-code'
 
-import { CONFIG_ON, PLUGIN_VERSION, ROOT, world } from '../book/kit'
+import { CONFIG_ON, PLUGIN_VERSION, ROOT, SESSION, START_MS, world } from '../book/kit'
+import { liveBook, WRITTEN_AT } from '../live/live-book.fixture'
 import { sharedJson } from '../book/shared'
 import { createParts } from '../parts'
 import { rexLine, unknownLine } from './index'
@@ -37,7 +38,7 @@ test('an unknown sub-command names the ones there are', async ($, on) => {
   await $.session.start(START)
   const answered = await $.command.run(rex('nope now'))
 
-  expect(answered.text).toBe('rex: no sub-command nope; one of watch, status, jobs, doctor, prompts, limit, master, policy, answer')
+  expect(answered.text).toBe('rex: no sub-command nope; one of watch, status, tree, jobs, doctor, prompts, limit, master, policy, answer')
 })
 
 test('prompts sets the mode from the person and refuses any other origin', async ($, on) => {
@@ -109,5 +110,44 @@ test('a sub-command from another module answers its own name, and the router lis
 
   expect(answered.text).toBe('probe says hi there')
   expect(refused.text).toBe('rex probe: only your own typing may run this, got origin sdk')
-  expect(unknown.text).toBe('rex: no sub-command nope; one of watch, status, jobs, doctor, prompts, probe')
+  expect(unknown.text).toBe('rex: no sub-command nope; one of watch, status, tree, jobs, doctor, prompts, probe')
+})
+
+test('tree prints the outline of the session with tree guides, each node by its level, each line cut to the terminal', async ($, on) => {
+  world(on, { seed: liveBook(SESSION, START_MS - WRITTEN_AT) })
+
+  await $.session.start(START)
+  const wide = await $.command.run({ ...rex('tree'), presentation: { isFullscreen: false, columns: 200 } })
+  const narrow = await $.command.run(rex('tree'))
+
+  expect(wide.text?.split('\n')).toEqual([
+    '? session 00000000 · storage off · 1 question waits · 1 master tree · 2 jobs, 1 open · 2 agents open, 3 done · $5.45',
+    '├─ ? master t0geh4lh3i · running · 1 question waits · 0/1 jobs delivered · 2 agents open, 2 done · $3.65 of $150.00 · 7m · Build a hello world app and a goodbye world app.',
+    '│  └─ ? builder 0geh5fafkb · planned · 1 question waits · 2 agents open, 2 done · $3.25 of $28.00 · 6m · Build two small command-line apps, hello and goodbye, in th…',
+    '│     ├─ ✓ lead decision-maker · done (answer) · $0.70 · 1m',
+    '│     └─ ● lead engineer-lead · open · 1 agent open, 1 done · $0.60 · 3m',
+    '│        └─ ● worker engineer T1 · open · 1 agent done · $0.45 · 3m',
+    '│           └─ ✓ helper model-low-effort-low · done (answer) · $0.10 · 41s',
+    '└─ ✓ builder 0gegkccde2 · delivered · 1 agent done · $1.80 of $28.00 · 6m · please build a hello world app',
+    '   └─ ✓ lead engineer T1 · done (answer) · $0.20 · 44s',
+    '',
+  ])
+  expect(narrow.text?.split('\n').every(line => line.length <= 120 - 16)).toBe(true)
+})
+
+test('status with no job says in plain lines what the live tree runs, where, and what waits on the person; a job named answers for that job', async ($, on) => {
+  world(on, { seed: liveBook(SESSION, START_MS - WRITTEN_AT) })
+
+  await $.session.start(START)
+  const tree = await $.command.run(rex('status'))
+  const job = await $.command.run(rex('status 0gegkccde2'))
+
+  expect(tree.text?.split('\n')).toEqual([
+    'rex master t0geh4lh3i running · 0/1 delivered · 2 agents open, deepest worker · $3.65/$150.00',
+    '  builder 0geh5fafkb planned · leads engineer-lead · 1 worker open · $3.25/$28.00',
+    '    in /home/ana/code/shop.worktrees/0geh5fafkb',
+    '? q1-553d90ce69d1: Merge job 0geh5fafkb (rex/0geh5fafkb) to main of /home/ana/code/shop? · recommended Merge · /rex answer q1-553d90ce69d1 <1-2>',
+    '',
+  ])
+  expect(job.text?.split('\n')[0]).toBe('job=0gegkccde2')
 })

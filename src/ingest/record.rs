@@ -1,12 +1,12 @@
-//! The events of a batch that are not about one job's row: a session's start,
+//! The events of a batch that are not about one job's row: a session's transcript,
 //! sub-agent runs, skill files opened, questions to the person, and master trees.
 
 use rusqlite::{OptionalExtension, params};
 
 use super::batch::Event;
 use super::data::{
-    QuestionAnswer, QuestionAsk, RunEnd, RunMark, RunStart, SessionStart, SkillOpen, TreeClose,
-    TreeLink, TreeOpen,
+    QuestionAnswer, QuestionAsk, RunEnd, RunMark, RunStart, SessionTranscript, SkillOpen,
+    TreeClose, TreeLink, TreeOpen,
 };
 use super::job::{comma_list, fits};
 use super::{Apply, IngestError};
@@ -16,10 +16,9 @@ use crate::store::integer::signed;
 
 impl Apply<'_> {
     /// Keeps the session's main transcript, which the cost of record is read from.
-    pub(super) fn session_start(&self, data: &SessionStart) -> Result<(), IngestError> {
-        if let Some(path) = &data.transcript_path {
-            remember_main_transcript(self.tx, self.session, path).map_err(StoreError::from)?;
-        }
+    pub(super) fn session_transcript(&self, data: &SessionTranscript) -> Result<(), IngestError> {
+        remember_main_transcript(self.tx, self.session, &data.transcript_path)
+            .map_err(StoreError::from)?;
         Ok(())
     }
 

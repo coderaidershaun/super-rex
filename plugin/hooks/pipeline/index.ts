@@ -28,6 +28,13 @@ type Decision = { readonly kind: 'pass' } | { readonly kind: 'deny'; readonly te
 
 const PLUGIN_PREFIX = 'super-rex:'
 
+/**
+ * Report files chosen for a spawn whose run the book does not hold yet. Two
+ * spawns of one role in one tick read the same book, so without this both
+ * would get `<role>.md`. A reload loses only the spawns in flight at it.
+ */
+const pendingFiles = new Set<string>()
+
 async function decide($: EngineInterface, event: AgentSpawnInput, origin: string | undefined, parts: Table<BriefPart>): Promise<Decision> {
   const book = await readBook($)
   const job = jobOfLoop(book, event.parentAgentId)
@@ -48,14 +55,13 @@ async function decide($: EngineInterface, event: AgentSpawnInput, origin: string
   }
   const role = roleFor(book, job, task, event.subagentType, event.parentAgentId)
   const files = await briefFiles($, job, task, role, event.subagentType)
-  const outputFile = outputFileOf(book, job, role)
-  const ctx: BriefContext = { book, job, run: null, spawn: event, role, task, files }
+  const outputFile = outputFileOf(book, job, role, pendingFiles)
+  const ctx: BriefContext = { book, job, run: null, spawn: event, role, task, files, outputFile }
   const grid = gridOf(event.subagentType)
   const planned = grid === null ? null : event.subagentType.replace(PLUGIN_PREFIX, '')
-  return {
-    kind: 'assemble',
-    assembly: { prompt: assembled(parts.entries(), ctx, event.prompt), job, task, planned, lint: findings.length > 0 ? 'passed-marked' : 'pass', findings, files, outputFile },
-  }
+  const prompt = assembled(parts.entries(), ctx, event.prompt)
+  pendingFiles.add(outputFile)
+  return { kind: 'assemble', assembly: { prompt, job, task, planned, lint: findings.length > 0 ? 'passed-marked' : 'pass', findings, files, outputFile } }
 }
 
 async function recordAssembly($: EngineInterface, event: AgentSpawnInput, agentId: string, assembly: Assembly): Promise<void> {
@@ -88,11 +94,15 @@ async function assembleAtSpawn($: EngineInterface, event: AgentSpawnInput, origi
     case 'deny':
       return { deny: decision.text }
     case 'assemble': {
-      const result = await next({ ...event, prompt: decision.assembly.prompt })
-      if (result.agentId !== undefined) {
-        await recordAssembly($, event, result.agentId, decision.assembly)
+      try {
+        const result = await next({ ...event, prompt: decision.assembly.prompt })
+        if (result.agentId !== undefined) {
+          await recordAssembly($, event, result.agentId, decision.assembly)
+        }
+        return result
+      } finally {
+        pendingFiles.delete(decision.assembly.outputFile)
       }
-      return result
     }
     default:
       return assertNoDecision(decision)
@@ -115,11 +125,12 @@ async function lateAssembly($: EngineInterface, agentId: string | undefined, par
   }
   const facts = lateFacts(run)
   const files = await briefFiles($, job, facts.task, facts.role, facts.agentType)
-  const ctx: BriefContext = { book, job, run, spawn: null, role: facts.role, task: facts.task, files }
+  const outputFile = run.outputFile ?? outputFileOf(book, job, facts.role, pendingFiles)
+  const ctx: BriefContext = { book, job, run, spawn: null, role: facts.role, task: facts.task, files, outputFile }
   const text = assembled(parts.entries().filter(part => LATE_PARTS.has(part.name)), ctx, null)
   await startRun($, { agentId: run.agentId, toolUseId: run.toolUseId, parentAgentId: null, agentType: run.agentType, description: '', isOwnSpawn: false, assembled: 'late' })
   if (run.outputFile === null) {
-    await setRunOutput($, run.agentId, outputFileOf(book, job, facts.role))
+    await setRunOutput($, run.agentId, outputFile)
   }
   return { result: `assembly=late\n\n${text}` }
 }

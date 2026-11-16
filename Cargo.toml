@@ -1,12 +1,12 @@
 [package]
 name = "super-rex"
-version = "0.8.2"
+version = "0.9.0"
 edition = "2024"
 # `rusqlite` asks for 1.89, the highest of any package in the build. No lower
 # version would compile it.
 rust-version = "1.89"
 authors = ["Shaun McDonogh"]
-description = "Skills that plan and run a job with Claude Code sub-agents, plus a CLI that sets a repo up, picks a model for each role and records what ran"
+description = "Skills and a Claude Code mod that plan and run jobs with sub-agents, plus a CLI that sets a repo up, picks a model for each role, records what ran and watches a run live"
 license = "MIT"
 repository = "https://github.com/coderaidershaun/super-rex"
 readme = "README.md"

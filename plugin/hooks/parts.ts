@@ -3,6 +3,7 @@
 import type { AgentSpawnInput, Elements } from 'claude-code'
 
 import type { RexBook, RexJob, RexRun, RexSkillSource } from '../types'
+import type { OutlineNode } from './pane/outline'
 
 export type CallerKind = 'main' | 'builder' | 'master' | 'agent'
 
@@ -53,6 +54,10 @@ export type PaneElements = Pick<Elements['terminal'], 'Box' | 'Text' | 'Button'>
 /** What a pane view may make happen; the pane builds each closure, so the view never holds `$`. */
 export type PaneActions = {
   readonly answer: (question: string, option: string) => void
+  /** Puts the node with this outline id in view, at the first page of its rows. */
+  readonly go: (node: string) => void
+  /** Shows this page of the rows of the node in view. */
+  readonly turn: (page: number) => void
 }
 
 export type PaneViewContext = {
@@ -60,6 +65,12 @@ export type PaneViewContext = {
   readonly book: RexBook
   readonly columns: number
   readonly actions: PaneActions
+  /** The outline id of the node in view, kept in the session's state so a redraw keeps the place. */
+  readonly at: string
+  /** The page of the node's rows in view: the digits reach nine rows at a time. */
+  readonly page: number
+  /** The book as one tree, made once for the whole drawing so every view agrees. */
+  readonly outline: OutlineNode
 }
 
 export type PaneView = {
@@ -99,6 +110,8 @@ export type BriefContext = {
   readonly role: string | null
   readonly task: string | null
   readonly files: readonly BriefFile[]
+  /** The file the agent writes its report to, chosen once before the parts are asked. */
+  readonly outputFile: string
 }
 
 /** One part of an assembled brief; the author's own text stands at order 30. */

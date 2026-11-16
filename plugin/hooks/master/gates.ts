@@ -18,12 +18,16 @@ export function treeSpentNano(book: RexBook, tree: RexTree): number {
 
 export function treeLedgerRefusal(book: RexBook, tree: RexTree): string | null {
   const spent = treeSpentNano(book, tree)
-  return spent >= tree.capNano ? `rex gate: master tree ${tree.id} has spent $${usd(spent)} of its $${usd(tree.capNano)}` : null
+  return spent >= tree.capNano
+    ? `rex gate: master tree ${tree.id} has spent $${usd(spent)} of its $${usd(tree.capNano)}; park a spend question for the person with rex_ask_owner, and end your turn`
+    : null
 }
 
 export function rateLimitRefusal(limits: readonly SessionRateLimit[], policy: Policy): string | null {
   const over = limits.find(limit => limit.percentUsed >= policy.pause_at_rate_limit_pct)
-  return over === undefined ? null : `rex gate: plan usage at ${String(over.percentUsed)}% (${over.kind}); new builders wait until it falls`
+  return over === undefined
+    ? null
+    : `rex gate: plan usage at ${String(over.percentUsed)}% (${over.kind}); new builders wait until it falls; end your turn, and the mod wakes you in ${String(policy.retry.then_minutes)} minutes`
 }
 
 export type NewJob = { readonly consequence: RexLevel; readonly size: RexJob['size'] }

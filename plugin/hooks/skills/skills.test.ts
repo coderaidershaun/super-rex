@@ -58,6 +58,26 @@ test('resolver order and worktree rule: main checkout, then the job worktree for
   expect(lineOf(shared, 'hash')).toBe(await hashText('main copy\n'))
 })
 
+test('a file named from the skill name on is that file of the skill, and a file the skill lacks is refused with the files it holds', async ($, on) => {
+  files(on, {
+    'plugin:skills/rex-deliver/SKILL.md': 'deliver\n',
+    'plugin:skills/rex-deliver/parallel-writers.md': 'writers\n',
+    'plugin:skills/orchestration-builder/SKILL.md': 'builder\n',
+    'plugin:skills/orchestration-builder/run.md': 'run\n',
+    'plugin:skills/orchestration-builder/stages/2-work-breakdown/stage.md': 'stage\n',
+  })
+  world(on)
+  await $.session.start(START)
+
+  const named = await $.tool.call({ tool: 'mcp__super-rex__rex_skill', name: 'rex-deliver', file: 'rex-deliver/parallel-writers.md' })
+  const climbs = await $.tool.call({ tool: 'mcp__super-rex__rex_skill', name: 'rex-deliver', file: 'rex-deliver/../../etc/passwd.md' })
+  const lacking = await $.tool.call({ tool: 'mcp__super-rex__rex_skill', name: 'orchestration-builder', file: 'stages/2-work/stage.md' })
+
+  expect([lineOf(named, 'file'), resultText(named).split('\n\n')[1]]).toEqual(['parallel-writers.md', 'writers\n'])
+  expect(climbs.deny).toMatch(/^rex_skill: file must be a relative \.md path inside the skill, with no \.\., got rex-deliver\/rex-deliver\/\.\.\/\.\.\/etc\/passwd\.md;/)
+  expect(lacking.deny).toBe('rex_skill: no skill orchestration-builder holds stages/2-work/stage.md, got orchestration-builder/stages/2-work/stage.md; call it again with a file of orchestration-builder: SKILL.md, run.md, stages/2-work-breakdown/stage.md')
+})
+
 test('a skill file hash is sha256 of its bytes, as the shared hash vectors write it', async ($, on) => {
   const vectors = jsonField(sharedJson('fixtures/shared/hashes/vectors.json'), 'files')
   const list: readonly unknown[] = Array.isArray(vectors) ? vectors : []

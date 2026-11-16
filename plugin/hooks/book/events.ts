@@ -33,6 +33,7 @@ export function emptyBook(): RexBook {
     questions: [],
     trees: [],
     pendingSpawns: [],
+    transcript: null,
     ingest: null,
   }
 }
@@ -142,25 +143,6 @@ export function acked(book: RexBook, lastSequence: number): RexBook {
   const queue = ingest.queue.filter(event => event.seq > lastSequence)
   const nextSequence = Math.max(ingest.nextSequence, lastSequence + 1)
   return { ...book, ingest: { ...settled, acked: Math.max(ingest.acked, lastSequence), queue, nextSequence } }
-}
-
-/**
- * Puts the session's transcript path into its waiting `session.start` event.
- * SMELL: a sent event changed and sent again is a conflict that stops ingest.
- * Only this one event is changed, and only before the first event batch has
- * been answered; the classic SessionStart that gives the path comes at start.
- */
-export function withTranscript(book: RexBook, path: string): RexBook {
-  const ingest = book.ingest
-  if (ingest === null || ingest.acked > 0) {
-    return book
-  }
-  const queue = ingest.queue.map(event =>
-    event.kind === 'session.start' && !('transcript_path' in event.data)
-      ? { ...event, data: { ...event.data, transcript_path: path } }
-      : event,
-  )
-  return { ...book, ingest: { ...ingest, queue } }
 }
 
 export function tokensPlus(sum: RexTokens, add: RexTokens): RexTokens {

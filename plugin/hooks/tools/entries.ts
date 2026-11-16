@@ -16,7 +16,7 @@ export const STATUS_TOOL: ToolEntry = {
 export const JOB_OPEN_TOOL: ToolEntry = {
   name: 'rex_job_open',
   description:
-    "Opens the job of this /orchestration-builder request, or returns the one you already own. Answers its id, merge answer, limit, repo, branch, base and worktree. The merge answer comes from the person, never from an argument.",
+    "Opens the job of this /orchestration-builder request, or returns the one you already own. Makes the job's worktree on its job branch from the base. Answers its id, merge answer, limit, repo, branch, base, remote (origin or none), uncommitted (paths in the main checkout the job does not see) and worktree. In a repo with no commit it makes the first commit and answers base_commit=made; base_stale=yes when origin could not be fetched. The merge answer comes from the person, never from an argument.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -84,7 +84,7 @@ export const JOB_PLAN_TOOL: ToolEntry = {
 export const JOB_CLOSE_TOOL: ToolEntry = {
   name: 'rex_job_close',
   description:
-    'Records the outcome of your job and answers its close report: spend, runs, skills missed or extra, long final messages. A delivery marked merged needs a merge by rex_merge. Safe to repeat.',
+    'Records the outcome of your job and answers its close report: spend, runs, skills missed or extra, long final messages. Then removes each worktree and branch of the job whose work is safe, and answers a removed. or kept. line for each. A delivery marked merged needs a merge by rex_merge. Safe to repeat.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -113,4 +113,13 @@ export const JOB_CLOSE_TOOL: ToolEntry = {
   callers: ['builder'],
 }
 
-export const OWN_TOOLS: readonly ToolEntry[] = [STATUS_TOOL, JOB_OPEN_TOOL, RECALL_TOOL, JOB_PLAN_TOOL, JOB_CLOSE_TOOL]
+export const WORKTREE_TOOL: ToolEntry = {
+  name: 'rex_worktree',
+  description:
+    'Makes the worktree of one unit of parallel work in your job, on the branch <job branch>--<unit> from the tip of the job branch, and lists it for the sandbox. Answers worktree, branch and start (the commit). A second call for the same unit answers the same lines with existing=yes.',
+  inputSchema: { type: 'object', properties: { unit: { type: 'string', description: 'One to three lower-case words joined by hyphens, such as parser or api-client.' } }, required: ['unit'] },
+  isDeferred: true,
+  callers: ['builder', 'agent'],
+}
+
+export const OWN_TOOLS: readonly ToolEntry[] = [STATUS_TOOL, JOB_OPEN_TOOL, RECALL_TOOL, JOB_PLAN_TOOL, JOB_CLOSE_TOOL, WORKTREE_TOOL]

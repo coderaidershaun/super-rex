@@ -71,7 +71,7 @@ impl Fixture {
         JobBuilder {
             fixture: self,
             id: id.to_owned(),
-            class: ["feature", "small", "low", "rust"].map(str::to_owned),
+            class: ["feature", "small", "low", "rust"].map(|field| Some(field.to_owned())),
             status: "created".to_owned(),
             orchestrator: None,
             experience_recalled: None,
@@ -190,7 +190,7 @@ impl Fixture {
 pub struct JobBuilder<'a> {
     fixture: &'a Fixture,
     id: String,
-    class: [String; 4],
+    class: [Option<String>; 4],
     status: String,
     orchestrator: Option<(String, i64)>,
     experience_recalled: Option<String>,
@@ -207,8 +207,28 @@ impl JobBuilder<'_> {
         consequence: &str,
         languages: &str,
     ) -> Self {
-        self.class = [work_type, size, consequence, languages].map(str::to_owned);
+        self.class = [work_type, size, consequence, languages].map(|field| Some(field.to_owned()));
         self
+    }
+
+    /// Work type, size and consequence, each `None` when the job was stored
+    /// without it, and languages, `none` when none were listed.
+    pub fn partly_classified(
+        mut self,
+        work_type: Option<&str>,
+        size: Option<&str>,
+        consequence: Option<&str>,
+        languages: &str,
+    ) -> Self {
+        self.class =
+            [work_type, size, consequence, Some(languages)].map(|field| field.map(str::to_owned));
+        self
+    }
+
+    /// No work type, size or consequence, and languages `none`, as a job a
+    /// master opened without a classification is stored.
+    pub fn unclassified(self) -> Self {
+        self.partly_classified(None, None, None, "none")
     }
 
     pub fn request(mut self, text: &str) -> Self {

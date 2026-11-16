@@ -57,11 +57,9 @@ export function noteIn(book: RexBook, treeId: string, note: RexTreeNote, at: num
   return queued(noted, at, 'tree.note', tree.master ?? 'main', note.job, { tree: treeId, text: note.text })
 }
 
-/** Keeps the last few ticks of each job only: the watchdog compares the newest ones. */
-const TICKS_KEPT = 50
-
+/** Keeps one tick for each job, the last the watchdog stamped, so it counts the quiet ticks since then from the time alone. */
 export function tickIn(book: RexBook, treeId: string, tick: RexTreeTick): RexBook {
-  return replaceTree(book, treeId, old => ({ ...old, ticks: [...old.ticks, tick].slice(-TICKS_KEPT) }))
+  return replaceTree(book, treeId, old => ({ ...old, ticks: [...old.ticks.filter(each => each.job !== tick.job), tick] }))
 }
 
 /** `running` and `paused` change a live tree; `done`, `blocked` and `lost` close it. */

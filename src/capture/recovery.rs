@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::error::CaptureError;
+use super::place::main_transcript;
 use super::rows::{self, RecoveredRun};
 use super::transcripts::text_at;
 use crate::store::Store;
@@ -102,7 +103,7 @@ pub(super) fn read_metadata(path: &Path) -> io::Result<Option<Metadata>> {
 /// be read is reported in [`Recovery::has_unreadable_file`], not as an error.
 pub(super) fn recover(store: &mut Store, session_id: &str) -> Result<Recovery, CaptureError> {
     let mut recovery = Recovery::default();
-    let Some(main) = rows::session_transcript(store.conn(), session_id)? else {
+    let Some(main) = main_transcript(store.conn(), session_id)? else {
         return Ok(recovery);
     };
     let Some(folder) = subagents_folder(Path::new(&main), session_id) else {

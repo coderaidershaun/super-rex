@@ -13,14 +13,13 @@ Done condition. IF one is false, THEN it is not END yet.
 1. IF `git -C "$JOB_DIR" rev-list --count "$START_COMMIT..$BRANCH"` prints `0`, THEN repo has no delivery. `WORK_TIP="$START_COMMIT"`. Go to End 3: read `rex-deliver/clean-up.md`. Give no delivery object.
 2. Merge main in: obey `## Merge main in`.
 3. IF `MERGE` = `no`, OR repo is not job repo, THEN go to `## No merge`.
-4. IF mode = `local`, THEN `rex_merge` cannot merge: it pushes to `origin` only. Go to `## No merge`. Outcome = `kept-local`. Note: "Repo has no remote, so rex_merge cannot merge it. Branch <BRANCH> holds the work. A person merges it."
-5. ELSE go to `## End 2 — squash + merge`.
+4. ELSE go to `## End 2 — squash + merge`. Mode `local` too: `rex_merge` fast-forwards local main.
 
 ## Merge main in
 
 End 1 step 2 does this step. Each round of End 2 does it too, before squash.
 
-Mode ≠ `local`: `git -C "$JOB_DIR" fetch origin "$MAIN"`. IF `origin/$MAIN` is not ancestor of job branch, THEN `git -C "$JOB_DIR" merge --no-edit "origin/$MAIN"`. Mode `local`: merge `"$MAIN"`. Never a rebase of a pushed commit, never a force-push. Resolve conflicts on job branch, run `CHECKS` again, push. Nobody reviews, so tree on main must be tested tree.
+Mode ≠ `local`: first `git -C "$JOB_DIR" fetch origin "$MAIN"`. Every mode: IF `$BASE_REF` is not ancestor of job branch, THEN `git -C "$JOB_DIR" merge --no-edit "$BASE_REF"`. Never a rebase of a pushed commit, never a force-push. Resolve conflicts on job branch, run `CHECKS` again, push. Nobody reviews, so tree on main must be tested tree.
 
 ## No merge
 
@@ -40,12 +39,12 @@ EOF
 2. `gh pr create` prints pull request URL. Outcome = `pr-open`, `pr` = that URL.
 3. Mode `push-only`: push job branch. Outcome = `kept-local`. Mode `local`: outcome = `kept-local`.
 - [ ] Do not wait for checks. Person who merges sees them on pull request.
-- [ ] Remove nothing.
+- [ ] Remove nothing yourself. Mod keeps each branch with work at `rex_job_close`.
 - [ ] Note examples: "Pull request <url> waits for a person to merge it." "Branch <b> is kept and is not merged."
 
 ## End 2 — squash + merge
 
-Only IF `MERGE` = `yes`, repo = job repo, AND mode ≠ `local`.
+Only IF `MERGE` = `yes` AND repo = job repo. Every mode.
 
 CAUTION: A merge changes main, and it can start a deployment. Call `rex_merge` only when `MERGE` is `yes`.
 ```
@@ -55,11 +54,11 @@ IF not merged after 3 rounds, THEN outcome = `blocked`.
 
 1. Merge main in (`## Merge main in`). `CHECKS` pass in `JOB_DIR`.
 2. Keep work: `WORK_TIP=$(git -C "$JOB_DIR" rev-parse "$BRANCH")`, then `git -C "$JOB_DIR" branch -f "$BRANCH--work" "$WORK_TIP"`.
-3. Make squash commit. `git reset --soft` moves job branch to `origin/$MAIN` and keeps each file and the index as they are.
+3. Make squash commit. `git reset --soft` moves job branch to `$BASE_REF` and keeps each file and the index as they are.
 
 CAUTION: Run `git reset --soft` only with `-C "$JOB_DIR"`, never in the main checkout. Branch `$BRANCH--work` keeps the work.
 ```sh
-git -C "$JOB_DIR" reset --soft "origin/$MAIN"
+git -C "$JOB_DIR" reset --soft "$BASE_REF"
 git -C "$JOB_DIR" commit -F - <<'EOF'
 <TITLE>
 
@@ -71,15 +70,16 @@ git -C "$JOB_DIR" diff --quiet "$WORK_TIP" "$BRANCH"   # exit 0: squash holds al
 ```
    - IF commit is refused (for example a hook fails), THEN correct cause, `git add`, commit again. IF not possible, THEN outcome = `blocked`. Note: "The squash of <branch> is staged in <JOB_DIR> and is not committed. Branch <BRANCH>--work holds the work."
    - IF `diff --quiet` fails, THEN squash lost work: outcome = `blocked`. Note gives `$BRANCH--work`.
-4. Call `rex_merge` with no arguments. Mod checks job, merge answer, squash, and policy, then pushes squash commit to main.
+4. Call `rex_merge` with no arguments. Mod checks job, merge answer, squash, and policy. Then it pushes squash commit to main on `origin`, or in mode `local` fast-forwards local main to it.
 
 | Result | Do |
 | --- | --- |
 | `merged=yes`, `merge_commit`, `base`, `branch` | Keep `merge_commit`. Go to End 3: read `rex-deliver/clean-up.md`. |
 | `merged=no`, `question=<id>` | A person must answer first. See below. |
-| refused: `must be one squash commit over origin/<base>` | Do step 3 again on current tip. Same round. |
-| refused: `origin/<base> moved` | `git -C "$JOB_DIR" fetch origin "$MAIN"`, then `git -C "$JOB_DIR" rebase "origin/$MAIN"`: squash commit is not pushed. Resolve each conflict, run `CHECKS`. Next round. |
+| refused: `must be one squash commit over <BASE_REF>` | Do step 3 again on current tip. Same round. |
+| refused: `<BASE_REF> moved` | Mode ≠ `local`: `git -C "$JOB_DIR" fetch origin "$MAIN"`. Then `git -C "$JOB_DIR" rebase "$BASE_REF"`: squash commit is not pushed. Resolve each conflict, run `CHECKS`. Next round. |
 | refused: `a merge of <repo> runs now` | Next round. |
+| refused: `fast-forward of <base> in <dir> failed` | Main checkout holds changes that merge overwrites. Never touch them. Tell requester in one line: commit or remove them in `<dir>`. After answer, next round. Master started you: end turn with state `awaiting decision`. |
 | refused: `push to origin/<base> failed` | IF error says main is protected or needs a review, THEN go to `## No merge`. Note: "Main of <repo> takes no direct push, so rex_merge cannot merge it. A person merges branch <BRANCH>--work." ELSE fetch, rebase as above, next round. |
 | refused: `has no merge answer` | Ask merge question (step 4 of `orchestration-builder/SKILL.md`). Then call again. |
 | refused: `has no plan` | Record plan with `rex_job_plan` (step 7 of `orchestration-builder/SKILL.md`). Then call again. |
@@ -98,17 +98,17 @@ At end of END, give one delivery object per repo that has a delivery:
 {"repo": "<REPO_DIR>", "branch": "<job branch>", "pr": "<url>", "outcome": "merged" | "pr-open" | "kept-local" | "blocked", "merge_commit": "<full hash>", "note": "<one line>"}
 ```
 
-| `outcome` | Meaning | Removed |
+| `outcome` | Meaning | Mod removes at `rex_job_close` |
 | --- | --- | --- |
-| `merged` | `rex_merge` gave `merged=yes`: one squash commit on main. | Each branch + worktree of job that passed guard |
-| `pr-open` | No merge. Pull request is open for a person. | Nothing |
-| `kept-local` | No merge, and no pull request. Job branch kept. IF repo has remote, THEN branch is pushed. | Nothing |
-| `blocked` | Merge agreed, but not complete. Job branch, `$BRANCH--work`, and pull request kept. | Nothing |
+| `merged` | `rex_merge` gave `merged=yes`: one squash commit on main. | Each worktree of job with no uncommitted file. Each branch of job that passed guard. |
+| `pr-open` | No merge. Pull request is open for a person. | Each worktree of job with no uncommitted file. Each branch with no commit of its own. |
+| `kept-local` | No merge, and no pull request. Job branch kept. IF mode ≠ `local`, THEN branch is pushed. | Same as `pr-open`. |
+| `blocked` | Merge agreed, but not complete. Job branch, `$BRANCH--work`, and pull request kept. | Same as `pr-open`. |
 
 - [ ] Leave out a key that has no value. Never the word `none`.
 - [ ] `merged` needs `merge_commit` of `rex_merge`. Mod refuses `merged` for a merge that `rex_merge` did not do.
 - [ ] `pr-open` needs `pr`.
-- [ ] `note`: one line, what remains to do. Required for each outcome except `merged`. For `merged`: leave out, unless clean-up kept something (then: what, and why).
+- [ ] `note`: one line, what remains to do. Required for each outcome except `merged`. For `merged`: leave out. `rex_job_close` gives each item that clean-up kept.
 - [ ] Never give `failed` or `cancelled`. Those are builder's call about work.
 
 Give each object to builder. Builder puts objects of all repos in one list, picks `status` + `outcome`, and calls `rex_job_close`:

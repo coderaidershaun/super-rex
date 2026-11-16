@@ -1,4 +1,4 @@
-// The gate's pure decisions: which job a new agent charges, whether its job is over its limit, whether a spawn is the mod's own, how deep it would run, and whether a shell command merges.
+// The gate's pure decisions: which job a new agent charges, whether its job is over its limit, whether a spawn is the mod's own, how deep it would run, whether it starts as a sub-agent of its job, and whether a shell command merges.
 import type { AgentSpawnInput } from 'claude-code'
 
 import type { RexBook, RexJob, RexRun } from '../../types'
@@ -94,6 +94,48 @@ export function forkRefusal(book: RexBook, job: RexJob, parentAgentId: string | 
   const parent = parentAgentId === undefined ? undefined : book.runs.find(run => run.agentId === parentAgentId)
   const planned = job.plan?.roles.find(role => role.role === parent?.role)?.gridAgent ?? parent?.planned ?? 'model-high-effort-high'
   return `rex: a fork cannot change model; start a grid agent instead, subagent_type super-rex:${planned}`
+}
+
+/**
+ * The Agent arguments that would take a new agent out of its job, each with
+ * what to do instead: a name makes it a teammate, which the mod neither
+ * records nor briefs, and the others override its grid agent or its place.
+ */
+const JOB_AGENT_ARGS: ReadonlyMap<string, string> = new Map([
+  ['name', 'address it by the agent id in the result'],
+  ['team_name', 'address it by the agent id in the result'],
+  ['model', 'let the grid agent of subagent_type set its model'],
+  ['effort', 'let the grid agent of subagent_type set its effort'],
+  ['mode', 'let it run in the permission mode of the job'],
+  ['isolation', 'let it work where the brief says'],
+  ['cwd', 'let it work where the brief says'],
+])
+
+export type AgentArg = { readonly argument: string; readonly value: string }
+
+/** The first argument of an Agent call that an agent of a job may not give, with its value as text. */
+export function refusedAgentArg(call: object): AgentArg | undefined {
+  for (const argument of JOB_AGENT_ARGS.keys()) {
+    const value: unknown = Reflect.get(call, argument)
+    if (value !== undefined) {
+      return { argument, value: typeof value === 'string' ? value : JSON.stringify(value) }
+    }
+  }
+  return undefined
+}
+
+export function agentArgRefusal(seen: AgentArg): string {
+  const instead = JOB_AGENT_ARGS.get(seen.argument) ?? ''
+  return `rex gate: an agent of a job starts with subagent_type, description and prompt only, got ${seen.argument}=${seen.value.slice(0, 80)}; start it again without ${seen.argument}, and ${instead}`
+}
+
+/** The refusal of a spawn inside a job that is no sub-agent of the Agent tool: a teammate or a workflow's agent, which the mod neither records nor briefs. */
+export function agentKindRefusal(event: AgentSpawnInput): string | null {
+  const kind = event.isTeammate === true ? 'a teammate' : event.workflow === undefined ? null : `an agent of workflow run ${event.workflow.runId}`
+  if (kind === null) {
+    return null
+  }
+  return `rex gate: an agent of a job starts as a sub-agent of the Agent tool, got ${kind}; start it with the Agent tool and subagent_type, description and prompt only`
 }
 
 /** Where one command of a line ends and the next begins, command substitution included. */
@@ -193,8 +235,8 @@ function commandWords(words: readonly string[]): readonly string[] {
   }
 }
 
-/** The arguments of `git ... push`, past git's own options such as `-C <dir>`; null when the words are no git push. */
-function pushArgs(words: readonly string[]): readonly string[] | null {
+/** The arguments of `git ... <sub>`, past git's own options such as `-C <dir>`; null when the words are no git `sub`. */
+function gitArgs(words: readonly string[], sub: string): readonly string[] | null {
   if (words[0] !== 'git') {
     return null
   }
@@ -202,7 +244,7 @@ function pushArgs(words: readonly string[]): readonly string[] | null {
   while (index < words.length && (words[index] ?? '').startsWith('-')) {
     index += GIT_VALUES.has(words[index] ?? '') ? 2 : 1
   }
-  return words[index] === 'push' ? words.slice(index + 1) : null
+  return words[index] === sub ? words.slice(index + 1) : null
 }
 
 /**
@@ -250,11 +292,41 @@ function pushMayReachBase(args: readonly string[], base: string): boolean {
 const API_MERGE = /\/pulls\/[^/\s]+\/merge\b|\/repos\/[^/\s]+\/[^/\s]+\/merges\b/
 const GRAPHQL_MERGE = /\bmerge(?:PullRequest|Branch)\b/
 
-function segmentMerges(segment: string, base: string): boolean {
+/** The options by which `git branch` forces, moves, copies or deletes a branch it names. */
+const BRANCH_MOVES = new Set(['-f', '--force', '-m', '-M', '--move', '-c', '-C', '--copy', '-d', '-D', '--delete'])
+
+/**
+ * True when the words move the local base by hand, as a repo with no origin
+ * would let them: a merge of the job branch or of its `--work` branch (a unit
+ * branch `<branch>--<unit>` merges into the job branch, so it passes), a
+ * `git branch` that forces, renames, copies or deletes the base, `git
+ * update-ref` of it, or a fetch from `.` into it.
+ */
+function movesLocalBase(words: readonly string[], base: string, branch: string | null): boolean {
+  const merged = gitArgs(words, 'merge')
+  if (merged !== null) {
+    return branch !== null && (merged.includes(branch) || merged.includes(`${branch}--work`))
+  }
+  const branched = gitArgs(words, 'branch')
+  if (branched !== null) {
+    return branched.some(word => BRANCH_MOVES.has(word)) && branched.includes(base)
+  }
+  const updated = gitArgs(words, 'update-ref')
+  if (updated !== null) {
+    return updated.includes(`refs/heads/${base}`)
+  }
+  const fetched = gitArgs(words, 'fetch')?.filter(word => !word.startsWith('-')) ?? []
+  return fetched[0] === '.' && fetched.slice(1).some(refspec => refspec.includes(':') && mayNameBase(refspec, base))
+}
+
+function segmentMerges(segment: string, base: string, branch: string | null): boolean {
   const words = commandWords(wordsOf(segment))
-  const push = pushArgs(words)
+  const push = gitArgs(words, 'push')
   if (push !== null) {
     return pushMayReachBase(push, base)
+  }
+  if (movesLocalBase(words, base, branch)) {
+    return true
   }
   const ghCommand = words[0] === 'gh' ? words.slice(1).filter(word => !word.startsWith('-')) : []
   if (ghCommand[0] === 'pr' && ghCommand[1] === 'merge') {
@@ -266,9 +338,9 @@ function segmentMerges(segment: string, base: string): boolean {
   return words.some(word => API_MERGE.test(word))
 }
 
-/** True when one command of the line would merge into `base` some way other than rex_merge, or may do so and the line cannot tell. */
-export function isMergeCommand(command: string, base: string): boolean {
-  return command.split(SEGMENT_SPLIT).some(segment => segmentMerges(segment, base))
+/** True when one command of the line would merge into `base` some way other than rex_merge, or may do so and the line cannot tell; `branch` is the job branch, null for no job. */
+export function isMergeCommand(command: string, base: string, branch: string | null): boolean {
+  return command.split(SEGMENT_SPLIT).some(segment => segmentMerges(segment, base, branch))
 }
 
 export function tripwireRefusal(command: string, base: string): string {

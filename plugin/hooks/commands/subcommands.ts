@@ -1,10 +1,15 @@
-// The sub-commands of /rex that read and show: the pane, a job's status, the jobs, the doctor's check, and the prompt mode.
+// The sub-commands of /rex that read and show: the pane, a job's or a tree's status, the outline of the run, the jobs, the doctor's check, and the prompt mode.
 import type { CommandRunInput, CommandRunResult, EngineInterface } from 'claude-code'
 
-import { bandJob, fail, pluginVersion, setPromptMode } from '../book/index'
+import { fail, mainJob, newestOpenJob, pluginVersion, setPromptMode } from '../book/index'
 import type { RexBook, RexJob } from '../../types'
+import { answerCommand, treeJobLine, treeLine } from '../pane/band'
+import { isLiveNode, liveTrees, outlineOf, outlineText } from '../pane/outline'
+import type { OutlineNode } from '../pane/outline'
 
 const PANE_ID = 'rex'
+/** The cells the transcript takes before a command's answer: `  ⎿  super-rex: `. */
+const RESULT_INDENT = 16
 const MODES: readonly RexBook['prompts'][] = ['off', 'observe', 'improve']
 
 /** One `/rex` line: the event, what follows the sub-command's name, and the book as it stood. */
@@ -18,12 +23,22 @@ function lines(rows: readonly string[]): CommandRunResult {
   return { text: rows.map(row => `${row}\n`).join('') }
 }
 
-/** The job a person most likely means: the one named, else the main loop's open job, else the newest open job. */
+/** The job named, else the main loop's open job; with neither, a live tree speaks before the session's newest open job. */
 function jobFor(book: RexBook, id: string): RexJob | undefined {
   if (id !== '') {
     return book.jobs.find(job => job.id === id)
   }
-  return bandJob(book)
+  return mainJob(book)
+}
+
+/** A live tree in plain lines: the tree, each open job with where it builds and what its builder does, then what waits on the person. */
+function treeStatusRows(book: RexBook, node: OutlineNode): string[] {
+  const jobs = node.children.filter(isLiveNode).flatMap(child => {
+    const job = book.jobs.find(each => each.id === child.ref)
+    return [treeJobLine(child), `    in ${job?.worktree ?? job?.repo ?? 'no folder yet'}`]
+  })
+  const waits = node.questions.map(question => `? ${question.id}: ${question.question} · recommended ${question.recommendation} · ${answerCommand(question)}`)
+  return [treeLine(node), ...jobs, ...(waits.length === 0 ? ['nothing waits on you'] : waits)]
 }
 
 export async function watch($: EngineInterface): Promise<CommandRunResult> {
@@ -45,12 +60,25 @@ export function statusRows(book: RexBook, job: RexJob): string[] {
   ]
 }
 
-export function status({ book, args }: Request): CommandRunResult {
+export function status({ book, args }: Request, now: number): CommandRunResult {
   const job = jobFor(book, args)
-  if (job === undefined) {
-    return lines([args === '' ? 'job=none' : `rex status: no job ${args} in this session, got ${args}; run /rex jobs`])
+  if (job !== undefined) {
+    return lines(statusRows(book, job))
   }
-  return lines(statusRows(book, job))
+  if (args !== '') {
+    return lines([`rex status: no job ${args} in this session, got ${args}; run /rex jobs`])
+  }
+  const tree = liveTrees(book, outlineOf(book, now))[0]
+  if (tree !== undefined) {
+    return lines(treeStatusRows(book, tree))
+  }
+  const newest = newestOpenJob(book)
+  return lines(newest === undefined ? ['job=none'] : statusRows(book, newest))
+}
+
+/** The outline of the session as text with tree guides: each master tree, its jobs and their agents, by level. */
+export function tree({ book, event }: Request, now: number): CommandRunResult {
+  return lines(outlineText(outlineOf(book, now), event.presentation.columns - RESULT_INDENT))
 }
 
 /** One line per job of the store's answer: id, status, origin, builder, request. */

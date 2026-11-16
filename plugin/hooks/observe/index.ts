@@ -117,13 +117,16 @@ export function register(on: On, _parts: Parts): void {
     return next(e)
   })
 
-  on('classic.SessionStart', async ($, e, next) => {
-    if (e.transcript_path !== '') {
-      await noteTranscript($, e.transcript_path)
+  // Every classic hook event but PreToolUse names the session's main transcript. Which one comes first is not fixed: a SessionStart can come before the book of its session exists, so each one is heard.
+  on('classic.*', async ($, e, next) => {
+    const path = fieldOf(e, 'transcript_path')
+    const session = fieldOf(e, 'session_id')
+    if (typeof path === 'string' && typeof session === 'string' && path !== '') {
+      await noteTranscript($, { session, path })
     }
     return next(e)
   }).catch(async ($, e, next) => {
-    await fail($, { kind: 'observer-failed', event: 'classic.SessionStart', module: 'observe', agentId: null, error: next.error.message ?? next.error.kind })
+    await fail($, { kind: 'observer-failed', event: next.event, module: 'observe', agentId: null, error: next.error.message ?? next.error.kind })
     return next(e)
   })
 }

@@ -5,7 +5,7 @@ import type { ProcessAnswer, ProcessCall } from '../book/kit'
 import { ROOT, SESSION } from '../book/kit'
 import { sharedJson } from '../book/shared'
 import type { Policy } from './policy'
-import { buildRules, byRule, confirmedPolicy, masterWorld, POLICY_KEY, ran, rex, settleUntil, START } from './master-kit'
+import { buildRules, byRule, confirmedPolicy, masterWorld, placesRules, POLICY_KEY, ran, rex, settleUntil, START } from './master-kit'
 import type { Rule } from './master-kit'
 
 const OLD_SESSION = '11111111-2222-4333-8444-555555555555'
@@ -67,13 +67,16 @@ function recording(rules: readonly Rule[], calls: ProcessCall[], kinds: string[]
   }
 }
 
-async function resumed(on: Parameters<typeof masterWorld>[0], keys: Partial<Policy>) {
+const JOB_WORKTREE_LISTED = `worktree ${ROOT}\nHEAD abc\n\nworktree ${ROOT}.worktrees/${JOB}\nHEAD abc\nbranch refs/heads/rex/${JOB}\n`
+
+async function resumed(on: Parameters<typeof masterWorld>[0], keys: Partial<Policy>, before: readonly Rule[] = [], listed = JOB_WORKTREE_LISTED) {
   const policy = await confirmedPolicy(keys)
   const calls: ProcessCall[] = []
   const kinds: string[] = []
   const rules: readonly Rule[] = [
+    ...before,
     { starts: ['rex', 'tree', 'show', '--json'], answer: treeShow(policy.confirmed_hash ?? '') },
-    { starts: ['git', '-C', ROOT, 'worktree', 'list', '--porcelain'], answer: ran(`worktree ${ROOT}\nHEAD abc\n\nworktree ${ROOT}.worktrees/${JOB}\nHEAD abc\nbranch refs/heads/rex/${JOB}\n`) },
+    { starts: ['git', '-C', ROOT, 'worktree', 'list', '--porcelain'], answer: ran(listed) },
     ...buildRules('model-high-effort-high'),
   ]
   const session = masterWorld(on, { store: { [POLICY_KEY]: policy }, processAnswer: recording(rules, calls, kinds) })
@@ -107,6 +110,33 @@ test('resume_reattaches_questions_and_continues_or_asks: on_dead_builder continu
   expect(kinds).not.toContain('tree.open')
 })
 
+test('a builder restarted on resume gets its worktree back on the job branch that outlived it, at the tip of that branch', async ($, on) => {
+  const tip = 'c'.repeat(40)
+  const branchTip: Rule = { starts: ['git', '-C', ROOT, 'rev-parse', '--verify', '--quiet', `refs/heads/rex/${JOB}`], answer: ran(`${tip}\n`) }
+  const { session, calls, kinds } = await resumed(on, { on_dead_builder: 'continue' }, [branchTip], `worktree ${ROOT}\nHEAD abc\n`)
+  await $.session.start(START)
+
+  await $.command.run(rex('master resume'))
+  await session.clock.advance(10_000)
+  await settleUntil(session.clock, () => kinds.includes('job.rebind'))
+
+  const added = calls.filter(call => call.argv[0] === 'rex' && call.argv[1] === 'worktree').map(call => call.argv.slice(1))
+  expect(added).toEqual([['worktree', 'add', ROOT, `${ROOT}.worktrees/${JOB}`, tip, '--branch', `rex/${JOB}`]])
+  expect(session.spawned.find(spawn => spawn.description === `rex builder ${JOB}`)?.cwd).toBe(`${ROOT}.worktrees/${JOB}`)
+})
+
+test('a git call that throws while a builder restarts on resume leaves that job for the person, and the tree still resumes with its watchdog', async ($, on) => {
+  const hung: Rule = { starts: ['git', '-C', ROOT, 'worktree', 'list', '--porcelain'], answer: { reject: 'the process ran past its timeout of 120000 ms' } }
+  const { session } = await resumed(on, { on_dead_builder: 'continue' }, [hung])
+  await $.session.start(START)
+
+  const answered = await $.command.run(rex('master resume'))
+
+  expect(answered.text).toBe('tree=t1\nmaster=m1\ncontinued=none\nasked=none\n')
+  expect(session.statuses.some(line => line.startsWith(`rex: job ${JOB} of tree t1 got no new builder:`) && line.includes('timeout'))).toBe(true)
+  expect(session.spawned.some(spawn => spawn.description === `rex builder ${JOB}`)).toBe(false)
+})
+
 test('resume_reattaches_questions_and_continues_or_asks: on_dead_builder ask parks a question and starts no builder', async ($, on) => {
   const { session, kinds } = await resumed(on, { on_dead_builder: 'ask' })
   await $.session.start(START)
@@ -128,7 +158,7 @@ test('resume_reattaches_questions_and_continues_or_asks: on_dead_builder ask par
 test('/rex master resume refuses while a tree of this session is live, and with no open tree in the store', async ($, on) => {
   const policy = await confirmedPolicy()
   const empty = ran('{"tree":null,"jobs":[],"questions":[]}\n')
-  const session = masterWorld(on, { store: { [POLICY_KEY]: policy }, processAnswer: byRule([{ starts: ['rex', 'tree', 'show'], answer: empty }]) })
+  const session = masterWorld(on, { store: { [POLICY_KEY]: policy }, processAnswer: byRule([{ starts: ['rex', 'tree', 'show'], answer: empty }, ...placesRules('origin')]) })
   await $.session.start(START)
 
   const none = await $.command.run(rex('master resume'))

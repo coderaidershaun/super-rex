@@ -2,7 +2,8 @@
 import type { EngineInterface } from 'claude-code'
 
 import type { RexBook, RexJob, RexQuestion, RexTree } from '../../types'
-import { addQuestion, isOpen, noteTree, readBook, setLimit } from '../book/index'
+import { isOpen, noteTree, readBook, setLimit } from '../book/index'
+import { parkQuestion } from './ask'
 import type { Policy } from './policy'
 import { CONTINUE_TEXT, wakeLater } from './wake'
 
@@ -62,7 +63,7 @@ export async function raiseAtLimit($: EngineInterface, book: RexBook, tree: RexT
       const text = spendQuestionText(job, raised)
       const asked = book.questions.find(question => question.job === job.id && question.question === text)
       if (asked === undefined) {
-        await addQuestion($, { tree: tree.id, job: job.id, question: text, options: [RAISE, KEEP_LIMIT], recommendation: KEEP_LIMIT, category: 'spend', mergeFor: null })
+        await parkQuestion($, { tree: tree.id, job: job.id, question: text, options: [RAISE, KEEP_LIMIT], recommendation: KEEP_LIMIT, category: 'spend', mergeFor: null })
       } else if (asked.answer?.option === RAISE) {
         // An answer from the pane reaches only the book, so the tick raises for it.
         await raise($, tree, job, raised, 'set', `by the answer Raise to question ${asked.id}`)

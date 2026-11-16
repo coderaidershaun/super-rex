@@ -4,7 +4,7 @@ Uses words and rules of `orchestration-builder/SKILL.md`.
 
 Sign: `rex_job_open` gives `existing=yes`. You own an open job already.
 
-IF a master started you with `rex_build`, THEN that job is your job. Its request is in your brief. Do not close it. Go on at step 4 of `orchestration-builder/SKILL.md`.
+IF a master started you with `rex_build`, THEN that job is your job. Its request is in your brief. Do not close it before step 10. Go on at step 4 of `orchestration-builder/SKILL.md`.
 
 ELSE:
 

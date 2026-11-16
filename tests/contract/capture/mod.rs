@@ -4,4 +4,5 @@
 mod fixture;
 mod lock;
 mod lost;
+mod place;
 mod tree;

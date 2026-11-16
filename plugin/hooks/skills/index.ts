@@ -54,19 +54,31 @@ function textOf(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value : fallback
 }
 
+/** The file as the skill holds it: skill text names a file `<skill>/<file>.md`, so a file that starts with the skill's own name and a slash is that file of the skill. */
+function fileInSkill(name: string, file: string): string {
+  return name !== '' && file.startsWith(`${name}/`) ? file.slice(name.length + 1) : file
+}
+
+/** The refusal for a file the skill does not hold: the files it does hold, so the next call names one. */
+function missingText(name: string, asked: string, file: string, holds: readonly string[]): string {
+  const head = `rex_skill: no skill ${name} holds ${file}, got ${name}/${asked}`
+  return holds.length === 0 ? `${head}; name a skill of plugin/skills, plugin/library or .rex/skills` : `${head}; call it again with a file of ${name}: ${holds.join(', ')}`
+}
+
 async function serveSkill($: EngineInterface, event: { readonly agentId?: string; readonly [key: string]: unknown }): Promise<ToolCallResult> {
   const name = textOf(event['name'], '')
-  const file = textOf(event['file'] ?? 'SKILL.md', String(event['file']))
+  const asked = textOf(event['file'] ?? 'SKILL.md', String(event['file']))
+  const file = fileInSkill(name, asked)
   const problem = nameProblem(name, file)
   if (problem !== null) {
-    await fail($, { kind: 'bad-argument', tool: 'rex_skill', argument: 'name', value: `${name}/${file}` })
-    return { deny: `rex_skill: ${problem}, got ${name}/${file}; call it with a skill name such as rex-code-tdd and a file such as SKILL.md` }
+    await fail($, { kind: 'bad-argument', tool: 'rex_skill', argument: 'name', value: `${name}/${asked}` })
+    return { deny: `rex_skill: ${problem}, got ${name}/${asked}; call it with a skill name such as rex-code-tdd and a file such as SKILL.md` }
   }
   const book = await readBook($)
   const places = await skillPlaces($, jobOfCaller(book, event.agentId))
   const lookup = await findSkill($, places, name, file)
   if (lookup.kind === 'missing') {
-    return { deny: `rex_skill: no skill ${name} holds ${file}, got ${name}/${file}; name a skill of plugin/skills, plugin/library or .rex/skills` }
+    return { deny: missingText(name, asked, file, lookup.holds) }
   }
   if (lookup.kind === 'outside') {
     await fail($, { kind: 'bad-argument', tool: 'rex_skill', argument: 'name', value: `${name}/${file}` })

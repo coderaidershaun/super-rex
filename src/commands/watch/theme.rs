@@ -1,7 +1,9 @@
-//! The colours and glyphs of `rex watch`: one style for each status, state,
-//! work type, model and effort, so both screens colour the same value the same way.
+//! The colours and glyphs of `rex watch`: one style for each status, state, level,
+//! work type, model and effort, so every screen colours the same value the same way.
 
 use ratatui::style::{Color, Modifier, Style};
+
+use super::nav::Level;
 
 // Colours from the 256-colour palette, which nearly every terminal shows the
 // same way. Full RGB colour is not used: some terminals, such as older macOS
@@ -54,10 +56,6 @@ pub fn id() -> Style {
     fg(SKY)
 }
 
-pub fn warning() -> Style {
-    fg(AMBER)
-}
-
 /// The badge at the left of the top bar.
 pub fn badge() -> Style {
     Style::new().fg(INK).bg(SKY).add_modifier(Modifier::BOLD)
@@ -102,50 +100,8 @@ pub fn status(status: &str) -> (&'static str, Style) {
 pub fn run_state(state: &str) -> (&'static str, Style) {
     match state {
         "open" => ("▶", fg(AMBER).add_modifier(Modifier::BOLD)),
-        "finished" => ("✓", fg(GREEN)),
+        "done" => ("✓", fg(GREEN)),
         _ => ("?", dim()),
-    }
-}
-
-pub fn work_type(work_type: &str) -> Style {
-    match work_type {
-        "feature" => fg(BLUE),
-        "fix" => fg(ORANGE),
-        "refactor" => fg(PURPLE),
-        "research" => fg(TEAL),
-        _ => dim(),
-    }
-}
-
-/// Green to red as the cost of a mistake rises.
-pub fn consequence(consequence: &str) -> Style {
-    match consequence {
-        "low" => fg(GREEN),
-        "medium" => fg(AMBER),
-        "high" => fg(RED).add_modifier(Modifier::BOLD),
-        _ => dim(),
-    }
-}
-
-/// Cool to warm as the size rises. Not green to red: a large job is not a fault.
-pub fn size(size: &str) -> Style {
-    match size {
-        "small" => fg(SLATE),
-        "medium" => fg(BLUE),
-        "large" => fg(PURPLE),
-        _ => dim(),
-    }
-}
-
-/// Cool to warm as the effort rises.
-pub fn effort(effort: &str) -> Style {
-    match effort {
-        "low" => fg(SLATE),
-        "medium" => fg(BLUE),
-        "high" => fg(PURPLE),
-        "xhigh" => fg(ORCHID),
-        "max" => fg(RED),
-        _ => faint(),
     }
 }
 
@@ -164,7 +120,40 @@ pub fn model(model: &str) -> Style {
     }
 }
 
-/// The styles of the open, finished and unconfirmed run counts.
-pub fn run_counts() -> [Style; 3] {
-    [fg(AMBER), fg(GREEN), dim()]
+/// The glyph and style of a master tree's state.
+pub fn tree_state(state: &str) -> (&'static str, Style) {
+    match state {
+        "running" => ("▶", fg(AMBER).add_modifier(Modifier::BOLD)),
+        "paused" => ("‖", fg(SLATE)),
+        "blocked" => ("■", fg(ORANGE).add_modifier(Modifier::BOLD)),
+        "done" => ("✓", fg(GREEN)),
+        "lost" => ("✗", fg(RED)),
+        _ => ("·", dim()),
+    }
+}
+
+/// The mark of a question that waits for the person.
+pub fn question() -> (&'static str, Style) {
+    ("?", fg(AMBER).add_modifier(Modifier::BOLD))
+}
+
+/// The mark in front of a tree or a job: filled while its session is live,
+/// hollow once the session has ended, none when it comes from the store.
+pub fn origin(origin: &str) -> (&'static str, Style) {
+    match origin {
+        "live" => ("●", fg(MINT)),
+        "ended" => ("○", dim()),
+        _ => (" ", dim()),
+    }
+}
+
+/// One colour for each level, from the master down to a helper.
+pub fn level(level: Level) -> Style {
+    match level {
+        Level::Master => fg(ORCHID).add_modifier(Modifier::BOLD),
+        Level::Builder => fg(PURPLE).add_modifier(Modifier::BOLD),
+        Level::Lead => fg(BLUE),
+        Level::Worker => fg(TEAL),
+        Level::Helper => fg(SLATE),
+    }
 }

@@ -1,5 +1,5 @@
-// Test support for the act modules: exact answers to each process call in order, and a file tree under the skill, plan and worktree folders.
-import type { On } from 'claude-code'
+// Test support for the act modules: exact answers to each process call in order, the git calls of a job's open and clean-up, and a file tree under the skill, plan and worktree folders.
+import type { FsEntry, On } from 'claude-code'
 
 import type { RexBook, RexJob, RexPlan } from '../../types'
 import { emptyBook, newIngest } from '../book/events'
@@ -11,10 +11,17 @@ export const HOME = '/home/person'
 
 export type Scripted = { readonly argv: readonly string[]; readonly answer: ProcessAnswer }
 
+/** A word of a scripted argv that any word matches: the path of a job whose id the test cannot know ahead. */
+export const ANY_WORD = '<any>'
+
+function isSameArgv(script: readonly string[], argv: readonly string[]): boolean {
+  return script.length === argv.length && script.every((word, index) => word === ANY_WORD || word === argv[index])
+}
+
 /**
  * Answers each call from the list in order and refuses any other; `rex ingest`
  * gets `last_sequence` of the highest sequence it was sent, so a test with
- * storage on needs no line for it.
+ * storage on needs no line for it. A word `ANY_WORD` of the list matches any word.
  */
 export function scripted(list: readonly Scripted[], seen: ProcessCall[] = []): (call: ProcessCall) => ProcessAnswer {
   const left = [...list]
@@ -32,7 +39,7 @@ export function scripted(list: readonly Scripted[], seen: ProcessCall[] = []): (
     if (next === undefined) {
       return { reject: `no answer left for ${call.argv.join(' ')}` }
     }
-    if (JSON.stringify(next.argv) !== JSON.stringify(call.argv)) {
+    if (!isSameArgv(next.argv, call.argv)) {
       return { reject: `expected ${next.argv.join(' ')}, got ${call.argv.join(' ')}` }
     }
     return next.answer
@@ -47,8 +54,75 @@ export function exit(exitCode: number, stderr: string): ProcessAnswer {
   return { exitCode, stdout: '', stderr }
 }
 
-/** The git call that names the base of a job of the session root. */
-export const BASE_CALL: Scripted = { argv: ['git', '-C', ROOT, 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], answer: ok('origin/main\n') }
+function gitCall(args: readonly string[], answer: ProcessAnswer = ok()): Scripted {
+  return { argv: ['git', '-C', ROOT, ...args], answer }
+}
+
+/** The git calls that read the places of the session root in mode `origin`: `main` checked out, and `origin/HEAD` naming `origin/main`. */
+export const ORIGIN_PLACES: readonly Scripted[] = [
+  gitCall(['symbolic-ref', '--quiet', '--short', 'HEAD'], ok('main\n')),
+  gitCall(['remote'], ok('origin\n')),
+  gitCall(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], ok('origin/main\n')),
+  gitCall(['for-each-ref', '--format=%(refname)', 'refs/remotes/origin'], ok('refs/remotes/origin/HEAD\nrefs/remotes/origin/main\n')),
+]
+
+/** The git calls that read the places of the session root in mode `none`: `main` checked out, and no remote. */
+export const LOCAL_PLACES: readonly Scripted[] = [gitCall(['symbolic-ref', '--quiet', '--short', 'HEAD'], ok('main\n')), gitCall(['remote'], ok(''))]
+
+/** The check for a commit that a repo with one answers. */
+export const HAS_COMMIT: Scripted = gitCall(['rev-parse', '--verify', '--quiet', 'HEAD'], ok('c0\n'))
+
+/** The tree `git write-tree` answers for an empty index, as real git does: the index the person had staged, kept for a failed first commit. */
+export const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
+
+/** The calls of a repo with no commit: the check, then the first commit the mod makes. */
+export const FIRST_COMMIT: readonly Scripted[] = [
+  gitCall(['rev-parse', '--verify', '--quiet', 'HEAD'], { exitCode: 1, stdout: '', stderr: '' }),
+  gitCall(['write-tree'], ok(`${EMPTY_TREE}\n`)),
+  gitCall(['add', '--all'], ok()),
+  gitCall(['commit', '--allow-empty', '--message', 'chore: first commit, the base of rex jobs'], ok('[master (root-commit) c0] chore: first commit\n')),
+]
+
+/** The count of uncommitted paths in the main checkout, `uncommitted` lines long. */
+export function statusCall(uncommitted: readonly string[] = []): Scripted {
+  return gitCall(['status', '--porcelain'], ok(uncommitted.map(line => `${line}\n`).join('')))
+}
+
+/** The full hash the base answers in a test: the commit each job worktree starts from. */
+export const START_HASH = '5a1f0c9e2b7d4a6f8c3e1b0d9a7f5c3e1b2d4f6a'
+
+/** The calls that read the commit a job starts from: a fetch of origin and `origin/<base>` in mode `origin`, the local base in mode `none`. */
+export function startCalls(base: string, remote: 'origin' | 'none'): readonly Scripted[] {
+  const read = gitCall(['rev-parse', remote === 'origin' ? `origin/${base}` : base], ok(`${START_HASH}\n`))
+  return remote === 'origin' ? [gitCall(['fetch', 'origin', base]), read] : [read]
+}
+
+/** The rex worktree call that makes the worktree of a new job, whose id, and so its path and branch, the test does not know ahead. */
+export const WORKTREE_ADD: Scripted = { argv: ['rex', 'worktree', 'add', ROOT, ANY_WORD, START_HASH, '--branch', ANY_WORD], answer: ok(`worktree=${ROOT}.worktrees/job\nsettings=added\n`) }
+
+/** The calls of one rex_job_open in a repo with a commit and origin. */
+export const OPEN_CALLS: readonly Scripted[] = [HAS_COMMIT, ...ORIGIN_PLACES, ...startCalls('main', 'origin'), WORKTREE_ADD, statusCall()]
+
+/** `git worktree list --porcelain` of a repo whose main checkout holds `main`, and the linked worktrees `paths` on their branches. */
+export function worktreeList(paths: readonly { readonly path: string; readonly branch: string }[] = []): ProcessAnswer {
+  const blocks = [{ path: ROOT, branch: 'main' }, ...paths].map(each => `worktree ${each.path}\nHEAD ${START_HASH}\nbranch refs/heads/${each.branch}\n`)
+  return ok(blocks.join('\n'))
+}
+
+/** The calls of the clean-up of job `job` that finds nothing to remove: no worktree and no branch of it, here or on origin. */
+export function cleanCalls(remote: 'origin' | 'none', job: string = JOB): readonly Scripted[] {
+  const branch = `rex/${job}`
+  return [
+    ...(remote === 'origin' ? ORIGIN_PLACES : LOCAL_PLACES),
+    ...(remote === 'origin' ? [gitCall(['fetch', '--prune', 'origin'])] : []),
+    gitCall(['worktree', 'list', '--porcelain'], worktreeList()),
+    gitCall(['for-each-ref', '--format=%(refname:short)', `refs/heads/${branch}`, `refs/heads/${branch}--*`]),
+    ...(remote === 'origin' ? [gitCall(['for-each-ref', '--format=%(refname:lstrip=3)', `refs/remotes/origin/${branch}`, `refs/remotes/origin/${branch}--*`])] : []),
+  ]
+}
+
+/** The calls of a rex_job_open that answers the caller's job it already has. */
+export const EXISTING_CALLS: readonly Scripted[] = [...ORIGIN_PLACES, statusCall()]
 
 function base64Of(text: string): string {
   const bytes = new TextEncoder().encode(text)
@@ -100,7 +174,20 @@ export function files(on: On, tree: { readonly [path: string]: string }, links: 
     return { value: e.as === 'bytes' ? { base64: base64Of(text) } : text }
   })
   on('fs.stat', (_$, e) => ({ value: { kind: 'dir', size: 0, mtimeMs: 0, isLink: links[e.path] !== undefined, realPath: landing(e.path, links) } }))
+  on('fs.list', { path: FOLDERS }, (_$, e) => ({ value: listing(tree, e.path) }))
   on('env.get', (_$, e) => ({ value: e.name === 'HOME' ? HOME : undefined }))
+}
+
+/** The entries of one folder of `tree`: a name with more path after it is a folder, else a file. */
+function listing(tree: { readonly [path: string]: string }, dir: string): FsEntry[] {
+  const plugin = /\/((?:skills|library)\/.+)$/.exec(dir)?.[1]
+  const prefix = dir.startsWith(ROOT) || dir.startsWith(HOME) || plugin === undefined ? `${dir}/` : `plugin:${plugin}/`
+  const entries = new Map<string, FsEntry['kind']>()
+  for (const path of Object.keys(tree).filter(each => each.startsWith(prefix))) {
+    const [name = '', ...rest] = path.slice(prefix.length).split('/')
+    entries.set(name, rest.length === 0 ? 'file' : 'dir')
+  }
+  return [...entries].map(([name, kind]) => ({ name, kind, size: 0, mtimeMs: 0, isLink: false }))
 }
 
 /** Stands for the engine beneath the plugin for a prompt: the prompt as it arrived. */

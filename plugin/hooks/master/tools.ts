@@ -1,23 +1,26 @@
-// The master's tools besides rex_build: a message to one of its builders, a note of its own decision, and a question parked for the person.
+// The master's tools besides rex_build and rex_report: a message to one of its builders, a note of its own decision, and a question parked for the person.
 import type { EngineInterface, ToolCallResult } from 'claude-code'
 
-import type { RexBook, RexJob, RexQuestion, RexTree } from '../../types'
-import { addQuestion, answerQuestion, errorText, fail, noteTree, readBook } from '../book/index'
-import type { ToolEntry } from '../parts'
+import type { RexBook, RexJob, RexTree } from '../../types'
+import { fail, noteTree, readBook } from '../book/index'
+import type { Caller, ToolEntry } from '../parts'
 import { answer, callerOf, callerRefusal, deny } from '../tools/index'
+import { parkQuestion } from './ask'
 import { field, isRefused, optionalText, refused, text, word } from './args'
+import { masterMoved } from './idle'
 import { treeOfMaster } from './pin'
 import { wakeLater } from './wake'
 
-type MasterCall = { readonly tree: RexTree; readonly book: RexBook } | { readonly refused: string }
+type MasterCall = { readonly tree: RexTree; readonly book: RexBook } | { readonly refused: string; readonly caller: Caller }
 
-async function masterCall($: EngineInterface, entry: ToolEntry, agentId: string | undefined): Promise<MasterCall> {
+/** The caller's live tree when it is that tree's master, else the refusal the model reads and who was refused. */
+export async function masterCall($: EngineInterface, entry: ToolEntry, agentId: string | undefined): Promise<MasterCall> {
   const caller = await callerOf($, agentId)
   const book = await readBook($)
   const tree = caller.kind === 'master' ? treeOfMaster(book, caller.agentId) : undefined
   if (tree === undefined) {
     await fail($, { kind: 'caller-not-allowed', tool: entry.name, caller: caller.kind })
-    return { refused: callerRefusal(entry, caller) ?? `${entry.name}: only the master of a live tree may call it, got the master of a closed tree; start a tree with /rex master` }
+    return { refused: callerRefusal(entry, caller) ?? `${entry.name}: only the master of a live tree may call it, got the master of a closed tree; start a tree with /rex master`, caller }
   }
   return { tree, book }
 }
@@ -52,10 +55,16 @@ export async function serveContinue($: EngineInterface, event: { readonly agentI
   return answer(['sent=yes', `job=${job.id}`])
 }
 
+/** A builder or another agent of a job keeps its own decisions in its report file, which the master and the person read. */
+function noteRefusal(refused: string, caller: Caller): string {
+  const isOfJob = caller.kind === 'builder' || (caller.kind === 'agent' && caller.job !== null)
+  return isOfJob ? `${refused}; write the decision in your report file instead` : refused
+}
+
 export async function serveNote($: EngineInterface, event: { readonly agentId?: string }, entry: ToolEntry): Promise<ToolCallResult> {
   const call = await masterCall($, entry, event.agentId)
   if ('refused' in call) {
-    return deny(call.refused)
+    return deny(noteRefusal(call.refused, call.caller))
   }
   const note = text(entry.name, event, 'text', 'call it again with what you decided, why, and the option you did not take')
   const id = optionalText(entry.name, event, 'job')
@@ -80,27 +89,7 @@ function optionsOf(tool: string, event: object): readonly string[] | { readonly 
   return value.map(String)
 }
 
-/** The person may answer in a dialog when someone is at the terminal; the pane and `/rex answer` always hold the question. */
-function askLater($: EngineInterface, question: RexQuestion, master: string | null): void {
-  $.clock.after(0, () => {
-    void $.ui
-      .ask(question.question, question.options)
-      .then(async chosen => {
-        const option = question.options.find(each => each === chosen)
-        if (option !== undefined) {
-          await answerQuestion($, question.id, { option, source: 'dialog' })
-          if (master !== null) {
-            wakeLater($, master, `rex: question ${question.id} is answered: ${option}. Read it with rex_status.`)
-          }
-        }
-      })
-      .catch((error: unknown) => {
-        $.ui.status(`rex: question ${question.id} waits in the pane or for /rex answer ${question.id} <option> (${errorText(error)})`)
-      })
-  })
-}
-
-export async function serveAskOwner($: EngineInterface, event: { readonly agentId?: string }, entry: ToolEntry, isInteractive: boolean): Promise<ToolCallResult> {
+export async function serveAskOwner($: EngineInterface, event: { readonly agentId?: string }, entry: ToolEntry): Promise<ToolCallResult> {
   const call = await masterCall($, entry, event.agentId)
   if ('refused' in call) {
     return deny(call.refused)
@@ -119,9 +108,7 @@ export async function serveAskOwner($: EngineInterface, event: { readonly agentI
   if (!options.includes(recommendation)) {
     return deny(refused(entry.name, 'recommendation must be one of the options', recommendation, `call it again with one of ${options.join(', ')}`).refused)
   }
-  const parked = await addQuestion($, { tree: call.tree.id, job: job?.id ?? null, question, options, recommendation, category, mergeFor: null })
-  if (isInteractive) {
-    askLater($, parked, call.tree.master)
-  }
+  const parked = await parkQuestion($, { tree: call.tree.id, job: job?.id ?? null, question, options, recommendation, category, mergeFor: null })
+  masterMoved(call.tree.id)
   return answer([`question=${parked.id}`, 'state=parked'])
 }

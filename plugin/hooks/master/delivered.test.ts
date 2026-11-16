@@ -1,4 +1,4 @@
-// Proves what follows a delivered tree job: the done check from git answers, the merge commit and report in rex_status, the charter in every brief of the tree, and the final report once every job is closed.
+// Proves what follows a delivered tree job: the done check from git answers, the merge commit and report in rex_status, the charter in every brief of the tree, and the final report that rex_report writes once every job is closed.
 import { expect, test } from 'claude-code/testing'
 
 import type { RexBook } from '../../types'
@@ -8,7 +8,7 @@ import type { ProcessCall } from '../book/kit'
 import { linkIn } from '../book/trees'
 import { AUTHOR } from '../pipeline/assembly.fixture'
 import type { Policy } from './policy'
-import { buildRules, byRule, confirmedPolicy, lineOf, MASTER, masterWorld, POLICY_KEY, ran, rex, settleUntil, START, TREE, treeBook } from './master-kit'
+import { buildRules, byRule, confirmedPolicy, KIND, lineOf, MASTER, masterWorld, placesRules, POLICY_KEY, ran, resultText, rex, settleUntil, START, TREE, treeBook } from './master-kit'
 import type { Rule } from './master-kit'
 
 const JOB = '0gaq820002'
@@ -43,8 +43,10 @@ async function deliveredBook(policy: Policy): Promise<RexBook> {
   return closeJobIn(merged, JOB, { status: 'delivered', outcome: 'parser fixed', deliveries }, START_MS)
 }
 
-function doneRules(branches: string): readonly Rule[] {
+function doneRules(branches: string, remote: 'origin' | 'none' = 'origin'): readonly Rule[] {
   return [
+    ...placesRules(remote),
+    { starts: ['git', '-C', ROOT, 'merge-base', '--is-ancestor', 'c1', 'main'], answer: ran() },
     { starts: ['git', '-C', ROOT, 'fetch', 'origin'], answer: ran() },
     { starts: ['git', '-C', ROOT, 'branch', '-r', '--contains', 'c1'], answer: ran('  origin/main\n  origin/rex/x\n') },
     { starts: ['git', '-C', ROOT, 'rev-parse', 'main', 'origin/main'], answer: ran('abc\nabc\n') },
@@ -66,7 +68,7 @@ test('done_check_lines_from_git_answers', async ($, on) => {
   await settleUntil(session.clock, () => session.sent.some(sent => sent.to === MASTER))
   const status = await $.tool.call({ tool: 'mcp__super-rex__rex_status', agentId: MASTER, job: JOB })
 
-  expect(calls.map(call => call.argv.slice(3, 5).join(' ') || call.argv.join(' '))).toEqual(['fetch origin', 'branch -r', 'rev-parse main', 'branch -a', 'worktree list', 'cargo test'])
+  expect(calls.map(call => call.argv.slice(3, 5).join(' ') || call.argv.join(' '))).toEqual(['symbolic-ref --quiet', 'remote', 'symbolic-ref --short', 'for-each-ref --format=%(refname)', 'fetch origin', 'branch -r', 'rev-parse main', 'branch -a', 'worktree list', 'cargo test'])
   expect(['fetched', 'merged', 'base_current', 'branches_gone', 'worktrees_gone', 'output_exists', 'checks_on_base'].map(check => lineOf(status, `done.${check}`))).toEqual(['pass', 'pass', 'pass', 'pass', 'pass', 'pass', 'pass'])
   expect(session.book().jobs[0]?.doneChecks).toHaveLength(7)
   expect(session.sent.find(sent => sent.to === MASTER)?.text).toContain(`job ${JOB} was delivered and its done check ran`)
@@ -83,6 +85,49 @@ test('done check: a branch left behind fails its line, and no merge checks reads
 
   expect([lineOf(status, 'done.branches_gone'), lineOf(status, 'done.output_exists'), lineOf(status, 'done.checks_on_base')]).toEqual(['fail', 'fail', 'not-set'])
   expect(session.book().jobs[0]?.status).toBe('delivered')
+})
+
+test('done check in mode none: nothing to fetch or match on origin, and the merge commit on the local base', async ($, on) => {
+  const policy = await confirmedPolicy({ merge_checks: [['cargo', 'test']] })
+  const calls: ProcessCall[] = []
+  const session = masterWorld(on, { seed: await deliveredBook(policy), store: { [POLICY_KEY]: policy }, processAnswer: byRule(doneRules('', 'none'), calls), files: { [HAND_OFF]: '# Report\n' } })
+  await $.session.start(START)
+
+  await $.turn.complete(ENDED)
+  await settleUntil(session.clock, () => session.sent.some(sent => sent.to === MASTER))
+  const status = await $.tool.call({ tool: 'mcp__super-rex__rex_status', agentId: MASTER, job: JOB })
+
+  expect(['fetched', 'merged', 'base_current', 'branches_gone', 'worktrees_gone', 'output_exists', 'checks_on_base'].map(check => lineOf(status, `done.${check}`))).toEqual(['not-set', 'pass', 'not-set', 'pass', 'pass', 'pass', 'pass'])
+  expect(calls.some(call => call.argv.includes('fetch'))).toBe(false)
+  expect(calls.map(call => call.argv.slice(3).join(' '))).toContain('merge-base --is-ancestor c1 main')
+})
+
+test('rex_status names the report of a tree job that is not merged, and no merge commit', async ($, on) => {
+  const policy = await confirmedPolicy()
+  masterWorld(on, { seed: treeJob(await treeBook(policy), OTHER, 'b2'), store: { [POLICY_KEY]: policy } })
+  await $.session.start(START)
+
+  const status = await $.tool.call({ tool: 'mcp__super-rex__rex_status', agentId: MASTER, job: OTHER })
+
+  expect([lineOf(status, 'output'), lineOf(status, 'merge_commit')]).toEqual([`${ROOT}/.rex/plans/${OTHER}/builder.md`, undefined])
+})
+
+test('rex_status from the main loop with no job of its own gives the lines of each live tree, as its master reads them', async ($, on) => {
+  const policy = await confirmedPolicy()
+  const session = masterWorld(on, { seed: treeJob(await treeBook(policy), OTHER, 'b2'), store: { [POLICY_KEY]: policy } })
+  await $.session.start(START)
+  const asked = await $.tool.call({ tool: 'mcp__super-rex__rex_ask_owner', agentId: MASTER, question: 'Ship the lexer too?', options: ['Yes', 'No'], recommendation: 'No', category: 'scope' })
+  await $.tool.call({ tool: 'mcp__super-rex__rex_note', agentId: MASTER, text: 'Lexer after parser.' })
+
+  const main = await $.tool.call({ tool: 'mcp__super-rex__rex_status' })
+  const master = await $.tool.call({ tool: 'mcp__super-rex__rex_status', agentId: MASTER })
+
+  const id = lineOf(asked, 'question') ?? ''
+  expect(resultText(main)).toBe(
+    `job=none\nquestion.${id}=parked\ntree=${TREE}\ntree_state=running\ntree_spent_usd=0.00\ntree_cap_usd=150.00\njob.${OTHER}.status=created\njob.${OTHER}.builder=b2\nnotes=1\nnote.1=Lexer after parser.\n`,
+  )
+  expect(resultText(master).startsWith(resultText(main))).toBe(true)
+  expect(session.book().jobs.map(job => job.owner.builder)).toEqual(['b2'])
 })
 
 test('status_names_merge_commit_and_output', async ($, on) => {
@@ -102,9 +147,10 @@ test('final_report_lists_each_job', async ($, on) => {
   const session = masterWorld(on, { seed: both, store: { [POLICY_KEY]: policy } })
   await $.session.start(START)
 
-  await $.turn.complete({ agentId: MASTER, reason: 'answer', answer: 'Result: the parser ships; the lexer waits.\nNot run: none.', durationMs: 1, isAborted: false, turnId: 'turn-m1' })
+  const reported = await $.tool.call({ tool: 'mcp__super-rex__rex_report', agentId: MASTER, report: 'Result: the parser ships; the lexer waits.\nNot run: none.' })
 
   const path = `${ROOT}/.rex/plans/${TREE}/final-report.md`
+  expect(resultText(reported)).toBe(`tree=${TREE}\nstate=done\nreport=${path}\n`)
   const report = session.written.find(file => file.path === path)?.text ?? ''
   expect(report).toContain(`- ${JOB} delivered: Fix part ${JOB} (merge commit c1;`)
   expect(report).toContain(`- ${OTHER} blocked: Fix part ${OTHER} (merge commit none;`)
@@ -132,7 +178,7 @@ test('charter_file_stored_unchanged_and_in_each_brief', async ($, on) => {
 
   await $.command.run(rex('master @charter.md'))
   const master = session.book().trees[0]?.master ?? ''
-  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', agentId: master, request: 'Build the lexer', consequence: 'medium' })
+  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...KIND, agentId: master, request: 'Build the lexer', consequence: 'medium' })
   await $.agent.spawn(spawnInput({ description: 'engineer', parentAgentId: lineOf(built, 'builder') ?? '', prompt: AUTHOR }))
 
   expect(session.book().trees[0]?.charter).toBe(charter)

@@ -9,7 +9,7 @@ export { originRefusal, rexLine, unknownLine } from './router'
 
 export const REX_COMMAND = {
   name: 'rex',
-  description: 'SuperRex: watch, status, jobs, doctor, prompts, limit, master, policy, answer',
+  description: 'SuperRex: watch, status, tree, jobs, doctor, prompts, limit, master, policy, answer',
   argumentHint: '<sub-command> [args]',
   immediate: true,
 } as const

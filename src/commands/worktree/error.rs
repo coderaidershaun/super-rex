@@ -36,6 +36,15 @@ pub enum WorktreeError {
     #[error("{branch} starts with -, so git would read it as an option; give a branch name")]
     BranchLikeOption { branch: String },
 
+    #[error(
+        "branch {branch} exists at {tip}, not at {commit}; give the commit of its tip, or a new branch name"
+    )]
+    BranchAtOtherCommit {
+        branch: String,
+        tip: String,
+        commit: String,
+    },
+
     #[error("could not run git; install git, or put it on PATH")]
     GitNotRun {
         #[source]
@@ -82,6 +91,7 @@ impl CommandError for WorktreeError {
             | WorktreeError::NotUtf8 { .. }
             | WorktreeError::NotCommitHash { .. }
             | WorktreeError::BranchLikeOption { .. }
+            | WorktreeError::BranchAtOtherCommit { .. }
             | WorktreeError::Git { .. }
             | WorktreeError::SettingsNotJson { .. }
             | WorktreeError::SettingsNotObject
@@ -105,6 +115,7 @@ impl CommandError for WorktreeError {
                 | WorktreeError::NotUtf8 { .. }
                 | WorktreeError::NotCommitHash { .. }
                 | WorktreeError::BranchLikeOption { .. }
+                | WorktreeError::BranchAtOtherCommit { .. }
         )
     }
 }

@@ -18,10 +18,10 @@ export function isTierFile(file: BriefFile): boolean {
   return file.skill === PROMPTING_SKILL && Object.values(TIER_FILE).includes(file.file)
 }
 
-/** The output file of a role in a job: `<role>.md`, else the lowest free `-<n>` that no other run of the session holds. */
-export function outputFileOf(book: RexBook, job: RexJob, role: string | null): string {
+/** The output file of a role in a job: `<role>.md`, else the lowest free `-<n>` that no run of the session and no pending spawn holds. */
+export function outputFileOf(book: RexBook, job: RexJob, role: string | null, pending: ReadonlySet<string>): string {
   const stem = `${job.repo}/.rex/plans/${job.id}/${role ?? 'agent'}`
-  const taken = new Set(book.runs.map(run => run.outputFile))
+  const taken = new Set([...book.runs.map(run => run.outputFile), ...pending])
   if (!taken.has(`${stem}.md`)) {
     return `${stem}.md`
   }
@@ -67,7 +67,7 @@ export const OWN_PARTS: readonly BriefPart[] = [
     name: 'return',
     order: 70,
     text: ctx =>
-      `Return: write your full report to ${ctx.run?.outputFile ?? outputFileOf(ctx.book, ctx.job, ctx.role)}. Your final message has at most 2,000 characters: the path of that file, a summary of at most 5 lines, and one state: done, partial, awaiting decision, or blocked.`,
+      `Return: write your full report to ${ctx.outputFile}. Your final message has at most 2,000 characters: the path of that file, a summary of at most 5 lines, and one state: done, partial, awaiting decision, or blocked.`,
   },
 ]
 

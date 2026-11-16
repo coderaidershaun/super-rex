@@ -20,7 +20,7 @@ const CONFIG_VERSION: u64 = 1;
 
 /// What this run of `rex init` asks of the config.
 pub(super) struct Wanted {
-    /// `--with-storage`. Without it, a config that already turns storage on keeps it on.
+    /// Storage after the flags and the question. A config that already turns storage on keeps it on.
     pub(super) is_storage_on: bool,
     /// The depth in force in the settings file after this run.
     pub(super) depth: u32,
@@ -67,6 +67,12 @@ pub(super) fn ensure_config(cwd: &Path, wanted: Wanted) -> Result<(FileChange, b
         ProjectWrite::Written => Ok((change, is_storage_on)),
         ProjectWrite::SkippedLink => Ok((FileChange::Unchanged, is_storage_on)),
     }
+}
+
+/// True when the config in `cwd` already keeps the record of jobs. A missing or
+/// unreadable config keeps none; the config step reports a file it cannot read.
+pub(super) fn keeps_record(cwd: &Path) -> bool {
+    matches!(read_config(&cwd.join(CONFIG_FILENAME)), Ok(Some(config)) if config.get("storage") == Some(&json!("on")))
 }
 
 /// The config, or `None` when there is no file. A link is read through, which

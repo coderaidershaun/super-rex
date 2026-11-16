@@ -2,11 +2,11 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { RexBook } from '../../types'
-import { acked, emptyBook, nextBatch, withTranscript } from '../book/events'
+import { acked, emptyBook, nextBatch } from '../book/events'
 import { openJobIn, questionIn } from '../book/jobs'
 import { CONFIG_ON, ingestAnswer, ROOT, SESSION, spawnInput, START_MS, world } from '../book/kit'
 import type { ProcessAnswer } from '../book/kit'
-import { promptIn, sessionIn } from '../book/session'
+import { promptIn, sessionIn, transcriptIn } from '../book/session'
 import { sharedJson } from '../book/shared'
 import { MERGE_NO, MERGE_QUESTION, MERGE_YES } from '../observe/index'
 import { batchText } from './batch'
@@ -19,10 +19,7 @@ const REQUEST = 'Fix the parser. Merge to main: yes'
 /** The book the shared example batch comes from: a session, the job-start prompt, and the job it opened. */
 function exampleBook(): RexBook {
   const setup = { session: SESSION, storage: 'on', jobsFromSdk: true, inert: null, claudeCode: '2.1.323', plugin: '0.8.0' } as const
-  const started = withTranscript(
-    sessionIn(emptyBook(), setup, START_MS, { stream: STREAM, secret: SECRET }),
-    `/home/person/.claude/projects/-repo/${SESSION}.jsonl`,
-  )
+  const started = sessionIn(emptyBook(), setup, START_MS, { stream: STREAM, secret: SECRET })
   const prompted = promptIn(
     started,
     {
@@ -96,6 +93,13 @@ test('a parked question goes to the store under an id of its session, as the sha
   ).book
 
   expect(JSON.parse(batchText({ session: SESSION, stream: STREAM, secret: SECRET, events: nextBatch(asked, 500) }))).toEqual(sharedJson('fixtures/shared/ingest/batch-question.json'))
+})
+
+test('the transcript path goes to the store in an event of its own, as the shared transcript batch holds it', () => {
+  const path = `/home/person/.claude/projects/-home-person-repo/${SESSION}.jsonl`
+  const noted = transcriptIn(acked(acked(exampleBook(), 0), 4), { session: SESSION, path }, START_MS + 3000)
+
+  expect(JSON.parse(batchText({ session: SESSION, stream: STREAM, secret: SECRET, events: nextBatch(noted, 500) }))).toEqual(sharedJson('fixtures/shared/ingest/batch-transcript.json'))
 })
 
 /** Answers every batch as stored: the highest sequence it holds, or the last one stored before. */

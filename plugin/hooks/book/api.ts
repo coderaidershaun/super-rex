@@ -21,9 +21,9 @@ import type {
   RexTreeTick,
   RexVersions,
 } from '../../types'
-import { acked, emptyBook, mainJob, nextBatch, withMark, withTranscript } from './events'
-import { promptIn, sessionIn } from './session'
-import type { PromptRecord, SessionSetup } from './session'
+import { acked, emptyBook, mainJob, nextBatch, withMark } from './events'
+import { promptIn, sessionIn, transcriptIn } from './session'
+import type { PromptRecord, SessionSetup, TranscriptSeen } from './session'
 import { failIn } from './fail'
 import { failureClass } from './failure'
 import type { FailureClass, RexFailure } from './failure'
@@ -53,16 +53,25 @@ import type { TreeInput } from './trees'
 type Dollar = EngineInterface
 
 /** Change the tag when the book's shape changes: a reload then declines what older code stored. */
-export const BOOK_SHAPE = 'book-2'
+export const BOOK_SHAPE = 'book-3'
 export const bookAtom = atom({ plugin: 'super-rex', key: 'book' } as const, emptyBook(), { shape: BOOK_SHAPE })
 
 export function readBook($: Dollar): Promise<RexBook> {
   return read($, bookAtom)
 }
 
+/** Counts the book's writes in this load of the mod, so a reader on a timer can tell that nothing changed without reading the book. */
+const writes = { count: 0 }
+
+export function bookWrites(): number {
+  return writes.count
+}
+
 async function change($: Dollar, apply: (book: RexBook, at: number) => RexBook): Promise<RexBook> {
   const at = await $.clock.now()
-  return update($, bookAtom, book => apply(book, at))
+  const book = await update($, bookAtom, old => apply(old, at))
+  writes.count += 1
+  return book
 }
 
 /** Runs a change that also answers a value; the value of the try that was written is the one returned. */
@@ -74,6 +83,7 @@ async function changeWith<T>($: Dollar, apply: (book: RexBook, at: number) => { 
     results.push(result.value)
     return result.book
   })
+  writes.count += 1
   const last = results[results.length - 1]
   if (last === undefined) {
     throw new BookWriteError('the book was not written')
@@ -272,8 +282,13 @@ export async function setVersions($: Dollar, versions: Partial<RexVersions>): Pr
   await change($, book => ({ ...book, versions: { ...book.versions, ...versions } }))
 }
 
-export async function noteTranscript($: Dollar, path: string): Promise<void> {
-  await change($, book => withTranscript(book, path))
+export async function noteTranscript($: Dollar, seen: TranscriptSeen): Promise<void> {
+  // Every hook event of the engine names the transcript and the book keeps the first: one read then costs less than writing the same book back.
+  const book = await readBook($)
+  if (book.transcript !== null || book.session !== seen.session) {
+    return
+  }
+  await change($, (book, at) => transcriptIn(book, seen, at))
 }
 
 /**

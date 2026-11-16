@@ -1,18 +1,19 @@
-// Refuses an agent start or a shell command that a gate check refuses: spend over the limit, depth outside a master tree, a fork in a job, a merge around rex_merge. An inert mod refuses nothing.
+// Refuses an agent start or a shell command that a gate check refuses: spend over the limit, depth outside a master tree, a fork in a job, an agent of a job that would not start as its sub-agent, a merge around rex_merge. An inert mod refuses nothing.
 import type { AgentSpawnInput, AgentSpawnResult, EngineInterface, HookFailure, On } from 'claude-code'
 
 import { fail, markDegraded, MAX_LIMIT_USD, newestOpenJob, readBook, setLimit } from '../book/index'
 import type { GateCheck, Parts } from '../parts'
 import { failureName } from '../tools/index'
-import { depthVerdict, forkRefusal, isMergeCommand, isOverLimit, isOwnSpawn, jobOfLoop, spendRefusal, tripwireRefusal } from './checks'
+import { agentArgRefusal, agentKindRefusal, depthVerdict, forkRefusal, isMergeCommand, isOverLimit, isOwnSpawn, jobOfLoop, refusedAgentArg, spendRefusal, tripwireRefusal } from './checks'
 import { LIMIT_SUBCOMMAND, serveLimit } from './limit'
 
-export { isMergeCommand, isOwnSpawn, jobOfLoop } from './checks'
+export { isMergeCommand, isOwnSpawn, jobOfLoop, refusedAgentArg } from './checks'
 
 export const GATE_CHECKS: readonly GateCheck[] = [
   { name: 'spend', site: { kind: 'agent', at: 'both' }, failure: 'open' },
   { name: 'depth', site: { kind: 'agent', at: 'agent.spawn' }, failure: 'closed' },
   { name: 'fork', site: { kind: 'agent', at: 'agent.spawn' }, failure: 'closed' },
+  { name: 'job-agent', site: { kind: 'agent', at: 'both' }, failure: 'closed' },
   { name: 'merge-tripwire', site: { kind: 'tool', tool: 'Bash' }, failure: 'closed' },
 ]
 
@@ -80,13 +81,42 @@ async function forkAtSpawn($: EngineInterface, event: AgentSpawnInput): Promise<
   return forkRefusal(book, job, event.parentAgentId)
 }
 
+/** The book is read only for a call that gives a refused argument, so every other Agent call costs no read. */
+async function jobAgentAtCall($: EngineInterface, call: object, agentId: string | undefined): Promise<string | null> {
+  const seen = refusedAgentArg(call)
+  if (seen === undefined) {
+    return null
+  }
+  const book = await readBook($)
+  if (book.inert !== null || jobOfLoop(book, agentId) === undefined) {
+    return null
+  }
+  await fail($, { kind: 'bad-argument', tool: 'Agent', argument: seen.argument, value: seen.value })
+  return agentArgRefusal(seen)
+}
+
+/** A teammate or a workflow's agent can start with no refused argument at the Agent call, or from another tool, so the spawn is checked too. */
+async function jobAgentAtSpawn($: EngineInterface, event: AgentSpawnInput, origin: string | undefined): Promise<string | null> {
+  const refusal = event.resume === undefined ? agentKindRefusal(event) : null
+  if (refusal === null) {
+    return null
+  }
+  const book = await readBook($)
+  if (book.inert !== null || isOwnSpawn(book, event, origin) || jobOfLoop(book, event.parentAgentId) === undefined) {
+    return null
+  }
+  await fail($, { kind: 'bad-argument', tool: 'Agent', argument: event.isTeammate === true ? 'teammate' : 'workflow', value: event.description })
+  return refusal
+}
+
 async function tripwireAtBash($: EngineInterface, command: string, agentId: string | undefined): Promise<string | null> {
   const book = await readBook($)
   if (book.inert !== null) {
     return null
   }
-  const base = jobOfLoop(book, agentId)?.base ?? 'main'
-  return isMergeCommand(command, base) ? tripwireRefusal(command, base) : null
+  const job = jobOfLoop(book, agentId)
+  const base = job?.base ?? 'main'
+  return isMergeCommand(command, base, job?.branch ?? null) ? tripwireRefusal(command, base) : null
 }
 
 /** An open check that fails refuses nothing: the agent starts, and its job is marked. */
@@ -135,6 +165,22 @@ async function forkGuard($: EngineInterface, event: AgentSpawnInput, origin: str
   }
 }
 
+async function jobAgentCallGuard($: EngineInterface, call: object, agentId: string | undefined): Promise<string | null> {
+  try {
+    return await jobAgentAtCall($, call, agentId)
+  } catch (error) {
+    return thrownRefusal($, 'job-agent', error)
+  }
+}
+
+async function jobAgentSpawnGuard($: EngineInterface, event: AgentSpawnInput, origin: string | undefined): Promise<string | null> {
+  try {
+    return await jobAgentAtSpawn($, event, origin)
+  } catch (error) {
+    return thrownRefusal($, 'job-agent', error)
+  }
+}
+
 async function tripwireGuard($: EngineInterface, command: string, agentId: string | undefined): Promise<string | null> {
   try {
     return await tripwireAtBash($, command, agentId)
@@ -152,6 +198,19 @@ export function register(on: On, parts: Parts): void {
     parts.gateChecks.add(check)
   }
   parts.subcommands.add(LIMIT_SUBCOMMAND)
+
+  on('tool.call', { tool: 'Agent' }, async ($, e, next) => {
+    if (next.origin.plugin === 'super-rex' && e.agentId === undefined) {
+      return next(e)
+    }
+    const refusal = await jobAgentCallGuard($, e, e.agentId)
+    return refusal === null ? next(e) : { deny: refusal }
+  }).catch(async ($, e, next) => (next.called ? next(e) : { deny: await closedFailed($, 'job-agent', next.error) }))
+
+  on('agent.spawn', { subagentType: /(?:)/ }, async ($, e, next) => {
+    const refusal = await jobAgentSpawnGuard($, e, next.origin.plugin)
+    return spawnDeny(refusal) ?? next(e)
+  }).catch(async ($, e, next) => (next.called ? next(e) : { deny: await closedFailed($, 'job-agent', next.error) }))
 
   on('tool.call', { tool: 'Agent' }, async ($, e, next) => {
     if (next.origin.plugin === 'super-rex' && e.agentId === undefined) {

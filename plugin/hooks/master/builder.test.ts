@@ -5,7 +5,7 @@ import type { Engine } from 'claude-code/testing'
 
 import { spawnInput } from '../book/kit'
 import { AUTHOR } from '../pipeline/assembly.fixture'
-import { buildRules, byRule, confirmedPolicy, lineOf, MASTER, masterWorld, omsAnswer, POLICY_KEY, START, treeBook } from './master-kit'
+import { buildRules, byRule, confirmedPolicy, KIND, lineOf, MASTER, masterWorld, omsAnswer, POLICY_KEY, START, treeBook } from './master-kit'
 import type { Rule } from './master-kit'
 
 const BUILD = 'mcp__super-rex__rex_build' as const
@@ -14,7 +14,7 @@ async function builtTree($: Engine, on: On, perJobUsd: number | null, rules: rea
   const policy = await confirmedPolicy({ per_job_usd: perJobUsd })
   const session = masterWorld(on, { seed: await treeBook(policy), store: { [POLICY_KEY]: policy }, processAnswer: byRule(rules) })
   await $.session.start(START)
-  const built = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'Fix the parser', consequence: 'low' })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'Fix the parser', consequence: 'low' })
   return { session, job: lineOf(built, 'job') ?? '', builder: lineOf(built, 'builder') ?? '' }
 }
 
@@ -34,7 +34,7 @@ test('builder_tool_calls_reach_dispatcher_and_gate', async ($, on) => {
   await step($, builder)
   await step($, MASTER)
   const agent = await $.tool.call({ tool: 'Agent', agentId: builder, description: 'worker', prompt: AUTHOR })
-  const nested = await $.tool.call({ tool: BUILD, agentId: builder, request: 'x', consequence: 'low' })
+  const nested = await $.tool.call({ tool: BUILD, ...KIND, agentId: builder, request: 'x', consequence: 'low' })
 
   expect([lineOf(opened, 'job'), lineOf(opened, 'existing')]).toEqual([job, 'yes'])
   const book = session.book()
@@ -48,7 +48,7 @@ test('builder_tool_calls_reach_dispatcher_and_gate', async ($, on) => {
   expect(nested.deny).toBe('rex_build: only the master may call it, got builder')
 })
 
-test('role_from_plan_by_ancestry: an agent the builder starts takes the plan role of its grid agent', async ($, on) => {
+test('role_from_plan_by_ancestry: an agent the builder starts takes the plan role of the task its brief names, on any agent type', async ($, on) => {
   const rules: readonly Rule[] = [{ starts: ['rex', 'oms', '--json', '--duration', 'none', '--budget', 'none', '--autonomy', 'high', '--intelligence', 'medium'], answer: omsAnswer('model-medium-effort-medium') }, ...buildRules('model-high-effort-high')]
   const { session, builder } = await builtTree($, on, null, rules)
 
@@ -66,7 +66,7 @@ test('role_from_plan_by_ancestry: an agent the builder starts takes the plan rol
   expect(lineOf(planned, 'role.engineer')).toBe('super-rex:model-medium-effort-medium')
   const runs = session.book().runs
   expect(runs.find(run => run.agentId === 'a2')?.role).toBe('engineer')
-  expect(runs.find(run => run.agentId === 'a3')?.role).toBe(null)
+  expect(runs.find(run => run.agentId === 'a3')?.role).toBe('engineer')
   expect(runs.filter(run => run.parent === builder).map(run => run.job)).toEqual([session.book().jobs[0]?.id, session.book().jobs[0]?.id])
 })
 

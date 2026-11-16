@@ -11,6 +11,8 @@ use std::time::Duration;
 use serde_json::{Value, json};
 use tempfile::{TempDir, tempdir};
 
+mod branch;
+
 /// Git sets these when it runs a hook, such as the pre-push hook that runs
 /// these tests; left in place they point git at the repo being pushed.
 const GIT_LOCATION_VARIABLES: [&str; 4] = [

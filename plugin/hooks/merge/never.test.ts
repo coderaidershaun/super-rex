@@ -9,10 +9,12 @@ import { files, JOB, ok, plannedAll, promptsPass, seededBook } from '../tools/ac
 
 const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
 
-/** Answers every git call of a merge as a clean one squash commit over the base, and records each call. */
+/** Answers every git call of a merge as a clean one squash commit over the base on origin, and records each call. */
 function cleanGit(calls: ProcessCall[]): (call: ProcessCall) => ProcessAnswer {
   return call => {
     calls.push(call)
+    if (call.argv.includes('remote')) return ok('origin\n')
+    if (call.argv.includes('for-each-ref')) return ok('refs/remotes/origin/main\n')
     if (call.argv.includes('rev-list')) return ok('1\n')
     if (call.argv.includes('rev-parse')) return ok('c1\n')
     if (call.argv[0] === 'rex') return ok('last_sequence=0\n')

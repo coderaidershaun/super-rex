@@ -1,7 +1,6 @@
-// The master: its agent type, its entry command, its policy, the builders it starts, its questions to the person, and its recovery.
+// The master: its agent type, its entry command, its policy, the builders it starts, its questions to the person, its wakes, its end, and its recovery.
 import type { EngineInterface, On } from 'claude-code'
 
-import type { RexBook, RexTree } from '../../types'
 import { errorText, fail, readBook } from '../book/index'
 import type { Parts } from '../parts'
 import { toolFailed } from '../tools/index'
@@ -9,25 +8,24 @@ import { MASTER_TYPE, registerMasterType } from './agent-type'
 import type { MasterTypeState } from './agent-type'
 import { serveBuild } from './build'
 import { CHARTER_PART } from './brief'
+import { setAsking } from './ask'
 import { serveAnswer, servePolicy } from './commands'
-import { ASK_OWNER_TOOL, BUILD_TOOL_NAME, CONTINUE_TOOL, GATE_CHECKS, MERGE_TOOL_NAME, NOTE_TOOL, SUBCOMMANDS, TOOLS } from './entries'
+import { ASK_OWNER_TOOL, BUILD_TOOL_NAME, CONTINUE_TOOL, GATE_CHECKS, MERGE_TOOL_NAME, NOTE_TOOL, REPORT_TOOL, SUBCOMMANDS, TOOLS } from './entries'
 import { serveMaster } from './entry'
 import { serveMergePolicy } from './merge-policy'
-import { MASTER_VIEW } from './pane'
+import { notificationAnswer } from './notify'
+import { liveTrees } from './pin'
 import { DEFAULT_POLICY } from './policy'
-import { closeIfDone } from './report'
+import { masterStopped, serveReport } from './report'
 import { MASTER_ONLY, sendRefusal } from './send'
-import { ownSpawn } from './spawn'
-import { STATUS_SECTIONS } from './status'
+import { masterSpawn, ownSpawn } from './spawn'
+import { STATUS_SECTIONS, withPolicyLines } from './status'
 import { readPolicy } from './store'
 import { serveAskOwner, serveContinue, serveNote } from './tools'
+import { isWakeOnTheWay } from './wake'
 import { builderEnded, startWatchdog } from './watch'
 
 const OWN_SPAWN = /^rex (master|builder) /
-
-function liveTrees(book: RexBook): readonly RexTree[] {
-  return book.trees.filter(tree => tree.session === book.session && (tree.state === 'running' || tree.state === 'paused'))
-}
 
 /** A policy that cannot be read here still leaves the tree a watchdog, on the default period; the line tells the person why. */
 async function watchdogMinutes($: EngineInterface): Promise<number> {
@@ -59,10 +57,10 @@ export function register(on: On, parts: Parts): void {
     parts.statusSections.add(section)
   }
   parts.briefParts.add(CHARTER_PART)
-  parts.paneViews.add(MASTER_VIEW)
 
   on('session.start', { cwd: /(?:)/ }, async ($, e, next) => {
     session.isInteractive = e.isInteractive
+    setAsking(e.isInteractive, parts.statusSections)
     const book = await readBook($)
     session.masterType = book.inert === null ? await registerMasterType($) : { kind: 'unregistered', reason: `the mod is off: ${book.inert}` }
     for (const tree of liveTrees(book)) {
@@ -74,7 +72,14 @@ export function register(on: On, parts: Parts): void {
     return next(e)
   })
 
-  on('agent.offer', { agent: MASTER_TYPE }, () => ({ isOffered: false })).catch(() => ({ isOffered: false }))
+  // The engine asks the offer also when it resumes a master, so a wake of the mod's own must be offered, or no master runs after its first turn.
+  on('agent.offer', { agent: MASTER_TYPE }, async $ => ({ isOffered: liveTrees(await readBook($)).some(tree => tree.master !== null && isWakeOnTheWay(tree.master)) })).catch(() => ({
+    isOffered: false,
+  }))
+  on('agent.spawn', { subagentType: MASTER_TYPE }, ($, e, next) => masterSpawn($, e, next.origin.plugin, next)).catch(async ($, e, next) => {
+    await fail($, { kind: 'authority-check-failed', check: 'master-type-spawn', error: next.error.message ?? next.error.kind })
+    return next.called ? next(e) : { deny: 'rex master: the master spawn check failed; refused' }
+  })
 
   // Matched on the fixed descriptions of the mod's own spawns, which every spawn event carries.
   on('agent.spawn', { description: OWN_SPAWN }, ($, e, next) => ownSpawn($, e, next.origin.plugin, session.isInteractive, next)).catch(async ($, e, next) => {
@@ -92,7 +97,7 @@ export function register(on: On, parts: Parts): void {
     return next.called ? next(e) : { deny: 'rex gate: policy-merge failed (timeout); refused' }
   })
 
-  on('command.run', { command: 'rex', args: /^policy(\s|$)/ }, ($, e) => servePolicy($, e)).catch((_$, _e, next) => ({
+  on('command.run', { command: 'rex', args: /^policy(\s|$)/ }, ($, e) => servePolicy($, e, parts.statusSections)).catch((_$, _e, next) => ({
     text: `rex policy: failed (${next.error.message ?? next.error.kind}); run /rex policy show to see what was stored`,
   }))
   on('command.run', { command: 'rex', args: /^answer(\s|$)/ }, ($, e) => serveAnswer($, e)).catch((_$, _e, next) => ({
@@ -101,19 +106,32 @@ export function register(on: On, parts: Parts): void {
 
   on('tool.call', { tool: 'mcp__super-rex__rex_continue' }, ($, e) => serveContinue($, e, CONTINUE_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_continue', next.error))
   on('tool.call', { tool: 'mcp__super-rex__rex_note' }, ($, e) => serveNote($, e, NOTE_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_note', next.error))
-  on('tool.call', { tool: 'mcp__super-rex__rex_ask_owner' }, ($, e) => serveAskOwner($, e, ASK_OWNER_TOOL, session.isInteractive)).catch(($, _e, next) => toolFailed($, 'rex_ask_owner', next.error))
+  on('tool.call', { tool: 'mcp__super-rex__rex_ask_owner' }, ($, e) => serveAskOwner($, e, ASK_OWNER_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_ask_owner', next.error))
+  on('tool.call', { tool: 'mcp__super-rex__rex_status' }, ($, e, next) => withPolicyLines($, e, next)).catch(($, _e, next) => toolFailed($, 'rex_status', next.error))
+  on('tool.call', { tool: 'mcp__super-rex__rex_report' }, ($, e) => serveReport($, e, REPORT_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_report', next.error))
 
   on('session.send', { to: /(?:)/ }, async ($, e, next) => (await sendRefusal($, e)) ?? next(e)).catch(() => ({ isDelivered: false, reason: MASTER_ONLY }))
 
   on('turn.complete', { reason: /(?:)/ }, async ($, e, next) => {
     const result = await next(e)
     if (e.agentId !== undefined) {
-      await builderEnded($, e.agentId, e.reason, parts.statusSections)
-      await closeIfDone($, e.agentId, e.answer)
+      await builderEnded($, { agentId: e.agentId, reason: e.reason, answer: e.answer }, parts.statusSections)
+      await masterStopped($, e.agentId, e.answer)
     }
     return result
   }).catch(async ($, e, next) => {
     await fail($, { kind: 'observer-failed', event: 'turn.complete', module: 'master', agentId: e.agentId ?? null, error: next.error.message ?? next.error.kind })
+    return next(e)
+  })
+
+  on('prompt.submit', { origin: { kind: 'task-notification' } }, async ($, e, next) => {
+    const answered = notificationAnswer(await readBook($), e)
+    if (answered === null) {
+      return next(e)
+    }
+    return 'drop' in answered ? answered : next({ ...e, text: answered.text })
+  }).catch(async ($, e, next) => {
+    await fail($, { kind: 'observer-failed', event: 'prompt.submit', module: 'master', agentId: null, error: next.error.message ?? next.error.kind })
     return next(e)
   })
 }

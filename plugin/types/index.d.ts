@@ -223,6 +223,7 @@ export type RexTreeBuilder = {
   readonly agentId: string
 }
 
+/** The watchdog tick that first saw a job's spend as it is now, or the stuck wake after it; a tree keeps one for each job. */
 export type RexTreeTick = {
   readonly at: number
   readonly job: string
@@ -318,6 +319,8 @@ export type RexBook = {
   readonly questions: readonly RexQuestion[]
   readonly trees: readonly RexTree[]
   readonly pendingSpawns: readonly RexPendingSpawn[]
+  /** The session's main transcript, from the first event that named it; its `session.transcript` event was queued then, and never again. */
+  readonly transcript: string | null
   readonly ingest: RexIngest | null
 }
 
@@ -326,6 +329,8 @@ declare module 'claude-code' {
     'super-rex': {
       book: Shaped<RexBook>
       view: string
+      at: string
+      page: number
     }
   }
 }

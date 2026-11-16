@@ -6,6 +6,9 @@ import { CONFIG_OFF } from '../book/kit'
 import { sharedJson } from '../book/shared'
 import { masterWorld, POLICY_KEY, rex, START, HEADLESS_START, confirmedPolicy } from './master-kit'
 
+/** What the answer of a start gives after `tree=` and `master=`: the merge rule, and how to follow and answer the tree. */
+const STARTED_LINES = (merge: string): string => `merge=${merge}\nwatch=/rex watch here, or rex watch in another terminal\nanswer=/rex answer <question id> <option number>\n`
+
 const OTHER_ORIGINS: readonly PromptOrigin[] = [
   { kind: 'task-notification' },
   { kind: 'scheduled-trigger' },
@@ -59,14 +62,27 @@ test('master from sdk passes the origin check when the policy allows headless ma
   expect(session.book().trees.map(tree => tree.state)).toEqual(['lost'])
 })
 
-test('preflight: storage off refuses and starts nothing', async ($, on) => {
+test('a master starts with storage off, its tree in the book of the session', async ($, on) => {
   const session = masterWorld(on, { config: CONFIG_OFF, store: { [POLICY_KEY]: await confirmedPolicy() } })
   await $.session.start(START)
 
   const answered = await $.command.run(rex('master Ship the parser'))
 
-  expect(answered.text).toBe('rex master: needs storage; run rex init --with-storage')
+  const tree = session.book().trees[0]
+  expect(answered.text).toBe(`tree=${tree?.id ?? ''}\nmaster=m1\n${STARTED_LINES('ask')}`)
+  expect([session.book().storage, tree?.state, tree?.master]).toEqual(['off', 'running', 'm1'])
+  expect(session.spawned.map(spawn => spawn.type)).toEqual(['super-rex:master'])
+})
+
+test('/rex master resume refuses with storage off and starts nothing', async ($, on) => {
+  const session = masterWorld(on, { config: CONFIG_OFF, store: { [POLICY_KEY]: await confirmedPolicy() } })
+  await $.session.start(START)
+
+  const answered = await $.command.run(rex('master resume'))
+
+  expect(answered.text).toBe('rex master resume: needs storage, got storage off; run rex init --with-storage, or start a new tree with /rex master <goal>')
   expect(session.spawned).toEqual([])
+  expect(session.book().trees).toEqual([])
 })
 
 test('preflight: a binary of another version refuses', async ($, on) => {
@@ -165,7 +181,7 @@ test('preflight: headless passes the permission check when each required allow r
 
   const answered = await $.command.run(rex('master Ship the parser'))
 
-  expect(answered.text).toMatch(/^tree=t[0-9a-z]{9}\nmaster=m1\n$/)
+  expect(answered.text).toMatch(/^tree=t[0-9a-z]{9}\nmaster=m1\nmerge=ask\n/)
   expect(session.book().trees.map(tree => tree.state)).toEqual(['running'])
 })
 
@@ -177,7 +193,7 @@ test('master_starts_after_preflight_with_charter_unchanged', async ($, on) => {
   const answered = await $.command.run(rex('master @charter.md'))
 
   const tree = session.book().trees[0]
-  expect(answered.text).toBe(`tree=${tree?.id ?? ''}\nmaster=m1\n`)
+  expect(answered.text).toBe(`tree=${tree?.id ?? ''}\nmaster=m1\n${STARTED_LINES('ask')}`)
   expect(tree?.charter).toBe(charter)
   expect(tree?.state).toBe('running')
   expect(tree?.master).toBe('m1')

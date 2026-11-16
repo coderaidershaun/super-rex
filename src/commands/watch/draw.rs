@@ -1,76 +1,218 @@
 //! Draws the screen of `rex watch` from its plain values, with the colours of
-//! [`super::theme`]. It only lays a [`ViewModel`] out and never reads the store.
+//! [`super::theme`]. It only lays the data and the place out and reads nothing.
 
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
-use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{
-    Block, BorderType, Cell, HighlightSpacing, Padding, Paragraph, Row, Table, TableState, Wrap,
-};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, BorderType, Clear, Padding, Paragraph, Wrap};
 
-use super::model::{Screen, State};
+use super::data::WatchData;
+use super::facts::{answer_command, options_text, waiting_questions};
+use super::nav::{Nav, Node};
+use super::rows::draw_rows;
 use super::theme;
-use super::view::{JobListRow, ViewModel, created_text, tree_guides};
-use crate::commands::jobs::RunCounts;
+use super::view::{breadcrumb, counted, ellipsis, fit_crumbs, rail_text, text_width};
 
-pub fn draw(frame: &mut Frame, view: &ViewModel, state: &State) {
-    let [top, body, footer] = Layout::vertical([
+/// The keys and what they do, for the `?` screen.
+const KEYS: [(&str, &str); 7] = [
+    ("↑ ↓  k j", "move the selection"),
+    ("enter → l", "go into the selected row"),
+    ("esc ← h ⌫", "go up one level"),
+    ("home g", "go to the home screen"),
+    ("?", "show or hide these keys"),
+    ("q  ctrl-c", "quit"),
+    (
+        "",
+        "Answer a question in its session with the command shown.",
+    ),
+];
+
+/// The width of a label in the facts panel, with the space after it.
+const LABEL_WIDTH: usize = 15;
+
+/// `age_seconds` is the time since the data was last read.
+pub fn draw(frame: &mut Frame, data: &WatchData, nav: &Nav, age_seconds: u64) {
+    let [top, rail, body, footer] = Layout::vertical([
+        Constraint::Length(1),
         Constraint::Length(1),
         Constraint::Min(1),
         Constraint::Length(1),
     ])
     .areas(frame.area());
-    frame.render_widget(top_bar(view, state), top);
-    match state.screen {
-        Screen::List => draw_jobs(frame, body, view, state),
-        Screen::Tree => draw_tree(frame, body, view, state),
-    }
-    frame.render_widget(footer_bar(state.screen), footer);
-}
-
-/// The name of the tool, where the person is, and how many jobs need a look.
-fn top_bar<'a>(view: &'a ViewModel, state: &State) -> Line<'a> {
-    let mut spans = vec![
-        Span::styled(" ◆ rex watch ", theme::badge()),
-        Span::raw("  "),
-    ];
-    match (state.screen, view.jobs.get(state.job)) {
-        (Screen::Tree, Some(job)) => spans.extend([
-            Span::styled("jobs", theme::dim()),
-            Span::styled(" › ", theme::faint()),
-            Span::styled(job.id.as_str(), theme::accent()),
-        ]),
-        _ => spans.push(Span::styled("jobs", theme::header())),
-    }
-    let total = view.jobs.len();
-    let noun = if total == 1 { "job" } else { "jobs" };
-    spans.push(Span::styled(format!("   {total} {noun}"), theme::dim()));
-    for status in ["running", "blocked", "failed"] {
-        let count = view.jobs.iter().filter(|job| job.status == status).count();
-        if count > 0 {
-            let (glyph, style) = theme::status(status);
-            spans.push(Span::styled("  ·  ", theme::faint()));
-            spans.push(Span::styled(format!("{glyph} {count} {status}"), style));
+    frame.render_widget(top_bar(data, nav, top.width), top);
+    frame.render_widget(rail_bar(data, nav), rail);
+    let rows_area = match nav.current() {
+        Some(node) => {
+            let lines = facts_lines(data, node, body.width);
+            let (facts_height, rows_height) =
+                split_heights(body.height, lines.len(), data.rows(Some(node)).len());
+            let [facts_area, rows_area] = Layout::vertical([
+                Constraint::Length(facts_height),
+                Constraint::Length(rows_height),
+            ])
+            .areas(body);
+            let room = usize::from(facts_height.saturating_sub(2));
+            frame.render_widget(
+                Paragraph::new(cut_lines(lines, room)).block(panel(node_title(data, node))),
+                facts_area,
+            );
+            rows_area
         }
-    }
-    Line::from(spans)
-}
-
-fn footer_bar(screen: Screen) -> Line<'static> {
-    let enter = match screen {
-        Screen::List => "show runs",
-        Screen::Tree => "back to jobs",
+        None => body,
     };
-    let mut spans = vec![Span::raw(" ")];
-    for (key, label) in [("↑↓", "select"), ("enter", enter), ("q", "quit")] {
-        spans.push(Span::styled(key, theme::key()));
-        spans.push(Span::styled(format!(" {label}    "), theme::dim()));
+    draw_rows(frame, rows_area, data, nav);
+    frame.render_widget(footer_bar(data, nav, age_seconds, footer.width), footer);
+    if nav.is_help_shown {
+        draw_help(frame, frame.area());
+    }
+}
+
+/// The heights of the facts panel and the rows panel in a body `body` lines
+/// high. The facts take what they need while the rows still fit; on a short
+/// terminal the rows keep at least half, so the person can still move.
+fn split_heights(body: u16, fact_lines: usize, rows: usize) -> (u16, u16) {
+    let as_height = |count: usize| u16::try_from(count).unwrap_or(u16::MAX);
+    // Two borders and the header; a screen with no row shows a note instead.
+    let rows_need = as_height(rows.max(1)).saturating_add(3);
+    let facts_need = as_height(fact_lines).saturating_add(2);
+    if facts_need.saturating_add(rows_need) <= body {
+        return (facts_need, body - facts_need);
+    }
+    let rows_height = rows_need.min((body / 2).max(4)).min(body);
+    (body - rows_height, rows_height)
+}
+
+/// The first lines that fit in `room`, the last of them saying how many more
+/// there are when some do not.
+fn cut_lines(mut lines: Vec<Line<'static>>, room: usize) -> Vec<Line<'static>> {
+    if lines.len() <= room {
+        return lines;
+    }
+    let kept = room.saturating_sub(1);
+    let hidden = lines.len() - kept;
+    lines.truncate(kept);
+    if room > 0 {
+        lines.push(Line::styled(
+            format!("… {hidden} more lines; a taller terminal shows them"),
+            theme::faint(),
+        ));
+    }
+    lines
+}
+
+/// The badge, then the path from home to the node in view, the last part bright.
+fn top_bar(data: &WatchData, nav: &Nav, width: u16) -> Line<'static> {
+    let badge = " ◆ rex watch ";
+    let mut spans = vec![Span::styled(badge, theme::badge()), Span::raw("  ")];
+    let room = usize::from(width).saturating_sub(text_width(badge) + 2);
+    let crumbs = fit_crumbs(&breadcrumb(data, nav), room);
+    let last = crumbs.len().saturating_sub(1);
+    for (index, crumb) in crumbs.into_iter().enumerate() {
+        if index > 0 {
+            spans.push(Span::styled(" › ", theme::faint()));
+        }
+        let style = if index == last {
+            theme::accent()
+        } else {
+            theme::dim()
+        };
+        spans.push(Span::styled(crumb, style));
     }
     Line::from(spans)
 }
 
-fn panel(title: Line<'_>) -> Block<'_> {
+/// How deep the node in view is, then the levels of the run with the current
+/// one marked. The depth comes first, so a narrow terminal cuts the rail and
+/// not the depth.
+fn rail_bar(data: &WatchData, nav: &Nav) -> Line<'static> {
+    let Some(at) = nav.current() else {
+        let waiting = data.waiting_count();
+        let mut spans = vec![Span::styled(
+            format!(
+                " {}  ·  {}",
+                counted(data.trees.len(), "tree", "trees"),
+                counted(data.jobs.len(), "job", "jobs")
+            ),
+            theme::dim(),
+        )];
+        if waiting > 0 {
+            let (glyph, style) = theme::question();
+            spans.push(Span::styled(
+                format!("  ·  {glyph} {waiting} waiting"),
+                style,
+            ));
+        }
+        return Line::from(spans);
+    };
+    let rail = rail_text(data, nav);
+    let pieces: Vec<&str> = rail.split(" › ").collect();
+    let depth = pieces
+        .iter()
+        .position(|piece| piece.starts_with('['))
+        .map_or(0, |index| index + 1);
+    let mut spans = vec![Span::styled(
+        format!(" level {depth} of {}   ", pieces.len()),
+        theme::dim(),
+    )];
+    for (index, piece) in pieces.iter().enumerate() {
+        if index > 0 {
+            spans.push(Span::styled(" › ", theme::faint()));
+        }
+        let style = if piece.starts_with('[') {
+            theme::level(data.level(at)).add_modifier(Modifier::REVERSED)
+        } else {
+            theme::faint()
+        };
+        spans.push(Span::styled((*piece).to_owned(), style));
+    }
+    Line::from(spans)
+}
+
+/// The keys of the screen in view with what each does, then the source and
+/// the age of the data. A narrow terminal drops what the keys do first, then
+/// the source.
+fn footer_bar(data: &WatchData, nav: &Nav, age_seconds: u64, width: u16) -> Line<'static> {
+    let mut keys = Vec::new();
+    if !data.rows(nav.current()).is_empty() {
+        keys.push(("↑↓", "move"));
+    }
+    if nav.selected_node().is_some() {
+        keys.push(("enter", "open"));
+    }
+    if nav.current().is_some() {
+        keys.extend([("esc", "up"), ("g", "home")]);
+    }
+    keys.extend([("?", "keys"), ("q", "quit")]);
+    let source = format!(
+        " source {}  ·  read {age_seconds}s ago",
+        data.sources.text()
+    );
+    let line = |with_labels: bool, with_source: bool| {
+        let mut spans = vec![Span::raw(" ")];
+        for (key, label) in &keys {
+            spans.push(Span::styled(*key, theme::key()));
+            let after = if with_labels {
+                format!(" {label}   ")
+            } else {
+                " ".to_owned()
+            };
+            spans.push(Span::styled(after, theme::dim()));
+        }
+        if with_source {
+            spans.push(Span::styled(source.clone(), theme::faint()));
+        }
+        Line::from(spans)
+    };
+    [(true, true), (false, true), (false, false)]
+        .into_iter()
+        .map(|(with_labels, with_source)| line(with_labels, with_source))
+        .find(|line| line.width() <= usize::from(width))
+        .unwrap_or_else(|| line(false, false))
+}
+
+/// A rounded panel with `title`, as every panel of the screen has.
+pub fn panel(title: Line<'_>) -> Block<'_> {
     Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(theme::border())
@@ -78,295 +220,148 @@ fn panel(title: Line<'_>) -> Block<'_> {
         .padding(Padding::horizontal(1))
 }
 
-fn panel_title(text: &str) -> Line<'_> {
-    Line::from(vec![
+/// `master t0geh4lh3i`, `builder 0geh5fafkb` or `lead engineer-lead`, in the level's colour.
+fn node_title(data: &WatchData, node: &Node) -> Line<'static> {
+    let level = data.level(node);
+    let name = data.row_text(node).map_or_else(String::new, |row| row.name);
+    let mut spans = vec![
         Span::raw(" "),
-        Span::styled(text, theme::accent()),
+        Span::styled(level.name(), theme::level(level)),
         Span::raw(" "),
-    ])
-}
-
-fn empty_note(text: &str) -> Paragraph<'_> {
-    Paragraph::new(vec![
-        Line::default(),
-        Line::styled(text, theme::dim().add_modifier(Modifier::ITALIC)),
-    ])
-    .centered()
-}
-
-/// A table in the house style: a coloured header, two spaces between columns
-/// and a bar in front of the selected row.
-fn styled_table<'a>(
-    rows: Vec<Row<'a>>,
-    widths: &[Constraint],
-    header: &[&'a str],
-    block: Block<'a>,
-) -> Table<'a> {
-    Table::new(rows, widths)
-        .header(Row::new(header.iter().copied()).style(theme::header()))
-        .block(block)
-        .column_spacing(2)
-        .row_highlight_style(theme::selected_row())
-        .highlight_symbol(Text::from(Span::styled("▌ ", theme::accent())))
-        .highlight_spacing(HighlightSpacing::Always)
-}
-
-/// The style of plain text on a row: bright when the row is selected.
-fn plain(selected: bool) -> Style {
-    if selected {
-        theme::selected_text()
-    } else {
-        Style::new()
-    }
-}
-
-fn status_span(status: &str) -> Span<'_> {
-    let (glyph, style) = theme::status(status);
-    Span::styled(format!("{glyph} {status}"), style)
-}
-
-/// `▶2 ✓5 ?1` with each count in the colour of its state, and zeros left out.
-fn runs_line(runs: RunCounts) -> Line<'static> {
-    let [open, finished, unconfirmed] = theme::run_counts();
-    let parts = [
-        ("▶", runs.open, open),
-        ("✓", runs.finished, finished),
-        ("?", runs.unconfirmed, unconfirmed),
     ];
-    let spans: Vec<_> = parts
-        .into_iter()
-        .filter(|(_, count, _)| *count > 0)
-        .map(|(glyph, count, style)| Span::styled(format!("{glyph}{count} "), style))
-        .collect();
-    if spans.is_empty() {
-        Line::styled("–", theme::faint())
-    } else {
-        Line::from(spans)
+    if !name.is_empty() {
+        spans.extend([
+            Span::styled(ellipsis(&name, 40), theme::id()),
+            Span::raw(" "),
+        ]);
     }
-}
-
-/// A token figure, with the `~` of a total that can still grow in amber.
-fn tokens_line(text: &str, selected: bool) -> Line<'_> {
-    if text.is_empty() {
-        return Line::styled("–", theme::faint());
-    }
-    match text.strip_suffix('~') {
-        Some(number) => Line::from(vec![
-            Span::styled(number, plain(selected)),
-            Span::styled("~", theme::warning()),
-        ]),
-        None => Line::styled(text, plain(selected)),
-    }
-}
-
-fn draw_jobs(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
-    let block = panel(panel_title("jobs"));
-    if view.jobs.is_empty() {
-        let note =
-            empty_note("No jobs yet. A job shows here as soon as `rex job create` opens it.");
-        frame.render_widget(note.block(block), area);
-        return;
-    }
-    let rows = view
-        .jobs
-        .iter()
-        .enumerate()
-        .map(|(index, job)| {
-            let selected = index == state.job;
-            Row::new([
-                Cell::from(Span::styled(job.id.as_str(), theme::id())),
-                Cell::from(status_span(&job.status)),
-                Cell::from(Span::styled(
-                    job.work_type.as_str(),
-                    theme::work_type(&job.work_type),
-                )),
-                Cell::from(Span::styled(job.size.as_str(), theme::size(&job.size))),
-                Cell::from(Span::styled(
-                    job.consequence.as_str(),
-                    theme::consequence(&job.consequence),
-                )),
-                Cell::from(Span::styled(job.languages.as_str(), theme::dim())),
-                Cell::from(Span::styled(created_text(&job.created_at), theme::dim())),
-                Cell::from(runs_line(job.runs)),
-                Cell::from(tokens_line(&job.cost, selected)),
-                Cell::from(tokens_line(&job.hit, selected)),
-                Cell::from(Span::styled(job.excerpt.as_str(), plain(selected))),
-            ])
-        })
-        .collect();
-    // The fixed columns fit in 120 terminal columns; the request takes the rest.
-    let widths = [
-        Constraint::Length(10),
-        Constraint::Length(11),
-        Constraint::Length(8),
-        Constraint::Length(6),
-        Constraint::Length(6),
-        Constraint::Length(10),
-        Constraint::Length(16),
-        Constraint::Length(10),
-        Constraint::Length(7),
-        Constraint::Length(4),
-        Constraint::Fill(1),
-    ];
-    let header = [
-        "id",
-        "status",
-        "type",
-        "size",
-        "conseq",
-        "languages",
-        "created",
-        "runs",
-        "cost",
-        "hit",
-        "request",
-    ];
-    let table = styled_table(rows, &widths, &header, block);
-    let mut table_state = TableState::default().with_selected(Some(state.job));
-    frame.render_stateful_widget(table, area, &mut table_state);
-}
-
-/// The selected job in full above its runs, so the tree screen says what the
-/// runs worked on.
-fn job_details(job: &JobListRow) -> Paragraph<'_> {
-    let dot = || Span::styled("  ·  ", theme::faint());
-    let facts = Line::from(vec![
-        status_span(&job.status),
-        dot(),
-        Span::styled(job.work_type.as_str(), theme::work_type(&job.work_type)),
-        dot(),
-        Span::styled(job.size.as_str(), theme::size(&job.size)),
-        dot(),
-        Span::styled(
-            format!("{} consequence", job.consequence),
-            theme::consequence(&job.consequence),
-        ),
-        dot(),
-        Span::styled(job.languages.as_str(), theme::dim()),
-        dot(),
-        Span::styled(created_text(&job.created_at), theme::dim()),
-    ]);
-    let request = Line::from(job.excerpt.as_str());
-    let tokens = if job.split.is_empty() {
-        Line::styled("tokens unknown", theme::faint())
-    } else {
-        Line::from(vec![
-            Span::styled("tokens  ", theme::dim()),
-            Span::raw(job.split.as_str()),
-            Span::styled("  (runs + session)", theme::faint()),
-        ])
-    };
-    let title = Line::from(vec![
-        Span::raw(" "),
-        Span::styled("job ", theme::accent()),
-        Span::styled(job.id.as_str(), theme::id()),
-        Span::raw(" "),
-    ]);
-    Paragraph::new(vec![facts, tokens, request])
-        .wrap(Wrap { trim: true })
-        .block(panel(title))
-}
-
-/// `runs · orchestrator pipeline v1`: the runs, named by the orchestrator that ran them.
-fn runs_title(job: Option<&JobListRow>) -> Line<'_> {
-    let mut spans = vec![Span::raw(" "), Span::styled("runs", theme::accent())];
-    match job.map(|job| job.orchestrator.as_str()) {
-        Some("") => spans.push(Span::styled("  ·  no orchestrator", theme::faint())),
-        Some(orchestrator) => spans.extend([
-            Span::styled("  ·  orchestrator ", theme::dim()),
-            Span::styled(orchestrator, theme::accent()),
-        ]),
-        None => {}
-    }
-    spans.push(Span::raw(" "));
     Line::from(spans)
 }
 
-fn draw_tree(frame: &mut Frame, area: Rect, view: &ViewModel, state: &State) {
-    let area = match view.jobs.get(state.job) {
-        Some(job) => {
-            // Two border lines, the facts and tokens lines, and two lines of request.
-            let [details, runs] =
-                Layout::vertical([Constraint::Length(6), Constraint::Min(3)]).areas(area);
-            frame.render_widget(job_details(job), details);
-            runs
-        }
-        None => area,
-    };
-    let block = panel(runs_title(view.jobs.get(state.job)));
-    if view.tree.is_empty() {
-        frame.render_widget(empty_note("No sub-agent runs yet.").block(block), area);
-        return;
+fn fact_line(label: &str, label_style: Style, value: String, value_style: Style) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(format!("{label:<LABEL_WIDTH$}"), label_style),
+        Span::styled(value, value_style),
+    ])
+}
+
+/// The facts of the node, each cut to one line. The waiting questions come
+/// right after the first fact, so a short terminal still shows them.
+fn facts_lines(data: &WatchData, node: &Node, width: u16) -> Vec<Line<'static>> {
+    let value_width = usize::from(width).saturating_sub(4 + LABEL_WIDTH);
+    let mut facts = data.facts(node).into_iter();
+    let mut lines: Vec<Line> = facts
+        .next()
+        .map(|(label, value)| {
+            fact_line(
+                label,
+                theme::dim(),
+                ellipsis(&value, value_width),
+                Style::new(),
+            )
+        })
+        .into_iter()
+        .collect();
+    let (glyph, style) = theme::question();
+    for question in waiting_questions(data, node) {
+        lines.extend([
+            fact_line(
+                &format!("{glyph} waiting"),
+                style,
+                ellipsis(&question.question, value_width),
+                Style::new(),
+            ),
+            fact_line(
+                "  options",
+                theme::dim(),
+                ellipsis(&options_text(question), value_width),
+                Style::new(),
+            ),
+            fact_line(
+                "  answer",
+                theme::dim(),
+                ellipsis(&answer_command(question), value_width),
+                theme::key(),
+            ),
+        ]);
     }
-    let depths: Vec<_> = view.tree.iter().map(|run| run.depth).collect();
-    let rows = view
-        .tree
+    lines.extend(facts.map(|(label, value)| {
+        fact_line(
+            label,
+            theme::dim(),
+            ellipsis(&value, value_width),
+            Style::new(),
+        )
+    }));
+    lines
+}
+
+fn draw_help(frame: &mut Frame, area: Rect) {
+    let width = area.width.min(76);
+    let lines: Vec<Line> = KEYS
         .iter()
-        .zip(tree_guides(&depths))
-        .enumerate()
-        .map(|(index, (run, guide))| {
-            let selected = index == state.tree_row;
-            let role_style = if run.depth == 0 {
-                theme::accent()
-            } else {
-                plain(selected)
-            };
-            let model = run.model.strip_prefix("claude-").unwrap_or(&run.model);
-            let (glyph, state_style) = theme::run_state(run.state);
-            let duration_style = if run.duration == "-" {
-                theme::faint()
-            } else {
-                plain(selected)
-            };
-            let tag_job = run.tag_job.as_deref().map_or_else(Line::default, |job| {
-                Line::styled(format!("⚠ {job}"), theme::warning())
-            });
-            Row::new([
-                Cell::from(Line::from(vec![
-                    Span::styled(guide, theme::faint()),
-                    Span::styled(run.role.as_str(), role_style),
-                ])),
-                Cell::from(Span::styled(model, theme::model(model))),
-                Cell::from(Span::styled(
-                    run.effort.as_str(),
-                    theme::effort(&run.effort),
-                )),
-                Cell::from(if run.state == "-" {
-                    Span::styled("-", theme::faint())
-                } else {
-                    Span::styled(format!("{glyph} {}", run.state), state_style)
-                }),
-                Cell::from(Span::styled(run.duration.as_str(), duration_style)),
-                Cell::from(tokens_line(&run.tokens.input, selected)),
-                Cell::from(tokens_line(&run.tokens.cache_write, selected)),
-                Cell::from(tokens_line(&run.tokens.cache_read, selected)),
-                Cell::from(tokens_line(&run.tokens.output, selected)),
-                Cell::from(tokens_line(&run.tokens.hit, selected)),
-                Cell::from(tokens_line(&run.tokens.cost, selected)),
-                Cell::from(tag_job),
+        .map(|(key, what)| {
+            Line::from(vec![
+                Span::styled(format!("{key:<12}"), theme::key()),
+                Span::raw(*what),
             ])
         })
         .collect();
-    // The fixed columns fit in 120 terminal columns; the tag job takes the rest.
-    let widths = [
-        Constraint::Length(20),
-        Constraint::Length(10),
-        Constraint::Length(6),
-        Constraint::Length(13),
-        Constraint::Length(6),
-        Constraint::Length(5),
-        Constraint::Length(7),
-        Constraint::Length(7),
-        Constraint::Length(6),
-        Constraint::Length(4),
-        Constraint::Length(8),
+    // The borders and the padding take four columns and two lines; a line
+    // wider than the rest wraps onto as many lines as it needs.
+    let inner = usize::from(width.saturating_sub(4)).max(1);
+    let text_height: usize = lines
+        .iter()
+        .map(|line| line.width().div_ceil(inner).max(1))
+        .sum();
+    let paragraph = Paragraph::new(lines).wrap(Wrap { trim: false });
+    let height = area.height.min(
+        u16::try_from(text_height)
+            .unwrap_or(u16::MAX)
+            .saturating_add(2),
+    );
+    let [_, middle, _] = Layout::vertical([
         Constraint::Fill(1),
-    ];
-    let header = [
-        "role", "model", "effort", "state", "time", "in", "cache-w", "cache-r", "out", "hit",
-        "cost", "tag-job",
-    ];
-    let table = styled_table(rows, &widths, &header, block);
-    let mut table_state = TableState::default().with_selected(Some(state.tree_row));
-    frame.render_stateful_widget(table, area, &mut table_state);
+        Constraint::Length(height),
+        Constraint::Fill(1),
+    ])
+    .areas(area);
+    let [_, popup, _] = Layout::horizontal([
+        Constraint::Fill(1),
+        Constraint::Length(width),
+        Constraint::Fill(1),
+    ])
+    .areas(middle);
+    let title = Line::from(vec![
+        Span::raw(" "),
+        Span::styled("keys", theme::accent()),
+        Span::raw(" "),
+    ]);
+    frame.render_widget(Clear, popup);
+    frame.render_widget(paragraph.block(panel(title)), popup);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_short_terminal_keeps_half_the_body_for_the_rows() {
+        assert_eq!(split_heights(36, 13, 4), (15, 21), "all fits");
+        assert_eq!(split_heights(11, 13, 4), (6, 5));
+        assert_eq!(split_heights(11, 3, 0), (5, 6), "a screen with no row");
+        assert_eq!(split_heights(3, 13, 4), (0, 3));
+    }
+
+    #[test]
+    fn cut_lines_says_how_many_lines_it_hid() {
+        let lines: Vec<Line> = (0..5).map(|n| Line::raw(n.to_string())).collect();
+        assert_eq!(cut_lines(lines.clone(), 5).len(), 5);
+        let cut = cut_lines(lines, 3);
+        assert_eq!(cut.len(), 3);
+        assert_eq!(
+            cut[2].to_string(),
+            "… 3 more lines; a taller terminal shows them"
+        );
+    }
 }

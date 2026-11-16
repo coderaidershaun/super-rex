@@ -15,13 +15,18 @@ Call `rex_job_open` before you start first sub-agent. Sub-agent that starts whil
 | `langs` | List of languages, for example `["rust", "ts"]`. `["none"]` IF job writes no code. |
 | `prefs` | `{ duration, budget, autonomy }`: only each preference that user stated, as `low`, `medium`, or `high`. `fast` = `low`, `long` = `high`. No stated preference: leave `prefs` out. |
 
-Result keys: `job`, `status`, `existing` (`yes` or `no`), `merge` (`yes`, `no`, or `unknown`), `storage` (`on` or `off`), `limit_usd`, `repo`, `branch`, `base`, `worktree`.
+Result keys: `job`, `status`, `existing` (`yes` or `no`), `merge` (`yes`, `no`, or `unknown`), `storage` (`on` or `off`), `limit_usd`, `type`, `size`, `consequence`, `langs`, `duration`, `budget`, `autonomy` (each `none` when not set), `repo`, `branch`, `base`, `remote` (`origin` or `none`), `uncommitted` (count), `worktree`. Repo with no commit: also `base_commit=made`. Fetch of `origin` failed: also `base_stale=yes`.
 
 - [ ] Hold `job` as `JOB`. Each later step uses it.
 - [ ] `repo` = `HOME_DIR`. `branch`, `base`, `worktree` = job places. `rex-deliver` uses them. You name no job branch and no job worktree.
+- [ ] Mod made job worktree `worktree` on `branch` from `base`. Make no worktree for job repo.
+- [ ] IF `base_stale=yes`, THEN tell requester in one line: job starts from `origin/<base>` as repo last fetched it, which can be old. Ask nothing.
+- [ ] `remote` = mode of job repo: `none` = mode `local` of `rex-deliver`. In both modes, `rex_merge` merges an agreed job.
+- [ ] Never ask requester how to set up git, a branch, or a remote. Mod fixed job places, and made first commit of a repo with none.
+- [ ] IF `uncommitted` > 0, THEN tell requester in one line: job starts from last commit and does not hold those uncommitted changes. Ask nothing.
 - [ ] `storage=off`: mod keeps no store. `rex_recall` and `rex job show` give nothing. Job runs as normal.
-- [ ] IF output gives `existing=yes`, THEN read `orchestration-builder/open-job.md`.
-- [ ] IF mod refuses call, THEN give requester its reason text and stop. Main session opens job only right after a prompt `/super-rex:orchestration-builder`: typed by a person, or sent headless (origin `sdk`) while `.rex/config.json` has `jobs_from_sdk` = `true`.
+- [ ] IF output gives `existing=yes`, THEN `type` to `autonomy` = classification + preferences of job. Use them. Do not classify again. Pass these preferences to each `rex oms` call. Read `orchestration-builder/open-job.md`.
+- [ ] IF mod refuses call, THEN give requester its reason text and stop. Refusal says what person does: for example `git init` in a folder that is no git repo. Main session opens job only right after a prompt `/super-rex:orchestration-builder`: typed by a person, or sent headless (origin `sdk`) while `.rex/config.json` has `jobs_from_sdk` = `true`.
 - [ ] Spend limit: `limit_usd`. Request can set it: `Set the spend limit of this job to <usd> dollars`. Person raises it later with `/rex limit <job> <usd>`.
 
 ## Step 4 — Merge answer
@@ -30,7 +35,7 @@ Reason: A merge can need the approval of a person, or it can start a deployment.
 
 1. Plan job: `MERGE` = `no`. Do not ask. Plan job writes no file in Git repo, so nothing merges.
 2. IF `merge` of `rex_job_open` = `yes` or `no`, THEN `MERGE` = that value. Ask nothing.
-3. IF a master started you, THEN ask nothing. `MERGE` = `yes`: End 2 of `rex-deliver/end.md` calls `rex_merge`. With no answer of policy, `rex_merge` parks a merge question for owner and gives `merged=no`, `question=<id>`. Owner answer `Keep the branch` gives `no`.
+3. IF a master started you, THEN ask nothing. `MERGE` = `yes`: End 2 of `rex-deliver/end.md` calls `rex_merge`. With no answer of policy, `rex_merge` parks a merge question for person and gives `merged=no`, `question=<id>`. Then end turn with state `awaiting decision` + question ID. Mod wakes you when person answers: call `rex_merge` again. Answer `Keep the branch` gives `no`.
 4. IF `origin` of `rex_status` (with `job`) = `sdk`, THEN job runs headless and no person can answer: `MERGE` = `no`. A headless request that wants a merge says `merge: yes` in its text: then step 2 applies.
 5. ELSE ask requester with AskUserQuestion tool. One question, two options, exact text. Mod records only this form:
    - Question: `Merge this job to main when its checks pass?`

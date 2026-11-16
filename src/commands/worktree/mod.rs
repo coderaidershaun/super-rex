@@ -38,7 +38,7 @@ pub struct WorktreeOptions {
 /// The commands of `rex worktree`.
 #[derive(clap::Subcommand, Clone, Debug)]
 pub enum WorktreeAction {
-    /// Make a worktree from a commit, on a new branch or detached, and list it.
+    /// Make a worktree from a commit, on a new branch, on an existing branch at that commit, or detached, and list it.
     Add {
         /// The main checkout of the repo.
         repo: PathBuf,
@@ -46,7 +46,7 @@ pub enum WorktreeAction {
         dir: PathBuf,
         /// The full hash of the commit the worktree starts from.
         commit: String,
-        /// The branch to make there; with none, the worktree is detached.
+        /// The branch to make there, or an existing branch whose tip is the commit; with none, the worktree is detached.
         #[arg(long)]
         branch: Option<String>,
     },
@@ -108,12 +108,27 @@ fn add(repo: &Path, dir: &Path, commit: &str, branch: Option<&str>) -> Result<()
     // The settings are read and checked before git runs, so a file rex cannot
     // edit leaves no worktree behind; the lock is held until the write.
     let registry = Registry::open(&repo)?;
+    let dir_text = text_of(&planned)?.to_owned();
     let mut args = vec!["worktree".to_owned(), "add".to_owned()];
-    match branch {
-        Some(branch) => args.extend(["-b".to_owned(), branch.to_owned()]),
-        None => args.push("--detach".to_owned()),
+    match branch.map(|branch| (branch, branch_tip(&repo, branch))) {
+        Some((branch, None)) => args.extend([
+            "-b".to_owned(),
+            branch.to_owned(),
+            dir_text,
+            commit.to_owned(),
+        ]),
+        Some((branch, Some(tip))) if tip.eq_ignore_ascii_case(commit) => {
+            args.extend([dir_text, branch.to_owned()])
+        }
+        Some((branch, Some(tip))) => {
+            return Err(WorktreeError::BranchAtOtherCommit {
+                branch: branch.to_owned(),
+                tip,
+                commit: commit.to_owned(),
+            });
+        }
+        None => args.extend(["--detach".to_owned(), dir_text, commit.to_owned()]),
     }
-    args.extend([text_of(&planned)?.to_owned(), commit.to_owned()]);
     git(&repo, &args)?;
 
     let made = planned
@@ -199,14 +214,29 @@ fn text_of(path: &Path) -> Result<&str, WorktreeError> {
     })
 }
 
-/// Run `git -C repo args`, with what it printed as the failure when it fails.
-fn git(repo: &Path, args: &[String]) -> Result<(), WorktreeError> {
+/// `git -C repo args`, with no variable of a hook that points git elsewhere.
+fn git_command(repo: &Path, args: &[String]) -> Command {
     let mut command = Command::new("git");
     command.arg("-C").arg(repo).args(args);
     for variable in GIT_LOCATION_VARIABLES {
         command.env_remove(variable);
     }
-    let output = command
+    command
+}
+
+/// The commit that `branch` of `repo` points at, or `None` when the repo has no
+/// such branch, or git cannot say.
+fn branch_tip(repo: &Path, branch: &str) -> Option<String> {
+    let reference = format!("refs/heads/{branch}");
+    let args = ["rev-parse", "--verify", "--quiet", reference.as_str()].map(str::to_owned);
+    let output = git_command(repo, &args).output().ok()?;
+    let tip = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    (output.status.success() && !tip.is_empty()).then_some(tip)
+}
+
+/// Run `git -C repo args`, with what it printed as the failure when it fails.
+fn git(repo: &Path, args: &[String]) -> Result<(), WorktreeError> {
+    let output = git_command(repo, args)
         .output()
         .map_err(|source| WorktreeError::GitNotRun { source })?;
     if output.status.success() {

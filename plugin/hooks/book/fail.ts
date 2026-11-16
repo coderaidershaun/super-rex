@@ -77,7 +77,7 @@ export function failIn(book: RexBook, failure: RexFailure, at: number, keys: Str
     case 'tree-ledger':
     case 'rate-limit-pause':
     case 'lint-findings':
-    case 'merge-push-rejected':
+    case 'merge-rejected':
     case 'merge-lock-held':
     case 'merge-not-planned':
     case 'merge-not-fast-forward':

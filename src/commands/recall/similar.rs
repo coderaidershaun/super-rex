@@ -13,11 +13,12 @@ const MIN_SCORE: i64 = 2;
 const MAX_LESSONS: i64 = 5;
 const MAX_ORCHESTRATORS: usize = 3;
 
-/// The four fields of the asked job that the score compares.
+/// The four fields of the asked job that the score compares. A field the job
+/// was stored without is `None` (languages: `none`) and matches no other job.
 pub(super) struct Asked {
-    work_type: String,
-    size: String,
-    consequence: String,
+    work_type: Option<String>,
+    size: Option<String>,
+    consequence: Option<String>,
     languages: String,
 }
 
@@ -47,8 +48,11 @@ pub(super) fn asked_job(
 }
 
 /// `scored`: every other job with its score, one point for each of the four
-/// fields that is non-empty and equal to the asked job's. Each job also has the
-/// cost and tokens of its main session and runs, all NULL when none is stored.
+/// fields that is set and equal to the asked job's. A field is unset when it is
+/// NULL or empty, and languages also when it is `none`, the form of no language
+/// listed; an unset field on either side scores no point, so a job with fewer
+/// than two fields set has no similar job. Each job also has the cost and
+/// tokens of its main session and runs, all NULL when none is stored.
 const SCORED_JOBS: &str = "
     WITH spent AS (
         SELECT job_id, SUM(cost_nanodollars) AS nanodollars,
@@ -65,10 +69,10 @@ const SCORED_JOBS: &str = "
         GROUP BY job_id),
     scored AS (
         SELECT j.id, j.created_at, j.status, j.orchestrator_name, j.orchestrator_version,
-               (j.work_type <> '' AND j.work_type = :work_type)
-             + (j.size <> '' AND j.size = :size)
-             + (j.consequence <> '' AND j.consequence = :consequence)
-             + (j.languages <> '' AND j.languages = :languages) AS score,
+               COALESCE(j.work_type <> '' AND j.work_type = :work_type, 0)
+             + COALESCE(j.size <> '' AND j.size = :size, 0)
+             + COALESCE(j.consequence <> '' AND j.consequence = :consequence, 0)
+             + (j.languages NOT IN ('', 'none') AND j.languages = :languages) AS score,
                s.nanodollars, s.unpriced, s.input, s.output, s.cache_read, s.cache_creation
         FROM job j LEFT JOIN spent s ON s.job_id = j.id
         WHERE j.id <> :job)";

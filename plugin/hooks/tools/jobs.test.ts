@@ -4,7 +4,7 @@ import type { PromptOrigin } from 'claude-code'
 
 import { CONFIG_OFF, CONFIG_ON, ROOT, world } from '../book/kit'
 import type { ProcessCall } from '../book/kit'
-import { BASE_CALL, files, promptsPass, scripted } from './act-kit'
+import { EXISTING_CALLS, files, OPEN_CALLS, promptsPass, scripted } from './act-kit'
 
 const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
 const RESTATED = { isAnswered: true, text: 'Goal: fix the parser. Missing: merge answer.', usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } as const
@@ -21,7 +21,7 @@ function lineOf(result: unknown, key: string): string | undefined {
 test('job_open_only_after_person_job_prompt', async ($, on) => {
   files(on, {})
   promptsPass(on)
-  const session = world(on, { config: CONFIG_OFF, processAnswer: scripted([BASE_CALL]), modelAnswer: () => RESTATED })
+  const session = world(on, { config: CONFIG_OFF, processAnswer: scripted([...OPEN_CALLS, ...EXISTING_CALLS]), modelAnswer: () => RESTATED })
   await $.session.start(START)
 
   const early = await $.tool.call({ tool: 'mcp__super-rex__rex_job_open', request: 'x' })
@@ -54,7 +54,7 @@ test('a job opened with no stated limit gets the default of its size and budget 
   files(on, {})
   promptsPass(on)
   const calls: ProcessCall[] = []
-  world(on, { config: CONFIG_ON, processAnswer: scripted([BASE_CALL], calls), modelAnswer: () => RESTATED })
+  world(on, { config: CONFIG_ON, processAnswer: scripted(OPEN_CALLS, calls), modelAnswer: () => RESTATED })
   await $.session.start(START)
 
   await $.prompt.submit(jobStart({ kind: 'composer' }))
@@ -62,13 +62,14 @@ test('a job opened with no stated limit gets the default of its size and budget 
 
   expect(lineOf(opened, 'limit_usd')).toBe('28.00')
   expect(lineOf(opened, 'storage')).toBe('on')
-  expect(calls.map(call => call.argv)).toEqual([BASE_CALL.argv])
+  // The rex worktree call names the job's own path, so only its first words are known ahead.
+  expect(calls.map(call => call.argv.slice(0, 4))).toEqual(OPEN_CALLS.map(call => call.argv.slice(0, 4)))
 })
 
 test('job_from_sdk_allowed_by_config', async ($, on) => {
   files(on, {})
   promptsPass(on)
-  world(on, { config: CONFIG_OFF, processAnswer: scripted([BASE_CALL]), modelAnswer: () => RESTATED })
+  world(on, { config: CONFIG_OFF, processAnswer: scripted(OPEN_CALLS), modelAnswer: () => RESTATED })
   await $.session.start(START)
 
   await $.prompt.submit(jobStart({ kind: 'sdk' }, 'Fix the parser. Set the spend limit of this job to 3 dollars'))
@@ -81,7 +82,7 @@ test('job_from_sdk_allowed_by_config', async ($, on) => {
 test('a job-start prompt from sdk opens no job when the config turns jobs from sdk off', async ($, on) => {
   files(on, {})
   promptsPass(on)
-  world(on, { config: CONFIG_OFF.replace('"jobs_from_sdk": true', '"jobs_from_sdk": false'), processAnswer: scripted([BASE_CALL]), modelAnswer: () => RESTATED })
+  world(on, { config: CONFIG_OFF.replace('"jobs_from_sdk": true', '"jobs_from_sdk": false'), processAnswer: scripted(OPEN_CALLS), modelAnswer: () => RESTATED })
   await $.session.start(START)
 
   await $.prompt.submit(jobStart({ kind: 'sdk' }))
@@ -93,7 +94,7 @@ test('a job-start prompt from sdk opens no job when the config turns jobs from s
 test('a bad argument changes nothing', async ($, on) => {
   files(on, {})
   promptsPass(on)
-  const session = world(on, { config: CONFIG_OFF, processAnswer: scripted([BASE_CALL]), modelAnswer: () => RESTATED })
+  const session = world(on, { config: CONFIG_OFF, processAnswer: scripted(OPEN_CALLS), modelAnswer: () => RESTATED })
   await $.session.start(START)
 
   await $.prompt.submit(jobStart({ kind: 'composer' }))
@@ -101,4 +102,21 @@ test('a bad argument changes nothing', async ($, on) => {
 
   expect(refused.deny).toBe('rex_job_open: size must be one of small, medium, large, got huge; call it again with one of them')
   expect(session.book().jobs).toEqual([])
+})
+
+test('rex_job_open answers the stored classification and preferences, also with existing=yes, so a builder does not classify again', async ($, on) => {
+  files(on, {})
+  promptsPass(on)
+  world(on, { config: CONFIG_OFF, processAnswer: scripted([...OPEN_CALLS, ...EXISTING_CALLS]), modelAnswer: () => RESTATED })
+  await $.session.start(START)
+
+  await $.prompt.submit(jobStart({ kind: 'composer' }))
+  const opened = await $.tool.call({ tool: 'mcp__super-rex__rex_job_open', request: 'Fix the parser', type: 'fix', size: 'small', consequence: 'low', langs: ['rust', 'ts'], prefs: { autonomy: 'high' } })
+  const again = await $.tool.call({ tool: 'mcp__super-rex__rex_job_open', request: 'Fix the parser', type: 'feature', size: 'large' })
+
+  const keys = ['type', 'size', 'consequence', 'langs', 'duration', 'budget', 'autonomy']
+  const expected = ['fix', 'small', 'low', 'rust,ts', 'none', 'none', 'high']
+  expect(keys.map(key => lineOf(opened, key))).toEqual(expected)
+  expect(keys.map(key => lineOf(again, key))).toEqual(expected)
+  expect(lineOf(again, 'existing')).toBe('yes')
 })

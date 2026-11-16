@@ -2,7 +2,7 @@
 
 Steps 4 + 5 of `orchestration-builder/stages/1-skills/stage.md`. Builder does them at step 3 of `## Step 6 — Decide` in `orchestration-builder/decide.md`, IF decision block lists NEW SKILLS. Do them once for each row: `Name`, `Need`, `Reason`, `Gap language`.
 
-- `JOB_DIR`: Absolute path where job branch is checked out: `worktree` of `rex_job_open`. `rex-deliver/start.md` makes it.
+- `JOB_DIR`: Absolute path where job branch is checked out: `worktree` of `rex_job_open`. Mod makes it when job opens.
 
 ## Step 4 — Write skill
 

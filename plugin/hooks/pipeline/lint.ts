@@ -1,4 +1,4 @@
-// The deterministic check of a brief's author text before an agent starts: the five sections, evidence in Acceptance, the phrases the prompting rules forbid, `never` outside Limits, and closed `<data>` tags.
+// The deterministic check of a brief's author text before an agent starts: the five sections, evidence in Acceptance, the phrases the prompting rules forbid outside quoted `<data>`, `never` outside Limits, and closed `<data>` tags.
 
 export const SECTIONS = ['Outcome', 'Scope', 'Context', 'Acceptance', 'Limits'] as const
 type Section = (typeof SECTIONS)[number]
@@ -60,6 +60,11 @@ function outsideLimits(text: string): string {
   return kept.join('\n')
 }
 
+/** The text with each closed `<data>` block emptied: quoted material (a request, a charter, a finding) is not the author's own words, so no phrase rule reads it. */
+function ownWords(text: string): string {
+  return text.replace(/<data>[\s\S]*?<\/data>/g, '<data></data>')
+}
+
 /** `tasks` is null before a plan, when every task name passes. */
 export function lintFindings(text: string, tasks: readonly string[] | null): readonly string[] {
   const findings: string[] = []
@@ -79,13 +84,14 @@ export function lintFindings(text: string, tasks: readonly string[] | null): rea
   if (acceptance !== undefined && !EVIDENCE.test(acceptance.replace(HEADER, ''))) {
     findings.push('Acceptance: names no evidence (a command in backticks, a test, output, an exit code, a file or a log)')
   }
-  const lower = text.toLowerCase()
+  const own = ownWords(text)
+  const lower = own.toLowerCase()
   findings.push(...FORBIDDEN.filter(phrase => lower.includes(phrase)).map(phrase => `"${phrase}" is a line the effort level controls`))
-  const shouted = SHOUTED.exec(text)?.[1]
+  const shouted = SHOUTED.exec(own)?.[1]
   if (shouted !== undefined) {
     findings.push(`${shouted} in capitals adds force, not meaning`)
   }
-  if (/\bnever\b/i.test(outsideLimits(text))) {
+  if (/\bnever\b/i.test(outsideLimits(own))) {
     findings.push('"never" stands outside Limits:')
   }
   const opened = text.split('<data>').length - 1

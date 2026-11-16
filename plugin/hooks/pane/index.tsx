@@ -1,25 +1,22 @@
-// Draws the band above the prompt and the watch pane from the live record.
+// Draws the band above the prompt and the watch pane from the outline of the live record, and keeps the pane's tab, the node in view and the page of its rows.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
-import { answerQuestion, bandJob, errorText, fail, readBook, setVersions } from '../book/index'
-import type { RexBook, RexJob } from '../../types'
+import { answerQuestion, errorText, fail, readBook, setVersions } from '../book/index'
+import { wakeOnAnswer } from '../master/ask'
 import type { Parts } from '../parts'
+import { bandRows } from './band'
 import { DECISIONS_VIEW } from './decisions'
 import { drawPane } from './draw'
-import { HEADER_VIEW, JOBS_VIEW, jobRuns, maxDepth, QUESTIONS_VIEW, TREE_VIEW, usd, waitingQuestions } from './views'
+import { TREE_VIEW } from './drill'
+import { outlineOf, ROOT_ID } from './outline'
+import { HEADER_VIEW, QUESTIONS_VIEW } from './views'
 
 export const PANE_ID = 'rex'
 
-const viewAtom = atom({ plugin: 'super-rex', key: 'view' } as const, 'jobs')
-
-export function bandLine(book: RexBook, job: RexJob): string {
-  const runs = jobRuns(book, job)
-  const done = runs.filter(run => run.state !== 'open').length
-  const questions = waitingQuestions(book)
-  const asks = book.permissionAsks
-  return `rex ${job.id} ${job.status} · ${String(done)}/${String(runs.length)} agents · ${usd(job.spentNano)}/${usd(job.limit.nano)} · depth ${String(maxDepth(book))} · ${String(questions)} ${questions === 1 ? 'question' : 'questions'} · ${String(asks)} ${asks === 1 ? 'permission prompt' : 'permission prompts'}`
-}
+const viewAtom = atom({ plugin: 'super-rex', key: 'view' } as const, 'tree')
+const atAtom = atom({ plugin: 'super-rex', key: 'at' } as const, ROOT_ID)
+const pageAtom = atom({ plugin: 'super-rex', key: 'page' } as const, 0)
 
 /** A drawing cannot write the book, so a failed drawing is recorded from a timer once the drawing is over. */
 function recordDrawFailure($: EngineInterface, site: string, error: string): void {
@@ -46,8 +43,18 @@ async function readBinaryVersion($: EngineInterface): Promise<void> {
   }
 }
 
+/** A press records the answer, then wakes whoever waits on it, as the dialog and /rex answer do; a question answered before wakes nobody again. */
+async function answerFromPane($: EngineInterface, id: string, option: string): Promise<void> {
+  const question = (await readBook($)).questions.find(each => each.id === id)
+  if (question === undefined || question.answer !== null) {
+    return
+  }
+  await answerQuestion($, id, { option, source: 'pane' })
+  await wakeOnAnswer($, question, option)
+}
+
 export function register(on: On, parts: Parts): void {
-  for (const view of [HEADER_VIEW, JOBS_VIEW, TREE_VIEW, DECISIONS_VIEW, QUESTIONS_VIEW]) {
+  for (const view of [HEADER_VIEW, TREE_VIEW, DECISIONS_VIEW, QUESTIONS_VIEW]) {
     parts.paneViews.add(view)
   }
 
@@ -64,14 +71,17 @@ export function register(on: On, parts: Parts): void {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const book = await readBook($)
-    const job = bandJob(book)
-    if (book.inert !== null || job === undefined || e.props.hasSurvey) {
+    if (book.inert !== null || e.props.hasSurvey) {
+      return next(e)
+    }
+    const rows = bandRows(book, outlineOf(book, await $.clock.now()), e.props.maxRows, e.props.bodyColumns)
+    if (rows.length === 0) {
       return next(e)
     }
     const { Box, Text } = $.ui.resolve(e)
     return (
-      <Box>
-        <Text dimColor>{bandLine(book, job)}</Text>
+      <Box flexDirection="column">
+        {rows.map(row => (row.kind === 'ask' ? <Text color="warning">{row.text}</Text> : <Text dimColor={row.kind === 'job'}>{row.text}</Text>))}
       </Box>
     )
   }).catch(($, e, next) => {
@@ -82,9 +92,11 @@ export function register(on: On, parts: Parts): void {
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
     const book = await readBook($)
     const chosen = await read($, viewAtom)
+    const at = await read($, atAtom)
+    const page = await read($, pageAtom)
     const { Box, Text, Button } = $.ui.resolve(e)
     const answer = (question: string, option: string): void => {
-      void answerQuestion($, question, { option, source: 'pane' }).catch((error: unknown) => {
+      void answerFromPane($, question, option).catch((error: unknown) => {
         $.ui.status(`rex: the answer to ${question} was not recorded: ${errorText(error)}`)
       })
     }
@@ -93,8 +105,19 @@ export function register(on: On, parts: Parts): void {
         $.ui.status(`rex: the pane could not change its view: ${errorText(error)}`)
       })
     }
+    const go = (node: string): void => {
+      void Promise.all([update($, atAtom, () => node), update($, pageAtom, () => 0)]).catch((error: unknown) => {
+        $.ui.status(`rex: the pane could not go to ${node}: ${errorText(error)}`)
+      })
+    }
+    const turn = (next: number): void => {
+      void update($, pageAtom, () => next).catch((error: unknown) => {
+        $.ui.status(`rex: the pane could not show page ${String(next + 1)} of its rows: ${errorText(error)}`)
+      })
+    }
     const elements = { Box, Text, Button }
-    return drawPane({ elements, book, columns: e.props.bodyColumns, actions: { answer }, views: parts.paneViews.entries(), chosen, choose })
+    const outline = outlineOf(book, await $.clock.now())
+    return drawPane({ elements, book, columns: e.props.bodyColumns, isFocused: e.props.isFocused, actions: { answer, go, turn }, at, page, outline, views: parts.paneViews.entries(), chosen, choose })
   }).catch(($, e, next) => {
     recordDrawFailure($, 'Pane', next.error.message ?? next.error.kind)
     const { Text } = $.ui.resolve(e)

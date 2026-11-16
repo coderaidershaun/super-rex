@@ -160,7 +160,8 @@ export function masterWorld(on: On, options: MasterOptions = {}): MasterWorld {
   on('turn.complete', (_$, e) => ({ text: e.answer }))
   on('tool.call', { tool: 'Agent' }, (_$, e) => ({ result: `started ${String(e.description)}` }))
 
-  const shared = world(on, { config: CONFIG_ON, ...options })
+  // With no answers of its own, a test runs in a repo of mode origin, whose places a master's start reads.
+  const shared = world(on, { config: CONFIG_ON, processAnswer: byRule(placesRules('origin')), ...options })
   const breakStore = (): void => {
     isStoreBroken = true
   }
@@ -175,6 +176,9 @@ export const TURN_USAGE: TurnUsage = { model: 'claude-sonnet-5-5', input_tokens:
 
 export const TREE = 't1'
 export const MASTER = 'm1'
+
+/** The classification every rex_build of a test carries, which the tool requires; a test that needs another size or type gives it after. */
+export const KIND = { type: 'fix', size: 'medium', langs: ['rust'] } as const
 
 /** A book after `/rex master` started tree t1 with master m1 under the policy given, with storage on, as a reload finds it. */
 export async function treeBook(policy: Policy): Promise<RexBook> {
@@ -240,13 +244,37 @@ export function omsAnswer(agent: string): ProcessAnswer {
 /** The full hash `git rev-parse origin/main` answers in a test: the commit each tree job's worktree starts from. */
 export const START_COMMIT = '5a1f0c9e2b7d4a6f8c3e1b0d9a7f5c3e1b2d4f6a'
 
-/** The process calls of one rex_build in the session root, the grid agent `rex oms` gives named. */
-export function buildRules(agent: string): readonly Rule[] {
+/** The git calls that read the places of the session root: a repo with a commit, `main` checked out and, in mode `origin`, held on origin. */
+export function placesRules(remote: 'origin' | 'none'): readonly Rule[] {
+  return [
+    { starts: ['git', '-C', ROOT, 'rev-parse', '--verify', '--quiet', 'HEAD'], answer: ran('c0\n') },
+    { starts: ['git', '-C', ROOT, 'symbolic-ref', '--quiet', '--short', 'HEAD'], answer: ran('main\n') },
+    { starts: ['git', '-C', ROOT, 'remote'], answer: ran(remote === 'origin' ? 'origin\n' : '') },
+    { starts: ['git', '-C', ROOT, 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], answer: ran('origin/main\n') },
+    { starts: ['git', '-C', ROOT, 'for-each-ref'], answer: ran('refs/remotes/origin/HEAD\nrefs/remotes/origin/main\n') },
+    { starts: ['git', '-C', ROOT, 'status', '--porcelain'], answer: ran() },
+  ]
+}
+
+/** The git calls of a session root with no commit, whose first commit answers `commit`; they go before `buildRules`. */
+export function firstCommitRules(commit: ProcessAnswer = ran('[master (root-commit) c0] chore: first commit\n')): readonly Rule[] {
+  return [
+    { starts: ['git', '-C', ROOT, 'rev-parse', '--verify', '--quiet', 'HEAD'], answer: { exitCode: 1, stdout: '', stderr: '' } },
+    { starts: ['git', '-C', ROOT, 'write-tree'], answer: ran('4b825dc642cb6eb9a060e54bf8d69288fbee4904\n') },
+    { starts: ['git', '-C', ROOT, 'add', '--all'], answer: ran() },
+    { starts: ['git', '-C', ROOT, 'read-tree'], answer: ran() },
+    { starts: ['git', '-C', ROOT, 'commit', '--allow-empty', '--message', 'chore: first commit, the base of rex jobs'], answer: commit },
+  ]
+}
+
+/** The process calls of one rex_build in the session root, the grid agent `rex oms` gives named; mode `origin` unless `remote` says `none`. */
+export function buildRules(agent: string, remote: 'origin' | 'none' = 'origin'): readonly Rule[] {
   return [
     { starts: ['rex', 'oms'], answer: omsAnswer(agent) },
-    { starts: ['git', '-C', ROOT, 'symbolic-ref'], answer: ran('origin/main\n') },
+    ...placesRules(remote),
     { starts: ['git', '-C', ROOT, 'fetch'], answer: ran() },
     { starts: ['git', '-C', ROOT, 'rev-parse', 'origin/main'], answer: ran(`${START_COMMIT}\n`) },
+    { starts: ['git', '-C', ROOT, 'rev-parse', 'main'], answer: ran(`${START_COMMIT}\n`) },
     { starts: ['rex', 'worktree', 'add'], answer: ran() },
     { starts: ['rex', 'worktree', 'remove'], answer: ran() },
   ]

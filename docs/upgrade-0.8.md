@@ -20,7 +20,7 @@ Finish or close each job that a 0.7 session still runs. A 0.7 builder calls `rex
 
    ```console
    $ rex --version
-   rex 0.8.0
+   rex 0.9.0
    ```
 
    The mod calls `rex` by `PATH`, and the plugin and the binary must have the same version.
@@ -35,7 +35,7 @@ Run each command yourself, in your own shell, in the root of the main checkout. 
 
 ### 1. Run `rex init`
 
-0.7 always kept a store, `.rex/rex.db`. In 0.8 the store is a choice. To keep recall, feedback, the cost of record and master runs, turn it on:
+0.7 always kept a store, `.rex/rex.db`. In 0.8 the store is a choice. To keep recall, feedback, the cost of record and `/rex master resume`, turn it on:
 
 ```sh
 rex init --with-storage
@@ -117,7 +117,7 @@ Claude Code loads a plugin when a session starts. Start a new session in the mai
 /rex doctor
 ```
 
-The answer starts with `doctor=ok` and ends with `mod=0.8.0`. A `problem=` line says what to fix, such as a binary and a plugin of different versions.
+The answer starts with `doctor=ok` and ends with `mod=0.9.0`. A `problem=` line says what to fix, such as a binary and a plugin of different versions.
 
 ## What changes when you use it
 
@@ -133,10 +133,10 @@ The answer starts with `doctor=ok` and ends with `mod=0.8.0`. A `problem=` line 
 | `rex init --force`, `rex init --no-hooks` | Gone: `rex init` copies no skill files and registers no hooks. |
 | Skill files in `.claude/skills/` and `.rex/skills/` | The plugin's skills and library. `.rex/skills/` holds only the repo's own skills, and is in Git. |
 | A skill file named by its path, such as `.rex/skills/rex-code-tdd/mocking.md` | Named `rex-code-tdd/mocking.md` and read with `rex_skill`. `rex skills check` reports the old form. |
-| A merge with `gh pr merge` or a local squash merge | `rex_merge` only, as one squash commit pushed to the base. An agent's own `gh pr merge` and push to main are denied. |
+| A merge with `gh pr merge` or a local squash merge | `rex_merge` only, as one squash commit pushed to the base, or in a repo with no `origin` a fast-forward of the local base. An agent's own `gh pr merge` and push to main are denied. |
 | Job branch `<type>/<slug>-<job ID>` | `rex/<job ID>` |
-| Job worktrees in `.rex/worktrees/<job ID>/` | `<repo>.worktrees/<job ID>`, beside the main checkout, made with `rex worktree add`. |
+| Job worktrees in `.rex/worktrees/<job ID>/` | `<repo>.worktrees/<job ID>`, beside the main checkout, which the mod makes and removes. |
 | The store, always | The store only with `rex init --with-storage`. |
 | `rex watch` | `/rex watch` in the session. `rex watch` still works at a shell. |
 
-New in 0.8: `/rex status`, `/rex jobs`, `/rex doctor`, `/rex prompts`, `/rex limit`, and, since 0.8.1, master runs with `/rex master`, `/rex policy` and `/rex answer` (they need storage). The [README](../README.md) describes each one.
+New in 0.8: `/rex status`, `/rex jobs`, `/rex doctor`, `/rex prompts`, `/rex limit`, and, since 0.8.1, master runs with `/rex master`, `/rex policy` and `/rex answer` (`/rex master resume` needs storage). The [README](../README.md) describes each one.

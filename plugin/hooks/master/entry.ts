@@ -1,4 +1,4 @@
-// /rex master: the person's own typing starts a master after every pre-flight check passes, with the charter stored as the person wrote it.
+// /rex master: the person's own typing starts a master after every pre-flight check passes, with the charter stored as the person wrote it; storage is needed only to resume.
 import type { CommandRunInput, CommandRunResult, EngineInterface } from 'claude-code'
 
 import { errorText, fail, openTree, pluginVersion, readBook } from '../book/index'
@@ -9,7 +9,7 @@ import type { MasterTypeState } from './agent-type'
 import { MASTER_SUBCOMMAND } from './entries'
 import { treeIdOf } from './ids'
 import { DEFAULT_POLICY, PolicyShapeError } from './policy'
-import type { Policy } from './policy'
+import type { MergeRule, Policy } from './policy'
 import { serveResume } from './resume'
 import { spawnMaster } from './start'
 import { startWatchdog } from './watch'
@@ -35,12 +35,8 @@ async function policyRead($: EngineInterface): Promise<PolicyRead> {
 
 const MIN_DEPTH = 4
 
-/** Pre-flight 1 to 4: storage, binary version, depth, and the headless wait ceiling; null when each passes. */
+/** Pre-flight 2 to 4: binary version, depth, and the headless wait ceiling; null when each passes. */
 async function preflightRefusal($: EngineInterface, state: EntryState): Promise<{ readonly step: number; readonly text: string } | null> {
-  const book = await readBook($)
-  if (book.storage !== 'on') {
-    return { step: 1, text: 'rex master: needs storage; run rex init --with-storage' }
-  }
   const ran = await $.process.run(['rex', '--version'], { cwd: await $.session.root() })
   const binary = ran.exitCode === 0 ? (/^rex (\S+)\n?$/.exec(ran.stdout)?.[1] ?? ran.stdout.trim()) : `unknown (exit ${String(ran.exitCode)})`
   const plugin = await pluginVersion($)
@@ -58,15 +54,20 @@ async function preflightRefusal($: EngineInterface, state: EntryState): Promise<
   return null
 }
 
-const MERGE_QUESTION = 'How may a master of this repo merge a job?'
-const PARALLEL_QUESTION = 'How many builders may run at once?'
+const MERGE_QUESTION = 'Merge each job of a master to its base branch when its checks pass?'
+/** Each option of the first question, in the person's words, and the merge rule it stores. */
+const MERGE_OPTIONS: readonly { readonly text: string; readonly rule: MergeRule }[] = [
+  { text: 'Yes, merge', rule: 'allowed_if_checks_pass' },
+  { text: 'No, keep the branches', rule: 'never' },
+  { text: 'Ask me for each job', rule: 'ask' },
+]
 
-/** The person's first policy: two questions, then the policy stored and confirmed; null when a question was dismissed. */
+/** The person's first policy: one question, then the policy stored and confirmed; null when the question was dismissed. */
 async function askFirstPolicy($: EngineInterface): Promise<StoredPolicy | null> {
   try {
-    const merge = await $.ui.ask(MERGE_QUESTION, ['never', 'ask', 'allowed_if_checks_pass'])
-    const parallel = await $.ui.ask(PARALLEL_QUESTION, ['1', '2', '3', 'auto'])
-    const policy: Policy = { ...DEFAULT_POLICY, merge: merge === 'never' || merge === 'allowed_if_checks_pass' ? merge : 'ask', max_parallel_builders: parallel === 'auto' ? 'auto' : Number(parallel) }
+    const chosen = await $.ui.ask(MERGE_QUESTION, MERGE_OPTIONS.map(option => option.text))
+    const merge = MERGE_OPTIONS.find(option => option.text === chosen)?.rule ?? 'ask'
+    const policy: Policy = { ...DEFAULT_POLICY, merge }
     return await writePolicy($, policy, 'confirm')
   } catch (error) {
     if (error instanceof Error) {
@@ -82,7 +83,7 @@ async function confirmedPolicy($: EngineInterface, state: EntryState, stored: St
     if (!state.isInteractive) {
       return 'rex master: no confirmed policy for this repo; run /rex policy confirm in an interactive session'
     }
-    return (await askFirstPolicy($)) ?? 'rex master: no confirmed policy for this repo; answer the two policy questions, or run /rex policy confirm'
+    return (await askFirstPolicy($)) ?? 'rex master: no confirmed policy for this repo; answer the policy question, or run /rex policy confirm'
   }
   return stored.isConfirmed ? stored : `rex master: the policy of this repo changed since you confirmed it, got hash ${stored.hash}; run /rex policy confirm`
 }
@@ -140,6 +141,9 @@ export async function serveMaster($: EngineInterface, event: CommandRunInput, st
     return { text: confirmed }
   }
   if (args === 'resume') {
+    if ((await readBook($)).storage !== 'on') {
+      return { text: 'rex master resume: needs storage, got storage off; run rex init --with-storage, or start a new tree with /rex master <goal>' }
+    }
     return serveResume($, confirmed, sections)
   }
   const charter = await charterOf($, args)
@@ -148,10 +152,16 @@ export async function serveMaster($: EngineInterface, event: CommandRunInput, st
   }
   const tree = treeIdOf(await $.clock.now())
   await openTree($, { id: tree, charter: charter.text, charterHash: await hashText(charter.text), policyHash: confirmed.hash, state: 'running', capNano: Math.round(confirmed.policy.tree_usd * 1e9) })
-  const started = await spawnMaster($, { tree, charter: charter.text, digest: null })
+  const started = await spawnMaster($, { tree, charter: charter.text, digest: null, policy: confirmed.policy })
   if ('refused' in started) {
     return { text: started.refused }
   }
   startWatchdog($, started.tree, confirmed.policy.watchdog_minutes, sections)
-  return lines([`tree=${started.tree}`, `master=${started.master}`])
+  return lines([
+    `tree=${started.tree}`,
+    `master=${started.master}`,
+    `merge=${confirmed.policy.merge}`,
+    'watch=/rex watch here, or rex watch in another terminal',
+    'answer=/rex answer <question id> <option number>',
+  ])
 }

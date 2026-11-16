@@ -1,4 +1,4 @@
-// Injection canaries of the master: a master starts only from the person's own /rex master, and no caller but the master starts a builder.
+// Injection canaries of the master: a master starts only from the person's own /rex master, never from a spawn of its type, and no caller but the master starts a builder.
 // Each test starts from an empty plugin store, so the policy is the default one: no master from a headless prompt.
 import { expect, mock, test } from 'claude-code/testing'
 import type { AgentSpawnInput, CommandRunInput, PromptOrigin } from 'claude-code'
@@ -41,6 +41,27 @@ test('canary: /rex master from any origin but the person starts no master and op
   }
 
   expect(answers.every(text => text.startsWith('rex master: only your own typing may run this'))).toBe(true)
+  expect(spawned).toEqual([])
+  expect(session.book().trees).toEqual([])
+})
+
+test('canary: a spawn of the master type by the main loop or an agent starts no master', async ($, on) => {
+  files(on, {})
+  mock.store(on, {})
+  const spawned: AgentSpawnInput[] = []
+  on('agent.spawn', (_$, e) => {
+    spawned.push(e)
+    return { model: 'claude-opus-5-5', agentId: `m${String(spawned.length)}` }
+  })
+  const session = world(on)
+  await $.session.start(START)
+
+  const asked = { tool_use_id: 'toolu_canary', prompt: CANARY_GOAL, description: 'rex master t1', subagentType: 'super-rex:master', provider: { plugin: 'super-rex', tier: 'user' }, parentModel: 'claude-opus-5-5', background: true, fork: false } as const
+  const fromMain = await $.agent.spawn(asked)
+  const fromAgent = await $.agent.spawn({ ...asked, parentAgentId: 'a9' })
+
+  expect(fromMain.deny).toBe('rex master: only /rex master starts a master, got a spawn by the main loop; run /rex master <goal>')
+  expect(fromAgent.deny).toBe('rex master: only /rex master starts a master, got a spawn by a9; run /rex master <goal>')
   expect(spawned).toEqual([])
   expect(session.book().trees).toEqual([])
 })

@@ -1,38 +1,23 @@
-// What each view of the watch pane shows, drawn from the book alone, so the same book always draws the same rows.
-import type { RexBook, RexJob, RexRun } from '../../types'
+// The header and the questions view of the watch pane, drawn from the book alone, so the same book always draws the same rows.
+// The questions view gives the digits to the options of the oldest waiting question, so the tab's key and one digit answer it.
 import type { PaneElements, PaneView, PaneViewContext } from '../parts'
+import { deepestLevel, plural } from './outline'
 
 type Drawn = ReturnType<PaneElements['Box']>
 
-export function usd(nano: number): string {
-  return `$${(nano / 1e9).toFixed(2)}`
-}
+const DIGITS = 9
 
-function tokenCount(run: RexRun): number {
-  return run.tokens.input + run.tokens.output + run.tokens.cacheRead + run.tokens.cacheCreation
-}
-
-export function maxDepth(book: RexBook): number {
-  return book.runs.reduce((deepest, run) => Math.max(deepest, run.depth), 0)
-}
-
-export function jobRuns(book: RexBook, job: RexJob): readonly RexRun[] {
-  return book.runs.filter(run => run.job === job.id)
-}
-
-export function waitingQuestions(book: RexBook): number {
-  return book.questions.filter(question => question.answer === null).length
-}
-
-function header({ elements, book }: PaneViewContext): Drawn {
+function header({ elements, book, outline }: PaneViewContext): Drawn {
   const { Box, Text } = elements
   const state = book.inert === null ? `storage ${book.storage}` : `off: ${book.inert}`
   const { mod, binary, claudeCode } = book.versions
+  const deepest = deepestLevel(outline, node => node.kind !== 'session') ?? 'none'
+  const waiting = book.questions.filter(question => question.answer === null).length
   return (
     <Box flexDirection="column">
       <Text bold>SuperRex</Text>
       <Text dimColor>
-        {state} · prompts {book.prompts} · depth {maxDepth(book)} · {book.jobs.length} jobs · {waitingQuestions(book)} questions
+        {state} · prompts {book.prompts} · {plural(book.jobs.length, 'job', 'jobs')} · deepest level {deepest} · {plural(waiting, 'question waits', 'questions wait')}
       </Text>
       <Text dimColor>
         mod {mod} · binary {binary ?? 'unknown'} · Claude Code {claudeCode ?? 'unknown'}
@@ -41,74 +26,29 @@ function header({ elements, book }: PaneViewContext): Drawn {
   )
 }
 
-function jobLine(book: RexBook, job: RexJob): string {
-  const runs = jobRuns(book, job)
-  const open = runs.filter(run => run.state === 'open').length
-  const orchestrator = job.plan?.orchestrator ?? 'no plan'
-  const asked = book.questions.filter(question => question.answer === null && (question.job === job.id || question.mergeFor === job.id)).length
-  const degraded = job.degraded.length === 0 ? '' : ` · degraded ${job.degraded.join(',')}`
-  return `${job.id} ${job.status} · ${orchestrator} · agents ${String(open)}/${String(runs.length)} · ${usd(job.spentNano)}/${usd(job.limit.nano)} · ${String(asked)} questions${degraded}`
-}
-
-function jobsView({ elements, book }: PaneViewContext): Drawn {
-  const { Box, Text } = elements
-  return (
-    <Box flexDirection="column">
-      {book.jobs.length === 0 && <Text dimColor>No jobs yet.</Text>}
-      {book.jobs.map(job => (
-        <Text>{jobLine(book, job)}</Text>
-      ))}
-    </Box>
-  )
-}
-
-function runLine(run: RexRun): string {
-  const ran = run.ran === null ? 'not run' : `${run.ran.model}/${run.ran.effort ?? 'none'}`
-  const marks = run.marks.length === 0 ? '' : ` · ${run.marks.join(',')}`
-  return `${'  '.repeat(run.depth - 1)}${run.agentType} ${run.agentId} · ${run.role ?? 'no role'} · planned ${run.planned ?? 'none'} · ran ${ran} · ${String(tokenCount(run))} tokens · ${usd(run.spentNano)} · ${run.state}${marks}`
-}
-
-/** The runs in tree order: each run below its parent, the main loop's children first. */
-export function treeOrder(runs: readonly RexRun[]): readonly RexRun[] {
-  const below = (parent: string): readonly RexRun[] =>
-    runs.filter(run => run.parent === parent).flatMap(run => [run, ...below(run.agentId)])
-  return below('main')
-}
-
-function treeView({ elements, book }: PaneViewContext): Drawn {
-  const { Box, Text } = elements
-  const ordered = treeOrder(book.runs)
-  return (
-    <Box flexDirection="column">
-      {book.trees.map(tree => (
-        <Text bold>
-          master tree {tree.id} {tree.state} · ledger {usd(tree.ledgerNano)}
-        </Text>
-      ))}
-      {ordered.length === 0 && <Text dimColor>No agents yet.</Text>}
-      {ordered.map(run => (
-        <Text>{runLine(run)}</Text>
-      ))}
-    </Box>
-  )
-}
-
 function questionsView({ elements, book, actions }: PaneViewContext): Drawn {
   const { Box, Text, Button } = elements
-  const waiting = book.questions.filter(question => question.answer === null)
+  const waiting = [...book.questions.filter(question => question.answer === null)].sort((a, b) => a.askedAt - b.askedAt)
   const answered = book.questions.filter(question => question.answer !== null)
   return (
     <Box flexDirection="column">
       {book.questions.length === 0 && <Text dimColor>No questions.</Text>}
-      {waiting.map(question => (
+      {waiting.map((question, order) => (
         <Box flexDirection="column">
-          <Text>
-            {question.id}: {question.question}
+          <Text color="warning">
+            ? {question.id}: {question.question}
           </Text>
-          <Text dimColor>recommended: {question.recommendation}</Text>
-          <Box flexDirection="row" gap={1}>
+          <Text dimColor>
+            for {question.job === null ? `tree ${question.tree ?? 'none'}` : `job ${question.job}`} · recommended: {question.recommendation} · {order === 0 ? 'press a digit, or ' : ''}type /rex answer {question.id} &lt;1-{String(question.options.length)}&gt;
+          </Text>
+          <Box flexDirection="row" gap={2}>
             {question.options.map((option, index) => (
-              <Button key={`answer-${question.id}-${String(index)}`} label={option} onPress={() => { actions.answer(question.id, option) }} />
+              <Button
+                key={`answer-${question.id}-${String(index)}`}
+                plain
+                {...(order === 0 && index < DIGITS ? { hotkey: String(index + 1), label: option } : { label: `${String(index + 1)}. ${option}` })}
+                onPress={() => { actions.answer(question.id, option) }}
+              />
             ))}
           </Box>
         </Box>
@@ -122,8 +62,6 @@ function questionsView({ elements, book, actions }: PaneViewContext): Drawn {
   )
 }
 
-/** The pane's own views; `header` stands above every other view, the rest are tabs in order. */
+/** The pane's own views besides the tree; `header` stands above every other view, the rest are tabs in order. */
 export const HEADER_VIEW: PaneView = { name: 'header', title: 'SuperRex', order: 10, draw: header }
-export const JOBS_VIEW: PaneView = { name: 'jobs', title: 'Jobs', order: 20, draw: jobsView }
-export const TREE_VIEW: PaneView = { name: 'tree', title: 'Tree', order: 30, draw: treeView }
 export const QUESTIONS_VIEW: PaneView = { name: 'questions', title: 'Questions', order: 50, draw: questionsView }

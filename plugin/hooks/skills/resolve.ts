@@ -88,10 +88,30 @@ function isBelow(child: string, parent: string): boolean {
   return child.length > folder.length && child.startsWith(folder) && (child[folder.length] === '/' || child[folder.length] === '\\')
 }
 
+/** How many folder levels a listing of a skill's files reads; the deepest file of a plugin skill is two folders down. */
+const LIST_DEPTH = 4
+
+/** The .md files below a skill folder, as paths inside it, sorted; a symbolic link is neither listed nor followed. */
+async function mdFilesOf($: EngineInterface, dir: string, prefix: string, depth: number): Promise<readonly string[]> {
+  const found: string[] = []
+  for (const entry of await $.fs.list(dir)) {
+    const inside = `${prefix}${entry.name}`
+    if (entry.kind === 'file' && entry.name.endsWith('.md')) {
+      found.push(inside)
+    } else if (entry.kind === 'dir' && depth > 1) {
+      found.push(...(await mdFilesOf($, `${dir}/${entry.name}`, `${inside}/`, depth - 1)))
+    }
+  }
+  return found.sort()
+}
+
 export type SkillLookup =
   | { readonly kind: 'found'; readonly skill: ResolvedSkill }
-  | { readonly kind: 'missing' }
+  /** `holds` lists the files of the skill when the skill is there and its file is not. */
+  | { readonly kind: 'missing'; readonly holds: readonly string[] }
   | { readonly kind: 'outside'; readonly landed: string | null }
+
+const MISSING: SkillLookup = { kind: 'missing', holds: [] }
 
 /**
  * The skill's folder is the first one in order that holds its SKILL.md; its
@@ -101,18 +121,19 @@ export type SkillLookup =
  */
 export async function findSkill($: EngineInterface, places: SkillPlaces, name: string, file: string): Promise<SkillLookup> {
   if (nameProblem(name, file) !== null) {
-    return { kind: 'missing' }
+    return MISSING
   }
   for (const folder of skillFolders(places)) {
     if (!(await $.fs.exists(`${folder.dir}/${name}/SKILL.md`))) {
       continue
     }
     const path = `${folder.dir}/${name}/${file}`
-    if (!(await $.fs.exists(path))) {
-      return { kind: 'missing' }
-    }
     const root = await realPathOf($, folder.dir)
     const skillDir = await realPathOf($, `${folder.dir}/${name}`)
+    if (!(await $.fs.exists(path))) {
+      const isInside = root !== undefined && skillDir !== undefined && isBelow(skillDir, root)
+      return isInside ? { kind: 'missing', holds: await mdFilesOf($, skillDir, '', LIST_DEPTH) } : MISSING
+    }
     const landed = await realPathOf($, path)
     if (root === undefined || skillDir === undefined || landed === undefined || !isBelow(skillDir, root) || !isBelow(landed, skillDir)) {
       return { kind: 'outside', landed: landed ?? null }
@@ -124,7 +145,7 @@ export async function findSkill($: EngineInterface, places: SkillPlaces, name: s
     const bytes = bytesOf(read.base64)
     return { kind: 'found', skill: { skill: name, file, source: folder.source, path: landed, hash: await sha256Of(bytes), text: new TextDecoder().decode(bytes) } }
   }
-  return { kind: 'missing' }
+  return MISSING
 }
 
 /** The skill file, or null when no folder holds it or it leads outside its skill folder. */

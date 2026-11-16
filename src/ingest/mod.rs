@@ -5,6 +5,7 @@ mod batch;
 mod data;
 mod error;
 mod job;
+mod kinds;
 mod record;
 
 pub use error::IngestError;
@@ -18,7 +19,7 @@ use sha2::{Digest, Sha256};
 use crate::store::Store;
 use crate::store::integer::signed;
 use batch::{Batch, Event};
-use data::Data;
+use kinds::Data;
 
 /// What applying an event needs besides the event: the write it runs in, the
 /// session of its batch, and the library of orchestrator folders.
@@ -173,7 +174,7 @@ impl Apply<'_> {
     /// changes no table, such as a prompt, is kept in the event row alone.
     fn event(&self, event: &Event) -> Result<(), IngestError> {
         match &event.data {
-            Data::SessionStart(data) => self.session_start(data),
+            Data::SessionTranscript(data) => self.session_transcript(data),
             Data::JobOpen(data) => self.job_open(event, data),
             Data::JobPlan(data) => self.job_plan(event, data),
             Data::JobAmend(data) => self.job_amend(event, data),
@@ -193,7 +194,8 @@ impl Apply<'_> {
             Data::TreeLink(data) => self.tree_link(event, data),
             Data::TreeState(data) => self.tree_state(data.tree.as_str(), data.state.as_str(), None),
             Data::TreeClose(data) => self.tree_close(event, data),
-            Data::Prompt
+            Data::SessionStart
+            | Data::Prompt
             | Data::JobDoneCheck
             | Data::JobWake
             | Data::TreeNote

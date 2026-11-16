@@ -2,8 +2,9 @@
 import type { CommandRunResult, EngineInterface } from 'claude-code'
 
 import type { RexJob, RexJobStatus, RexLevel, RexMergeAnswer, RexOriginKind, RexQuestion, RexTree } from '../../types'
-import { addQuestion, fail, isOpen, readBook, restoreTree } from '../book/index'
+import { errorText, fail, isOpen, readBook, restoreTree } from '../book/index'
 import type { Restored } from '../book/index'
+import { parkQuestion } from './ask'
 import type { StatusSection, Table } from '../parts'
 import { restartBuilder } from './build'
 import { spawnMaster } from './start'
@@ -231,7 +232,7 @@ export async function serveResume($: EngineInterface, policy: StoredPolicy, sect
   const asked: string[] = []
   if (!isContinue) {
     for (const job of open) {
-      const question = await addQuestion($, {
+      const question = await parkQuestion($, {
         tree: tree.id,
         job: job.id,
         question: `The builder of job ${job.id} ended with the last session. Start a new builder for it?`,
@@ -245,13 +246,14 @@ export async function serveResume($: EngineInterface, policy: StoredPolicy, sect
   }
   const questions = (await readBook($)).questions.filter(question => question.tree === tree.id && question.answer === null)
   digest.push(...questions.map(question => `question ${question.id} parked: ${question.question}`))
-  const started = await spawnMaster($, { tree: tree.id, charter: tree.charter, digest: digest.join('\n') })
+  const started = await spawnMaster($, { tree: tree.id, charter: tree.charter, digest: digest.join('\n'), policy: policy.policy })
   if ('refused' in started) {
     return { text: started.refused }
   }
   const continued: string[] = []
   for (const job of isContinue ? open : []) {
-    const restarted = await restartBuilder($, job, { ...tree, master: started.master }, policy.policy)
+    // A git call that throws stops this job's restart only: the other jobs and the watchdog still start.
+    const restarted = await restartBuilder($, job, { ...tree, master: started.master }, policy.policy).catch((error: unknown) => ({ refused: errorText(error) }))
     if ('refused' in restarted) {
       $.ui.status(`rex: job ${job.id} of tree ${tree.id} got no new builder: ${restarted.refused}`)
     } else {

@@ -1,10 +1,10 @@
-// Proves rex_merge: its steps over exact git answers, the lock, the refusals, and that it pushes only the caller's own job branch after a merge answer of yes.
+// Proves rex_merge in mode origin: its steps over exact git answers, the lock, the refusals, and that it pushes only the caller's own job branch after a merge answer of yes.
 import { expect, test } from 'claude-code/testing'
 
 import type { RexBook, RexMergeAnswer } from '../../types'
 import type { ProcessAnswer, ProcessCall } from '../book/kit'
 import { ROOT, START_MS, world } from '../book/kit'
-import { exit, files, JOB, ok, plannedAll, resultText, scripted, seededBook } from '../tools/act-kit'
+import { exit, files, JOB, ok, ORIGIN_PLACES, plannedAll, resultText, scripted, seededBook } from '../tools/act-kit'
 import type { Scripted } from '../tools/act-kit'
 
 const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
@@ -14,8 +14,9 @@ function gitCall(args: readonly string[], answer: ProcessAnswer = ok()): Scripte
   return { argv: ['git', '-C', ROOT, ...args], answer }
 }
 
+const FETCH: readonly Scripted[] = [...ORIGIN_PLACES, gitCall(['fetch', 'origin', 'main'])]
 const CHECKS: readonly Scripted[] = [
-  gitCall(['fetch', 'origin', 'main']),
+  ...FETCH,
   gitCall(['rev-list', '--count', `origin/main..${BRANCH}`], ok('1\n')),
   gitCall(['merge-base', '--is-ancestor', 'origin/main', BRANCH]),
   gitCall(['diff', '--name-only', `origin/main...${BRANCH}`], ok('src/a.rs\n')),
@@ -44,13 +45,31 @@ test('rex_merge_pushes_only_own_branch_after_steps', async ($, on) => {
   expect(session.book().jobs[0]?.deliveries).toEqual([{ repo: ROOT, branch: BRANCH, pr: null, outcome: 'merged', mergeCommit: 'c1', note: null }])
 })
 
+test('rex_merge refuses when origin holds the base but cannot be reached, with the fetch to try, and pushes nothing', async ($, on) => {
+  files(on, {})
+  const calls: ProcessCall[] = []
+  // What real git 2.39 gave when the folder of origin was gone, after origin/HEAD and origin/main were fetched.
+  const gone = exit(128, "fatal: '/home/person/origin.git' does not appear to be a git repository\nfatal: Could not read from remote repository.\n")
+  const steps = [...ORIGIN_PLACES, gitCall(['fetch', 'origin', 'main'], gone)]
+  const session = world(on, { seed: answered(plannedAll(seededBook()), DIALOG_YES), processAnswer: scripted(steps, calls) })
+  await $.session.start(START)
+
+  const refused = await $.tool.call({ tool: 'mcp__super-rex__rex_merge' })
+
+  expect(refused.deny).toBe(
+    `rex_merge: fetch of origin/main failed, got exit 128: fatal: '/home/person/origin.git' does not appear to be a git repository; make sure git -C ${ROOT} fetch origin main works, then call again`,
+  )
+  expect(calls.map(call => call.argv)).toEqual(steps.map(one => one.argv))
+  expect(session.book().jobs[0]?.deliveries).toEqual([])
+})
+
 test('rex_merge refuses while the lock of the repo is held', async ($, on) => {
   files(on, {})
   let release: (() => void) | null = null
   const held = new Promise<void>(resolve => {
     release = resolve
   })
-  const answer = scripted([...CHECKS.slice(1), ...PUSH])
+  const answer = scripted([...CHECKS.filter(one => !one.argv.includes('fetch')), ...PUSH])
   on('process.run', { argv: /(?:)/ }, async (_$, e, next) => {
     if (!e.argv.includes('fetch')) {
       return next(e)
@@ -84,7 +103,7 @@ test('rex_merge refuses with no merge answer', async ($, on) => {
 
 test('rex_merge refuses a branch that is not one squash commit on the base, and a rejected push', async ($, on) => {
   files(on, {})
-  const steps = [gitCall(['fetch', 'origin', 'main']), gitCall(['rev-list', '--count', `origin/main..${BRANCH}`], ok('3\n')), ...CHECKS.slice(0, 2), gitCall(['merge-base', '--is-ancestor', 'origin/main', BRANCH], exit(1, '')), ...CHECKS, gitCall(['push', 'origin', `${BRANCH}:refs/heads/main`], exit(1, 'error: failed to push some refs\nmore\n'))]
+  const steps = [...FETCH, gitCall(['rev-list', '--count', `origin/main..${BRANCH}`], ok('3\n')), ...CHECKS.slice(0, FETCH.length + 1), gitCall(['merge-base', '--is-ancestor', 'origin/main', BRANCH], exit(1, '')), ...CHECKS, gitCall(['push', 'origin', `${BRANCH}:refs/heads/main`], exit(1, 'error: failed to push some refs\nmore\n'))]
   world(on, { seed: answered(plannedAll(seededBook()), DIALOG_YES), processAnswer: scripted(steps) })
   await $.session.start(START)
 
@@ -100,13 +119,13 @@ test('rex_merge refuses a branch that is not one squash commit on the base, and 
 test('a branch with no commit over the base is asked for its squash commit; one whose own commit reached the base outside rex_merge blocks the job', async ($, on) => {
   files(on, {})
   const empty = [
-    gitCall(['fetch', 'origin', 'main']),
+    ...FETCH,
     gitCall(['rev-list', '--count', `origin/main..${BRANCH}`], ok('0\n')),
     gitCall(['rev-parse', BRANCH], ok('b0\n')),
     gitCall(['reflog', 'show', '--format=%gs', `refs/heads/${BRANCH}`, '--'], ok('branch: Created from origin/main\n')),
   ]
   const outside = [
-    gitCall(['fetch', 'origin', 'main']),
+    ...FETCH,
     gitCall(['rev-list', '--count', `origin/main..${BRANCH}`], ok('0\n')),
     gitCall(['rev-parse', BRANCH], ok('c9\n')),
     gitCall(['reflog', 'show', '--format=%gs', `refs/heads/${BRANCH}`, '--'], ok('commit: feat: the parser reads empty input\nbranch: Created from origin/main\n')),
@@ -120,7 +139,7 @@ test('a branch with no commit over the base is asked for its squash commit; one 
   expect(session.book().jobs[0]?.status).toBe('planned')
 
   const halted = await $.tool.call({ tool: 'mcp__super-rex__rex_merge' })
-  expect(halted.deny).toBe(`rex_merge: origin/main already holds ${BRANCH}, got commit c9 that rex_merge did not push; job ${JOB} is blocked, ask the person`)
+  expect(halted.deny).toBe(`rex_merge: origin/main already holds ${BRANCH}, got commit c9 that rex_merge did not merge; job ${JOB} is blocked, ask the person`)
   expect(session.book().jobs[0]?.status).toBe('blocked')
   expect(calls.some(call => call.argv.includes('push'))).toBe(false)
 })

@@ -5,8 +5,8 @@ use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use super::data::Data;
 use super::error::IngestError;
+use super::kinds::Data;
 use crate::store::JobId;
 
 /// The most events one batch may hold.

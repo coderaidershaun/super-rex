@@ -65,8 +65,15 @@ git fetch origin
 HEAD=$(git rev-parse --verify "$HEAD^{commit}")              # full hash: rex worktree add takes no other
 ROOT=$(git rev-parse --show-toplevel)
 DIR="$ROOT.worktrees/${JOB:-no-job}--review"
-rex worktree add "$ROOT" "$DIR" "$HEAD" || git -C "$DIR" checkout --detach "$HEAD"
 ```
+
+Make review dir with one plain command, its values written out. Only a plain `rex worktree` command leaves sandbox: no `;`, `||`, `$(…)`, or variable in it.
+
+```sh
+rex worktree add <ROOT> <DIR> <HEAD>
+```
+
+- [ ] IF it prints `already exists`, THEN `git -C "$DIR" checkout --detach "$HEAD"`.
 
 - [ ] `JOB` is optional. IF there is no `JOB`, THEN skip `rex job show`.
 - [ ] IF no `rex`, THEN skip `rex job show`. Take request from caller or from pull request body. Make review dir with `git worktree add --detach "$DIR" "$HEAD"`, and remove it with `git worktree remove "$DIR"`.
@@ -164,7 +171,7 @@ EOF
 3. Remove review dir. `rex worktree remove` never uses `--force`. IF Git refuses, THEN keep the dir and tell caller in final message.
 
 ```sh
-rex worktree remove "$ROOT" "$DIR"
+rex worktree remove <ROOT> <DIR>
 ```
 
 4. Final message to caller. It holds the report. Max these lines:

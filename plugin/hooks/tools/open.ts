@@ -1,20 +1,25 @@
-// rex_job_open: the person's job-start prompt or a master's builder opens one job, whose places are fixed here and never taken from an argument.
+// rex_job_open: the person's job-start prompt or a master's builder opens one job, whose places are fixed here from git and never taken from an argument, and whose worktree the mod makes here.
 import type { EngineInterface, ToolCallResult } from 'claude-code'
 
 import type { RexBook, RexJob, RexLevel } from '../../types'
-import { fail, openJob, readBook } from '../book/index'
+import { closeJob, fail, openJob, readBook } from '../book/index'
 import { argsOf, isRefused, optionalObject, optionalTextList, optionalWord, textArg } from './args'
 import type { Args, Refused } from './args'
 import { callerIn } from './caller'
 import { defaultLimitNano } from './limits'
+import { firstCommit, firstCommitRefusal, repoPlaces, uncommittedCount } from './places'
+import type { RepoPlaces } from './places'
 import { answer, deny, usd } from './text'
+import { addWorktree, baseStart } from './worktree'
 
 const TOOL = 'rex_job_open'
 const LEVELS: readonly RexLevel[] = ['low', 'medium', 'high']
 const TYPES = ['feature', 'fix', 'refactor', 'chore', 'research', 'other'] as const
 const SIZES = ['small', 'medium', 'large'] as const
 
-export function jobLines(book: RexBook, job: RexJob, isExisting: boolean): readonly string[] {
+/** The answer of rex_job_open: the job's record with its stored classification and preferences (a builder a master started takes them from here), then the repo's mode and the changes in the main checkout that the job does not see, both read from git now. */
+async function jobLines($: EngineInterface, book: RexBook, job: RexJob, places: RepoPlaces, isExisting: boolean, isCommitMade: boolean): Promise<readonly string[]> {
+  const uncommitted = await uncommittedCount($, job.repo)
   return [
     `job=${job.id}`,
     `status=${job.status}`,
@@ -22,9 +27,19 @@ export function jobLines(book: RexBook, job: RexJob, isExisting: boolean): reado
     `merge=${job.merge?.answer ?? 'unknown'}`,
     `storage=${book.storage}`,
     `limit_usd=${usd(job.limit.nano)}`,
+    `type=${job.type ?? 'none'}`,
+    `size=${job.size ?? 'none'}`,
+    `consequence=${job.consequence ?? 'none'}`,
+    `langs=${job.langs.length === 0 ? 'none' : job.langs.join(',')}`,
+    `duration=${job.prefs.duration ?? 'none'}`,
+    `budget=${job.prefs.budget ?? 'none'}`,
+    `autonomy=${job.prefs.autonomy ?? 'none'}`,
     `repo=${job.repo}`,
     `branch=${job.branch}`,
     `base=${job.base}`,
+    `remote=${places.remote}`,
+    `uncommitted=${String(uncommitted)}`,
+    ...(isCommitMade ? ['base_commit=made'] : []),
     `worktree=${job.worktree ?? ''}`,
   ]
 }
@@ -68,21 +83,18 @@ function openArgs(args: Args): OpenArgs | Refused {
   return { request, type, size, consequence, langs, prefs }
 }
 
-/** The session root's real path, and the branch that origin's HEAD names, else `main`. */
-async function jobPlaces($: EngineInterface): Promise<{ readonly repo: string; readonly base: string }> {
+/** The session root's real path, as the repo of the job. */
+async function sessionRepo($: EngineInterface): Promise<string> {
   const root = await $.session.root()
   const stat = await $.fs.stat(root, { resolve: true })
-  const repo = stat.realPath ?? root
-  const ran = await $.process.run(['git', '-C', repo, 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], { cwd: repo })
-  const named = ran.exitCode === 0 ? ran.stdout.trim() : ''
-  return { repo, base: named.startsWith('origin/') ? named.slice('origin/'.length) : 'main' }
+  return stat.realPath ?? root
 }
 
 export async function serveJobOpen($: EngineInterface, event: { readonly agentId?: string }): Promise<ToolCallResult> {
   const book = await readBook($)
   const caller = callerIn(book, event.agentId)
   if (caller.kind === 'builder' && caller.job !== null) {
-    return answer(jobLines(book, caller.job, true))
+    return answer(await jobLines($, book, caller.job, await repoPlaces($, caller.job.repo), true, false))
   }
   if (caller.kind !== 'main' || book.jobStartPrompt === null) {
     await fail($, { kind: 'origin-not-person', action: TOOL, origin: caller.kind })
@@ -94,7 +106,17 @@ export async function serveJobOpen($: EngineInterface, event: { readonly agentId
     await fail($, { kind: 'bad-argument', tool: TOOL, argument: 'arguments', value: parsed.refused })
     return deny(parsed.refused)
   }
-  const places = await jobPlaces($)
+  const repo = await sessionRepo($)
+  const made = await firstCommit($, repo)
+  const noCommit = firstCommitRefusal(TOOL, repo, made, 'start')
+  if (noCommit !== null) {
+    return deny(noCommit)
+  }
+  const places = await repoPlaces($, repo)
+  const from = await baseStart($, places)
+  if (from.kind === 'failed') {
+    return deny(`${TOOL}: ${from.command} failed for ${repo}, got exit ${String(from.exitCode)}: ${from.firstError}; make sure git -C ${repo} ${from.command.slice('git '.length)} works, then start the job again`)
+  }
   const opened = await openJob($, {
     builder: 'main',
     tree: null,
@@ -111,5 +133,11 @@ export async function serveJobOpen($: EngineInterface, event: { readonly agentId
     dependsOn: [],
     mergeAfter: [],
   })
-  return answer(jobLines(await readBook($), opened.job, opened.isExisting))
+  const job = opened.job
+  const added = opened.isExisting || job.worktree === null ? null : await addWorktree($, { repo: job.repo, branch: job.branch, worktree: job.worktree }, from.commit)
+  if (added !== null) {
+    await closeJob($, job.id, { status: 'cancelled', outcome: `${added.command} failed: ${added.firstError}`, deliveries: [] })
+    return deny(`${TOOL}: ${added.command} failed for job ${job.id}, got exit ${String(added.exitCode)}: ${added.firstError}; the job is cancelled, start the job again`)
+  }
+  return answer([...(await jobLines($, await readBook($), job, places, opened.isExisting, made.kind === 'made')), ...(from.isStale ? ['base_stale=yes'] : [])])
 }

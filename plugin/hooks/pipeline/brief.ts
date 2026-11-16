@@ -2,6 +2,7 @@
 import type { AgentSpawnInput, EngineInterface } from 'claude-code'
 
 import type { RexBook, RexJob, RexRun } from '../../types'
+import { planRoleOf } from '../book/runs'
 import { isOwnSpawn } from '../gate/checks'
 import type { BriefFile } from '../parts'
 import { resolveSkill, skillPlaces } from '../skills/index'
@@ -22,24 +23,13 @@ export function spawnCase(book: RexBook, event: AgentSpawnInput, origin: string 
   return 'other'
 }
 
-const PLUGIN_PREFIX = 'super-rex:'
-
-function bare(agentType: string): string {
-  return agentType.startsWith(PLUGIN_PREFIX) ? agentType.slice(PLUGIN_PREFIX.length) : agentType
-}
-
-/** The plan role of a new agent: its task's role, else the role whose grid agent it is (the parent's own role first), else a pre-plan role its Task line names. */
+/** The plan role of a new agent, as the book gives it, else a pre-plan role its Task line names. */
 export function roleFor(book: RexBook, job: RexJob, task: string | null, agentType: string, parentAgentId: string | undefined): string | null {
-  const planTask = taskOf(job, task)
-  if (planTask !== undefined) {
-    return planTask.role
-  }
   if (job.plan === null) {
     return PRE_PLAN_ROLES.find(role => role === task) ?? null
   }
   const parentRole = parentAgentId === undefined ? null : (book.runs.find(run => run.agentId === parentAgentId)?.role ?? null)
-  const matching = job.plan.roles.filter(role => role.gridAgent === bare(agentType))
-  return (matching.find(role => role.role === parentRole) ?? matching[0])?.role ?? null
+  return planRoleOf(job, task, agentType, parentRole)
 }
 
 /** The read-first files of a brief: the SKILL.md of each skill of its plan task, else the fixed manifest of its pre-plan role. */

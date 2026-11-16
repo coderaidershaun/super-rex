@@ -6,7 +6,7 @@ import type { RexBook, RexOriginKind } from '../../types'
 import type { Parts } from '../parts'
 import { missingItems, restate, restatementContext } from './restate'
 
-export { restate } from './restate'
+export { READ_CHARTER, restate } from './restate'
 
 /** The command names a job-start prompt runs: the plugin's skill, and its bare name, which the engine may also give. */
 const JOB_START_COMMANDS = new Set(['super-rex:orchestration-builder', 'orchestration-builder'])

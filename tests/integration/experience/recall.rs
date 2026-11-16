@@ -143,3 +143,79 @@ fn feedback_on_one_job_is_recalled_for_a_similar_job() {
         Some("kept")
     );
 }
+
+#[test]
+fn a_job_stored_without_a_classification_has_no_similar_job() {
+    let mut fixture = Fixture::new();
+    fixture.orchestrator_that_ran("lead-and-verifier", "A lead and a verifier.");
+    fixture
+        .add_job(JOB_A)
+        .unclassified()
+        .status("delivered")
+        .orchestrator("lead-and-verifier", 1)
+        .insert();
+    fixture.add_job(JOB_B).unclassified().insert();
+    reject_with_lesson(&fixture, JOB_A, "Lesson of a job with no classification.");
+
+    let run = fixture.rex(&["recall", JOB_B]);
+
+    assert_eq!(run.code, 0, "{}", run.stderr);
+    assert_eq!(
+        run.stdout_lines(),
+        [
+            format!("job={JOB_B}").as_str(),
+            "recorded=yes",
+            "lessons=0",
+            "orchestrators=0",
+            "unused=0",
+        ]
+    );
+}
+
+#[test]
+fn languages_none_is_no_field_that_two_jobs_share() {
+    let mut fixture = Fixture::new();
+    fixture
+        .add_job(JOB_A)
+        .partly_classified(Some("feature"), None, None, "none")
+        .status("delivered")
+        .insert();
+    fixture
+        .add_job(JOB_B)
+        .partly_classified(Some("feature"), None, None, "none")
+        .insert();
+    reject_with_lesson(&fixture, JOB_A, "Lesson of a job with one field.");
+
+    let run = fixture.rex(&["recall", JOB_B]);
+
+    assert_eq!(run.code, 0, "{}", run.stderr);
+    assert_eq!(run.stdout_lines()[2], "lessons=0");
+}
+
+#[test]
+fn a_job_missing_one_field_is_similar_on_two_others() {
+    let mut fixture = Fixture::new();
+    fixture
+        .add_job(JOB_A)
+        .partly_classified(Some("feature"), None, Some("low"), "go")
+        .status("delivered")
+        .insert();
+    fixture
+        .add_job(JOB_B)
+        .class("feature", "small", "low", "rust")
+        .insert();
+    reject_with_lesson(&fixture, JOB_A, "Lesson of a job with no size.");
+
+    let run = fixture.rex(&["recall", JOB_B]);
+
+    assert_eq!(run.code, 0, "{}", run.stderr);
+    assert_eq!(
+        run.stdout_lines()[2..4],
+        [
+            "lessons=1".to_owned(),
+            format!(
+                "lesson feedback=1 job={JOB_A} score=2 status=analyzed cost_usd=none cache_hit=none causes=missing-context text=Lesson of a job with no size."
+            ),
+        ]
+    );
+}

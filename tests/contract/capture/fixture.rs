@@ -45,6 +45,18 @@ const TAG_VARIANTS: [(&str, &str); 2] = [
     ),
 ];
 
+/// How the store learns where the session's transcripts are.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum TranscriptPlace {
+    /// The plugin sends the main transcript's path in an event; the files are
+    /// in a folder of their own.
+    Sent,
+    /// No event names it: the files are where Claude Code keeps a session's
+    /// transcripts, below [`Fixture::config_dir`], for a repository whose
+    /// folder name holds a dot.
+    Found,
+}
+
 /// A store in a temporary repository, the recorded transcripts beside it, and the
 /// recorded hook lines of rex 0.7, which a test turns into the events the plugin
 /// sends for the same session.
@@ -52,7 +64,10 @@ pub(super) struct Fixture {
     pub(super) store: Store,
     /// In recorded order.
     pub(super) lines: Vec<String>,
+    repo: PathBuf,
+    config_dir: PathBuf,
     transcripts: PathBuf,
+    place: TranscriptPlace,
     /// The last sequence number sent for the session.
     sequence: u64,
     /// The job the plugin gives the runs it reports: the newest one opened.
@@ -62,14 +77,25 @@ pub(super) struct Fixture {
 
 impl Fixture {
     pub(super) fn new() -> Fixture {
+        Fixture::with_transcripts(TranscriptPlace::Sent)
+    }
+
+    pub(super) fn with_transcripts(place: TranscriptPlace) -> Fixture {
         let temp = tempfile::tempdir().unwrap();
         let root = temp.path().canonicalize().unwrap();
-        let repo = root.join("repo");
+        let repo = root.join(match place {
+            TranscriptPlace::Sent => "repo",
+            TranscriptPlace::Found => "work.repo",
+        });
         fs::create_dir_all(repo.join(".git")).unwrap();
         let store = Store::create(&StorePaths::locate(&repo).unwrap()).unwrap();
 
         let recorded = recorded_folder();
-        let transcripts = root.join("transcripts");
+        let config_dir = root.join("claude-config");
+        let transcripts = match place {
+            TranscriptPlace::Sent => root.join("transcripts"),
+            TranscriptPlace::Found => config_dir.join("projects").join(project_folder_name(&repo)),
+        };
         let edit = |text: String| {
             let mut text = text.replace(RECORDED_PROJECT, transcripts.to_str().unwrap());
             for (from, to) in TAG_VARIANTS {
@@ -85,7 +111,10 @@ impl Fixture {
         Fixture {
             store,
             lines: log.lines().map(str::to_owned).collect(),
+            repo,
+            config_dir,
             transcripts,
+            place,
             sequence: 0,
             job: None,
             _temp: temp,
@@ -108,8 +137,8 @@ impl Fixture {
     }
 
     /// Sends the events the plugin sends for `lines` through `rex ingest`: the
-    /// session's start once, a run's start for each start line and its end for
-    /// each stop line. The parent, the depth and the role of a run are what the
+    /// session's start and, for [`TranscriptPlace::Sent`], its transcript once,
+    /// a run's start for each start line and its end for each stop line. The parent, the depth and the role of a run are what the
     /// plugin knows at its spawn, taken here from the recorded call that started it.
     pub(super) fn append<S: AsRef<str>>(&mut self, lines: &[S]) {
         let spawns = spawns(&self.lines);
@@ -119,9 +148,12 @@ impl Fixture {
             let event = &recorded["event"];
             let at = self.text_of_ms(recorded["at_ms"].as_u64().unwrap());
             if self.sequence == 0 && events.is_empty() {
-                let data = json!({ "claude_code": "2.1.323", "plugin": "0.8.0", "storage": "on",
-                                   "transcript_path": event["transcript_path"] });
+                let data = json!({ "claude_code": "2.1.323", "plugin": "0.8.0", "storage": "on" });
                 events.push(plugin_event("session.start", &at, None, data));
+                if self.place == TranscriptPlace::Sent {
+                    let data = json!({ "transcript_path": event["transcript_path"] });
+                    events.push(plugin_event("session.transcript", &at, None, data));
+                }
             }
             let agent = event["agent_id"].as_str().unwrap_or_default();
             match event["hook_event_name"].as_str() {
@@ -184,13 +216,15 @@ impl Fixture {
     /// after it are the job's.
     pub(super) fn open_job(&mut self, job: &str, created_at: &str) -> Result<(), StoreError> {
         self.job = Some(job.to_owned());
+        let repo = self.repo.to_str().unwrap().to_owned();
         self.store.write(|tx| {
             tx.execute(
                 "INSERT INTO job (id, request, origin, class_version, work_type, size, consequence,
-                                  languages, merge_agreed, session_id, status, created_at, updated_at)
+                                  languages, merge_agreed, session_id, status, created_at, updated_at,
+                                  repo)
                  VALUES (?1, 'record a session', 'composer', 1, 'feature', 'small', 'low', 'rust', 0,
-                         ?2, 'created', ?3, ?3)",
-                params![job, SESSION, created_at],
+                         ?2, 'created', ?3, ?3, ?4)",
+                params![job, SESSION, created_at, repo],
             )?;
             tx.execute(
                 "INSERT INTO job_transition (job_id, from_status, to_status, event, at)
@@ -258,6 +292,27 @@ impl Fixture {
     fn subagents(&self) -> PathBuf {
         self.transcripts.join(SESSION).join("subagents")
     }
+
+    /// The repository the jobs are opened in, where the session ran.
+    pub(super) fn repo(&self) -> &Path {
+        &self.repo
+    }
+
+    /// The Claude Code config folder a test names in `CLAUDE_CONFIG_DIR`.
+    pub(super) fn config_dir(&self) -> &Path {
+        &self.config_dir
+    }
+}
+
+/// The folder name Claude Code gives the transcripts of a session run in
+/// `folder`: each character that is not an ASCII letter or digit becomes `-`.
+fn project_folder_name(folder: &Path) -> String {
+    folder
+        .to_str()
+        .unwrap()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect()
 }
 
 /// What the plugin knows of a run when it starts.

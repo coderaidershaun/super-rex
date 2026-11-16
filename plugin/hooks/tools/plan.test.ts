@@ -4,7 +4,7 @@ import { expect, test } from 'claude-code/testing'
 import { CONFIG_OFF, CONFIG_ON, ROOT, world } from '../book/kit'
 import type { ProcessCall } from '../book/kit'
 import { sharedJson } from '../book/shared'
-import { callFile, exit, files, JOB, lineOf, ok, resultText, scripted, seededBook } from './act-kit'
+import { callFile, cleanCalls, exit, files, JOB, lineOf, ok, resultText, scripted, seededBook } from './act-kit'
 
 const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
 const OMS = callFile(sharedJson('fixtures/shared/calls/oms.json'))
@@ -98,7 +98,8 @@ test('rex_job_close is safe to repeat, refuses a merged delivery with no merge, 
   const show = callFile(sharedJson('fixtures/shared/calls/job-show.json'))
   const shown = show.stdout.replace(/\}\s*$/, ',"cost":{"usd":1.5,"unpriced_requests":0}}\n')
   files(on, {})
-  const session = world(on, { config: CONFIG_ON, seed: seededBook({ storage: 'on' }), processAnswer: scripted([{ argv: show.argv, answer: ok(shown) }, { argv: show.argv, answer: exit(2, 'store is version 1; run rex migrate\n') }]) })
+  const steps = [...cleanCalls('origin'), { argv: show.argv, answer: ok(shown) }, ...cleanCalls('origin'), { argv: show.argv, answer: exit(2, 'store is version 1; run rex migrate\n') }]
+  const session = world(on, { config: CONFIG_ON, seed: seededBook({ storage: 'on' }), processAnswer: scripted(steps) })
   await $.session.start(START)
 
   const merged = await $.tool.call({ tool: 'mcp__super-rex__rex_job_close', status: 'delivered', outcome: 'done', deliveries: [{ repo: ROOT, outcome: 'merged' }] })

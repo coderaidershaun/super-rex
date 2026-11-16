@@ -24,6 +24,7 @@ test('every tool of the table is registered at session start, and only rex_skill
     ['rex_continue', true],
     ['rex_note', true],
     ['rex_ask_owner', true],
+    ['rex_report', true],
     ['rex_assign', true],
     ['rex_skill', false],
     ['rex_merge', true],
@@ -32,6 +33,7 @@ test('every tool of the table is registered at session start, and only rex_skill
     ['rex_recall', true],
     ['rex_job_plan', true],
     ['rex_job_close', true],
+    ['rex_worktree', true],
   ])
 })
 

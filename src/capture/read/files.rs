@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use super::changes::Changes;
 use super::state::{self, Activity};
 use super::{Read, millis};
-use crate::capture::recovery::{Metadata, metadata_name, read_metadata};
+use crate::capture::recovery::{Metadata, metadata_name, read_metadata, transcript_name};
 use crate::capture::rows::{Fill, Reading, RunReading, StoredRun};
 use crate::capture::runs::RunState;
 use crate::capture::tags::Tags;
@@ -71,7 +71,14 @@ impl Read<'_> {
     pub(super) fn observe(&mut self, runs: &[StoredRun], need: Need) -> Vec<RunFiles> {
         runs.iter()
             .map(|run| {
-                let transcript = run.transcript_path.as_deref().map(PathBuf::from);
+                let transcript = run
+                    .transcript_path
+                    .as_deref()
+                    .map(PathBuf::from)
+                    .or_else(|| {
+                        let folder = self.subagents.as_deref()?;
+                        Some(folder.join(transcript_name(&run.agent_id)))
+                    });
                 let (bytes, modified_ms) = transcript
                     .as_deref()
                     .map_or((None, None), |path| self.size_and_time(path));

@@ -11,6 +11,7 @@ import { register as registerBook } from './book/index'
 import { register as registerCommands } from './commands/index'
 import { register as registerGate } from './gate/index'
 import { register as registerIngest } from './ingest/index'
+import { register as registerLive } from './live/index'
 import { register as registerMaster } from './master/index'
 import { register as registerMerge } from './merge/index'
 import { register as registerObserve } from './observe/index'
@@ -29,6 +30,7 @@ export const register: Register = on => {
   registerObserve(on, parts)
   registerPrompts(on, parts)
   registerIngest(on, parts)
+  registerLive(on, parts)
   registerGate(on, parts)
   registerPipeline(on, parts)
   registerTrim(on, parts)

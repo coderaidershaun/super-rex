@@ -8,9 +8,11 @@ mod result;
 mod session;
 mod state;
 
+use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
 use super::error::CaptureError;
+use super::place::main_transcript;
 use super::recovery;
 use super::rows::{self, StoredJob};
 use super::runs::JobRuns;
@@ -26,9 +28,12 @@ pub(super) fn job_runs(
         job: job.to_string(),
         store: store.paths().dir.clone(),
     })?;
+    let subagents = main_transcript(store.conn(), &stored_job.session_id)?
+        .and_then(|main| recovery::subagents_folder(Path::new(&main), &stored_job.session_id));
     let mut read = Read {
         job,
         stored_job: &stored_job,
+        subagents,
         now,
         now_ms: millis(now),
         has_unreadable_file: false,
@@ -64,6 +69,10 @@ pub(super) fn job_runs(
 struct Read<'a> {
     job: &'a JobId,
     stored_job: &'a StoredJob,
+    /// Where the session's sub-agents write their transcripts, for a run whose
+    /// row names none because its start reached the store before the session's
+    /// main transcript was known.
+    subagents: Option<PathBuf>,
     now: SystemTime,
     now_ms: u64,
     has_unreadable_file: bool,

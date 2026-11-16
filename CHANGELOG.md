@@ -4,6 +4,72 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.9.0 - 2026-11-16
+
+What works now that did not in 0.8:
+
+- **A master tree runs to its end.** `/rex master` asks one policy question in plain words, starts the master and its builders itself, wakes the master when a builder delivers or stops, and the master ends the tree with a final report. In 0.8 a tree could close with nothing built, or stop after the master's first turn. A master also runs with storage off.
+- **A repo with no remote, or with no commit, needs no git set-up.** The mod makes the first commit, a job starts from your local branch, and an agreed merge moves that branch, so the files appear in your main checkout. No question about branches, remotes or merging comes up beyond the one merge question.
+- **The views walk a run level by level.** `rex watch`, the pane (`/rex watch`), the band and the new `/rex tree` name each level the same way (master, builder, lead, worker, helper) and say how deep you are.
+- **`rex watch` needs no store.** It reads the live view that each session writes, in every storage mode.
+
+Live interactive sessions showed these on 15 and 16 November 2026:
+
+- a builder and a master in a repo with no commit and no remote;
+- a master tree at every level, down to helpers at depth 4, merged to a remote through `rex_merge`, with the mod's clean-up, the done check and the cost of record;
+- a master with storage off whose merge question you answer with `/rex answer 1`.
+
+The README lists what is proven only in the tests. Version 0.8.3 was never published; its changes are in this release.
+
+**What to redo.** SuperRex keeps no backward compatibility yet:
+
+- Install the binary and the plugin of this version together, then start a new session. A session of 0.8 writes no live view, and `rex watch` reads only the views of its own version.
+- A policy that a master of 0.8 stored keeps its old watchdog values (`watchdog_minutes` 30, `stuck_ticks` 3). For the new defaults, run `/rex policy set watchdog_minutes 5`, `/rex policy set stuck_ticks 18` and `/rex policy confirm`.
+- A policy with `merge: allowed_if_checks_pass` and no `merge_checks` now merges on the builder's own checks, where 0.8 refused every merge. Set `merge_checks`, or another `merge`, if you relied on that refusal.
+- A store made by 0.8 is still version 2 and needs nothing.
+
+### Added
+
+- `rex_report`, a new tool of the master: it ends the tree with the master's final report, written to `.rex/plans/<tree id>/final-report.md`, and is refused while a job of the tree is open or a question of it waits.
+- Mode `none` for a repo with no remote `origin`, or one that holds no base yet. The base is the branch you have checked out (with HEAD detached, `main`, else `master`; a repo whose only branch is `master` gets `master`), a job starts from the local base, and `rex_merge` fast-forwards your local base branch, so the files appear in your main checkout and the delivery is `merged`. It moves a base that no worktree has checked out only while that base is still an ancestor of the job branch, and when your main checkout holds files in the way it refuses and names them. The builder tells you in one line about uncommitted changes it does not hold, and never asks about git set-up.
+- The first commit of a repo with none: the mod makes it when a job opens (`chore: first commit, the base of rex jobs`, with your commit hooks). When a hook or git refuses it, the mod puts back what you had staged, opens no job, and names the failure and the two commands to run.
+- `rex init` asks whether to keep a record of jobs in `.rex/rex.db` when you run it at a terminal with neither storage flag, and an empty answer is yes. `--without-storage` answers no without asking. A run with no terminal asks nothing, keeps storage off, and says what needs the store. A store that is already on stays on.
+- The live view: the mod writes its view of the session to `.rex/live/<session id>.json` in every storage mode, after each change and at least every 10 seconds while a job or a tree is open. It holds no prompt, brief or ingest secret.
+- `/rex tree`: the outline of the session, each master tree, job and agent by level, with tree guides, one line each cut to the terminal.
+- `rex watch --once`, which prints the whole view once as a plain-text tree and needs no terminal.
+- With no job of its own, `/rex status` and `rex_status` in the main session show each live tree: what it runs, in which folder, and what waits on you, in place of `job=none`.
+- Each parked question shows at once as a status line with the command that answers it, and as a dialog in an interactive session. A dialog you dismiss leaves the plain line; once a question is answered, the line names the oldest question that still waits, or is cleared.
+- The merge tripwire also refuses a `git merge` of the job branch or of its `--work` branch, a `git branch` that forces, renames, copies or deletes the base, `git update-ref refs/heads/<base>`, and a push or fetch from `.` into the base.
+
+### Changed
+
+- A master runs with storage off: its tree lives in the book of the session. Only `/rex master resume` needs storage.
+- The first `/rex master` in a repo asks one question in your words, `Merge each job of a master to its base branch when its checks pass?`, with `Yes, merge`, `No, keep the branches` and `Ask me for each job`, in place of two questions in the policy's own terms.
+- A master turn that ends never closes the tree. A master that stops with no job open and no question waiting is woken to report or go on, and after 2 such wakes in a row the mod closes the tree as `done` with the master's last message.
+- The mod starts the master and every builder of a tree itself, and denies every other spawn of the master type, so the master can be woken after its first turn. A build refused at the rate limit wakes the master `retry.then_minutes` later, and `/rex policy confirm` wakes each master it resumes. The master's first prompt carries the policy, the repo and its mode, and the code map, and the master can read the code with `Glob` and `Grep`. It never asks you about git set-up or about what the policy settles.
+- A master hears of a builder only when the builder ended its turn with no agent of its own running, or closed its job, with the end of the builder's last message. A builder that waits for its own agents wakes nobody.
+- The watchdog ticks every 5 minutes (`watchdog_minutes` 5, `stuck_ticks` 18). A job with a run open, the builder's or an agent's below it, whose spend stays flat for 90 minutes is stuck, so an agent whose end never reached the mod no longer holds the tree for ever; a job whose agents spend is never woken. The builder of an idle job, with no agent running, is woken after 10 minutes with no spend, and the job reaches its blocked question in about 30 minutes. No job is woken while its question waits for you. A stopped master hears only of the first wake of a stopped builder. A quiet tick writes nothing.
+- The answer to a merge question, given in the dialog, in the pane or with `/rex answer`, wakes the job's builder as well as the master.
+- `/rex answer` takes the option's number or its text in any letter case, and needs no id when one question waits. `/rex master` answers how to watch the tree and how to answer its questions.
+- The main session no longer answers the turn notices of a master or a tree builder: each reaches you as one line, and only the closing notice of a tree reaches the main session.
+- The mod makes and removes every worktree of the job repo, so no agent runs a worktree command for it and the sandbox no longer refuses one. A job's worktree is made when the job opens, and a job whose worktree cannot be made, also when `rex worktree add` times out, is cancelled; a lead's parallel writers get theirs from the new tool `rex_worktree`. A fetch that fails starts the job from the `origin/<base>` the repo last fetched, and says the base may be stale. `rex_job_close` removes each worktree with no uncommitted work, and each branch of the job, here and on `origin`, whose work is on the base, and the builder tells you each one it kept.
+- `rex watch` reads the live views and the store, when there is one, and shows them as one view. It walks a run level by level from home, with the path and the rail `level N of M` on top, and shows each waiting question on its tree and its job with numbered options and the `/rex answer` command. It fits any terminal and names an agent by its role, else its task, else its grid agent, saying a role once when it is the level's word (`worker T1`, not `worker worker`). A job whose session ended before the store had its cost of record shows the live tally, marked `≈`. It removes live views older than a week when it starts, and leaves every other file in `.rex/live/` alone.
+- The pane walks the run level by level, with a breadcrumb, a level rail, the children of the node as rows (digits go down, `u` goes up, `n` pages past nine rows) and then its facts. Rows name agents as `rex watch` does. Its tabs are `tree`, `decisions` and `questions`; the Jobs, Tree and Master tabs are gone. A digit in the questions tab answers the oldest question.
+- The band shows a master tree, each open job and what its builder is doing, and the oldest waiting question in the warning color with the command that answers it. Levels are named in place of `depth N`.
+- Inside a job, an Agent call that gives `name`, `team_name`, `model`, `effort`, `mode`, `isolation` or `cwd` is refused before it starts, with the argument and what to do: a `name` had started a teammate that the mod did not record, gate or brief. A teammate or a workflow's agent that starts inside a job is refused at its spawn.
+- `rex worktree add … --branch <name>` checks out a branch that exists already when the commit is its tip, and refuses one at another commit.
+
+### Fixed
+
+- The cost of record reaches the store in every session with storage on: the mod sends the session's transcript path once it knows it, and when the store holds none, `rex` finds the transcripts where Claude Code keeps them. A master run had lost the path.
+- `/rex master resume` gives a restarted builder its worktree back on the job's branch, at its tip, when the worktree is gone. It failed because it tried to make the branch again. A git call that fails while a builder restarts leaves that job for you, with a status line, and the other jobs and the watchdog still start.
+- Two agents of one role started at the same moment write two report files (`worker.md`, `worker-2.md`), not one.
+- An agent's role is the role of the task its brief names, so the missed and extra skills of `rex_job_close` count a worker that shares its lead's grid agent as a worker, not as the lead.
+- `rex_skill` reads a file named as `<skill>/<file>.md`, the way skill text names it, and refuses a file the skill does not hold with the list of the files it holds.
+- `rex_job_open` and `rex_build` in a folder that is no git repo refuse with `git init` to run.
+- Every git call of the mod runs with `GIT_TERMINAL_PROMPT=0` and a timeout, so a remote that asks for a password fails at once instead of hanging.
+- `rex recall` failed with `Invalid column type Null` for a job stored without a work type, size or consequence.
+
 ## 0.8.2 - 2026-11-14
 
 ### Fixed

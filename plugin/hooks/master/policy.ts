@@ -53,8 +53,8 @@ export const DEFAULT_POLICY: Policy = {
   master_model: 'opus',
   tier_cap: 'high',
   on_dead_builder: 'ask',
-  watchdog_minutes: 30,
-  stuck_ticks: 3,
+  watchdog_minutes: 5,
+  stuck_ticks: 18,
   retry: { first_minutes: 2, first_tries: 3, then_minutes: 10, max_tries: 12 },
   required_allow: [],
   merge_checks: [],
@@ -247,6 +247,14 @@ export function policyWith(policy: Policy, key: string, text: string): Policy {
 /** One `key=value` line for each key, as `/rex policy show` prints them. */
 export function policyLines(policy: Policy): readonly string[] {
   return POLICY_KEYS.filter(key => key !== 'confirmed_hash').map(key => `${key}=${canonicalJson(policy[key]).replace(/^"(.*)"$/, '$1')}`)
+}
+
+/** The keys a master reads in its first prompt and in rex_status: what it may decide, and how far it may spend. */
+const MASTER_KEYS = ['merge', 'merge_max_consequence', 'max_parallel_builders', 'max_jobs', 'consequence_ceiling', 'tier_cap', 'tree_usd', 'per_job_usd', 'raise_limits'] as const
+
+/** One `key=value` line for each key a master reads; a key not set reads `none`. */
+export function masterPolicyLines(policy: Policy): readonly string[] {
+  return MASTER_KEYS.map(key => `${key}=${String(policy[key] ?? 'none')}`)
 }
 
 /** Builders that may run at once: a number, or by the size of the newest job when `auto`. */

@@ -9,7 +9,8 @@ use rusqlite::Connection;
 use super::Read;
 use super::changes::SessionChange;
 use crate::capture::error::CaptureError;
-use crate::capture::rows::{self, Builder, Reading, StoredTotal};
+use crate::capture::place::main_transcript;
+use crate::capture::rows::{Builder, Reading, StoredTotal};
 use crate::capture::runs::MainFacts;
 use crate::capture::tokens::{RunActivity, SETTLE, Step, TotalCheck};
 use crate::capture::transcripts::read_main_transcript;
@@ -26,7 +27,7 @@ impl Read<'_> {
         if stored.is_some_and(|stored| stored.is_final) {
             return Ok(None);
         }
-        let Some(main) = rows::session_transcript(conn, &self.stored_job.session_id)? else {
+        let Some(main) = main_transcript(conn, &self.stored_job.session_id)? else {
             return Ok(None);
         };
         let main = PathBuf::from(main);

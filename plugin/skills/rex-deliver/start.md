@@ -6,7 +6,8 @@ IF job changes more than one repo, THEN also read `rex-deliver/more-than-one-rep
 ## Start — mode + job worktree
 
 Once per repo, before first write in it. Each Git command names `REPO_DIR` with `-C`. Job repo: `BRANCH`, `MAIN`, `JOB_DIR` come from `rex_job_open`. You name none of them.
-1. IF `git -C "$REPO_DIR" remote get-url origin` fails, THEN mode = `local`. Go to step 4.
+- [ ] Job repo: mod made job worktree `JOB_DIR` on `BRANCH` from `BASE_REF` when `rex_job_open` opened job. START only reads places there. Run no `rex worktree` or `git worktree` command for job repo.
+1. Job repo: IF `remote` of `rex_job_open` = `none`, THEN mode = `local`. Go to step 4. Other repo: IF `git -C "$REPO_DIR" remote get-url origin` fails, THEN mode = `local`. Go to step 4.
 2. Read host + `REPO` from `origin` URL. Works with SSH host alias such as `github.com-<name>`, where `gh` cannot find repo by itself.
 ```sh
 URL=$(git -C "$REPO_DIR" remote get-url origin)
@@ -19,22 +20,22 @@ case "$URL" in http*) REAL_HOST=$HOST ;; *) REAL_HOST=$(ssh -G "$HOST" | awk '$1
 ```
    - `github`: `REAL_HOST` = `github.com` AND `gh repo view "$REPO" --json nameWithOwner` exits 0. Remote not on GitHub never gets pull request in unrelated GitHub repo of same name.
    - `push-only`: `origin` exists, but `github` test fails.
-   - `local`: no `origin`.
-4. Find `START_COMMIT`:
+   - `local`: `remote=none`, or no `origin`. Mod already fixed `MAIN` + first commit. Never ask requester how to set up git, a branch, or a remote. Never rename a branch or add a remote.
+4. Find `START_COMMIT`. Job repo: `START_COMMIT=$(git -C "$JOB_DIR" rev-parse "$BRANCH")` before first commit on it. Go to step 7. Other repo:
 ```sh
 git -C "$REPO_DIR" fetch origin "$MAIN"                      # mode local: skip
-START_COMMIT=$(git -C "$REPO_DIR" rev-parse "origin/$MAIN")  # mode local: "$MAIN" for "origin/$MAIN"
+START_COMMIT=$(git -C "$REPO_DIR" rev-parse "$BASE_REF")
 ```
-5. IF `git -C "$REPO_DIR" worktree list --porcelain` holds line `worktree $JOB_DIR`, THEN job worktree exists: a master made it with `rex_build`. Go to step 8.
-6. Before first worktree in repo: IF `git -C "$REPO_DIR" check-ignore -q .rex/rex.db` fails, THEN append `/.rex/*`: `printf '/.rex/*\n' >> "$REPO_DIR/.git/info/exclude"` (local file, not committed). `/.rex/*`, not `.rex/`: a repo can then re-include `.rex/skills/` in `.gitignore`.
-7. Make job worktree. Job always works there. Do not touch main checkout at all.
+5. Other repo, before its first worktree: IF `git -C "$REPO_DIR" check-ignore -q .rex/rex.db` fails, THEN append `/.rex/*`: `printf '/.rex/*\n' >> "$REPO_DIR/.git/info/exclude"` (local file, not committed). `/.rex/*`, not `.rex/`: a repo can then re-include `.rex/skills/` in `.gitignore`.
+6. Other repo: make its job worktree. Job always works there. Do not touch main checkout at all.
 ```sh
-rex worktree add "$REPO_DIR" "$JOB_DIR" "$START_COMMIT" --branch "$BRANCH"
+rex worktree add <REPO_DIR> <JOB_DIR> <START_COMMIT> --branch <BRANCH>
 ```
+   - [ ] Run `rex worktree add` as one plain command, with literal paths + hash written out. No `;`, `&&`, pipe, `$(…)`, variable assignment, or `REX_STORE=` in front. Only a plain `rex worktree` command leaves sandbox.
    `rex worktree add` takes only a full commit hash and a path in `${REPO_DIR}.worktrees/`. It lists the worktree, so sandboxed git commits there. It prints `worktree=<path>`: use that path as `JOB_DIR` from here on.
-8. IF mode ≠ `local`, THEN `git -C "$JOB_DIR" push origin "$BRANCH"`.
-9. Put `JOB_DIR` in brief of each writer. Writer writes files only under `JOB_DIR`, and names it in each shell command.
-10. Before first write, state these values: mode, `REPO`, `MAIN`, `START_COMMIT`, `BRANCH`, `JOB_DIR`. IF a value did not come from steps 1 to 7 or from `rex_job_open`, THEN you skipped a step: do it now. Mode decides whether job gets a pull request.
+7. IF mode ≠ `local`, THEN `git -C "$JOB_DIR" push origin "$BRANCH"`.
+8. Put `JOB_DIR` in brief of each writer. Writer writes files only under `JOB_DIR`, and names it in each shell command.
+9. Before first write, state these values: mode, `REPO`, `MAIN`, `START_COMMIT`, `BRANCH`, `JOB_DIR`. IF a value did not come from steps 1 to 6 or from `rex_job_open`, THEN you skipped a step: do it now. Mode decides whether job gets a pull request.
 
 ## Work — commit + push
 

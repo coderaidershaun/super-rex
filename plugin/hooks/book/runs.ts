@@ -66,11 +66,16 @@ function placeOf(book: RexBook, input: StartRunInput): { readonly place: Place; 
 }
 
 /**
- * The plan role whose grid agent the run is. When several roles share that
- * grid agent, the parent's own role wins, since a lead's workers do its tasks;
- * else the first in plan order.
+ * The plan role of a run: the role of the plan task its brief names. A run
+ * whose brief names no task of the plan takes the role whose grid agent it is;
+ * when several roles share that grid agent, the parent's own role wins, else
+ * the first in plan order.
  */
-function roleOf(job: RexJob | undefined, agentType: string, parentRole: string | null): string | null {
+export function planRoleOf(job: RexJob | undefined, task: string | null, agentType: string, parentRole: string | null): string | null {
+  const planTask = job?.plan?.tasks.find(each => each.id === task)
+  if (planTask !== undefined) {
+    return planTask.role
+  }
   const bare = bareType(agentType)
   const matching = job?.plan?.roles.filter(role => role.gridAgent === bare) ?? []
   const parents = matching.find(role => role.role === parentRole)
@@ -80,13 +85,13 @@ function roleOf(job: RexJob | undefined, agentType: string, parentRole: string |
 export function startRunIn(book: RexBook, input: StartRunInput, at: number): RexBook {
   const existing = findRun(book, input.agentId)
   if (existing !== undefined) {
-    return replaceRun(book, input.agentId, run => ({ ...run, ...assemblyOf(input, run), state: 'open', endedAt: null, endReason: null }))
+    return replaceRun(book, input.agentId, run => ({ ...run, ...assemblyOf(input, run), role: taskRoleOf(book, run, input.task) ?? run.role, state: 'open', endedAt: null, endReason: null }))
   }
   const placed = placeOf(book, input)
   const { place } = placed
   const job = place.job === null ? undefined : findJob(placed.book, place.job)
   const parentRole = input.parentAgentId === null ? null : (findRun(placed.book, input.parentAgentId)?.role ?? null)
-  const role = roleOf(job, input.agentType, parentRole)
+  const role = planRoleOf(job, input.task ?? null, input.agentType, parentRole)
   const plannedRole = job?.plan?.roles.find(each => each.role === role)
   const fresh: RexRun = {
     agentId: input.agentId,
@@ -134,6 +139,12 @@ export function startRunIn(book: RexBook, input: StartRunInput, at: number): Rex
     skills_attached: run.skillsAttached,
     tree: run.tree,
   })
+}
+
+/** The role of the plan task that a later start of a run names, or null when it names no task of the run's plan. */
+function taskRoleOf(book: RexBook, run: RexRun, task: string | null | undefined): string | null {
+  const job = run.job === null ? undefined : findJob(book, run.job)
+  return job?.plan?.tasks.find(each => each.id === task)?.role ?? null
 }
 
 /** What the spawn pipeline knows about a run's brief; a run started again keeps its first type. */

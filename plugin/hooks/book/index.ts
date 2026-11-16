@@ -11,6 +11,7 @@ export {
   addQuestion,
   amendPlan,
   answerQuestion,
+  bookWrites,
   closeJob,
   closeTree,
   countPermissionAsk,

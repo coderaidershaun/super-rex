@@ -1,8 +1,9 @@
-// Proves the master's four tools against the shared tools table that a Rust test checks the skill text with: each key the table lists is one a tool answers, and each key a tool answers is listed.
+// Proves the master's tools against the shared tools table that a Rust test checks the skill text with: each key the table lists is one a tool answers, and each key a tool answers is listed.
 import { expect, test } from 'claude-code/testing'
 
+import { ROOT } from '../book/kit'
 import { sharedJson } from '../book/shared'
-import { buildRules, byRule, confirmedPolicy, lineOf, MASTER, masterWorld, POLICY_KEY, resultText, START, treeBook } from './master-kit'
+import { buildRules, byRule, firstCommitRules, confirmedPolicy, KIND, lineOf, MASTER, masterWorld, POLICY_KEY, resultText, START, treeBook } from './master-kit'
 
 function field(value: unknown, key: string): unknown {
   return typeof value === 'object' && value !== null ? Reflect.get(value, key) : undefined
@@ -25,10 +26,12 @@ function answeredKeys(results: readonly unknown[]): readonly string[] {
 
 test('rex_build, rex_continue, rex_note and rex_ask_owner answer exactly the keys of the shared tools table', async ($, on) => {
   const policy = await confirmedPolicy()
-  masterWorld(on, { seed: await treeBook(policy), store: { [POLICY_KEY]: policy }, processAnswer: byRule(buildRules('model-high-effort-high')) })
+  const unreachable = { starts: ['git', '-C', ROOT, 'fetch'], answer: { exitCode: 128, stdout: '', stderr: "fatal: '/home/person/origin.git' does not appear to be a git repository\n" } }
+  masterWorld(on, { seed: await treeBook(policy), store: { [POLICY_KEY]: policy }, processAnswer: byRule([...firstCommitRules(), unreachable, ...buildRules('model-high-effort-high')]) })
   await $.session.start(START)
 
-  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', agentId: MASTER, request: 'Fix the parser', consequence: 'low' })
+  // A repo with no commit and an origin that cannot be fetched, so rex_build answers base_commit and base_stale too.
+  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...KIND, agentId: MASTER, request: 'Fix the parser', consequence: 'low' })
   const job = lineOf(built, 'job') ?? ''
   const continued = await $.tool.call({ tool: 'mcp__super-rex__rex_continue', agentId: MASTER, job, message: 'Go on.' })
   const noted = await $.tool.call({ tool: 'mcp__super-rex__rex_note', agentId: MASTER, text: 'One step.' })
@@ -38,4 +41,14 @@ test('rex_build, rex_continue, rex_note and rex_ask_owner answer exactly the key
   expect(answeredKeys([continued])).toEqual(listedKeys('rex_continue'))
   expect(answeredKeys([noted])).toEqual(listedKeys('rex_note'))
   expect(answeredKeys([asked])).toEqual(listedKeys('rex_ask_owner'))
+})
+
+test('rex_report answers exactly the keys of the shared tools table', async ($, on) => {
+  const policy = await confirmedPolicy()
+  masterWorld(on, { seed: await treeBook(policy), store: { [POLICY_KEY]: policy } })
+  await $.session.start(START)
+
+  const reported = await $.tool.call({ tool: 'mcp__super-rex__rex_report', agentId: MASTER, report: 'Result: nothing to build.' })
+
+  expect(answeredKeys([reported])).toEqual(listedKeys('rex_report'))
 })

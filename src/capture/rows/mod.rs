@@ -8,7 +8,7 @@ mod stored;
 mod tie;
 
 pub(crate) use meta::remember_transcript;
-pub(super) use meta::{now_text, session_transcript};
+pub(super) use meta::{now_text, session_folders, session_transcript};
 pub(super) use readings::{
     Builder, Fill, Judged, Reading, RunReading, fill_builder, fill_run, settle_run, settle_session,
     store_run_reading, store_session_reading,

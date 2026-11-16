@@ -1,5 +1,5 @@
 //! Each session's main transcript, kept in the store's `meta` table from the
-//! session's start event, and the time of one write.
+//! session's transcript event, the folders its jobs ran in, and the time of one write.
 
 use rusqlite::{Connection, OptionalExtension, params};
 
@@ -25,7 +25,20 @@ pub(crate) fn remember_transcript(
     Ok(())
 }
 
-/// The main transcript of a session that logged at least one line.
+/// The folders the jobs of a session ran in, the first job's first.
+pub(crate) fn session_folders(
+    conn: &Connection,
+    session_id: &str,
+) -> rusqlite::Result<Vec<String>> {
+    let mut select = conn.prepare(
+        "SELECT repo FROM job WHERE session_id = ?1 AND repo IS NOT NULL
+         GROUP BY repo ORDER BY MIN(created_at), repo",
+    )?;
+    let folders = select.query_map([session_id], |row| row.get(0))?;
+    folders.collect()
+}
+
+/// The main transcript path that the plugin sent for a session.
 pub(crate) fn session_transcript(
     conn: &Connection,
     session_id: &str,

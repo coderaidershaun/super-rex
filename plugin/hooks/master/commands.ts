@@ -1,16 +1,18 @@
-// /rex policy and /rex answer: the person shows, confirms or changes the policy, and answers a parked question, each from their own typing only.
+// /rex policy and /rex answer: the person shows, confirms or changes the policy, and answers a parked question by its option's number or text, each from their own typing only, and each wakes the agents that wait on it.
 import type { CommandRunInput, CommandRunResult, EngineInterface } from 'claude-code'
 
 import type { RexBook, RexQuestion } from '../../types'
 import { answerQuestion, closeTree, fail, readBook, repinTree } from '../book/index'
 import { originRefusal, rexLine } from '../commands/index'
+import type { StatusSection, Table } from '../parts'
+import { wakeOnAnswer } from './ask'
 import { ANSWER_SUBCOMMAND, POLICY_SUBCOMMAND } from './entries'
+import { answeredSpend } from './limits'
 import { DEFAULT_POLICY, policyLines, policyWith, PolicyShapeError } from './policy'
 import type { Policy } from './policy'
 import { readPolicy, writePolicy } from './store'
 import type { StoredPolicy } from './store'
-import { answeredSpend } from './limits'
-import { wakeLater } from './wake'
+import { wakeMaster } from './wake'
 
 function lines(rows: readonly string[]): CommandRunResult {
   return { text: rows.map(row => `${row}\n`).join('') }
@@ -46,14 +48,19 @@ async function pauseChanged($: EngineInterface, hash: string): Promise<readonly 
 
 /**
  * Each paused tree of this session runs on under the policy the person just
- * confirmed: pinned to its hash, with its live master and builders.
+ * confirmed: pinned to its hash, with its live master and builders, and its
+ * master woken to go on.
  */
-async function resumeConfirmed($: EngineInterface, hash: string): Promise<readonly string[]> {
+async function resumeConfirmed($: EngineInterface, hash: string, sections: Table<StatusSection>): Promise<readonly string[]> {
   const book = await readBook($)
   const resumed = book.trees.filter(tree => tree.session === book.session && tree.state === 'paused')
   for (const tree of resumed) {
     await repinTree($, tree.id, hash)
     await closeTree($, tree.id, 'running', null)
+  }
+  const now = await readBook($)
+  for (const tree of now.trees.filter(each => resumed.some(paused => paused.id === each.id))) {
+    wakeMaster($, now, tree, 'the person confirmed the changed policy', sections)
   }
   return resumed.map(tree => tree.id)
 }
@@ -77,15 +84,15 @@ async function setKey($: EngineInterface, rest: string): Promise<CommandRunResul
   return lines([...storedLines(written, 'stored'), `paused=${paused.length === 0 ? 'none' : paused.join(',')}`])
 }
 
-async function confirm($: EngineInterface): Promise<CommandRunResult> {
+async function confirm($: EngineInterface, sections: Table<StatusSection>): Promise<CommandRunResult> {
   const now = await policyNow($)
   const written = await writePolicy($, now.policy, 'confirm')
-  const resumed = await resumeConfirmed($, written.hash)
+  const resumed = await resumeConfirmed($, written.hash, sections)
   const waiting = treesOff(await readBook($), written.hash)
   return lines([...storedLines(written, 'stored'), `resumed=${resumed.length === 0 ? 'none' : resumed.join(',')}`, `still_paused=${waiting.length === 0 ? 'none' : waiting.join(',')}`])
 }
 
-export async function servePolicy($: EngineInterface, event: CommandRunInput): Promise<CommandRunResult> {
+export async function servePolicy($: EngineInterface, event: CommandRunInput, sections: Table<StatusSection>): Promise<CommandRunResult> {
   const refused = await originGate($, event, 'policy')
   if (refused !== null) {
     return refused
@@ -100,7 +107,7 @@ export async function servePolicy($: EngineInterface, event: CommandRunInput): P
         return lines(stored === null ? storedLines({ policy: DEFAULT_POLICY, hash: 'none', isConfirmed: false }, 'default') : storedLines(stored, 'stored'))
       }
       case 'confirm':
-        return await confirm($)
+        return await confirm($, sections)
       case 'set':
         return await setKey($, args.slice(verb.length).trim())
       default:
@@ -114,8 +121,41 @@ export async function servePolicy($: EngineInterface, event: CommandRunInput): P
   }
 }
 
+/** The option the person typed: its number from 1, or its text in any letter case. */
 function optionOf(question: RexQuestion, typed: string): string | undefined {
-  return question.options.find(option => option === typed) ?? question.options.find(option => option.toLowerCase() === typed.toLowerCase())
+  const number = /^\d+$/.test(typed) ? Number(typed) : null
+  if (number !== null) {
+    return question.options[number - 1]
+  }
+  return question.options.find(option => option.toLowerCase() === typed.toLowerCase())
+}
+
+function numbered(question: RexQuestion): string {
+  return question.options.map((option, index) => `${String(index + 1)} (${option})`).join(', ')
+}
+
+/** Each question that waits, with its numbered options, so a refusal shows what can be typed. */
+function waitingList(waiting: readonly RexQuestion[]): string {
+  return waiting.length === 0 ? 'no question waits' : waiting.map(question => `${question.id}: ${numbered(question)}`).join('; ')
+}
+
+type Picked = { readonly question: RexQuestion; readonly typed: string } | { readonly refused: string }
+
+/** `<id> <option>`, or `<option>` alone when exactly one question waits. */
+function pickQuestion(book: RexBook, args: string): Picked {
+  const space = args.indexOf(' ')
+  const first = space === -1 ? args : args.slice(0, space)
+  const named = book.questions.find(each => each.id === first)
+  if (named !== undefined) {
+    return { question: named, typed: space === -1 ? '' : args.slice(space + 1).trim() }
+  }
+  const waiting = book.questions.filter(each => each.answer === null)
+  const only = waiting.length === 1 ? waiting[0] : undefined
+  if (only !== undefined && args !== '') {
+    return { question: only, typed: args }
+  }
+  const seen = args === '' ? 'nothing' : args
+  return { refused: `rex answer: name a question and one of its options, got ${seen}; run /rex answer <id> <option number>, with ${waitingList(waiting)}` }
 }
 
 export async function serveAnswer($: EngineInterface, event: CommandRunInput): Promise<CommandRunResult> {
@@ -123,30 +163,20 @@ export async function serveAnswer($: EngineInterface, event: CommandRunInput): P
   if (refused !== null) {
     return refused
   }
-  const args = rexLine(event).args
-  const space = args.indexOf(' ')
-  const id = space === -1 ? args : args.slice(0, space)
-  const typed = space === -1 ? '' : args.slice(space + 1).trim()
-  if (id === '' || typed === '') {
-    return { text: `rex answer: name a question and one of its options, got ${args === '' ? 'nothing' : args}; run /rex answer <id> <option>` }
+  const picked = pickQuestion(await readBook($), rexLine(event).args)
+  if ('refused' in picked) {
+    return { text: picked.refused }
   }
-  const book = await readBook($)
-  const question = book.questions.find(each => each.id === id)
-  if (question === undefined) {
-    return { text: `rex answer: no question ${id} in this session, got ${id}; see the pane or /rex status` }
-  }
+  const { question, typed } = picked
   if (question.answer !== null) {
-    return { text: `rex answer: question ${id} is answered already, got ${question.answer.option} (${question.answer.source}); a new question needs a new id` }
+    return { text: `rex answer: question ${question.id} is answered already, got ${question.answer.option} (${question.answer.source}); a new question needs a new id` }
   }
   const option = optionOf(question, typed)
   if (option === undefined) {
-    return { text: `rex answer: ${typed} is not an option of ${id}, got ${typed}; one of ${question.options.join(', ')}` }
+    return { text: `rex answer: ${typed === '' ? 'nothing' : typed} is not an option of ${question.id}, got ${typed === '' ? 'nothing' : typed}; one of ${numbered(question)}` }
   }
-  await answerQuestion($, id, { option, source: 'command' })
+  await answerQuestion($, question.id, { option, source: 'command' })
   await answeredSpend($, question, option)
-  const master = book.trees.find(tree => tree.id === question.tree && (tree.state === 'running' || tree.state === 'paused'))?.master ?? null
-  if (master !== null) {
-    wakeLater($, master, `rex: question ${id} is answered: ${option}. Read it with rex_status.`)
-  }
-  return lines([`question=${id}`, `answer=${option}`])
+  await wakeOnAnswer($, question, option)
+  return lines([`question=${question.id}`, `answer=${option}`])
 }

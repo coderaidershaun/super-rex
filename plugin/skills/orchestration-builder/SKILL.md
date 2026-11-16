@@ -65,7 +65,7 @@ Person starts builder: `/super-rex:orchestration-builder <request>`, or `/super-
 - Repo skill: skill in `.rex/skills/<name>/` of repo: job-written, gap skill, or fork that feedback made.
 - Skill file: file of a skill. Text names it `<skill>/<file>.md`, or `<skill>` for its `SKILL.md`. Read it with `rex_skill`: `name` = `<skill>`, `file` = `<file>.md`.
 - `HOME_DIR`: Absolute path of main checkout root of home repo = `repo` of `rex_job_open`. Home repo holds store (`.rex/`) of job. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.
-- `JOB_DIR`: Absolute path where job branch is checked out = `worktree` of `rex_job_open`. `rex-deliver/start.md` makes it.
+- `JOB_DIR`: Absolute path where job branch is checked out = `worktree` of `rex_job_open`. Mod makes it there.
 - Role table: For one job: tasks, skills, inputs, and agent of each role. Output of stage 3.
 - Orchestrator skill: Reusable file. It gives roles, order, skills of each role, and checks. Not about one task.
 - Decision: Skill list + work breakdown + orchestrator skill + role table.
@@ -124,7 +124,7 @@ Read `orchestration-builder/classify.md` for definition of each value and for fi
 - [ ] ELSE decide yourself, or get advice from other agent.
 - [ ] IF you must have something from user, THEN reply and say what.
 - [ ] Question to user in same conversation leaves job open. Do not close job as `blocked` for it.
-- [ ] Master started you: ask no person. Write question with options + recommendation in your final message. End turn with state `awaiting decision`. Master gets answer from owner and sends it to you.
+- [ ] Master started you: ask no person. Write question with 2 to 4 options + recommendation in report file + final message. End turn with state `awaiting decision`. Master sends you answer.
 
 ## On request
 

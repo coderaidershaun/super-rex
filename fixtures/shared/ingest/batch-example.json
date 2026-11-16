@@ -13,8 +13,7 @@
       "data": {
         "claude_code": "2.1.323",
         "plugin": "0.8.0",
-        "storage": "on",
-        "transcript_path": "/home/person/.claude/projects/-repo/00000000-0000-4000-8000-000000000001.jsonl"
+        "storage": "on"
       }
     },
     {

@@ -13,9 +13,10 @@ mod pre_commit;
 mod preflight;
 mod safety;
 mod settings;
+mod storage_choice;
 
 use std::fs;
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 use std::path::{Path, PathBuf};
 
 use super::stdout::print_line_to_stdout;
@@ -39,9 +40,13 @@ pub struct InitOptions {
     #[arg(long = "strict")]
     pub is_strict: bool,
 
-    /// Keep the record of jobs in .rex/rex.db: recall, feedback, cost of record and master runs need it.
+    /// Keep the record of jobs in .rex/rex.db: rex jobs, rex job show, recall, feedback, cost of record and rex master resume need it. With neither storage flag, rex init asks at a terminal (yes by default).
     #[arg(long = "with-storage")]
     pub is_with_storage: bool,
+
+    /// Keep no record of jobs, and ask nothing. A store that is already on stays on.
+    #[arg(long = "without-storage", conflicts_with = "is_with_storage")]
+    pub is_without_storage: bool,
 
     /// The most levels of sub-agents a session may start [default: 4, or a higher value of yours].
     #[arg(long, value_name = "LEVELS", value_parser = clap::value_parser!(u32).range(1..=64))]
@@ -104,8 +109,17 @@ fn install(
 
     let mut to_commit = Vec::new();
 
+    let flags = storage_choice::StorageFlags {
+        is_with: options.is_with_storage,
+        is_without: options.is_without_storage,
+        was_on: config::keeps_record(cwd),
+        is_terminal: io::stdin().is_terminal() && io::stdout().is_terminal(),
+    };
+    let is_storage_wanted =
+        storage_choice::choose(&flags, &mut io::stdin().lock(), &mut io::stdout().lock())
+            .map_err(|source| crate::error::RexError::Stdout { source })?;
     let wanted = config::Wanted {
-        is_storage_on: options.is_with_storage,
+        is_storage_on: is_storage_wanted,
         depth,
     };
     let is_storage_on = match config::ensure_config(cwd, wanted) {
@@ -118,9 +132,12 @@ fn install(
         }
         Err(failure) => {
             failures.push(failure);
-            options.is_with_storage
+            is_storage_wanted
         }
     };
+    if !is_storage_on && !options.is_without_storage {
+        print_line_to_stdout(storage_choice::OFF_NOTICE)?;
+    }
 
     let is_plugin_in = match plugin::install(cwd, &options.plugin_source) {
         Ok(PluginInstall::Installed) => {

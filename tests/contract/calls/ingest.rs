@@ -14,6 +14,7 @@ const EXAMPLE: &str = "fixtures/shared/ingest/batch-example.json";
 const EMPTY_STREAM: &str = "fixtures/shared/ingest/batch-empty-stream.json";
 const WRONG_SECRET: &str = "fixtures/shared/ingest/batch-wrong-secret.json";
 const QUESTION: &str = "fixtures/shared/ingest/batch-question.json";
+const TRANSCRIPT: &str = "fixtures/shared/ingest/batch-transcript.json";
 
 fn batch(path: &str) -> Value {
     serde_json::from_slice(&std::fs::read(crate_root().join(path)).unwrap()).unwrap()
@@ -78,6 +79,51 @@ fn ingest_same_batch_twice_is_one_record() {
         (origin.as_str(), merge_agreed, merge_source.as_str()),
         ("composer", true, "person-prompt")
     );
+}
+
+fn stored_transcripts(world: &World) -> Vec<(String, String)> {
+    let store = world.store();
+    let mut statement = store
+        .conn()
+        .prepare("SELECT key, value FROM meta WHERE key LIKE 'intake.transcript.%' ORDER BY key")
+        .unwrap();
+    statement
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap()
+}
+
+// The plugin learns where the session's transcript is at no fixed moment, so
+// it sends the path in an event of its own. The store keeps the first path of
+// a session, whatever comes later, and a batch without that event keeps none.
+#[test]
+fn the_transcript_path_is_stored_once_and_kept() {
+    let world = World::new();
+    stdout(&world.ingest_file(OPEN_STREAM));
+    stdout(&world.ingest_file(EXAMPLE));
+    assert_eq!(stored_transcripts(&world), [], "no path without the event");
+
+    assert_eq!(stdout(&world.ingest_file(TRANSCRIPT)), "last_sequence=5\n");
+    assert_eq!(stdout(&world.ingest_file(TRANSCRIPT)), "last_sequence=5\n");
+    let sent = batch(TRANSCRIPT)["events"][0].clone();
+    let path = sent["data"]["transcript_path"].as_str().unwrap().to_owned();
+    let first = vec![(
+        "intake.transcript.00000000-0000-4000-8000-000000000001".to_owned(),
+        path,
+    )];
+    assert_eq!(stored_transcripts(&world), first);
+
+    let mut later = sent;
+    later["seq"] = json!(6);
+    later["data"]["transcript_path"] = json!("/elsewhere/other.jsonl");
+    let mut repeat = batch(TRANSCRIPT);
+    repeat["events"] = json!([later]);
+    assert_eq!(
+        stdout(&world.ingest(repeat.to_string().as_bytes())),
+        "last_sequence=6\n"
+    );
+    assert_eq!(stored_transcripts(&world), first, "the first path is kept");
 }
 
 // A new process of the plugin opens a new stream; its events go on from the

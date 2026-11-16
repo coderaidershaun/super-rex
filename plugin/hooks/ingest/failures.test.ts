@@ -105,11 +105,11 @@ test('the last flush at session end sends every queued event in order, the faile
   await $.tool.call({ tool: 'Bash', command: 'ls' })
   await session.clock.settle()
   expect(session.calls.map(sentOf).map(one => one.seqs)).toEqual([[], [1, 2]])
-  const teammate = await $.agent.spawn(spawnInput({ description: 'worker', isTeammate: true }))
+  const teammate = await $.agent.spawn(spawnInput({ description: 'worker', isTeammate: true, parentAgentId: 'outsider' }))
   expect(teammate.agentId).toBe('a1')
   await $.session.end({ reason: 'other', sessionId: SESSION, resume: { id: SESSION } })
 
-  const queuedBeforeEnd = [1, 2, 3]
+  const queuedBeforeEnd = [1, 2, 3, 4]
   expect(session.calls.map(sentOf).map(one => one.seqs)).toEqual([[], [1, 2], queuedBeforeEnd])
   expect(session.book().ingest?.queue).toEqual([])
   await session.clock.advance(120_000)

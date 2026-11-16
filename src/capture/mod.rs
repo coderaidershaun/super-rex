@@ -2,6 +2,7 @@
 //! `rex ingest` recorded, and finds the runs whose start never reached it.
 
 mod error;
+mod place;
 mod price;
 mod read;
 mod recovery;
@@ -32,7 +33,7 @@ pub(crate) fn derived_transcript(
     session_id: &str,
     agent_id: &str,
 ) -> rusqlite::Result<Option<String>> {
-    let Some(main) = rows::session_transcript(conn, session_id)? else {
+    let Some(main) = place::main_transcript(conn, session_id)? else {
         return Ok(None);
     };
     let path = recovery::subagents_folder(std::path::Path::new(&main), session_id)

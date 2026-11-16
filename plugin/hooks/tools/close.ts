@@ -1,4 +1,4 @@
-// rex_recall and rex_job_close: the store's lessons for the builder's job, and the close of that job with its report.
+// rex_recall and rex_job_close: the store's lessons for the builder's job, and the close of that job with its report and the clean-up of its worktrees and branches.
 import type { EngineInterface, ToolCallResult } from 'claude-code'
 
 import type { RexBook, RexDelivery, RexJob } from '../../types'
@@ -9,6 +9,7 @@ import { argsOf, field, isRefused, objectList, optionalText, textArg, word } fro
 import type { Args, Refused } from './args'
 import { jsonField, parsedJson, readBinary } from './binary'
 import { callerIn, callerRefusal, jobArgRefusal, ownJobAnyStatus } from './caller'
+import { cleanUp } from './clean'
 import { answer, deny, usd } from './text'
 
 const STORAGE_OFF = 'reason=storage is off; run rex init --with-storage'
@@ -138,10 +139,11 @@ export async function serveJobClose($: EngineInterface, event: { readonly agentI
   await closeJob($, job.id, close)
   const closed = (await readBook($)).jobs.find(each => each.id === job.id) ?? job
   const rows = closeLines(await readBook($), closed)
+  const cleaned = await cleanUp($, closed)
   if (book.storage === 'off') {
-    return answer(rows)
+    return answer([...rows, ...cleaned])
   }
   const shown = await readBinary($, ['rex', 'job', 'show', job.id, '--json'])
   const cost = shown.ok ? jsonField(jsonField(parsedJson(shown.stdout), 'cost'), 'usd') : undefined
-  return answer([...rows, `cost_of_record_usd=${typeof cost === 'number' ? cost.toFixed(2) : 'unknown'}`])
+  return answer([...rows, `cost_of_record_usd=${typeof cost === 'number' ? cost.toFixed(2) : 'unknown'}`, ...cleaned])
 }

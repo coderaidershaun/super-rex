@@ -14,7 +14,13 @@ export const CONFIG_ON = '{ "version": 1, "storage": "on", "depth": 4, "jobs_fro
 export const CONFIG_OFF = '{ "version": 1, "storage": "off", "depth": 4, "jobs_from_sdk": true, "min_claude_code": "2.1.323" }'
 export const PLUGIN_VERSION = '0.8.0'
 
-export type ProcessCall = { readonly argv: readonly string[]; readonly stdin: string | undefined; readonly cwd: string | undefined }
+export type ProcessCall = {
+  readonly argv: readonly string[]
+  readonly stdin: string | undefined
+  readonly cwd: string | undefined
+  readonly env: Readonly<Record<string, string>> | undefined
+  readonly timeoutMs: number | undefined
+}
 export type ProcessAnswer = { readonly exitCode: number; readonly stdout: string; readonly stderr: string } | { readonly reject: string }
 export type ModelAnswer = ModelCompleteResult | { readonly reject: string }
 
@@ -32,12 +38,18 @@ export type WorldOptions = {
 export type World = {
   readonly clock: MockClock
   readonly statuses: string[]
+  /** The status line on screen now: the last one set, undefined once it is cleared. */
+  statusLine: () => string | undefined
   readonly calls: ProcessCall[]
   readonly versionCalls: ProcessCall[]
   readonly completions: ModelCompleteInput[]
   readonly opened: string[]
   readonly commands: string[]
   readonly tools: string[]
+  /** Each write of a live snapshot below `.rex/live/`, in order. */
+  readonly liveWrites: { readonly path: string; readonly text: string }[]
+  /** Makes the next write of a live snapshot fail, as a folder that cannot be written would. */
+  failNextLiveWrite: () => void
   /** Makes the mod's next read of its book fail once, as a broken read would. */
   failNextBookRead: () => void
   /** The book as the mod last wrote it. */
@@ -51,12 +63,15 @@ export function ingestAnswer(lastSequence: number): ProcessAnswer {
 
 export function world(on: On, options: WorldOptions = {}): World {
   const statuses: string[] = []
+  let statusLine: string | undefined
   const calls: ProcessCall[] = []
   const versionCalls: ProcessCall[] = []
   const completions: ModelCompleteInput[] = []
   const opened: string[] = []
   const commands: string[] = []
   const tools: string[] = []
+  const liveWrites: { readonly path: string; readonly text: string }[] = []
+  let isLiveWriteBroken = false
   const books: RexBook[] = []
   let isSeedPending = options.seed !== undefined
   let isReadBroken = false
@@ -95,7 +110,17 @@ export function world(on: On, options: WorldOptions = {}): World {
     }
     return { deny: `no file at ${e.path}` }
   })
+  on('fs.stat', { path: /^\/home\/person\/repo$/ }, (_$, e) => ({ value: { kind: 'dir', size: 0, mtimeMs: 0, isLink: false, realPath: e.path } }))
+  on('fs.write', { path: /\/\.rex\/live\// }, (_$, e) => {
+    if (isLiveWriteBroken) {
+      isLiveWriteBroken = false
+      return { deny: `EACCES: permission denied, open ${e.path}` }
+    }
+    liveWrites.push({ path: e.path, text: e.text })
+    return { value: undefined }
+  })
   on('ui.status', (_$, e) => {
+    statusLine = e.text
     if (e.text !== undefined) {
       statuses.push(e.text)
     }
@@ -114,7 +139,7 @@ export function world(on: On, options: WorldOptions = {}): World {
     return { value: { tool: `mcp__super-rex__${e.name}` } }
   })
   on('process.run', (_$, e) => {
-    const call: ProcessCall = { argv: e.argv, stdin: e.init?.stdin, cwd: e.init?.cwd }
+    const call: ProcessCall = { argv: e.argv, stdin: e.init?.stdin, cwd: e.init?.cwd, env: e.init?.env, timeoutMs: e.init?.timeoutMs }
     const isVersion = e.argv.length === 2 && e.argv[0] === 'rex' && e.argv[1] === '--version'
     if (isVersion) {
       versionCalls.push(call)
@@ -143,12 +168,17 @@ export function world(on: On, options: WorldOptions = {}): World {
   return {
     clock,
     statuses,
+    statusLine: () => statusLine,
     calls,
     versionCalls,
     completions,
     opened,
     commands,
     tools,
+    liveWrites,
+    failNextLiveWrite: () => {
+      isLiveWriteBroken = true
+    },
     failNextBookRead: () => {
       isReadBroken = true
     },
