@@ -45,7 +45,7 @@ import {
   wakeIn,
 } from './jobs'
 import type { JobClose, MergeDone, OpenJobInput, PlanAmendment, QuestionInput, Restored, WakeReason } from './jobs'
-import { endRunIn, lintAttemptIn, runOutputIn, skillOpenIn, startRunIn, stepMainIn, stepRunIn } from './runs'
+import { endRunIn, lintAttemptIn, mainTree, runOutputIn, skillOpenIn, startRunIn, stepMainIn, stepRunIn } from './runs'
 import type { EndInput, SkillOpen, StartRunInput, StepInput } from './runs'
 import { linkIn, noteIn, pendingIn, repinIn, tickIn, treeIn, treeStateIn } from './trees'
 import type { TreeInput } from './trees'
@@ -53,7 +53,7 @@ import type { TreeInput } from './trees'
 type Dollar = EngineInterface
 
 /** Change the tag when the book's shape changes: a reload then declines what older code stored. */
-export const BOOK_SHAPE = 'book-3'
+export const BOOK_SHAPE = 'book-4'
 export const bookAtom = atom({ plugin: 'super-rex', key: 'book' } as const, emptyBook(), { shape: BOOK_SHAPE })
 
 export function readBook($: Dollar): Promise<RexBook> {
@@ -128,10 +128,11 @@ export async function stepRun($: Dollar, agentId: string, step: StepInput): Prom
   await change($, (book, at) => stepRunIn(book, agentId, step, at))
 }
 
-/** A step of the main loop: its usage goes to the main loop's open job, else to none. */
+/** A step of the main loop: its usage goes to the main loop's open job, else to the tree it runs as master, else to none. */
 export async function stepMain($: Dollar, step: StepInput): Promise<void> {
-  // This runs after every model request of the main loop, and most sessions build no job: one read then costs less than writing the same book back.
-  if (mainJob(await readBook($)) === undefined) {
+  // This runs after every model request of the main loop, and most sessions build no job and run no tree: one read then costs less than writing the same book back.
+  const book = await readBook($)
+  if (mainJob(book) === undefined && mainTree(book) === undefined) {
     return
   }
   await change($, book => stepMainIn(book, step))
@@ -236,7 +237,7 @@ export async function tickTree($: Dollar, tree: string, tick: Omit<RexTreeTick, 
   await change($, (book, at) => tickIn(book, tree, { ...tick, at }))
 }
 
-/** Only `/rex master resume` calls it: the tree, its jobs and its questions as the store holds them, with no event. */
+/** Only the resume of a master tree calls it: the tree, its jobs and its questions as the store holds them, with no event. */
 export async function restoreTree($: Dollar, restored: Restored): Promise<void> {
   await change($, book => restoreIn(book, restored))
 }
@@ -263,6 +264,11 @@ export async function nextEvents($: Dollar, max: number): Promise<Batch | null> 
 
 export async function ackEvents($: Dollar, lastSequence: number): Promise<void> {
   await change($, book => acked(book, lastSequence))
+}
+
+/** Forgets the prompt that may open a tree: a charter refused while another tree runs must not open one later, when the person no longer expects it. */
+export async function dropTreeStart($: Dollar): Promise<void> {
+  await change($, book => ({ ...book, treeStartPrompt: null }))
 }
 
 export async function recordPrompt($: Dollar, prompt: PromptRecord): Promise<void> {

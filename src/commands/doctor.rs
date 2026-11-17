@@ -197,7 +197,7 @@ impl Findings {
         }
         for (job, status, session) in orphans(conn)? {
             self.problems.push(format!(
-                "open orphan: job {job} is {status}, but its session {session} is not the newest; close it, or resume it with /rex master resume"
+                "open orphan: job {job} is {status}, but its session {session} is not the newest; close it, or resume its tree with /super-rex:orchestration-master resume"
             ));
         }
         Ok(())

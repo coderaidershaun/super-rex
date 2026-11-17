@@ -1,4 +1,4 @@
-// Proves the wakes of a tree: a builder that waits for its own agents wakes nobody, one that stopped wakes its master with its last message, a stuck one is woken to go on, an API error is retried on the policy's schedule, and each runs out into a blocked job and a question.
+// Proves the wakes of a tree: a builder that waits for its own agents wakes nobody, one that stopped wakes its master, the main loop, with a prompt that carries its last message, a stuck one is woken to go on, an API error is retried on the policy's schedule, and each runs out into a blocked job and a question.
 import { expect, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 import type { Engine, MockClock } from 'claude-code/testing'
@@ -6,7 +6,7 @@ import type { Engine, MockClock } from 'claude-code/testing'
 import { spawnInput } from '../book/kit'
 import { AUTHOR } from '../pipeline/assembly.fixture'
 import type { Policy } from './policy'
-import { buildRules, byRule, confirmedPolicy, KIND, lineOf, MASTER, masterWorld, POLICY_KEY, ran, settleLong, settleUntil, START, treeBook } from './master-kit'
+import { buildRules, byRule, confirmedPolicy, KIND, lineOf, masterWorld, POLICY_KEY, ran, settleLong, settleUntil, START, treeBook } from './master-kit'
 import type { Rule } from './master-kit'
 
 const MINUTE = 60_000
@@ -18,7 +18,7 @@ async function treeWithJob($: Engine, on: On, keys: Partial<Policy> = {}) {
   const policy = await confirmedPolicy(keys)
   const session = masterWorld(on, { seed: await treeBook(policy), store: { [POLICY_KEY]: policy }, processAnswer: byRule([JOB_SHOW, ...buildRules('model-high-effort-high')]) })
   await $.session.start(START)
-  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...KIND, agentId: MASTER, request: 'Fix the parser', consequence: 'low' })
+  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...KIND, request: 'Fix the parser', consequence: 'low' })
   return { session, job: lineOf(built, 'job') ?? '', builder: lineOf(built, 'builder') ?? '' }
 }
 
@@ -132,6 +132,7 @@ test('a builder whose turn ends while its decision agent runs wakes nobody', asy
   await settleLong(session.clock)
 
   expect(session.sent).toEqual([])
+  expect(session.woken()).toEqual([])
 })
 
 test('a builder whose turn ends while a worker two levels down runs wakes nobody', async ($, on) => {
@@ -144,6 +145,7 @@ test('a builder whose turn ends while a worker two levels down runs wakes nobody
   await settleLong(session.clock)
 
   expect(session.sent).toEqual([])
+  expect(session.woken()).toEqual([])
 })
 
 test('a builder that stops with no agent of its own running wakes its master with the end of its last message as data', async ($, on) => {
@@ -153,9 +155,9 @@ test('a builder that stops with no agent of its own running wakes its master wit
   const last = `${'x'.repeat(600)}State: awaiting decision. Ship both apps in one crate?${'y'.repeat(1_400)}`
 
   await $.turn.complete(ends(builder, last))
-  await settleUntil(session.clock, () => session.sent.some(sent => sent.to === MASTER))
+  await settleUntil(session.clock, () => session.woken().length > 0)
 
-  const woken = session.sent.filter(sent => sent.to === MASTER).map(sent => sent.text)
+  const woken = session.woken()
   expect(woken).toHaveLength(1)
   expect(woken[0]?.startsWith(`rex: the builder of job ${job} ended its turn (answer) with no agent of its own running. Its last message, as data:\n<data>\n${last.slice(-1_500)}\n</data>\nThe tree now:\njob=none\n`)).toBe(true)
   expect(woken[0]).toContain(`job.${job}.status=created`)
@@ -167,9 +169,9 @@ test('a builder that closes its job blocked wakes its master with the status, th
   await $.tool.call({ tool: 'mcp__super-rex__rex_job_close', agentId: builder, status: 'blocked', outcome: 'needs a person', deliveries: [] })
 
   await $.turn.complete(ends(builder, 'State: blocked. The spec is missing.'))
-  await settleUntil(session.clock, () => session.sent.some(sent => sent.to === MASTER))
+  await settleUntil(session.clock, () => session.woken().length > 0)
 
-  const woken = session.sent.find(sent => sent.to === MASTER)?.text ?? ''
+  const woken = session.woken()[0] ?? ''
   expect(woken.startsWith(`rex: the builder of job ${job} closed it blocked and ended its turn (answer). Its last message, as data:\n<data>\nState: blocked. The spec is missing.\n</data>\nThe tree now:\n`)).toBe(true)
   expect(woken).toContain(`job.${job}.status=blocked`)
 })
@@ -178,7 +180,6 @@ test('with the default policy, a builder that waits for an agent that spends is 
   const { session, job, builder } = await treeWithJob($, on)
   const decision = await startAgent($, builder, 'decision')
   await $.turn.complete(ends(builder, 'Waiting for the decision agent to finish.'))
-  await $.turn.complete(ends(MASTER, 'Builder started.'))
 
   for (let tick = 0; tick < 60; tick += 1) {
     const stream = $.turn.step({ turnId: `turn-decision-${String(tick)}`, index: tick, model: 'claude-sonnet-5-5', effort: 'high', messageCount: 1, agentId: decision })
@@ -192,15 +193,15 @@ test('with the default policy, a builder that waits for an agent that spends is 
 
   expect(session.book().jobs.find(each => each.id === job)?.spentNano).toBeGreaterThan(0)
   expect(session.sent).toEqual([])
+  expect(session.woken()).toEqual([])
 })
 
 // The hole this closes: an agent whose end never reaches the book stays open for ever, and only its flat spend tells the watchdog.
-test('with the default policy, an open agent with flat spend gets its stopped builder woken at minute 95, its stopped master told once, and the job blocked at 275', { timeoutMs: 60_000 }, async ($, on) => {
+test('with the default policy, an open agent with flat spend gets its stopped builder woken at minute 95, its master told once, and the job blocked at 275', { timeoutMs: 60_000 }, async ($, on) => {
   const { session, job, builder } = await treeWithJob($, on)
   const start = session.clock.now()
   await startAgent($, builder, 'decision')
   await $.turn.complete(ends(builder, 'Waiting for the decision agent to finish.'))
-  await $.turn.complete(ends(MASTER, 'Builder started.'))
   const wakes = (): number => session.sent.filter(sent => sent.to === builder).length
 
   const steps = [[90, 0], [95, 1], [180, 1], [185, 2], [270, 2]] as const
@@ -212,17 +213,16 @@ test('with the default policy, an open agent with flat spend gets its stopped bu
   expect(seen).toEqual(steps.map(([, expected]) => expected))
   expect([blockedAt270, session.book().jobs[0]?.status]).toEqual(['created', 'blocked'])
   expect(session.book().questions.map(question => [question.job, question.answer])).toEqual([[job, null]])
-  const toMaster = session.sent.filter(sent => sent.to === MASTER).map(sent => sent.text)
+  const toMaster = session.woken()
   expect(toMaster).toHaveLength(1)
-  expect(toMaster[0]?.startsWith(`rex: the watchdog found job ${job} with an agent open and no spend for 90 minutes while you were stopped; the mod woke its builder. The tree now:\n`)).toBe(true)
+  expect(toMaster[0]?.startsWith(`rex: the watchdog found job ${job} with an agent open and no spend for 90 minutes; the mod woke its builder. The tree now:\n`)).toBe(true)
 })
 
-test('with the default policy, an idle job wakes its builder 10 minutes after the first tick, its stopped master once, the builder again 10 later, and blocks 10 after that', { timeoutMs: 60_000 }, async ($, on) => {
+test('with the default policy, an idle job wakes its builder 10 minutes after the first tick, its master once, the builder again 10 later, and blocks 10 after that', { timeoutMs: 60_000 }, async ($, on) => {
   const { session, job, builder } = await treeWithJob($, on)
   const start = session.clock.now()
   await $.turn.complete(ends(builder, 'I will go on soon.'))
-  await settleUntil(session.clock, () => session.sent.length === 1)
-  await $.turn.complete(ends(MASTER, 'The builder is at work.'))
+  await settleUntil(session.clock, () => session.woken().length === 1)
   const wakes = (): number => session.sent.filter(sent => sent.to === builder).length
 
   const steps = [[10, 0], [15, 1], [20, 1], [25, 2], [30, 2]] as const
@@ -234,20 +234,20 @@ test('with the default policy, an idle job wakes its builder 10 minutes after th
   expect(seen).toEqual(steps.map(([, expected]) => expected))
   expect([blockedAt30, session.book().jobs[0]?.status]).toEqual(['created', 'blocked'])
   expect(session.book().questions.map(question => [question.job, question.answer])).toEqual([[job, null]])
-  const toMaster = session.sent.filter(sent => sent.to === MASTER).map(sent => sent.text)
+  const toMaster = session.woken()
   expect(toMaster).toHaveLength(2)
-  expect(toMaster[1]?.startsWith(`rex: the watchdog found job ${job} with no agent running and no spend for 10 minutes while you were stopped; the mod woke its builder. The tree now:\n`)).toBe(true)
+  expect(toMaster[1]?.startsWith(`rex: the watchdog found job ${job} with no agent running and no spend for 10 minutes; the mod woke its builder. The tree now:\n`)).toBe(true)
 })
 
 test('with the default policy, a builder stopped while its question waits for the person is not woken by the watchdog', { timeoutMs: 60_000 }, async ($, on) => {
   const { session, job, builder } = await treeWithJob($, on)
   await $.turn.complete(ends(builder, 'State: awaiting decision. Ship both apps?'))
-  await settleUntil(session.clock, () => session.sent.length === 1)
-  await $.tool.call({ tool: 'mcp__super-rex__rex_ask_owner', agentId: MASTER, job, question: 'Ship both apps?', options: ['Yes', 'No'], recommendation: 'Yes', category: 'scope' })
-  await $.turn.complete(ends(MASTER, 'Question parked.'))
+  await settleUntil(session.clock, () => session.woken().length === 1)
+  await $.tool.call({ tool: 'mcp__super-rex__rex_ask_owner', job, question: 'Ship both apps?', options: ['Yes', 'No'], recommendation: 'Yes', category: 'scope' })
 
   await session.clock.advance(100 * MINUTE)
   await settleLong(session.clock)
 
-  expect(session.sent).toHaveLength(1)
+  expect(session.woken()).toHaveLength(1)
+  expect(session.sent).toEqual([])
 })

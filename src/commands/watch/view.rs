@@ -10,7 +10,7 @@ use crate::commands::token_text::{cost_text, hit_text};
 
 /// What the screen says when there is nothing to show.
 pub const NOTHING_YET: &str = "No job has run here yet. A job starts when you ask for work in a \
-     Claude Code session with the super-rex plugin, or a tree when you type /rex master <charter> there.";
+     Claude Code session with the super-rex plugin, or a tree when you type /super-rex:orchestration-master <goal> there.";
 
 /// One row of a screen or one line of `--once`.
 #[derive(Debug, Clone, PartialEq, Eq)]

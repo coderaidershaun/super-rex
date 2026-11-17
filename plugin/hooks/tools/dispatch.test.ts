@@ -1,8 +1,11 @@
-// Proves the tool table: every entry registered with the engine at session start, the caller read from the engine and never from the call's text, and the dispatcher's answers.
+// Proves the tool table: every entry registered with the engine at session start, the caller read from the engine and never from the call's text (the main loop is the master only while it runs a live tree and builds no job), and the dispatcher's answers.
 import { expect, test } from 'claude-code/testing'
 import type { ToolSpec } from 'claude-code'
 
-import { ROOT, world } from '../book/kit'
+import { emptyBook } from '../book/events'
+import { ROOT, SESSION, START_MS, world } from '../book/kit'
+import { treeIn, treeStateIn } from '../book/trees'
+import { callerIn } from './caller'
 import { createParts } from '../parts'
 import { files, JOB, lineOf, resultText, seededBook } from './act-kit'
 import { dispatchAnswer, toolSpecs } from './index'
@@ -20,6 +23,7 @@ test('every tool of the table is registered at session start, and only rex_skill
   await $.session.start(START)
 
   expect(specs.map(spec => [spec.name, spec.isDeferred])).toEqual([
+    ['rex_tree_open', true],
     ['rex_build', true],
     ['rex_continue', true],
     ['rex_note', true],
@@ -35,6 +39,21 @@ test('every tool of the table is registered at session start, and only rex_skill
     ['rex_job_close', true],
     ['rex_worktree', true],
   ])
+})
+
+test('the main loop is a builder while it owns an open job, else the master while a live tree of its session runs, else main; no agent is ever a master', () => {
+  const input = { id: 't1', charter: 'Ship it.', charterHash: 'sha256:0', policyHash: 'sha256:1', state: 'running', capNano: 0 } as const
+  const tree = treeIn({ ...emptyBook(), session: SESSION }, input, START_MS)
+  const paused = treeStateIn(tree, 't1', 'paused', null, START_MS)
+  const done = treeStateIn(tree, 't1', 'done', null, START_MS)
+  const elsewhere = { ...tree, session: '11111111-2222-4333-8444-555555555555' }
+  const asAgent = { ...tree, trees: tree.trees.map(each => ({ ...each, master: 'm1' })) }
+  const withJob = { ...seededBook(), trees: tree.trees }
+
+  expect([tree, paused, done, elsewhere, withJob].map(book => callerIn(book, undefined).kind)).toEqual(['master', 'master', 'main', 'main', 'builder'])
+  expect(callerIn(tree, undefined)).toEqual({ kind: 'master', agentId: null, job: null })
+  expect(callerIn(asAgent, 'm1').kind).toBe('agent')
+  expect(callerIn(asAgent, undefined).kind).toBe('main')
 })
 
 test('caller from agentId, never from text', async ($, on) => {

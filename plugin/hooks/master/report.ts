@@ -1,4 +1,4 @@
-// How a tree ends: the master calls rex_report once no job is open and no question waits, and a master that stops with nothing open is woken, then its tree closed by the mod after two such wakes.
+// How a tree ends: the master calls rex_report once no job is open and no question waits, and the mod writes the final report after its own list of the jobs.
 import type { EngineInterface, ToolCallResult } from 'claude-code'
 
 import type { RexBook, RexJob, RexTree } from '../../types'
@@ -8,20 +8,10 @@ import { answer, deny } from '../tools/index'
 import { isRefused, text } from './args'
 import { handOffFile } from './brief'
 import { treeJobs } from './gates'
-import { countIdleWake, forgetTree, hasRateWake, idleWakesOf } from './idle'
-import { treeOfMaster } from './pin'
+import { forgetTree } from './rate'
 import { realRoot } from './store'
 import { masterCall } from './tools'
-import { isWakeOnTheWay, wakeLater } from './wake'
 import { stopWatchdog } from './watch'
-
-/** A master woken this many times in a row with nothing open has stopped for good, so the mod closes its tree. */
-export const IDLE_WAKES = 2
-
-export const IDLE_TEXT =
-  'rex: your turn ended with no open job and no waiting question. IF the goal of the charter is met, or cannot be met, THEN call rex_report with the final report. ELSE start the next step with rex_build, or park a question with rex_ask_owner.'
-
-export const CLOSED_BY_MOD = "The mod closed this tree because the master stopped twice with nothing open. The master's last message follows."
 
 function jobLine(job: RexJob): string {
   const merged = job.deliveries.find(delivery => delivery.outcome === 'merged')?.mergeCommit ?? 'none'
@@ -72,23 +62,4 @@ export async function serveReport($: EngineInterface, event: { readonly agentId?
   }
   const path = await closeWithReport($, call.tree, report)
   return answer([`tree=${call.tree.id}`, 'state=done', `report=${path}`])
-}
-
-/**
- * The master's turn ended. With its tree live, no job open, no question
- * waiting and no wake of the mod on the way, it is woken to report or go on;
- * after that many wakes in a row, the mod closes the tree with its last message.
- */
-export async function masterStopped($: EngineInterface, masterId: string, lastMessage: string): Promise<void> {
-  const book = await readBook($)
-  const tree = treeOfMaster(book, masterId)
-  if (tree === undefined || openWork(book, tree) !== null || hasRateWake(tree.id) || isWakeOnTheWay(masterId)) {
-    return
-  }
-  if (idleWakesOf(tree.id) >= IDLE_WAKES) {
-    await closeWithReport($, tree, `${CLOSED_BY_MOD}\n\n${lastMessage}`)
-    return
-  }
-  countIdleWake(tree.id)
-  wakeLater($, masterId, IDLE_TEXT)
 }

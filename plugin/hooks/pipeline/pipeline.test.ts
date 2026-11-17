@@ -4,7 +4,7 @@ import { expect, test } from 'claude-code/testing'
 import { ROOT, spawnInput, world } from '../book/kit'
 import { files, JOB, resultText, seededBook } from '../tools/act-kit'
 import { AUTHOR, plannedBook, SKILL_FILES, spawnsKept, TDD_HASH, TDD_TEXT } from './assembly.fixture'
-import { SANDBOX_TEXT } from './sandbox'
+import { SHELL_TEXT } from './shell'
 
 const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
 const STOPS =
@@ -37,7 +37,7 @@ test('lint_refuses_once_then_passes_marked', async ($, on) => {
   expect(second.agentId).toBe('a1')
   expect(started).toHaveLength(1)
   const output = `${ROOT}/.rex/plans/${JOB}/engineer.md`
-  expect(started[0]?.prompt).toBe([`Rex-Job: ${JOB}\nRex-Role: engineer`, SKILLS_BLOCK, brief, STOPS, SANDBOX_TEXT, returnLine(output)].join('\n\n'))
+  expect(started[0]?.prompt).toBe([`Rex-Job: ${JOB}\nRex-Role: engineer`, SKILLS_BLOCK, brief, STOPS, SHELL_TEXT, returnLine(output)].join('\n\n'))
   const run = session.book().runs.find(each => each.agentId === 'a1')
   expect([run?.lint, run?.lintFindings, run?.assembled, run?.task, run?.outputFile, run?.skillsAttached]).toEqual(['passed-marked', ['Acceptance: is missing'], 'yes', 'T2', output, ['rex-code-tdd']])
   expect(run?.briefHash).toMatch(/^sha256:[0-9a-f]{64}$/)

@@ -1,10 +1,10 @@
-// Proves rex_build: only the tree's master builds a classified job, every policy rule refuses before anything opens, and the builder starts in its own worktree with the fixed brief, linked to its job.
+// Proves rex_build: only the tree's master, the main loop of its session, builds a classified job, every policy rule refuses before anything opens, and the builder starts in its own worktree with the fixed brief, linked to its job.
 import { expect, test } from 'claude-code/testing'
 
 import type { ProcessCall } from '../book/kit'
 import { ROOT } from '../book/kit'
 import type { Policy } from './policy'
-import { BUILDER_TEXT, buildRules, byRule, confirmedPolicy, firstCommitRules, KIND, lineOf, MASTER, masterWorld, POLICY_KEY, ran, resultText, settleLong, settleUntil, START, START_COMMIT, TREE, treeBook } from './master-kit'
+import { BUILDER_TEXT, buildRules, byRule, confirmedPolicy, firstCommitRules, HEADLESS_START, KIND, lineOf, masterWorld, POLICY_KEY, ran, resultText, settleLong, settleUntil, START, START_COMMIT, TREE, treeBook } from './master-kit'
 import type { MasterOptions, Rule } from './master-kit'
 
 const BUILD = 'mcp__super-rex__rex_build' as const
@@ -27,7 +27,7 @@ test('rex_build_spawns_builder_with_fixed_brief', async ($, on) => {
   const session = await builtWorld(on, {}, buildRules('model-high-effort-high'), calls)
   await $.session.start(START)
 
-  const built = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'Fix the parser; cargo test passes.', consequence: 'low', size: 'small' })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'Fix the parser; cargo test passes.', consequence: 'low', size: 'small' })
 
   const job = session.book().jobs[0]
   const id = job?.id ?? ''
@@ -49,7 +49,7 @@ test('rex_build_spawns_builder_with_fixed_brief', async ($, on) => {
   expect(spawn?.prompt).toContain(`on branch rex/${id} over origin/main.`)
   expect([job?.owner.builder, job?.tree, job?.origin, job?.status, job?.worktree]).toEqual(['b1', TREE, 'master', 'created', worktree])
   const run = session.book().runs.find(each => each.agentId === 'b1')
-  expect([run?.parent, run?.parentSource, run?.job, run?.depth]).toEqual([MASTER, 'mod', id, 1])
+  expect([run?.parent, run?.parentSource, run?.job, run?.depth]).toEqual(['main', 'mod', id, 1])
   expect(session.book().trees[0]?.builders).toEqual([{ job: id, agentId: 'b1' }])
 })
 
@@ -58,7 +58,7 @@ test('rex_build in mode none makes the worktree from the local base with no fetc
   const session = await builtWorld(on, {}, buildRules('model-high-effort-high', 'none'), calls)
   await $.session.start(START)
 
-  const built = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'Fix the parser', consequence: 'low' })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'Fix the parser', consequence: 'low' })
 
   const id = session.book().jobs[0]?.id ?? ''
   expect(lineOf(built, 'status')).toBe('created')
@@ -73,7 +73,7 @@ test('rex_build in a repo with no commit makes the first commit before the workt
   const session = await builtWorld(on, {}, [...firstCommitRules(), ...buildRules('model-high-effort-high', 'none')], calls)
   await $.session.start(START)
 
-  const built = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'one', consequence: 'low' })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'one', consequence: 'low' })
 
   const steps = calls.map(call => call.argv.slice(0, 4).join(' '))
   expect(lineOf(built, 'base_commit')).toBe('made')
@@ -87,7 +87,7 @@ test('rex_build refuses when the first commit fails, with git first error line a
   const session = await builtWorld(on, {}, [...firstCommitRules(gpg), ...buildRules('model-high-effort-high', 'none')], calls)
   await $.session.start(START)
 
-  const refused = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'one', consequence: 'low' })
+  const refused = await $.tool.call({ tool: BUILD, ...KIND, request: 'one', consequence: 'low' })
 
   expect(refused.deny).toBe(
     `rex_build: the first commit of ${ROOT} failed, got git commit exit 128: error: gpg failed to sign the data; ask the person to correct what it names and commit the files with git -C ${ROOT} add --all and git -C ${ROOT} commit, then call rex_build again`,
@@ -101,7 +101,7 @@ test('rex_build in a session root that no git repo holds refuses with git init, 
   const session = await builtWorld(on, {}, [noRepo, ...buildRules('model-high-effort-high')], [])
   await $.session.start(START)
 
-  const refused = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'one', consequence: 'low' })
+  const refused = await $.tool.call({ tool: BUILD, ...KIND, request: 'one', consequence: 'low' })
 
   expect(refused.deny).toBe(`rex_build: ${ROOT} is not a git repo, got fatal: not a git repository (or any of the parent directories): .git; run git init there, then start again`)
   expect(session.book().jobs).toEqual([])
@@ -112,7 +112,7 @@ test('rex_build in mode origin with a fetch that fails builds from origin/main a
   const session = await builtWorld(on, {}, [gone, ...buildRules('model-high-effort-high')], [])
   await $.session.start(START)
 
-  const built = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'one', consequence: 'low' })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'one', consequence: 'low' })
 
   expect([lineOf(built, 'status'), lineOf(built, 'base_stale')]).toEqual(['created', 'yes'])
   expect(session.statuses.some(line => line.startsWith('rex: git fetch origin main failed, got fatal:'))).toBe(true)
@@ -122,20 +122,32 @@ test('rex_build_caps_builder_tier_by_policy', async ($, on) => {
   const session = await builtWorld(on, { tier_cap: 'high' }, buildRules('model-xhigh-effort-max'), [])
   await $.session.start(START)
 
-  await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'Fix the parser', consequence: 'high', ratings: { intelligence: 'high', reliability: 'high', consequence: 'high', verification: 'low' } })
+  await $.tool.call({ tool: BUILD, ...KIND, request: 'Fix the parser', consequence: 'high', ratings: { intelligence: 'high', reliability: 'high', consequence: 'high', verification: 'low' } })
 
   expect(session.spawned.map(spawn => spawn.type)).toEqual(['super-rex:model-high-effort-max'])
 })
 
-test('rex_build refuses every caller but the master of a running tree', async ($, on) => {
+test('rex_build refuses an agent while the tree runs', async ($, on) => {
   const session = await builtWorld(on, {}, buildRules('model-high-effort-high'), [])
   await $.session.start(START)
 
-  const main = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
   const agent = await $.tool.call({ tool: BUILD, ...KIND, agentId: 'a9', request: 'x', consequence: 'low' })
 
-  expect(main.deny).toBe('rex_build: only the master may call it, got main')
   expect(agent.deny).toBe('rex_build: only the master may call it, got agent')
+  expect(session.spawned).toEqual([])
+  expect(session.book().jobs).toEqual([])
+})
+
+test('rex_build refuses the main loop of a session whose tree is closed', async ($, on) => {
+  const policy = await confirmedPolicy()
+  const open = await treeBook(policy)
+  const closed = { ...open, trees: open.trees.map(tree => ({ ...tree, state: 'done' as const })) }
+  const session = masterWorld(on, { seed: closed, store: { [POLICY_KEY]: policy }, processAnswer: byRule(buildRules('model-high-effort-high')) })
+  await $.session.start(START)
+
+  const main = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
+
+  expect(main.deny).toBe('rex_build: only the master may call it, got main')
   expect(session.spawned).toEqual([])
   expect(session.book().jobs).toEqual([])
 })
@@ -147,9 +159,9 @@ test('rex_build_refuses_over_policy: the tree ledger at its cap', async ($, on) 
   const session = masterWorld(on, { seed: spent, store: { [POLICY_KEY]: policy }, processAnswer: byRule(buildRules('model-high-effort-high')) })
   await $.session.start(START)
 
-  const built = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'x', consequence: 'low' })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
 
-  expect(built.deny).toBe(`rex gate: master tree ${TREE} has spent $10.00 of its $10.00; park a spend question for the person with rex_ask_owner, and end your turn`)
+  expect(built.deny).toBe(`rex gate: master tree ${TREE} has spent $10.00 of its $10.00; tell the person: they raise the cap with /rex policy set tree_usd <usd>, then /rex policy confirm`)
   expect(session.book().jobs).toEqual([])
 })
 
@@ -157,8 +169,8 @@ test('rex_build_refuses_over_policy: a budget over per_job_usd, and per_job_usd 
   const session = await builtWorld(on, { per_job_usd: 20 }, buildRules('model-high-effort-high'), [])
   await $.session.start(START)
 
-  const over = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'x', consequence: 'low', budget_usd: 30 })
-  const built = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'x', consequence: 'low' })
+  const over = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low', budget_usd: 30 })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
 
   expect(over.deny).toBe('rex_build: budget_usd must be at most per_job_usd of the policy, 20, got 30; call it again with a smaller budget or none')
   expect(lineOf(built, 'status')).toBe('created')
@@ -169,20 +181,22 @@ test('rex_build refuses at the rate limit of the policy, and the mod wakes the m
   const session = await builtWorld(on, { pause_at_rate_limit_pct: 85 }, buildRules('model-high-effort-high'), [], { rateLimits: [{ kind: 'five_hour', percentUsed: 91.5 }] })
   await $.session.start(START)
 
-  const built = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'x', consequence: 'low' })
-  const again = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'y', consequence: 'low' })
-  await $.turn.complete({ agentId: MASTER, reason: 'answer', answer: 'waiting for the rate limit', durationMs: 1, isAborted: false, turnId: 'turn-m1' })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
+  const again = await $.tool.call({ tool: BUILD, ...KIND, request: 'y', consequence: 'low' })
+  await $.turn.complete({ reason: 'answer', answer: 'waiting for the rate limit', durationMs: 1, isAborted: false, turnId: 'turn-main' })
   await session.clock.advance(9 * MINUTE)
   await settleLong(session.clock)
-  const before = session.sent.length
+  const before = session.woken().length
   await session.clock.advance(MINUTE)
-  await settleUntil(session.clock, () => session.sent.length > 0)
+  await settleUntil(session.clock, () => session.woken().length > 0)
+  await settleLong(session.clock)
 
   expect(built.deny).toBe('rex gate: plan usage at 91.5% (five_hour); new builders wait until it falls; end your turn, and the mod wakes you in 10 minutes')
   expect(again.deny).toBe(built.deny)
   expect(session.book().jobs).toEqual([])
   expect(before).toBe(0)
-  expect(session.sent.map(sent => [sent.to, sent.text])).toEqual([[MASTER, 'rex: plan usage was over the pause point 10 minutes ago. Call rex_build again for the steps that wait.']])
+  expect(session.woken()).toEqual(['rex: plan usage was over the pause point 10 minutes ago. Call rex_build again for the steps that wait.'])
+  expect(session.sent).toEqual([])
   expect(session.book().trees[0]?.state).toBe('running')
 })
 
@@ -190,11 +204,11 @@ test('rex_build refuses a job with no type, size or langs, and stores them on th
   const session = await builtWorld(on, {}, buildRules('model-high-effort-high'), [])
   await $.session.start(START)
 
-  const noType = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'x', consequence: 'low', size: 'small', langs: [] })
-  const noSize = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'x', consequence: 'low', type: 'fix', langs: [] })
-  const noLangs = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'x', consequence: 'low', type: 'fix', size: 'small' })
+  const noType = await $.tool.call({ tool: BUILD, request: 'x', consequence: 'low', size: 'small', langs: [] })
+  const noSize = await $.tool.call({ tool: BUILD, request: 'x', consequence: 'low', type: 'fix', langs: [] })
+  const noLangs = await $.tool.call({ tool: BUILD, request: 'x', consequence: 'low', type: 'fix', size: 'small' })
   const before = session.book().jobs.length
-  const built = await $.tool.call({ tool: BUILD, agentId: MASTER, request: 'x', consequence: 'low', type: 'feature', size: 'large', langs: ['Rust', 'typescript'] })
+  const built = await $.tool.call({ tool: BUILD, request: 'x', consequence: 'low', type: 'feature', size: 'large', langs: ['Rust', 'typescript'] })
 
   expect(noType.deny).toBe('rex_build: type must be one of feature, fix, refactor, chore, research, other, got none; call it again with one of them')
   expect(noSize.deny).toBe('rex_build: size must be one of small, medium, large, got none; call it again with one of them')
@@ -208,9 +222,9 @@ test('rex_build refuses past max_jobs and over the consequence ceiling', async (
   await builtWorld(on, { max_jobs: 1, consequence_ceiling: 'medium', max_parallel_builders: 3 }, buildRules('model-high-effort-high'), [])
   await $.session.start(START)
 
-  const high = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'x', consequence: 'high' })
-  const first = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'x', consequence: 'low' })
-  const second = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'y', consequence: 'low' })
+  const high = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'high' })
+  const first = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
+  const second = await $.tool.call({ tool: BUILD, ...KIND, request: 'y', consequence: 'low' })
 
   expect(high.deny).toBe('rex gate: consequence_ceiling of the policy, got high')
   expect(lineOf(first, 'status')).toBe('created')
@@ -221,12 +235,12 @@ test('parallel_builders_auto_by_size', async ($, on) => {
   const session = await builtWorld(on, { max_parallel_builders: 'auto' }, buildRules('model-high-effort-high'), [])
   await $.session.start(START)
 
-  const small = [1, 2, 3, 4].map(n => ({ tool: BUILD, ...KIND, agentId: MASTER, request: `small ${String(n)}`, consequence: 'low', size: 'small' }))
+  const small = [1, 2, 3, 4].map(n => ({ tool: BUILD, ...KIND, request: `small ${String(n)}`, consequence: 'low', size: 'small' }))
   const answers = []
   for (const call of small) {
     answers.push(await $.tool.call(call))
   }
-  const large = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'large', consequence: 'low', size: 'large' })
+  const large = await $.tool.call({ tool: BUILD, ...KIND, request: 'large', consequence: 'low', size: 'large' })
 
   expect(answers.map(answer => answer.deny ?? lineOf(answer, 'status'))).toEqual(['created', 'created', 'created', 'rex gate: max_parallel_builders of the policy, got 3 open jobs'])
   expect(large.deny).toBe('rex gate: max_parallel_builders of the policy, got 3 open jobs')
@@ -237,10 +251,10 @@ test('rex_build refuses a job whose depends_on is not delivered, and a repo outs
   const session = await builtWorld(on, {}, buildRules('model-high-effort-high'), [])
   await $.session.start(START)
 
-  const first = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'x', consequence: 'low' })
+  const first = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
   const id = lineOf(first, 'job') ?? ''
-  const waiting = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'y', consequence: 'low', depends_on: [id] })
-  const elsewhere = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'y', consequence: 'low', repo: '/elsewhere' })
+  const waiting = await $.tool.call({ tool: BUILD, ...KIND, request: 'y', consequence: 'low', depends_on: [id] })
+  const elsewhere = await $.tool.call({ tool: BUILD, ...KIND, request: 'y', consequence: 'low', repo: '/elsewhere' })
 
   expect(waiting.deny).toBe(`rex_build: depends_on job ${id} is not delivered, got created; build this job after that one delivers`)
   expect(elsewhere.deny).toBe('rex_build: repo /elsewhere is not the session root or a repo of the policy, got /elsewhere; add it with /rex policy set repos')
@@ -251,8 +265,8 @@ test('rex_build refuses bad arguments before anything changes', async ($, on) =>
   const session = await builtWorld(on, {}, buildRules('model-high-effort-high'), [])
   await $.session.start(START)
 
-  const noRequest = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, consequence: 'low' })
-  const badLevel = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'x', consequence: 'huge' })
+  const noRequest = await $.tool.call({ tool: BUILD, ...KIND, consequence: 'low' })
+  const badLevel = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'huge' })
 
   expect(noRequest.deny).toBe('rex_build: request must be text, got none; call it again with the request of the job')
   expect(badLevel.deny).toBe('rex_build: consequence must be one of low, medium, high, got huge; call it again with one of them')
@@ -264,7 +278,7 @@ test('a refused builder spawn cancels its job and removes its worktree', async (
   const session = await builtWorld(on, {}, buildRules('model-high-effort-high'), calls, { spawnRefusal: () => 'no slots left' })
   await $.session.start(START)
 
-  const built = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'x', consequence: 'low' })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
 
   const id = session.book().jobs[0]?.id ?? ''
   expect(built.deny).toBe(`rex_build: the builder of job ${id} did not start, got no slots left; the job is cancelled, call rex_build again`)
@@ -272,12 +286,39 @@ test('a refused builder spawn cancels its job and removes its worktree', async (
   expect(calls.at(-1)?.argv).toEqual(['rex', 'worktree', 'remove', ROOT, `${ROOT}.worktrees/${id}`])
 })
 
+test('headless, a builder spawn in permission mode default with a required allow rule missing from the settings is refused, and its job cancelled', async ($, on) => {
+  const calls: ProcessCall[] = []
+  const session = await builtWorld(on, { required_allow: ['Bash(cargo test:*)'] }, buildRules('model-high-effort-high'), calls, { allow: ['Bash(git status:*)'] })
+  await $.session.start(HEADLESS_START)
+
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
+
+  const id = session.book().jobs[0]?.id ?? ''
+  expect(built.deny).toBe(
+    `rex_build: the builder of job ${id} did not start, got rex_build: headless mode unknown asks no one, so each ask is a deny; run with bypassPermissions or list allow rules in policy required_allow, got Bash(cargo test:*); the job is cancelled, call rex_build again`,
+  )
+  expect(session.book().jobs.map(job => job.status)).toEqual(['cancelled'])
+  expect(session.book().runs).toEqual([])
+  expect(calls.at(-1)?.argv).toEqual(['rex', 'worktree', 'remove', ROOT, `${ROOT}.worktrees/${id}`])
+  expect(session.book().trees[0]?.state).toBe('running')
+})
+
+test('headless, a builder spawn passes the permission check when each required allow rule is in the settings', async ($, on) => {
+  const session = await builtWorld(on, { required_allow: ['Bash(cargo test:*)'] }, buildRules('model-high-effort-high'), [], { allow: ['Bash(cargo test:*)', 'Read'] })
+  await $.session.start(HEADLESS_START)
+
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
+
+  expect([lineOf(built, 'status'), lineOf(built, 'builder')]).toEqual(['created', 'b1'])
+  expect(session.book().jobs.map(job => job.status)).toEqual(['created'])
+})
+
 test('a worktree that rex worktree add cannot make cancels the job and starts no builder', async ($, on) => {
   const rules: readonly Rule[] = [{ starts: ['rex', 'worktree', 'add'], answer: { exitCode: 1, stdout: '', stderr: 'rex worktree: a branch named rex/x already exists\n' } }, ...buildRules('model-high-effort-high')]
   const session = await builtWorld(on, {}, rules, [])
   await $.session.start(START)
 
-  const built = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'x', consequence: 'low' })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
 
   const id = session.book().jobs[0]?.id ?? ''
   expect(built.deny).toBe(`rex_build: rex worktree add failed for job ${id}, got exit 1: rex worktree: a branch named rex/x already exists; the job is cancelled, call rex_build again`)
@@ -289,7 +330,7 @@ test('authority_guard_that_throws_refuses: a closed check of rex_build that thro
   const session = await builtWorld(on, {}, buildRules('model-high-effort-high'), [], { usageRefusal: 'usage unreadable' })
   await $.session.start(START)
 
-  const built = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'x', consequence: 'low' })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
 
   expect(built.deny).toBe('rex gate: rate-limit-pause failed (HooksError); refused')
   expect(session.book().jobs).toEqual([])
@@ -299,8 +340,8 @@ test('a policy answer is set at rex_build by merge and merge_max_consequence', a
   const session = await builtWorld(on, { merge: 'allowed_if_checks_pass', merge_max_consequence: 'medium', merge_checks: [['cargo', 'test']] }, [...buildRules('model-high-effort-high'), { starts: ['cargo'], answer: ran() }], [])
   await $.session.start(START)
 
-  await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'x', consequence: 'medium' })
-  await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'y', consequence: 'high' })
+  await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'medium' })
+  await $.tool.call({ tool: BUILD, ...KIND, request: 'y', consequence: 'high' })
 
   const tree = session.book().trees[0]
   expect(session.book().jobs.map(job => [job.consequence, job.merge?.answer ?? null, job.merge?.source ?? null, job.merge?.policyHash ?? null])).toEqual([

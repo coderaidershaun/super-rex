@@ -48,8 +48,8 @@ async function pauseChanged($: EngineInterface, hash: string): Promise<readonly 
 
 /**
  * Each paused tree of this session runs on under the policy the person just
- * confirmed: pinned to its hash, with its live master and builders, and its
- * master woken to go on.
+ * confirmed: pinned to its hash, with its builders, and its master woken to
+ * go on.
  */
 async function resumeConfirmed($: EngineInterface, hash: string, sections: Table<StatusSection>): Promise<readonly string[]> {
   const book = await readBook($)

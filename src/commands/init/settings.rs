@@ -1,5 +1,5 @@
-//! Merges the safety settings, the deny rules and the sub-agent depth into the
-//! person's own settings file, so nothing of theirs is lost and a weaker setting is never hidden.
+//! Merges the permissions, the deny rules and the sub-agent depth into the
+//! person's own settings file, so nothing of theirs is lost, and turns off a sandbox an older run set.
 
 use std::fs;
 use std::io::ErrorKind;
@@ -9,9 +9,7 @@ use serde_json::{Map, Value};
 
 use super::error::InitError;
 use super::file_change::FileChange;
-use super::safety::{
-    forbids_unsandboxed, is_safety_key, parent_to_open, safety_settings, stricter_value_effect,
-};
+use super::safety::{parent_to_open, permission_settings, turn_old_sandbox_off};
 use super::{InitOptions, MASTER_DEPTH, print_line_to_stderr};
 use crate::commands::links::is_symlink;
 use crate::commands::worktree::{SETTINGS_FILE, SettingsLock, rex_worktrees, worktrees_root};
@@ -19,16 +17,6 @@ use crate::error::RexError;
 
 /// The settings file, as every message names it.
 pub(super) const SETTINGS_FILENAME: &str = SETTINGS_FILE;
-
-/// Entries that ran every git command, and so its hooks, outside the sandbox.
-/// A person added them as a stopgap while git could not commit in a job
-/// worktree in the sandbox. Rex now lists its worktrees, so git works there,
-/// and these are taken out rather than kept. Narrower git rules stay.
-const SUPERSEDED_EXCLUDED: [&str; 2] = ["git *", "git:*"];
-const SUPERSEDED_ALLOW: [&str; 2] = ["Bash(git *)", "Bash(git:*)"];
-
-/// Why a superseded entry was taken out, as the notice says it.
-const SUPERSEDED_REASON: &str = "it ran git and its hooks outside the sandbox, and rex now registers its worktrees, so git works inside it";
 
 /// The variable of Claude Code that caps how deep sub-agents may start sub-agents.
 const DEPTH_VARIABLE: &str = "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH";
@@ -42,10 +30,9 @@ const OLD_HOOK_COMMANDS: [&str; 3] = [
 ];
 
 /// The places of the repo at `cwd` that its settings name, from its
-/// canonical path: the folder above it as text, that folder again when agents
-/// may write in it, the job worktrees folder, and the worktrees in it.
+/// canonical path: the job worktrees folder, the worktrees in it, and the
+/// folder above the repo when agents may write in it.
 struct RepoPlaces {
-    parent: Option<String>,
     root: Option<std::path::PathBuf>,
     worktrees: Vec<String>,
     opened_parent: Option<String>,
@@ -57,42 +44,32 @@ impl RepoPlaces {
             path: cwd.to_path_buf(),
             source,
         })?;
-        let parent = repo.parent();
         Ok(Self {
-            parent: parent.and_then(Path::to_str).map(str::to_owned),
             root: worktrees_root(&repo),
             // A path that is not UTF-8 cannot be written into the file.
             worktrees: rex_worktrees(&repo)
                 .iter()
                 .filter_map(|dir| dir.to_str().map(str::to_owned))
                 .collect(),
-            opened_parent: parent.and_then(parent_to_open),
+            opened_parent: repo.parent().and_then(parent_to_open),
         })
     }
 }
 
-/// What rex adds to the settings file of the repo at `places`, in the order
-/// it is added. The depth is not here: it has a rule of its own.
-fn settings_to_add(places: &RepoPlaces, options: &InitOptions) -> Map<String, Value> {
-    safety_settings(
-        places.opened_parent.as_deref(),
-        &places.worktrees,
-        options.is_strict,
-    )
-}
-
-/// Make sure the settings file of the repo at `cwd` holds the safety settings,
-/// the deny rules, the job worktrees and the sub-agent depth, and none of the
-/// hook entries of rex 0.7 or the stopgap entries that ran git outside the
-/// sandbox; each stopgap entry and each worktree that is gone is taken out
-/// with a notice on stderr, and never fails the run. Every other key and value of the person's is kept, in its order, and
-/// only what is missing is added. When nothing changes, the file is not
-/// written at all. Gives the depth in force after the merge.
+/// Make sure the settings file of the repo at `cwd` holds the permissions
+/// (the rule that allows every Bash command, the deny rules and the job
+/// worktrees) and the sub-agent depth, with no hook entry of rex 0.7 and no
+/// sandbox an older run turned on. Each worktree that is gone is taken out,
+/// and an old sandbox turned off, with a notice on stderr once the file is
+/// written; none of these fails the run. Every other key and value of the
+/// person's is kept, in its order, and only what is missing is added. When
+/// nothing changes, the file is not written at all. Gives the depth in force
+/// after the merge.
 ///
 /// The file is left as it is, and the reason added to `failures`, when it is
 /// not a JSON object, cannot be read, or is to be written through a symbolic
-/// link. A kept value of the person's that weakens a safety setting is added
-/// to `failures` too; any other kept value is a warning on stderr.
+/// link. A kept value of the person's that differs from the one rex sets is a
+/// warning on stderr.
 ///
 /// # Errors
 /// [`RexError::Io`] if the repo folder cannot be found, or the file or its
@@ -104,7 +81,7 @@ pub(super) fn ensure_settings(
 ) -> Result<(FileChange, u32), RexError> {
     let path = cwd.join(SETTINGS_FILENAME);
     let places = RepoPlaces::of(cwd)?;
-    let mut to_add = settings_to_add(&places, options);
+    let to_add = permission_settings(places.opened_parent.as_deref(), &places.worktrees);
     // `rex worktree` writes the same file; the lock keeps one write from
     // dropping the other's.
     let _lock = SettingsLock::take(cwd)?;
@@ -117,31 +94,22 @@ pub(super) fn ensure_settings(
         Ok(None) => (Map::new(), FileChange::Created),
         Ok(Some(settings)) => (settings, FileChange::Updated),
     };
-    if forbids_unsandboxed(&settings) {
-        // A file that keeps every command in the sandbox is never made
-        // weaker, so no command is added that would run outside it.
-        if let Some(Value::Object(sandbox)) = to_add.get_mut("sandbox") {
-            sandbox.remove("excludedCommands");
-        }
-        if let Some(Value::Object(permissions)) = to_add.get_mut("permissions") {
-            permissions.remove("allow");
-        }
-    }
     let mut merge = Merge::default();
     merge.is_changed |= remove_old_hooks(&mut settings);
-    for notice in remove_superseded_entries(&mut settings, places.parent.as_deref()) {
-        merge.is_changed = true;
-        print_line_to_stderr(&notice);
-    }
+    let mut notices = turn_old_sandbox_off(&mut settings);
     if let Some(root) = &places.root {
-        for notice in remove_gone_worktrees(&mut settings, root, &places.worktrees) {
-            merge.is_changed = true;
-            print_line_to_stderr(&notice);
-        }
+        notices.extend(remove_gone_worktrees(
+            &mut settings,
+            root,
+            &places.worktrees,
+        ));
     }
+    merge.is_changed |= !notices.is_empty();
     merge.object(&mut settings, &to_add, "");
     let depth = merge.depth(&mut settings, options.depth);
-    failures.extend(merge.kept.into_iter().filter_map(report_kept_value));
+    for kept in merge.kept {
+        warn_kept_value(kept);
+    }
     if !merge.is_changed {
         return Ok((FileChange::Unchanged, depth));
     }
@@ -151,6 +119,9 @@ pub(super) fn ensure_settings(
         return Ok((FileChange::Unchanged, depth));
     }
     write_settings(&path, &Value::Object(settings))?;
+    for notice in notices {
+        print_line_to_stderr(&notice);
+    }
     Ok((change, depth))
 }
 
@@ -185,42 +156,6 @@ fn remove_old_hooks(settings: &mut Map<String, Value>) -> bool {
         settings.remove("hooks");
     }
     true
-}
-
-/// Takes the stopgap entries out of `settings`: every git command outside the
-/// sandbox, and the rule that let an agent `cd` anywhere in `parent`, the
-/// folder above the repo. Gives one notice for each entry taken out.
-fn remove_superseded_entries(
-    settings: &mut Map<String, Value>,
-    parent: Option<&str>,
-) -> Vec<String> {
-    let cd_rule = parent.map(|parent| format!("Bash(cd {parent}/*)"));
-    let allow: Vec<&str> = SUPERSEDED_ALLOW
-        .into_iter()
-        .chain(cd_rule.as_deref())
-        .collect();
-    let mut notices = Vec::new();
-    for (section, key, superseded) in [
-        ("sandbox", "excludedCommands", &SUPERSEDED_EXCLUDED[..]),
-        ("permissions", "allow", &allow[..]),
-    ] {
-        let Some(Value::Array(entries)) = settings
-            .get_mut(section)
-            .and_then(|section| section.get_mut(key))
-        else {
-            continue;
-        };
-        entries.retain(|entry| {
-            let is_superseded = entry.as_str().is_some_and(|text| superseded.contains(&text));
-            if is_superseded {
-                notices.push(format!(
-                    "rex init: removed {entry} from {section}.{key} in {SETTINGS_FILENAME}: {SUPERSEDED_REASON}."
-                ));
-            }
-            !is_superseded
-        });
-    }
-    notices
 }
 
 /// Takes out of `permissions.additionalDirectories` each entry inside `root`,
@@ -400,32 +335,17 @@ fn depth_of(value: &Value) -> Option<u32> {
 /// names what it costs.
 fn warn_low_depth(found: &Value) {
     print_line_to_stderr(&format!(
-        "rex init: warning: kept env.{DEPTH_VARIABLE} = {found} in {SETTINGS_FILENAME}, below {MASTER_DEPTH}, so /rex master refuses to start: its workers start their own sub-agents at depth {MASTER_DEPTH}; run rex init --depth {MASTER_DEPTH} to allow it."
+        "rex init: warning: kept env.{DEPTH_VARIABLE} = {found} in {SETTINGS_FILENAME}, below {MASTER_DEPTH}, so /super-rex:orchestration-master refuses to start: its workers start their own sub-agents at depth {MASTER_DEPTH}; run rex init --depth {MASTER_DEPTH} to allow it."
     ));
 }
 
-/// Tell the person about a value of theirs that rex kept. A weaker safety
-/// setting fails the run, so it cannot go unseen; any other value is a
-/// warning. Making the safety case a warning too is a change here only.
-fn report_kept_value(kept: KeptValue) -> Option<InitError> {
+/// Tell the person about a value of theirs that rex kept, with the value
+/// SuperRex sets.
+fn warn_kept_value(kept: KeptValue) {
     let KeptValue { key, found, needed } = kept;
-    if let Some(effect) = stricter_value_effect(&key, &found) {
-        print_line_to_stderr(&format!(
-            "rex init: warning: kept {key} = {found} in {SETTINGS_FILENAME}, {effect}."
-        ));
-        return None;
-    }
-    if is_safety_key(&key) {
-        return Some(InitError::SafetySettingKept {
-            key,
-            found: found.to_string(),
-            needed: needed.to_string(),
-        });
-    }
     print_line_to_stderr(&format!(
         "rex init: warning: kept {key} = {found} in {SETTINGS_FILENAME}; SuperRex sets {needed}."
     ));
-    None
 }
 
 /// Write `settings` as pretty JSON, in place, creating `.claude` if needed.
@@ -456,41 +376,6 @@ mod tests {
             panic!("not an object")
         };
         map
-    }
-
-    #[test]
-    fn superseded_entries_go_wherever_they_stand_and_twice_over() {
-        let mut settings = object(json!({
-            "sandbox": { "excludedCommands": ["git *", "rex init*", "git *", "git:*"] },
-            "permissions": { "allow": ["Bash(git *)", "Bash(cd /p/*)", "Bash(cd /q/*)", "Bash(git log *)"] }
-        }));
-
-        let notices = remove_superseded_entries(&mut settings, Some("/p"));
-
-        assert_eq!(notices.len(), 5, "got: {notices:?}");
-        assert_eq!(
-            Value::Object(settings),
-            json!({
-                "sandbox": { "excludedCommands": ["rex init*"] },
-                "permissions": { "allow": ["Bash(cd /q/*)", "Bash(git log *)"] }
-            })
-        );
-    }
-
-    #[test]
-    fn a_file_with_no_list_or_another_type_is_left_as_it_is() {
-        for value in [
-            json!({}),
-            json!({ "sandbox": { "excludedCommands": "git *" }, "permissions": { "allow": [] } }),
-            json!({ "sandbox": "on", "permissions": ["Bash(git *)"] }),
-        ] {
-            let mut settings = object(value.clone());
-
-            let notices = remove_superseded_entries(&mut settings, None);
-
-            assert!(notices.is_empty(), "got: {notices:?}");
-            assert_eq!(Value::Object(settings), value);
-        }
     }
 
     #[test]

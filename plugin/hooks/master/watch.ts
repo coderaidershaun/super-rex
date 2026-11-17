@@ -1,4 +1,4 @@
-// Keeps a tree moving with no person watching: a builder whose job's spend stays flat, whoever holds a run open in it and sooner when nothing does, or whose run died on an API error is woken on a schedule, and the master hears each builder that stopped with nothing of its own running.
+// Keeps a tree moving while the master waits: a builder whose job's spend stays flat, whoever holds a run open in it and sooner when nothing does, or whose run died on an API error is woken on a schedule, and the master hears each builder that stopped with nothing of its own running.
 import type { EngineInterface, Timer } from 'claude-code'
 
 import type { RexBook, RexJob, RexTree, RexTreeTick } from '../../types'
@@ -99,7 +99,7 @@ function stuckPeriod(book: RexBook, job: string, policy: Policy): { readonly tic
   return { ticks: isRunning ? policy.stuck_ticks : IDLE_TICKS, isRunning }
 }
 
-/** What one tick did to a job: the first wake of a stopped builder is the only one its stopped master hears of. */
+/** What one tick did to a job: the first wake of a stopped builder is the only one its master hears of. */
 type Ticked = { readonly kind: 'none' } | { readonly kind: 'woke-stopped-first'; readonly minutes: number; readonly isAgentOpen: boolean }
 
 const NONE: Ticked = { kind: 'none' }
@@ -137,10 +137,10 @@ async function tickJob($: EngineInterface, book: RexBook, tree: RexTree, job: Re
   return !isWorking && job.stuckWakes === 0 ? { kind: 'woke-stopped-first', minutes: quiet * policy.watchdog_minutes, isAgentOpen: period.isRunning } : NONE
 }
 
-/** Why the watchdog woke the builder of a stopped master's job. */
+/** Why the watchdog woke the stopped builder of a job. */
 function stoppedWakeText(job: string, ticked: Extract<Ticked, { kind: 'woke-stopped-first' }>): string {
   const held = ticked.isAgentOpen ? 'an agent open' : 'no agent running'
-  return `the watchdog found job ${job} with ${held} and no spend for ${String(ticked.minutes)} minutes while you were stopped; the mod woke its builder`
+  return `the watchdog found job ${job} with ${held} and no spend for ${String(ticked.minutes)} minutes; the mod woke its builder`
 }
 
 /** The book as it is now, read again only after a write of this load of the mod, so a quiet tick reads it once. */
@@ -155,7 +155,7 @@ function bookReader($: EngineInterface): () => Promise<RexBook> {
   }
 }
 
-/** Ticks each open job; a stopped master hears only of the first wake of a stopped builder, never of builders at work. A quiet tick writes nothing. */
+/** Ticks each open job; the master hears only of the first wake of a stopped builder, never of builders at work. A quiet tick writes nothing. */
 export async function watchdogTick($: EngineInterface, treeId: string, sections: Table<StatusSection>): Promise<void> {
   const current = bookReader($)
   const book = await current()
@@ -170,11 +170,10 @@ export async function watchdogTick($: EngineInterface, treeId: string, sections:
   }
   const policy = await policyOrDefault($)
   const now = await $.clock.now()
-  const master = book.runs.find(run => run.agentId === tree.master)
   for (const job of open) {
     const ticked = await tickJob($, await current(), tree, job, policy, now)
     await raiseAtLimit($, await current(), tree, job.id, policy)
-    if (ticked.kind === 'woke-stopped-first' && master?.state === 'done') {
+    if (ticked.kind === 'woke-stopped-first') {
       wakeMaster($, await current(), tree, stoppedWakeText(job.id, ticked), sections)
     }
   }

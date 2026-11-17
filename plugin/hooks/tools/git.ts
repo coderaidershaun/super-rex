@@ -49,7 +49,7 @@ export async function hadOwnCommit($: EngineInterface, repo: string, branch: str
   return reflog.exitCode !== 0 || moves.length === 0 || moves.some(isCommit)
 }
 
-/** `rex worktree <args>`, run in `repo`; it runs git itself, outside the sandbox, and lists or unlists the worktree for it. */
+/** `rex worktree <args>`, run in `repo`; it runs git itself, and lists or unlists the worktree for the file tools. */
 export function rexWorktree($: EngineInterface, repo: string, args: readonly string[]): Promise<Git> {
   return run($, repo, ['rex', 'worktree', ...args])
 }

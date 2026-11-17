@@ -29,6 +29,7 @@ function exampleBook(): RexBook {
       restatement: 'Goal: fix the parser. Missing: budget.',
       isRecorded: true,
       jobStart: { origin: 'composer', text: REQUEST, restatement: 'Goal: fix the parser. Missing: budget.', restatementSkipped: null },
+      treeStart: null,
     },
     START_MS + 1000,
   )

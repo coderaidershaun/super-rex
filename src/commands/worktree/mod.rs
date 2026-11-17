@@ -1,12 +1,10 @@
 //! `rex worktree add` and `rex worktree remove`: make or remove a job's Git
-//! worktree beside the repo, and list it so that sandboxed git can commit in it.
+//! worktree beside the repo, and list it so that Claude Code's file tools may work in it.
 //!
-//! Claude Code's sandbox makes `<repo>/.git/worktrees/` read-only, except for
-//! the worktrees of the session. A linked worktree whose own path is in
-//! `permissions.additionalDirectories` counts as one of those, so git can
-//! write its index there while `.git/hooks` and `.git/config` stay read-only.
-//! These commands run outside the sandbox (rex init excludes `rex worktree *`),
-//! so each one checks its arguments itself: a worktree goes only in
+//! A folder listed in `permissions.additionalDirectories` is a working
+//! directory of every session in the repo, so its files can be read and
+//! edited there. An agent runs these commands with no prompt, so each one
+//! checks its arguments itself: a worktree goes only in
 //! `<parent>/<name>.worktrees/`, and only a real linked worktree is listed.
 
 mod error;
@@ -25,7 +23,7 @@ use super::stdout::print_line_to_stdout;
 use place::{is_below, is_linked_worktree_of, is_plain_absolute, resolved};
 use register::Registry;
 
-/// Make or remove a job's worktree in <repo>.worktrees/, beside the repo, and list or unlist it in .claude/settings.local.json, so sandboxed git commands can commit in it.
+/// Make or remove a job's worktree in <repo>.worktrees/, beside the repo, and list or unlist it in .claude/settings.local.json, so Claude Code's file tools may work in it.
 #[derive(clap::Args, Clone, Debug)]
 #[command(
     after_help = "Prints worktree=<path> and settings=added|removed|unchanged. A worktree goes only in <parent>/<name>.worktrees/ of the repo, and its path is written with every link resolved."

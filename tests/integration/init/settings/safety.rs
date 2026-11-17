@@ -1,77 +1,82 @@
-//! Which safety settings `rex init` writes: what `--strict` changes, and when
-//! the folder above the repo is opened to agents.
+//! Which permissions `rex init` writes: the one rule that allows every Bash
+//! command, added to a list of the person's, no sandbox, and when the folder
+//! above the repo is opened to agents.
 
 use std::path::Path;
 
 use serde_json::{Value, json};
 
-use super::expected::{as_written, parent_of, read_settings, safety_settings, with_depth};
-use crate::init::support::{Repo, repo, rex_init_command, rex_init_failed, rex_init_ok};
+use super::expected::{PLUGIN_DENY_RULES, parent_of, read_settings, write_settings};
+use crate::init::support::{repo, rex_init_command, rex_init_ok};
 
-// A program that opens its own network connection cannot run in the sandbox,
-// so an agent may run a command again outside it. Some systems block the
-// sandbox itself, so Claude Code still starts there, with no sandbox.
-// `--strict` takes both away, and a file that is stricter than the run asks
-// for is never made weaker.
+fn written(repo: &crate::init::support::Repo) -> Value {
+    serde_json::from_str(&read_settings(repo)).expect("settings JSON")
+}
+
+// An agent runs every Bash command with no prompt; the deny rules still hold
+// over that rule, and rex turns no sandbox on.
 #[test]
-fn strict_changes_only_the_settings_it_names() {
-    let sandbox_key = |repo: &Repo, name: &str| {
-        let written: Value = serde_json::from_str(&read_settings(repo)).expect("settings JSON");
-        written["sandbox"][name].clone()
-    };
-    let allow_key = |repo: &Repo| sandbox_key(repo, "allowUnsandboxedCommands");
-    let fail_key = |repo: &Repo| sandbox_key(repo, "failIfUnavailable");
+fn every_bash_command_is_allowed_and_no_sandbox_is_written() {
+    let repo = repo();
 
-    let strict = repo();
-
-    let printed = rex_init_ok(&strict, &["--strict"]);
+    let printed = rex_init_ok(&repo, &[]);
 
     assert_eq!(printed.stderr, "");
-    assert_eq!(allow_key(&strict), json!(false));
-    assert_eq!(fail_key(&strict), json!(true));
-    let mut expected = with_depth(safety_settings(&strict));
-    expected["sandbox"]["failIfUnavailable"] = json!(true);
-    expected["sandbox"]["allowUnsandboxedCommands"] = json!(false);
-    // With --strict no command may run outside the sandbox, so none is excluded.
-    expected["sandbox"]
-        .as_object_mut()
-        .expect("sandbox object")
-        .remove("excludedCommands");
-    // Nor is `rex worktree` let run with no prompt.
-    expected["permissions"]
-        .as_object_mut()
-        .expect("permissions object")
-        .remove("allow");
-    assert_eq!(read_settings(&strict), as_written(&expected));
-
-    // A later run without the flag keeps the stricter values, and says how to
-    // change each. A file that an earlier version of rex wrote is this case.
-    let before = read_settings(&strict);
-
-    let printed = rex_init_ok(&strict, &[]);
-
-    assert_eq!(read_settings(&strict), before);
+    let settings = written(&repo);
+    assert_eq!(settings["permissions"]["allow"], json!(["Bash"]));
+    let deny = settings["permissions"]["deny"]
+        .as_array()
+        .expect("a deny list");
+    assert_eq!(deny.len(), 10, "got: {deny:?}");
+    for rule in PLUGIN_DENY_RULES {
+        assert!(deny.contains(&json!(rule)), "{rule}");
+    }
+    assert_eq!(settings.get("sandbox"), None);
     assert_eq!(
-        printed.stderr,
-        "rex init: warning: kept sandbox.failIfUnavailable = true in .claude/settings.local.json, so Claude Code refuses to start when its sandbox cannot; set it to false to let it start and run commands with no sandbox.\n\
-         rex init: warning: kept sandbox.allowUnsandboxedCommands = false in .claude/settings.local.json, so no agent can run a command outside the sandbox, such as a test that opens its own network connection; set it to true to let agents do that.\n"
+        settings["permissions"].get("blockWritesOutsideWorkingDirectories"),
+        None
+    );
+}
+
+// The person's own allow rules stay, in their order, and "Bash" is added once
+// after them, however often rex init runs.
+#[test]
+fn bash_is_added_to_an_allow_list_of_the_person_once() {
+    let repo = repo();
+    write_settings(
+        &repo,
+        r#"{"permissions": {"allow": ["Bash(npm test)", "WebFetch", "Bash(rex worktree add *)"]}}"#,
     );
 
-    // The other way round, the kept values are the weaker ones, so the run fails.
-    let open = repo();
-    rex_init_ok(&open, &[]);
-    assert_eq!(allow_key(&open), json!(true));
-    assert_eq!(fail_key(&open), json!(false));
+    rex_init_ok(&repo, &[]);
+    let before = read_settings(&repo);
+    let printed = rex_init_ok(&repo, &[]);
 
-    let printed = rex_init_failed(&open, &["--strict"]);
-
-    assert_eq!(allow_key(&open), json!(true));
-    assert_eq!(fail_key(&open), json!(false));
     assert_eq!(
-        printed.stderr,
-        "rex init: failed: kept sandbox.failIfUnavailable = false in .claude/settings.local.json, so the protection it gives is off; set it to true to turn it on\n\
-         rex init: failed: kept sandbox.allowUnsandboxedCommands = true in .claude/settings.local.json, so the protection it gives is off; set it to false to turn it on\n\
-         error: rex init did not finish 2 step(s); each is named above\n"
+        written(&repo)["permissions"]["allow"],
+        json!([
+            "Bash(npm test)",
+            "WebFetch",
+            "Bash(rex worktree add *)",
+            "Bash"
+        ])
+    );
+    assert_eq!(read_settings(&repo), before);
+    assert!(
+        !printed.stdout.contains("settings.local.json"),
+        "got: {}",
+        printed.stdout
+    );
+
+    // A list that holds "Bash" already is not written again.
+    let has_it = crate::init::support::repo();
+    write_settings(&has_it, r#"{"permissions": {"allow": ["Bash", "Read"]}}"#);
+
+    rex_init_ok(&has_it, &[]);
+
+    assert_eq!(
+        written(&has_it)["permissions"]["allow"],
+        json!(["Bash", "Read"])
     );
 }
 
@@ -97,15 +102,12 @@ fn a_parent_that_holds_home_is_not_added() {
         assert_eq!(
             stderr,
             format!(
-                "rex init: warning: the parent folder {} holds your home folder, so it was not added as a working directory. Agents can write only inside this repo. Move the repo into a folder of its own to let agents edit sibling repos.\n",
+                "rex init: warning: the parent folder {} holds your home folder, so it was not added as a working directory, and the file tools of agents work only inside this repo. Move the repo into a folder of its own to let them edit sibling repos.\n",
                 parent_of(&repo)
             )
         );
-        let written: Value = serde_json::from_str(&read_settings(&repo)).expect("settings JSON");
-        assert_eq!(written["permissions"].get("additionalDirectories"), None);
-        assert_eq!(
-            written["permissions"]["blockWritesOutsideWorkingDirectories"],
-            json!(true)
-        );
+        let settings = written(&repo);
+        assert_eq!(settings["permissions"].get("additionalDirectories"), None);
+        assert_eq!(settings["permissions"]["allow"], json!(["Bash"]));
     }
 }

@@ -1,7 +1,7 @@
-// The brief parts this module adds around the author's text: tags, the skills block, the tier text, the sandbox text and the Return block.
+// The brief parts this module adds around the author's text: tags, the skills block, the tier text, the shell text and the Return block.
 import type { RexBook, RexJob, RexTask } from '../../types'
 import type { BriefContext, BriefFile, BriefPart } from '../parts'
-import { SANDBOX_TEXT } from './sandbox'
+import { SHELL_TEXT } from './shell'
 import { gridOf, TIER_FILE, tierText } from './tiers'
 
 export const PROMPTING_SKILL = 'rex-agent-prompting'
@@ -62,7 +62,7 @@ export const OWN_PARTS: readonly BriefPart[] = [
       return grid === null || file === undefined ? null : tierText(grid.tier, grid.level, file.text)
     },
   },
-  { name: 'sandbox', order: 60, text: () => SANDBOX_TEXT },
+  { name: 'shell', order: 60, text: () => SHELL_TEXT },
   {
     name: 'return',
     order: 70,

@@ -41,7 +41,7 @@ fn doctor_reports_version_skew_and_an_open_orphan() {
         stdout,
         format!(
             "doctor=problems\nbinary={binary}\nstore=v2\nstorage=on\nclaude=2.1.400\nplugin={binary}\n\
-             problem=open orphan: job 0gaq820001 is created, but its session 00000000-0000-4000-8000-000000000001 is not the newest; close it, or resume it with /rex master resume\n"
+             problem=open orphan: job 0gaq820001 is created, but its session 00000000-0000-4000-8000-000000000001 is not the newest; close it, or resume its tree with /super-rex:orchestration-master resume\n"
         )
     );
 

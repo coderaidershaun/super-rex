@@ -7,7 +7,7 @@ import { doctor, jobs, prompts, status, tree, watch } from './subcommands'
 import type { Request } from './subcommands'
 
 /** The order the unknown sub-command line lists names in; a name another module adds follows them. */
-const KNOWN_ORDER = ['watch', 'status', 'tree', 'jobs', 'doctor', 'prompts', 'limit', 'master', 'policy', 'answer']
+const KNOWN_ORDER = ['watch', 'status', 'tree', 'jobs', 'doctor', 'prompts', 'limit', 'policy', 'answer']
 
 export const OWN_SUBCOMMANDS: readonly Subcommand[] = [
   { name: 'watch', summary: 'Opens the SuperRex pane', grantsAuthority: false },

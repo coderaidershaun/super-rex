@@ -4,6 +4,52 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.11.0 - 2026-11-17
+
+Install the binary and the plugin of this version together, run `rex init` again in each repo, then start a new session.
+
+What changes for you:
+
+- **The master is your own session.** `/rex master` is gone. Type `/super-rex:orchestration-master <goal>` and the session you are in becomes the master: it cuts the goal into jobs, starts a builder for each, and ends its turn. You talk to it as in any Claude Code session: ask where things stand, change the goal, or tell it to stop the tree. In 0.9 and 0.10 the master was a background agent that you could reach only through `/rex answer` and `/rex policy`.
+- **`rex init` turns no sandbox on.** Agents run every Bash command with no prompt and with your full access. The deny rules still hold, and the mod stops a recursive `rm` that would delete the root, your home folder, the repo itself, or anything outside the folder that holds the repo.
+
+**What to redo.** SuperRex keeps no backward compatibility yet:
+
+- Run `rex init` again in each repo. It turns off the sandbox that an older run turned on in `.claude/settings.local.json` (`sandbox.enabled`, `permissions.blockWritesOutsideWorkingDirectories`), with a notice for each, and adds `"Bash"` to `permissions.allow`. Then start a new session: a running session keeps its old settings.
+- A stored policy changed shape, because `master_model` is gone. The first `/super-rex:orchestration-master` in a repo with a stored policy says the policy changed: run `/rex policy confirm`.
+- A tree that a master of 0.10 left open comes back with `/super-rex:orchestration-master resume`, with your session as its master.
+- A script that ran `rex init --strict` fails: the flag is gone.
+
+### Added
+
+- **The skill `orchestration-master`.** `/super-rex:orchestration-master <goal>`, `/super-rex:orchestration-master @<charter file>` and `/super-rex:orchestration-master resume`. The skill tells the main session how to run a tree: open it, cut the goal into steps, write each builder's request, read each wake, ask you what the charter and the policy leave open, check each delivered job against its done check, and write the final report.
+- **The tool `rex_tree_open`.** The main session opens its tree with it. It takes no argument: the charter is the text of your own prompt, so no agent, file or tool result can write one. Its answer is the charter, a marked reading of it, the policy, the repo's places and the code map. A master that lost its context calls it again and reads them again.
+- **The rm guard.** In a repo that `rex init` set up, the mod reads each Bash and Monitor command of the main session and of every agent, in every permission mode. It refuses a recursive `rm` of the root folder, your home folder or a folder that holds it, the main checkout, its `.git`, a folder that holds the repo, and anything outside the folder that holds the repo, `<repo>.worktrees` and the temp folders. The refusal starts with `rex guard: ALERT`, and you get a status line. A variable that the command never set counts as empty, as the shell takes it, so `rm -rf "$DIR"/` is read as the root. It sees through `sh -c`, `eval`, `sudo`, `env`, subshells and a `cd` in the same command. It reads the command as text and follows no symbolic link: it is a tripwire for a wrong path, not a sandbox, and it does not see `find -delete`, `git clean` or what a script file does.
+
+### Changed
+
+- **The mod wakes the master with a prompt.** A wake enters the main session as a prompt of the plugin that starts with `rex: `. The model reads it as the plugin's message, never as your words, and no merge answer, limit, job or tree comes from it. The engine's own notice that a builder ended a turn still becomes one status line.
+- **Questions.** With you at the terminal the master asks in the conversation. Headless, it parks a question with `rex_ask_owner`. The mod's own questions (a merge under `merge: ask`, a blocked job, a spend raise) still open a dialog, and `/rex answer` and the pane still answer them.
+- **A tree ends only with `rex_report`.** The mod no longer wakes a master that stopped with nothing open, and no longer closes its tree after two such wakes: your session stops whenever it has nothing to do, and you are there to tell it to go on.
+- **The master's own steps count toward the tree.** The main session's model requests go to the ledger of the tree it runs, as the master agent's did.
+- **The headless permission check runs when a builder starts.** `rex_build` answers the refusal and cancels the job, where `/rex master` refused before the tree opened.
+- **`rex init` writes permissions only.** `permissions.allow` gets `"Bash"`, `permissions.deny` keeps its ten rules, and `permissions.additionalDirectories` still opens the folder above the repo and the job worktrees to the file tools. No kept value of yours fails the run any more: a value that differs is a warning.
+- **Each brief carries the shell text in place of the sandbox text.** It says that no sandbox holds a command and what the guard's alert means.
+- `rex doctor` names `/super-rex:orchestration-master resume` for an open job of an older session.
+
+### Removed
+
+- `/rex master`, the agent type `super-rex:master`, and the policy key `master_model`. The master runs on the model of your session.
+- `rex init --strict`, every `sandbox` setting that `rex init` wrote, `permissions.blockWritesOutsideWorkingDirectories`, the allow rules for `rex worktree`, and the check for `bwrap` and `socat` on Linux.
+- The removal of the stopgap entries `git *` and `Bash(git *)` from the settings file: they are harmless now, and `rex init` leaves them.
+
+A live interactive session on 17 November 2026 showed, with this release's plugin and binary in a repo with no remote:
+
+- the rm guard refusing `rm -rf ~/<a folder>` in bypass mode, with its alert and its status line;
+- a master tree of two jobs run by the main session: the one policy question, two builders in parallel, a status answer in plain words while they ran, the mod's wakes as prompts of the plugin, a builder's question asked in the conversation, both jobs merged with `rex_merge`, and the final report.
+
+The README lists what is proven only in the tests.
+
 ## 0.10.0 - 2026-11-16
 
 Install the binary and the plugin of this version together, then start a new session.

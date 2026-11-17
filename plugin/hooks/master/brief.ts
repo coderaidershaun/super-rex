@@ -1,7 +1,16 @@
 // The texts the mod writes into a tree's agents: the builder's fixed brief, and the charter part that every brief of a tree job carries.
+import type { EngineInterface } from 'claude-code'
+
 import type { RexBook, RexJob, RexTree } from '../../types'
 import type { BriefContext, BriefPart } from '../parts'
 import { CONTINUE_TEXT } from './wake'
+
+/** The fixed part of a builder's brief, a file of the master skill. */
+export const BUILDER_BRIEF_FILE = 'skills/orchestration-master/builder.md'
+
+export function readPluginFile($: EngineInterface, file: string): Promise<string> {
+  return $.fs.read(`${$.plugin.root}/${file}`)
+}
 
 /**
  * The builder's brief: the fixed file, then the job's ids and the master's

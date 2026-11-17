@@ -14,6 +14,7 @@ export {
   bookWrites,
   closeJob,
   closeTree,
+  dropTreeStart,
   countPermissionAsk,
   countWake,
   endRun,
@@ -53,7 +54,9 @@ export { assertNever, errorText, failureClass } from './failure'
 export type { FailureClass, RexFailure } from './failure'
 export { jobWorktree } from './jobs'
 export type { JobClose, MergeDone, OpenJobInput, PlanAmendment, QuestionInput, Restored, WakeReason } from './jobs'
+export { mainTree } from './runs'
 export type { EndInput, SkillOpen, StartRunInput, StepInput } from './runs'
+export { MAIN_MASTER } from './trees'
 export type { TreeInput } from './trees'
 export { pluginVersion } from './config'
 export { limitIgnoredLine, MAX_LIMIT_USD, readPersonWords } from './words'

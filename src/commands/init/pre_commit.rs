@@ -17,9 +17,9 @@ pub(super) const CONFIG_FILENAME: &str = ".pre-commit-config.yaml";
 /// The command that turns the config into git hooks. Printed as a hint
 /// when the tool is missing, so the text is kept in one place.
 ///
-/// `--install-hooks` also downloads the hook programs now. Agents commit
-/// inside the Claude Code sandbox, which cannot fill that download store, so
-/// it must be filled here, by the person's own run of `rex init`.
+/// `--install-hooks` also downloads the hook programs now, in the person's
+/// own run of `rex init`, so an agent's first commit or push does not wait
+/// on that download or fail on it.
 pub(super) const INSTALL_COMMAND: &str =
     "pre-commit install --install-hooks --hook-type pre-commit --hook-type pre-push";
 

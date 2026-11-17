@@ -7,7 +7,6 @@ import type { Caller, ToolEntry } from '../parts'
 import { answer, callerOf, callerRefusal, deny } from '../tools/index'
 import { parkQuestion } from './ask'
 import { field, isRefused, optionalText, refused, text, word } from './args'
-import { masterMoved } from './idle'
 import { treeOfMaster } from './pin'
 import { wakeLater } from './wake'
 
@@ -20,7 +19,7 @@ export async function masterCall($: EngineInterface, entry: ToolEntry, agentId: 
   const tree = caller.kind === 'master' ? treeOfMaster(book, caller.agentId) : undefined
   if (tree === undefined) {
     await fail($, { kind: 'caller-not-allowed', tool: entry.name, caller: caller.kind })
-    return { refused: callerRefusal(entry, caller) ?? `${entry.name}: only the master of a live tree may call it, got the master of a closed tree; start a tree with /rex master`, caller }
+    return { refused: callerRefusal(entry, caller) ?? `${entry.name}: only the master of a live tree may call it, got a caller with no live tree; the person starts a tree with /super-rex:orchestration-master <goal>`, caller }
   }
   return { tree, book }
 }
@@ -109,6 +108,5 @@ export async function serveAskOwner($: EngineInterface, event: { readonly agentI
     return deny(refused(entry.name, 'recommendation must be one of the options', recommendation, `call it again with one of ${options.join(', ')}`).refused)
   }
   const parked = await parkQuestion($, { tree: call.tree.id, job: job?.id ?? null, question, options, recommendation, category, mergeFor: null })
-  masterMoved(call.tree.id)
   return answer([`question=${parked.id}`, 'state=parked'])
 }

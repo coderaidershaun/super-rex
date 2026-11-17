@@ -16,9 +16,9 @@ export function jobOfLoop(book: RexBook, agentId: string | undefined): RexJob | 
 }
 
 /**
- * The mod's own spawn of a master or a builder: from this plugin, with no
- * parent agent, and with the pending entry `/rex master` or `rex_build` left
- * for its description after their own checks. Anything else gets the checks.
+ * The mod's own spawn of a builder: from this plugin, with no parent agent,
+ * and with the pending entry `rex_build` left for its description after its
+ * own checks. Anything else gets the checks.
  */
 export function isOwnSpawn(book: RexBook, event: AgentSpawnInput, origin: string | undefined): boolean {
   return origin === 'super-rex' && event.parentAgentId === undefined && book.pendingSpawns.some(spawn => spawn.description === event.description)
@@ -55,7 +55,7 @@ function runOf(book: RexBook, agentId: string): RexRun {
   return run
 }
 
-/** Only a master tree may run agents this deep: the master, its builders at depth 1, then leads, workers and their fan-out. */
+/** Only a master tree may run agents this deep: its builders at depth 1, then leads, workers and their fan-out. */
 export const TREE_DEPTH = 4
 
 /** `depth` is null when the book holds no run of the parent, as when the observer failed to record it. */

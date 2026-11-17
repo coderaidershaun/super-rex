@@ -6,10 +6,10 @@ use std::path::Path;
 use serde_json::{Value, json};
 
 use super::expected::{
-    OLD_HOOKS, PLUGIN_DENY_RULES, as_written, parent_of, read_settings, safety_settings,
-    trivy_cache, with_depth, write_settings,
+    OLD_HOOKS, PLUGIN_DENY_RULES, as_written, parent_of, permission_settings, read_settings,
+    with_depth, write_settings,
 };
-use crate::init::support::{ONE_STEP_FAILED, repo, rex_init_failed, rex_init_ok};
+use crate::init::support::{repo, rex_init_ok};
 
 /// `text` as a JSON string, quotes included.
 fn quoted(text: &str) -> String {
@@ -30,13 +30,13 @@ const EXAMPLE_BEFORE: &str = r#"{
 }
 "#;
 
-/// ...and after it, byte for byte.
+/// ...and after it, byte for byte. The sandbox the person turned off stays
+/// off, and no sandbox setting is added.
 const EXAMPLE_AFTER: &str = r#"{
   "permissions": {
     "allow": [
       "Bash(npm test)",
-      "Bash(rex worktree add *)",
-      "Bash(rex worktree remove *)"
+      "Bash"
     ],
     "deny": [
       "Bash(rm -rf *)",
@@ -53,39 +53,10 @@ const EXAMPLE_AFTER: &str = r#"{
     ],
     "additionalDirectories": [
       "/Users/me/code"
-    ],
-    "blockWritesOutsideWorkingDirectories": true
+    ]
   },
   "sandbox": {
-    "enabled": false,
-    "failIfUnavailable": false,
-    "allowUnsandboxedCommands": true,
-    "enableWeakerNetworkIsolation": true,
-    "network": {
-      "allowLocalBinding": true
-    },
-    "filesystem": {
-      "allowWrite": [
-        "~/.cargo/registry",
-        "~/.cargo/git",
-        "~/.cargo/.package-cache",
-        "~/.cargo/.package-cache-mutate",
-        "~/.cargo/.global-cache",
-        "~/.cache/pre-commit/patch*",
-        "~/Library/Caches/trivy"
-      ],
-      "denyRead": [
-        "~/.aws"
-      ]
-    },
-    "excludedCommands": [
-      "git worktree *",
-      "git merge *",
-      "git pull *",
-      "git switch *",
-      "rex init*",
-      "rex worktree *"
-    ]
+    "enabled": false
   },
   "model": "opus",
   "env": {
@@ -95,7 +66,7 @@ const EXAMPLE_AFTER: &str = r#"{
 "#;
 
 #[test]
-fn fresh_settings_hold_the_safety_settings_and_the_depth() {
+fn fresh_settings_hold_the_permission_settings_and_the_depth() {
     let repo = repo();
 
     let printed = rex_init_ok(&repo, &[]);
@@ -107,10 +78,11 @@ fn fresh_settings_hold_the_safety_settings_and_the_depth() {
         "got: {}",
         printed.stdout
     );
-    let expected = with_depth(safety_settings(&repo));
+    let expected = with_depth(permission_settings(&repo));
     let text = read_settings(&repo);
     assert_eq!(text, as_written(&expected));
     assert!(!text.contains("\"hooks\""), "rex init registers no hook");
+    assert!(!text.contains("sandbox"), "rex init turns no sandbox on");
 
     let written: Value = serde_json::from_str(&text).expect("settings JSON");
     let parent = written["permissions"]["additionalDirectories"][0]
@@ -188,7 +160,7 @@ fn init_keeps_a_higher_depth_and_warns_on_a_lower_one() {
 
     assert_eq!(
         printed.stderr,
-        "rex init: warning: kept env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH = \"2\" in .claude/settings.local.json, below 4, so /rex master refuses to start: its workers start their own sub-agents at depth 4; run rex init --depth 4 to allow it.\n"
+        "rex init: warning: kept env.CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH = \"2\" in .claude/settings.local.json, below 4, so /super-rex:orchestration-master refuses to start: its workers start their own sub-agents at depth 4; run rex init --depth 4 to allow it.\n"
     );
     assert_eq!(depth_of(&lower), json!("2"));
     assert_eq!(config_depth(&lower), json!(2));
@@ -207,7 +179,7 @@ fn a_settings_file_the_user_has_keeps_its_keys() {
     let example = repo();
     write_settings(&example, EXAMPLE_BEFORE);
 
-    let printed = rex_init_failed(&example, &[]);
+    let printed = rex_init_ok(&example, &[]);
 
     assert!(
         printed
@@ -216,26 +188,17 @@ fn a_settings_file_the_user_has_keeps_its_keys() {
         "got: {}",
         printed.stdout
     );
-    // A safety setting the person turned off is theirs to keep, but the run
-    // fails, so that the weaker setting cannot go unseen.
-    assert_eq!(
-        printed.stderr,
-        format!(
-            "rex init: failed: kept sandbox.enabled = false in .claude/settings.local.json, so the protection it gives is off; set it to true to turn it on\n{ONE_STEP_FAILED}"
-        )
-    );
-    let expected = EXAMPLE_AFTER
-        .replace(&quoted("/Users/me/code"), &quoted(&parent_of(&example)))
-        .replace(&quoted("~/Library/Caches/trivy"), &quoted(trivy_cache()));
+    assert_eq!(printed.stderr, "");
+    let expected = EXAMPLE_AFTER.replace(&quoted("/Users/me/code"), &quoted(&parent_of(&example)));
     assert_eq!(read_settings(&example), expected);
 
-    // A value that is not a safety setting is kept with a warning only.
+    // A value of the person's of another type is kept, with a warning.
     let kept_deny = repo();
     write_settings(&kept_deny, r#"{"permissions": {"deny": "Bash(sudo *)"}}"#);
 
     let printed = rex_init_ok(&kept_deny, &[]);
 
-    let deny = safety_settings(&kept_deny)["permissions"]["deny"].to_string();
+    let deny = permission_settings(&kept_deny)["permissions"]["deny"].to_string();
     assert_eq!(
         printed.stderr,
         format!(
@@ -243,18 +206,18 @@ fn a_settings_file_the_user_has_keeps_its_keys() {
         )
     );
 
-    // A value that is not an object where the block on outside writes goes
-    // keeps that block from being set, which is as weak as turning it off.
+    // So is a value of another type where the permissions go: the run still
+    // succeeds, and the file keeps it.
     let blocked = repo();
     write_settings(&blocked, "{\"permissions\": \"none\"}\n");
 
-    let printed = rex_init_failed(&blocked, &[]);
+    let printed = rex_init_ok(&blocked, &[]);
 
-    let permissions = safety_settings(&blocked)["permissions"].to_string();
+    let permissions = permission_settings(&blocked)["permissions"].to_string();
     assert_eq!(
         printed.stderr,
         format!(
-            "rex init: failed: kept permissions = \"none\" in .claude/settings.local.json, so the protection it gives is off; set it to {permissions} to turn it on\n{ONE_STEP_FAILED}"
+            "rex init: warning: kept permissions = \"none\" in .claude/settings.local.json; SuperRex sets {permissions}.\n"
         )
     );
     let written: Value = serde_json::from_str(&read_settings(&blocked)).expect("settings JSON");
@@ -263,7 +226,7 @@ fn a_settings_file_the_user_has_keeps_its_keys() {
     // A file that already holds everything is not written at all, so it
     // keeps the person's own format.
     let complete = repo();
-    let everything = with_depth(safety_settings(&complete));
+    let everything = with_depth(permission_settings(&complete));
     let one_line = everything.to_string();
     write_settings(&complete, &one_line);
 

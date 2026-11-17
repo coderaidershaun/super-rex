@@ -66,8 +66,6 @@ const FINDER_FILE: &str = ".DS_Store";
 /// person's and is left alone in silence. A linked root folder may be shared
 /// with other repos, so it is never looked into.
 ///
-/// The sandbox never lets a command write `.claude/skills` or `.claude/agents`;
-/// `rex init` runs outside it (`rex init*` is an excluded command), so it can.
 /// A copy that cannot be read or removed is a warning, never a failure.
 ///
 /// # Errors

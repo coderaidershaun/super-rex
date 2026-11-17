@@ -1,5 +1,5 @@
 //! The repo's list of registered worktrees, kept in `permissions.additionalDirectories`
-//! of `.claude/settings.local.json`; Claude Code's sandbox lets git write only for listed worktrees.
+//! of `.claude/settings.local.json`, which opens each one to Claude Code's file tools.
 
 use std::fs::{self, File, OpenOptions};
 use std::io::ErrorKind;

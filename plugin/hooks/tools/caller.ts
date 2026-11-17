@@ -1,6 +1,6 @@
 // Who called a mod tool, read from the engine's agent id and the book, never from the call's arguments.
 import type { RexBook, RexJob } from '../../types'
-import { isOpen } from '../book/index'
+import { isOpen, mainTree } from '../book/index'
 import type { Caller, CallerKind, ToolEntry } from '../parts'
 import { seenText } from './args'
 
@@ -8,19 +8,21 @@ function ownOpenJob(book: RexBook, builder: string): RexJob | undefined {
   return book.jobs.find(job => isOpen(job) && job.owner.session === book.session && job.owner.builder === builder)
 }
 
-/** `agentId` absent is the main loop, which is a builder while it owns an open job. */
+/**
+ * `agentId` absent is the main loop: a builder while it owns an open job,
+ * else the master while it runs a live tree. No agent is ever a master.
+ */
 export function callerIn(book: RexBook, agentId: string | undefined): Caller {
   if (agentId === undefined) {
     const job = ownOpenJob(book, 'main')
-    return job === undefined ? { kind: 'main', agentId: null, job: null } : { kind: 'builder', agentId: null, job }
+    if (job !== undefined) {
+      return { kind: 'builder', agentId: null, job }
+    }
+    return { kind: mainTree(book) === undefined ? 'main' : 'master', agentId: null, job: null }
   }
   const job = ownOpenJob(book, agentId)
   if (job !== undefined) {
     return { kind: 'builder', agentId, job }
-  }
-  const isMaster = book.trees.some(tree => tree.master === agentId && (tree.state === 'running' || tree.state === 'paused'))
-  if (isMaster) {
-    return { kind: 'master', agentId, job: null }
   }
   const runJob = book.runs.find(run => run.agentId === agentId)?.job ?? null
   return { kind: 'agent', agentId, job: runJob === null ? null : (book.jobs.find(each => each.id === runJob) ?? null) }

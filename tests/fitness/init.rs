@@ -140,21 +140,13 @@ fn settings_after_init(settings: Option<&Value>) -> Value {
         )
         .expect("write settings");
     }
-    for (tool, body) in [
-        (
-            "claude",
-            "if [ \"$1\" = plugin ]; then exit 0; fi\necho '2.1.323 (Claude Code)'",
-        ),
-        ("bwrap", "exit 0"),
-        ("socat", "exit 0"),
-    ] {
-        let path = bin.path().join(tool);
-        fs::write(&path, format!("#!/bin/sh\n{body}\n")).expect("write tool");
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).expect("chmod");
-        }
+    let path = bin.path().join("claude");
+    let body = "if [ \"$1\" = plugin ]; then exit 0; fi\necho '2.1.323 (Claude Code)'";
+    fs::write(&path, format!("#!/bin/sh\n{body}\n")).expect("write tool");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).expect("chmod");
     }
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_rex"))
         .arg("init")

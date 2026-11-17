@@ -67,7 +67,7 @@ ROOT=$(git rev-parse --show-toplevel)
 DIR="$ROOT.worktrees/${JOB:-no-job}--review"
 ```
 
-Make review dir with one plain command, its values written out. Only a plain `rex worktree` command leaves sandbox: no `;`, `||`, `$(…)`, or variable in it.
+Make review dir with one plain command, its values written out: no `;`, `||`, `$(…)`, or variable in it. `rex worktree` checks its own arguments.
 
 ```sh
 rex worktree add <ROOT> <DIR> <HEAD>

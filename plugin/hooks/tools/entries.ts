@@ -116,7 +116,7 @@ export const JOB_CLOSE_TOOL: ToolEntry = {
 export const WORKTREE_TOOL: ToolEntry = {
   name: 'rex_worktree',
   description:
-    'Makes the worktree of one unit of parallel work in your job, on the branch <job branch>--<unit> from the tip of the job branch, and lists it for the sandbox. Answers worktree, branch and start (the commit). A second call for the same unit answers the same lines with existing=yes.',
+    'Makes the worktree of one unit of parallel work in your job, on the branch <job branch>--<unit> from the tip of the job branch, and lists it for the file tools. Answers worktree, branch and start (the commit). A second call for the same unit answers the same lines with existing=yes.',
   inputSchema: { type: 'object', properties: { unit: { type: 'string', description: 'One to three lower-case words joined by hyphens, such as parser or api-client.' } }, required: ['unit'] },
   isDeferred: true,
   callers: ['builder', 'agent'],

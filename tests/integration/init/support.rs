@@ -130,7 +130,7 @@ pub fn repo() -> Repo {
         "pre-commit",
         &format!("printf '%s' \"$*\" > '{}'", args_file.display()),
     );
-    for tool in ["gitleaks", "trivy", "gh", "bwrap", "socat"] {
+    for tool in ["gitleaks", "trivy", "gh"] {
         repo.write_tool(tool, "exit 0");
     }
     // The `rex` on PATH is the binary under test, so `rex init` finds itself

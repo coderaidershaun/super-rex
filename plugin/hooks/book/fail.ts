@@ -19,7 +19,7 @@ export function failIn(book: RexBook, failure: RexFailure, at: number, keys: Str
     case 'policy-changed':
       return {
         book: treeStateIn(book, failure.tree, 'paused', null, at),
-        status: `rex: policy changed since master ${failure.tree} started; /rex policy confirm, then /rex master resume`,
+        status: `rex: policy changed since master tree ${failure.tree} started; confirm it with /rex policy confirm`,
       }
     case 'ingest-conflict': {
       const seq = failure.seq === null ? 'unknown' : String(failure.seq)

@@ -2,7 +2,7 @@
 //
 // Priorities, in order: correctness (authority fails closed), visible state (an observer that fails marks the job degraded), simplicity.
 // Never: merge without a merge answer from the person or the pinned policy.
-// Never: start a master or a builder from anything but the person's own prompt or the master's own tool.
+// Never: open a master tree from anything but the person's own prompt of the master skill, or start a builder from anything but the master's own tool.
 // Never: let a failed observer block a prompt, a tool call or a spawn.
 import type { Register } from 'claude-code'
 
@@ -10,6 +10,7 @@ import { register as registerAssign } from './assign/index'
 import { register as registerBook } from './book/index'
 import { register as registerCommands } from './commands/index'
 import { register as registerGate } from './gate/index'
+import { register as registerGuard } from './guard/index'
 import { register as registerIngest } from './ingest/index'
 import { register as registerLive } from './live/index'
 import { register as registerMaster } from './master/index'
@@ -32,6 +33,7 @@ export const register: Register = on => {
   registerIngest(on, parts)
   registerLive(on, parts)
   registerGate(on, parts)
+  registerGuard(on, parts)
   registerPipeline(on, parts)
   registerTrim(on, parts)
   // The master's own tool registrations must stand above the tools dispatcher:

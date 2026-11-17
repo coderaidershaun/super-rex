@@ -1,5 +1,5 @@
-//! The checks `rex init` makes around its writes: the Claude Code version it
-//! needs before it writes anything, and the sandbox tools it needs on Linux.
+//! The checks `rex init` makes before it writes anything: the Claude Code
+//! version it needs.
 
 use std::fs;
 
@@ -53,39 +53,4 @@ fn claude_missing_or_too_old_stops_before_any_write() {
     let output = rex_init(&newer, &[]);
     assert!(output.status.success(), "a newer Claude Code must pass");
     assert!(newer.path().join(".rex/config.json").is_file());
-}
-
-#[test]
-fn linux_sandbox_tools_missing_fails_after_the_install() {
-    let cases = [
-        (&["bwrap"][..], "bwrap"),
-        (&["bwrap", "socat"][..], "bwrap and socat"),
-    ];
-    for (removed, named) in cases {
-        let repo = repo();
-        for tool in removed {
-            repo.remove_tool(tool);
-        }
-
-        let output = rex_init(&repo, &[]);
-
-        assert!(
-            repo.path().join(".rex/config.json").is_file(),
-            "the install runs in full"
-        );
-        let stderr = String::from_utf8(output.stderr).expect("utf8 stderr");
-        if cfg!(target_os = "linux") {
-            assert_eq!(output.status.code(), Some(1), "got: {stderr}");
-            assert_eq!(
-                stderr,
-                format!(
-                    "rex init: failed: the Claude Code sandbox cannot start on this machine: {named} not found on PATH, so commands run with no sandbox in this repo until they are installed (after rex init --strict, Claude Code refuses to start instead); install them with sudo apt-get install bubblewrap socat (Ubuntu or Debian), or sudo dnf install bubblewrap socat (Fedora)\n\
-                     error: rex init did not finish 1 step(s); each is named above\n"
-                )
-            );
-        } else {
-            assert!(output.status.success(), "no sandbox check here: {stderr}");
-            assert_eq!(stderr, "");
-        }
-    }
 }

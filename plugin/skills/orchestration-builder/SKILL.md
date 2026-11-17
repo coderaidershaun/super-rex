@@ -37,7 +37,7 @@ Person starts builder: `/super-rex:orchestration-builder <request>`, or `/super-
 | `orchestration-builder/classify.md` | Step 2: definition of each value, fill rules. |
 | `orchestration-builder/open.md` | Steps 3 to 5: open job, merge answer, recall. |
 | `orchestration-builder/decide.md` | Steps 6 + 7. |
-| `orchestration-builder/run.md` | Steps 8 to 10, after `rex_job_plan`. Also `## Sandbox` there: IF command fails because host name lookup or connection fails. |
+| `orchestration-builder/run.md` | Steps 8 to 10, after `rex_job_plan`. Also `## Shell` there: IF mod refuses recursive `rm` with `rex guard: ALERT`. |
 | `orchestration-builder/open-job.md` | `rex_job_open` gives `existing=yes`. |
 | `orchestration-builder/plan-jobs.md` | Job = plan job OR plan execution. |
 | `orchestration-builder/on-request.md` | Requester asks for review of pull request, or for feedback. |
@@ -47,7 +47,7 @@ Person starts builder: `/super-rex:orchestration-builder <request>`, or `/super-
 - Requester: User or agent that gave request.
 - Session: Claude Code conversation that loaded builder. It has one session ID.
 - Builder: Agent that obeys `orchestration-builder`. Main session, or grid agent that master started with `rex_build`.
-- Master: Agent `super-rex:master`. It starts builders with `rex_build`. A person starts it with `/rex master`.
+- Master: Main session that obeys `orchestration-master`. It starts builders with `rex_build`. A person starts it with `/super-rex:orchestration-master`.
 - Mod: Code of plugin `super-rex` in session. It records each agent, puts skills + tier text in each brief, and refuses spawns and merges that break its rules.
 - Mod tool: Tool of mod. Full name `mcp__super-rex__rex_<name>`. This skill writes short name, for example `rex_job_open`.
 - Job: One request that SuperRex handles. It has one job ID.
@@ -96,7 +96,7 @@ Never write `$PWD` there: in job worktree or in sibling repo, `$PWD` gives wrong
 - [ ] Plan job: adversarial review of plan is required before plan is final. See `orchestration-builder/plan-jobs.md`.
 - [ ] Ask user only as `## Questions to user` says.
 - [ ] Read each skill file with `rex_skill`, one file for each call. Read each other file with Read tool.
-- [ ] CAUTION: Never run a command outside the sandbox because the sandbox refused a write. A command outside the sandbox can write to every folder of the user.
+- [ ] CAUTION: Never delete with another command a folder for which mod refused a recursive `rm`. No sandbox holds a shell command, so a wrong path can delete every folder of the user.
 
 ## Step 1 — Check mod
 

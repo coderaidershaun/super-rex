@@ -23,7 +23,7 @@ Now you = orchestrator. Hold these values under these exact names. `rex-deliver`
 5. Start each role with agent that `rex_job_plan` gave: line `role.<name>=super-rex:<grid agent>`. `subagent_type` = whole value after `=`. Give Agent tool only `subagent_type`, `description`, `prompt`. Never `name`, `team_name`, `model`, `effort`, or `isolation`: mod refuses call. Agent result gives agent ID. Send each later message to that ID with SendMessage.
 6. Start no role as fork. Mod refuses fork inside job: a fork cannot change model.
 7. Write each brief by template of `orchestration-builder/stages/3-orchestration/briefs.md`. Read it IN FULL before you write first brief. First line of brief: `Task: <task ID>`.
-8. Mod adds rest of brief at spawn: tag block, `<skills>` block of that task, tier text, sandbox text, and Return part with output file. Do not write them.
+8. Mod adds rest of brief at spawn: tag block, `<skills>` block of that task, tier text, shell text, and Return part with output file. Do not write them.
 9. IF mod refuses spawn with `rex brief check (1 of 1)`, THEN correct brief by each finding. Start agent again one time. Mod lets second start pass and marks it.
 10. IF job works in job worktree, THEN put `JOB_DIR` in brief of each writer. Writer writes files only below it, and names it in each shell command.
 11. Lead that starts parallel writers: tell it to read `rex-deliver/SKILL.md`, then `rex-deliver/parallel-writers.md`, with `rex_skill`. Give it `JOB`, `HOME_DIR`, `REPO_DIR`, `BRANCH`, `JOB_DIR`, `CHECKS`, and mode of `rex-deliver`. It gets each unit worktree from `rex_worktree`.
@@ -41,27 +41,23 @@ Now you = orchestrator. Hold these values under these exact names. `rex-deliver`
     5. IF limit goes up, THEN continue same job. Resume each stopped lead with SendMessage.
     6. IF requester declines, THEN close job `blocked`: obey `rex-deliver/stopped-or-blocked-job.md`. Work merged in job branch stays there.
 
-## Sandbox
+## Shell
 
-Shell command runs in sandbox. Sandbox gives network only through its proxy.
+Shell command runs with no sandbox. Deny rules of repo settings hold.
 
-- Program that uses proxy connects: `curl`, `git`, `cargo`, `gh`.
-- Program that opens its own connection does not connect: WebSocket client, database driver, `ssh`.
-- Sign: host name lookup fails or connection fails, and `curl` gets same host.
+Mod refuses recursive `rm` of root folder, home folder, main checkout of repo, its `.git`, or folder outside these: folder that holds repo, job worktrees, temp folders. Refusal starts with `rex guard: ALERT`.
 
-IF command fails for this cause, THEN run that one command again with `dangerouslyDisableSandbox: true` in Bash tool.
+CAUTION: Check the path of each recursive `rm` before you run it. A recursive `rm` deletes files that no commit holds, and no command gets them back.
 
-CAUTION: Run outside the sandbox only the one command that cannot reach the network. The CAUTION in `## Rules` of `orchestration-builder/SKILL.md` applies also.
-
-- [ ] Next command runs in sandbox again.
-- [ ] Report names each command that ran outside sandbox.
-- [ ] Never give user command to run IF you or sub-agent can run it.
-- [ ] IF command outside sandbox fails same way, THEN repo is strict (`rex init --strict`). Only then give user command, with `! ` before it, and say which result proves work.
+- [ ] IF mod gives `rex guard: ALERT`, THEN path is wrong, OR delete is for user. Never delete same folder with other command.
+- [ ] IF task cannot go on without that delete, THEN give user command, with `! ` before it, and say why.
+- [ ] Never give user other command to run IF you or sub-agent can run it.
+- [ ] Report names each alert.
 
 Brief text. Mod adds it to each brief at spawn. Write it yourself only in a brief to an agent outside a job:
 
 ```
-Shell commands run in a sandbox that reaches the network only through its proxy. If a command fails because its program opens its own network connection (a host name lookup or a connection fails, but `curl` reaches the same host), run that one command again with `dangerouslyDisableSandbox: true`. Do this for no other cause, and never because the sandbox refused a write. In your report, name each command that ran outside the sandbox.
+Shell commands run with no sandbox, so a wrong path in a recursive `rm` deletes files that no commit holds. The mod stops a recursive `rm` of the root folder, the home folder, the main checkout of the repo, or a folder outside the folder that holds the repo, its job worktrees and the temp folders. Its refusal starts with `rex guard: ALERT`. If you get that alert, check the path, and do not delete the same folder with another command. In your report, name each alert you got.
 ```
 
 ## Step 9 — Deliver

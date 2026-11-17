@@ -31,8 +31,8 @@ START_COMMIT=$(git -C "$REPO_DIR" rev-parse "$BASE_REF")
 ```sh
 rex worktree add <REPO_DIR> <JOB_DIR> <START_COMMIT> --branch <BRANCH>
 ```
-   - [ ] Run `rex worktree add` as one plain command, with literal paths + hash written out. No `;`, `&&`, pipe, `$(…)`, variable assignment, or `REX_STORE=` in front. Only a plain `rex worktree` command leaves sandbox.
-   `rex worktree add` takes only a full commit hash and a path in `${REPO_DIR}.worktrees/`. It lists the worktree, so sandboxed git commits there. It prints `worktree=<path>`: use that path as `JOB_DIR` from here on.
+   - [ ] Run `rex worktree add` as one plain command, with literal paths + hash written out. No `;`, `&&`, pipe, `$(…)`, variable assignment, or `REX_STORE=` in front.
+   `rex worktree add` takes only a full commit hash and a path in `${REPO_DIR}.worktrees/`. It lists the worktree, so file tools work there. It prints `worktree=<path>`: use that path as `JOB_DIR` from here on.
 7. IF mode ≠ `local`, THEN `git -C "$JOB_DIR" push origin "$BRANCH"`.
 8. Put `JOB_DIR` in brief of each writer. Writer writes files only under `JOB_DIR`, and names it in each shell command.
 9. Before first write, state these values: mode, `REPO`, `MAIN`, `START_COMMIT`, `BRANCH`, `JOB_DIR`. IF a value did not come from steps 1 to 6 or from `rex_job_open`, THEN you skipped a step: do it now. Mode decides whether job gets a pull request.

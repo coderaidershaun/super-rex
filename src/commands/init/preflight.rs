@@ -66,17 +66,14 @@ impl fmt::Display for ClaudeVersion {
 /// [`InitError::GitIsFile`] if its `.git` is not a directory. Then
 /// [`InitError::ClaudeNotFound`], [`InitError::ClaudeNotRun`],
 /// [`InitError::ClaudeVersionUnreadable`] or [`InitError::ClaudeTooOld`] if
-/// no Claude Code that is new enough answers `claude --version`.
-///
-/// A check whose failure must not stop the install, such as the sandbox
-/// tools on Linux, gives its failure in the list it returns.
-pub(super) fn check(cwd: &Path) -> Result<Vec<InitError>, InitError> {
+/// no Claude Code that is new enough answers `claude --version`. Any other
+/// finding is a warning on stderr.
+pub(super) fn check(cwd: &Path) -> Result<(), InitError> {
     check_repo_root(cwd)?;
     check_claude_version()?;
     warn_if_gh_is_missing();
-    let failures = missing_sandbox_tools().into_iter().collect();
     warn_if_this_rex_is_not_on_path();
-    Ok(failures)
+    Ok(())
 }
 
 /// rex looks at `.git` itself and runs no `git` command, so it does not
@@ -170,29 +167,4 @@ fn warn_if_this_rex_is_not_on_path() {
         }
     };
     print_line_to_stderr(&warning);
-}
-
-/// The tools the Claude Code sandbox needs on Linux. Other systems have
-/// what it needs built in.
-const SANDBOX_TOOLS: [&str; 2] = ["bwrap", "socat"];
-
-/// The failure that names each sandbox tool missing from PATH, on Linux.
-///
-/// The install still runs in full, so the sandbox is on from the moment the
-/// tools are installed. Until then the run has failed, so that commands
-/// running with no sandbox cannot go unseen.
-fn missing_sandbox_tools() -> Option<InitError> {
-    if !cfg!(target_os = "linux") {
-        return None;
-    }
-    let missing: Vec<&str> = SANDBOX_TOOLS
-        .into_iter()
-        .filter(|tool| is_missing(tool))
-        .collect();
-    if missing.is_empty() {
-        return None;
-    }
-    Some(InitError::SandboxToolsMissing {
-        missing: missing.join(" and "),
-    })
 }

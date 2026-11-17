@@ -6,7 +6,7 @@ Only after `rex_merge` gave `merged=yes` for this repo, or for an empty job bran
 
 ## In a job: mod cleans up at close
 
-Session of an open job runs no worktree or branch command for job repo. `rex_job_close` does clean-up after it records close. It runs outside sandbox.
+Session of an open job runs no worktree or branch command for job repo. `rex_job_close` does clean-up after it records close.
 
 1. Mode `local`: skip, `rex_merge` already moved local main. Else bring local main up to `origin/$MAIN`. IF `git -C "$REPO_DIR" branch --show-current` prints `$MAIN`, THEN `git -C "$REPO_DIR" merge --ff-only "origin/$MAIN"`. ELSE `git -C "$REPO_DIR" fetch origin "$MAIN:$MAIN"`. IF Git refuses, THEN keep local main as it is and report it.
 2. Go to `## Result` of `rex-deliver/end.md`. Builder calls `rex_job_close`.

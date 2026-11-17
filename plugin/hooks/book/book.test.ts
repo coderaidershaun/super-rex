@@ -7,7 +7,7 @@ import { bandJob, emptyBook, mainJob, newestOpenJob, newIngest } from './events'
 import { jobIdOf } from './ids'
 import type { RexRole } from '../../types'
 import { openJobIn, planJobIn, questionIn } from './jobs'
-import { startRunIn, stepRunIn } from './runs'
+import { startRunIn } from './runs'
 import { sessionIn } from './session'
 import { pendingIn, treeIn } from './trees'
 import { CONFIG_ON, ROOT, SESSION, spawnInput, START_MS, world } from './kit'
@@ -158,20 +158,17 @@ test('a job id counts seconds since 2026 and ends in four random characters', ()
   expect(jobIdOf(START_MS + 2000, 36 ** 4 + 35)).toBe('0gaq82000z')
 })
 
-test('own_spawn_takes_pending_entry_and_master_charges_no_job', () => {
+test("own_spawn_takes_pending_entry: the mod's spawn of a builder takes its pending entry and its job, under the main loop that is the tree's master", () => {
   const setup = { session: SESSION, storage: 'off', jobsFromSdk: true, inert: null, claudeCode: '2.1.323', plugin: '0.8.0' } as const
   const started = sessionIn(emptyBook(), setup, START_MS, { stream: 'a'.repeat(16), secret: '1'.repeat(64) })
-  const withJob = openJobIn(started, JOB_INPUT, '0gaq82j000', START_MS).book
-  const withTree = treeIn(withJob, { id: 't1', charter: 'Ship it.', charterHash: 'sha256:0', policyHash: 'sha256:1', state: 'running', capNano: 0 }, START_MS)
-  const pending = pendingIn(withTree, { description: 'rex master t1', kind: 'master', tree: 't1', job: null, at: START_MS })
-  const spawned = startRunIn(pending, { agentId: 'm1', toolUseId: 'toolu_plugin_1', parentAgentId: null, agentType: 'super-rex:master', description: 'rex master t1', isOwnSpawn: true }, START_MS + 1000)
-  const usage = { model: 'claude-opus-5-5', input_tokens: 1000, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }
-  const stepped = stepRunIn(spawned, 'm1', { model: 'claude-opus-5-5', effort: 'high', usage }, START_MS + 2000)
+  const withTree = treeIn(started, { id: 't1', charter: 'Ship it.', charterHash: 'sha256:0', policyHash: 'sha256:1', state: 'running', capNano: 0 }, START_MS)
+  const withJob = openJobIn(withTree, { ...JOB_INPUT, builder: 'pending', tree: 't1', origin: 'master' }, '0gaq82j000', START_MS).book
+  const pending = pendingIn(withJob, { description: 'rex builder 0gaq82j000', kind: 'builder', tree: 't1', job: '0gaq82j000', at: START_MS })
+  const spawned = startRunIn(pending, { agentId: 'b1', toolUseId: 'toolu_plugin_1', parentAgentId: null, agentType: 'super-rex:model-high-effort-high', description: 'rex builder 0gaq82j000', isOwnSpawn: true }, START_MS + 1000)
 
-  expect(stepped.pendingSpawns).toEqual([])
-  expect(stepped.runs[0]).toMatchObject({ agentId: 'm1', parent: 'main', parentSource: 'mod', tree: 't1', job: null, depth: 1 })
-  expect(stepped.trees[0]).toMatchObject({ master: 'm1', ledgerNano: 4_000_000 })
-  expect(stepped.jobs[0]?.spentNano).toBe(0)
+  expect(spawned.pendingSpawns).toEqual([])
+  expect(spawned.runs[0]).toMatchObject({ agentId: 'b1', parent: 'main', parentSource: 'mod', tree: null, job: '0gaq82j000', depth: 1 })
+  expect(spawned.trees[0]).toMatchObject({ master: 'main', ledgerNano: 0 })
 })
 
 test('a run whose grid agent several roles share takes its parent role, else the first in plan order', () => {

@@ -19,7 +19,7 @@ export function treeSpentNano(book: RexBook, tree: RexTree): number {
 export function treeLedgerRefusal(book: RexBook, tree: RexTree): string | null {
   const spent = treeSpentNano(book, tree)
   return spent >= tree.capNano
-    ? `rex gate: master tree ${tree.id} has spent $${usd(spent)} of its $${usd(tree.capNano)}; park a spend question for the person with rex_ask_owner, and end your turn`
+    ? `rex gate: master tree ${tree.id} has spent $${usd(spent)} of its $${usd(tree.capNano)}; tell the person: they raise the cap with /rex policy set tree_usd <usd>, then /rex policy confirm`
     : null
 }
 

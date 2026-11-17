@@ -23,7 +23,7 @@ export type { RepoPlaces } from './places'
 export { git, hadOwnCommit } from './git'
 export type { Git } from './git'
 export { addWorktree, baseStart, hasWorktree, removeWorktree } from './worktree'
-export { answer, deny, failureName, usd } from './text'
+export { answer, deny, failureName, linesText, usd } from './text'
 
 /** The full name of a tool of this plugin: what a `tool.call` matcher names. */
 export const TOOL_PREFIX = 'mcp__super-rex__'

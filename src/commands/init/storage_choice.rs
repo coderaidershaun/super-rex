@@ -4,10 +4,10 @@
 use std::io::{self, BufRead, Write};
 
 /// The question that a run with neither storage flag asks at a terminal.
-pub(super) const QUESTION: &str = "rex init: keep a record of jobs in .rex/rex.db? It is needed by rex jobs, rex job show, recall, feedback, the cost of record and rex master resume; without it the record of a job ends with its session, and rex watch shows only the snapshots that sessions wrote in the last week. [Y/n] ";
+pub(super) const QUESTION: &str = "rex init: keep a record of jobs in .rex/rex.db? It is needed by rex jobs, rex job show, recall, feedback, the cost of record and /super-rex:orchestration-master resume; without it the record of a job ends with its session, and rex watch shows only the snapshots that sessions wrote in the last week. [Y/n] ";
 
 /// The line a run prints when storage stays off and the person did not choose that with `--without-storage`.
-pub(super) const OFF_NOTICE: &str = "rex init: storage is off, so rex jobs, rex job show, recall, feedback, the cost of record and rex master resume have nothing to read, and rex watch shows only the snapshots that sessions wrote in the last week; run rex init --with-storage to turn it on";
+pub(super) const OFF_NOTICE: &str = "rex init: storage is off, so rex jobs, rex job show, recall, feedback, the cost of record and /super-rex:orchestration-master resume have nothing to read, and rex watch shows only the snapshots that sessions wrote in the last week; run rex init --with-storage to turn it on";
 
 /// What a run asks of storage, before any question.
 pub(super) struct StorageFlags {

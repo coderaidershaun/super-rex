@@ -41,20 +41,6 @@ pub enum InitError {
     ClaudeTooOld { found: String, minimum: String },
 
     #[error(
-        "the Claude Code sandbox cannot start on this machine: {missing} not found on PATH, so commands run with no sandbox in this repo until they are installed (after rex init --strict, Claude Code refuses to start instead); install them with sudo apt-get install bubblewrap socat (Ubuntu or Debian), or sudo dnf install bubblewrap socat (Fedora)"
-    )]
-    SandboxToolsMissing { missing: String },
-
-    #[error(
-        "kept {key} = {found} in .claude/settings.local.json, so the protection it gives is off; set it to {needed} to turn it on"
-    )]
-    SafetySettingKept {
-        key: String,
-        found: String,
-        needed: String,
-    },
-
-    #[error(
         ".claude/settings.local.json is not valid JSON and was left as it is, so the settings SuperRex needs are not set; correct it, then run rex init again"
     )]
     SettingsNotJson {
@@ -172,11 +158,9 @@ impl CommandError for InitError {
             | InitError::ConfigNotObject
             | InitError::PreCommitInstall { .. }
             | InitError::Incomplete { .. } => FailureClass::Reject,
-            // A repo whose agents run with a safety setting off must not be used
-            // until a person sees it.
-            InitError::SandboxToolsMissing { .. }
-            | InitError::SafetySettingKept { .. }
-            | InitError::StoreNeedsChoice { .. } => FailureClass::Halt,
+            // A store that needs the person's choice must not be used until
+            // they make it.
+            InitError::StoreNeedsChoice { .. } => FailureClass::Halt,
             InitError::ClaudeNotRun { .. }
             | InitError::PluginNotRun { .. }
             | InitError::PluginCommand { .. } => FailureClass::Retry,

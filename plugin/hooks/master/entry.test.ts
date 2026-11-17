@@ -1,13 +1,19 @@
-// Proves /rex master: only the person's own typing starts a master, each pre-flight refusal starts nothing, and the charter reaches the tree and the master unchanged.
+// Proves rex_tree_open: only the main loop opens a tree, right after the person's own prompt of the master skill; each pre-flight refusal starts nothing; the charter reaches the tree as the prompt gave it; and a live tree answers its brief again but takes no second charter.
 import { expect, test } from 'claude-code/testing'
 import type { PromptOrigin } from 'claude-code'
 
 import { CONFIG_OFF } from '../book/kit'
 import { sharedJson } from '../book/shared'
-import { masterWorld, POLICY_KEY, rex, START, HEADLESS_START, confirmedPolicy } from './master-kit'
+import { confirmedPolicy, HEADLESS_START, lineOf, MAIN_JOB, mainJobBook, masterPrompt, masterWorld, openedTree, POLICY_KEY, resultText, START, TREE_OPEN } from './master-kit'
 
-/** What the answer of a start gives after `tree=` and `master=`: the merge rule, and how to follow and answer the tree. */
-const STARTED_LINES = (merge: string): string => `merge=${merge}\nwatch=/rex watch here, or rex watch in another terminal\nanswer=/rex answer <question id> <option number>\n`
+const SKILL = '/super-rex:orchestration-master'
+const NO_PROMPT = `rex_tree_open: only the person's own ${SKILL} prompt opens a master tree, got no ${SKILL} prompt of the person; the person runs ${SKILL} <goal>`
+const CEILING_ENV = { CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '4', CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: '0' }
+
+/** The answer of a tree just opened, up to the blank line before its brief. */
+function headOf(result: unknown): string {
+  return resultText(result).split('\n\n')[0] ?? ''
+}
 
 const OTHER_ORIGINS: readonly PromptOrigin[] = [
   { kind: 'task-notification' },
@@ -23,192 +29,294 @@ const OTHER_ORIGINS: readonly PromptOrigin[] = [
   { kind: 'unclassified' },
   { kind: 'slack-ping' },
   { kind: 'plugin', name: 'other' },
+  { kind: 'plugin', name: 'super-rex' },
 ]
 
 for (const origin of OTHER_ORIGINS) {
-  test(`master entry refused for origin ${origin.kind}, which is not the person's typing`, async ($, on) => {
+  const name = origin.kind === 'plugin' ? `plugin ${origin.name}` : origin.kind
+  test(`a master-skill prompt of origin ${name}, which is not the person's own, opens no tree`, async ($, on) => {
     const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy({ allow_headless: true }) } })
     await $.session.start(START)
 
-    const answered = await $.command.run(rex('master Ship the parser', origin))
+    const answered = await openedTree($, 'Ship the parser', origin)
 
-    expect(answered.text).toBe(`rex master: only your own typing may run this, got origin ${origin.kind}`)
-    expect(session.spawned).toEqual([])
+    expect(answered.deny).toBe(NO_PROMPT)
+    expect(session.book().treeStartPrompt).toBeNull()
     expect(session.book().trees).toEqual([])
   })
 }
 
-test('master_from_sdk_refused_by_default', async ($, on) => {
+test('rex_tree_open with no master-skill prompt before it opens no tree', async ($, on) => {
   const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy() } })
+  await $.session.start(START)
+
+  await $.prompt.submit({ text: 'Ship the parser.', origin: { kind: 'composer' }, wait: false })
+  const answered = await $.tool.call({ tool: TREE_OPEN })
+
+  expect(answered.deny).toBe(NO_PROMPT)
+  expect(session.book().trees).toEqual([])
+  expect(session.spawned).toEqual([])
+})
+
+test("an agent's rex_tree_open is refused after the person's prompt, which the main loop then opens the tree from", async ($, on) => {
+  const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy() } })
+  await $.session.start(START)
+
+  await $.prompt.submit(masterPrompt('Ship the parser'))
+  const agent = await $.tool.call({ tool: TREE_OPEN, agentId: 'a9' })
+  const treesAfterAgent = session.book().trees.length
+  const main = await $.tool.call({ tool: TREE_OPEN })
+
+  expect(agent.deny).toBe(`rex_tree_open: only the main loop opens a master tree, right after the person's own ${SKILL} prompt, got agent`)
+  expect(treesAfterAgent).toBe(0)
+  expect(lineOf(main, 'state')).toBe('running')
+  expect(session.book().trees.map(tree => [tree.charter, tree.master])).toEqual([['Ship the parser', 'main']])
+})
+
+test('the main loop that builds a job of its own is refused, and its job stays open', async ($, on) => {
+  const session = masterWorld(on, { seed: mainJobBook(), store: { [POLICY_KEY]: await confirmedPolicy() } })
+  await $.session.start(START)
+
+  const answered = await openedTree($, 'Ship the parser')
+
+  expect(answered.deny).toBe(`rex_tree_open: the main loop builds job ${MAIN_JOB}, got an open job; close it with rex_job_close first, then the person runs ${SKILL} again`)
+  expect(session.book().trees).toEqual([])
+  expect(session.book().jobs.map(job => [job.id, job.status])).toEqual([[MAIN_JOB, 'created']])
+})
+
+test('a headless master-skill prompt opens no tree while allow_headless of the policy is false', async ($, on) => {
+  const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy() }, env: CEILING_ENV })
   await $.session.start(HEADLESS_START)
 
-  const answered = await $.command.run(rex('master Ship the parser', { kind: 'sdk' }))
+  const answered = await openedTree($, 'Ship the parser', { kind: 'sdk' })
 
-  expect(answered.text).toBe('rex master: only your own typing may run this, got origin sdk')
-  expect(session.spawned).toEqual([])
+  expect(answered.deny).toBe(`rex_tree_open: only the person's own ${SKILL} prompt opens a master tree, got a headless prompt while allow_headless of the policy is false; the person runs ${SKILL} <goal>`)
   expect(session.book().trees).toEqual([])
 })
 
-test('master from sdk passes the origin check when the policy allows headless masters', async ($, on) => {
-  const session = masterWorld(on, {
-    store: { [POLICY_KEY]: await confirmedPolicy({ allow_headless: true }) },
-    env: { CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '4', CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: '0' },
-  })
+test('a headless master-skill prompt opens a tree when the policy allows headless masters', async ($, on) => {
+  const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy({ allow_headless: true }) }, env: CEILING_ENV })
   await $.session.start(HEADLESS_START)
 
-  const answered = await $.command.run(rex('master Ship the parser', { kind: 'sdk' }))
+  const answered = await openedTree($, 'Ship the parser', { kind: 'sdk' })
 
-  expect(answered.text).toBe('rex master: headless mode unknown asks no one, so each ask is a deny; run with bypassPermissions or list allow rules in policy required_allow, got required_allow is empty')
-  expect(session.book().trees.map(tree => tree.state)).toEqual(['lost'])
+  expect([lineOf(answered, 'state'), lineOf(answered, 'person')]).toEqual(['running', 'no'])
+  expect(session.book().trees.map(tree => tree.state)).toEqual(['running'])
+  expect(session.spawned).toEqual([])
 })
 
-test('a master starts with storage off, its tree in the book of the session', async ($, on) => {
+test('a prompt of the bare command name orchestration-master opens a tree as the plugin name does', async ($, on) => {
+  const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy() } })
+  await $.session.start(START)
+
+  await $.prompt.submit(masterPrompt('Ship the parser', { kind: 'bridge' }, 'orchestration-master'))
+  const answered = await $.tool.call({ tool: TREE_OPEN })
+
+  expect(lineOf(answered, 'state')).toBe('running')
+  expect(session.book().trees.map(tree => tree.charter)).toEqual(['Ship the parser'])
+})
+
+test('a tree opens with storage off, in the book of the session, its master the main loop, and the answer names it, then its brief', async ($, on) => {
   const session = masterWorld(on, { config: CONFIG_OFF, store: { [POLICY_KEY]: await confirmedPolicy() } })
   await $.session.start(START)
 
-  const answered = await $.command.run(rex('master Ship the parser'))
+  const answered = await openedTree($, 'Ship the parser')
 
   const tree = session.book().trees[0]
-  expect(answered.text).toBe(`tree=${tree?.id ?? ''}\nmaster=m1\n${STARTED_LINES('ask')}`)
-  expect([session.book().storage, tree?.state, tree?.master]).toEqual(['off', 'running', 'm1'])
-  expect(session.spawned.map(spawn => spawn.type)).toEqual(['super-rex:master'])
+  expect(headOf(answered)).toBe(`tree=${tree?.id ?? ''}\nstate=running\nexisting=no\nresumed=no\nmerge=ask\nperson=yes`)
+  expect(resultText(answered)).toContain('\n\nThe charter of this tree, as the person wrote it:\n<charter>\nShip the parser\n</charter>\n')
+  expect([session.book().storage, tree?.state, tree?.master, tree?.session]).toEqual(['off', 'running', 'main', session.book().session])
+  expect(session.book().treeStartPrompt).toBeNull()
+  expect(session.spawned).toEqual([])
+  expect(session.registered).toEqual([])
 })
 
-test('/rex master resume refuses with storage off and starts nothing', async ($, on) => {
+test('rex_tree_open again with no new prompt answers the live tree with existing=yes and its brief, and opens no second tree', async ($, on) => {
+  const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy() } })
+  await $.session.start(START)
+
+  const first = await openedTree($, 'Ship the parser')
+  const again = await $.tool.call({ tool: TREE_OPEN })
+
+  const id = lineOf(first, 'tree') ?? ''
+  expect(headOf(again)).toBe(`tree=${id}\nstate=running\nexisting=yes\nresumed=no\nmerge=ask\nperson=yes`)
+  expect(resultText(again)).toContain('<charter>\nShip the parser\n</charter>')
+  expect(session.book().trees.map(tree => tree.id)).toEqual([id])
+})
+
+test('a second charter while the tree of this session is live is refused and forgotten, so it opens no tree after rex_report closes the first', async ($, on) => {
+  const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy() } })
+  await $.session.start(START)
+
+  const first = await openedTree($, 'Ship the parser')
+  await session.clock.advance(1_000)
+  const second = await openedTree($, 'Ship the lexer')
+  const id = lineOf(first, 'tree') ?? ''
+  const treesWhileLive = session.book().trees.map(tree => [tree.id, tree.charter, tree.state])
+  await $.tool.call({ tool: 'mcp__super-rex__rex_report', report: 'Result: the parser ships.' })
+  const next = await $.tool.call({ tool: TREE_OPEN })
+
+  expect(second.deny).toBe(`rex_tree_open: master tree ${id} of this session is still running, got a new charter; end it with rex_report first, then the person runs ${SKILL} <goal> again`)
+  expect(treesWhileLive).toEqual([[id, 'Ship the parser', 'running']])
+  expect(next.deny).toBe(NO_PROMPT)
+  expect(session.book().treeStartPrompt).toBeNull()
+  expect(session.book().trees.map(tree => [tree.charter, tree.state])).toEqual([['Ship the parser', 'done']])
+})
+
+test('the main loop that runs a live tree opens no job of its own: rex_job_open is refused and the tree runs on', async ($, on) => {
+  const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy() } })
+  await $.session.start(START)
+  await openedTree($, 'Ship the parser')
+
+  await $.prompt.submit(masterPrompt('fix the typo', { kind: 'composer' }, 'super-rex:orchestration-builder'))
+  const opened = await $.tool.call({ tool: 'mcp__super-rex__rex_job_open', request: 'fix the typo' })
+
+  expect(opened.deny).toBe('rex_job_open: the main loop runs a master tree in this session, got a job start; end the tree with rex_report first, or start the job in another session')
+  expect(session.book().jobs).toEqual([])
+  expect(session.book().trees.map(tree => tree.state)).toEqual(['running'])
+})
+
+test('a master-skill prompt that names no goal is refused and opens no tree', async ($, on) => {
+  const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy() } })
+  await $.session.start(START)
+
+  const answered = await openedTree($, '')
+
+  expect(answered.deny).toBe(`rex_tree_open: the prompt names no goal, got nothing after ${SKILL}; the person runs ${SKILL} <goal>, ${SKILL} @<charter file>, or ${SKILL} resume`)
+  expect(session.book().trees).toEqual([])
+})
+
+test('resume refuses with storage off and opens nothing', async ($, on) => {
   const session = masterWorld(on, { config: CONFIG_OFF, store: { [POLICY_KEY]: await confirmedPolicy() } })
   await $.session.start(START)
 
-  const answered = await $.command.run(rex('master resume'))
+  const answered = await openedTree($, 'resume')
 
-  expect(answered.text).toBe('rex master resume: needs storage, got storage off; run rex init --with-storage, or start a new tree with /rex master <goal>')
+  expect(answered.deny).toBe(`rex_tree_open: resume needs storage, got storage off; the person runs rex init --with-storage, or starts a new tree with ${SKILL} <goal>`)
   expect(session.spawned).toEqual([])
   expect(session.book().trees).toEqual([])
 })
 
-test('preflight: a binary of another version refuses', async ($, on) => {
+test('preflight: a binary of another version refuses and opens nothing', async ($, on) => {
   const session = masterWorld(on, { binaryVersion: 'rex 0.7.0\n', store: { [POLICY_KEY]: await confirmedPolicy() } })
   await $.session.start(START)
 
-  const answered = await $.command.run(rex('master Ship the parser'))
+  const answered = await openedTree($, 'Ship the parser')
 
-  expect(answered.text).toBe('rex master: binary 0.7.0 does not match plugin 0.8.0; run rex doctor')
-  expect(session.spawned).toEqual([])
+  expect(answered.deny).toBe('rex_tree_open: binary 0.7.0 does not match plugin 0.8.0; the person runs rex doctor')
+  expect(session.book().trees).toEqual([])
 })
 
 test('preflight: the version call is the shared rex --version call', async ($, on) => {
   const version = sharedJson('fixtures/shared/calls/version.json')
   const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy() } })
   await $.session.start(START)
-  await $.command.run(rex('master Ship the parser'))
+  await openedTree($, 'Ship the parser')
 
   const argv: unknown = typeof version === 'object' && version !== null ? Reflect.get(version, 'argv') : null
   expect(session.versionCalls.map(call => call.argv).at(-1)).toEqual(argv)
 })
 
-test('preflight: depth under 4 refuses', async ($, on) => {
+test('preflight: depth under 4 refuses and opens nothing', async ($, on) => {
   const session = masterWorld(on, { env: { CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '3' }, store: { [POLICY_KEY]: await confirmedPolicy() } })
   await $.session.start(START)
 
-  const answered = await $.command.run(rex('master Ship the parser'))
+  const answered = await openedTree($, 'Ship the parser')
 
-  expect(answered.text).toBe('rex master: depth is 3; run rex init (it writes 4)')
-  expect(session.spawned).toEqual([])
+  expect(answered.deny).toBe('rex_tree_open: depth is 3; the person runs rex init (it writes 4), then starts a new session')
+  expect(session.book().trees).toEqual([])
 })
 
-test('preflight: depth unset refuses', async ($, on) => {
+test('preflight: depth unset refuses and opens nothing', async ($, on) => {
   const session = masterWorld(on, { env: {}, store: { [POLICY_KEY]: await confirmedPolicy() } })
   await $.session.start(START)
 
-  const answered = await $.command.run(rex('master Ship the parser'))
+  const answered = await openedTree($, 'Ship the parser')
 
-  expect(answered.text).toBe('rex master: depth is unset; run rex init (it writes 4)')
-  expect(session.spawned).toEqual([])
+  expect(answered.deny).toBe('rex_tree_open: depth is unset; the person runs rex init (it writes 4), then starts a new session')
+  expect(session.book().trees).toEqual([])
 })
 
 test('headless_master_needs_wait_ceiling_zero', async ($, on) => {
   const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy({ allow_headless: true }) } })
   await $.session.start(HEADLESS_START)
 
-  const answered = await $.command.run(rex('master Ship the parser', { kind: 'sdk' }))
+  const answered = await openedTree($, 'Ship the parser', { kind: 'sdk' })
 
-  expect(answered.text).toBe('rex master: headless runs need CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0, or background agents stop after 10 minutes')
-  expect(session.spawned).toEqual([])
+  expect(answered.deny).toBe('rex_tree_open: headless runs need CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0, or background agents stop after 10 minutes')
+  expect(session.book().trees).toEqual([])
 })
 
-test('preflight: headless with no confirmed policy refuses', async ($, on) => {
-  const session = masterWorld(on, { env: { CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '4', CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: '0' } })
+test('preflight: headless with no stored policy refuses and asks nothing', async ($, on) => {
+  const asked: string[] = []
+  on('tool.call', { tool: 'AskUserQuestion' }, (_$, e) => {
+    asked.push(String(e.tool))
+    return { deny: 'no one is at the terminal' }
+  })
+  const session = masterWorld(on, { env: CEILING_ENV })
   await $.session.start(HEADLESS_START)
 
-  const answered = await $.command.run(rex('master Ship the parser'))
+  const answered = await openedTree($, 'Ship the parser')
 
-  expect(answered.text).toBe('rex master: no confirmed policy for this repo; run /rex policy confirm in an interactive session')
-  expect(session.spawned).toEqual([])
+  expect(answered.deny).toBe('rex_tree_open: no confirmed policy for this repo; the person runs /rex policy confirm in an interactive session')
+  expect(asked).toEqual([])
+  expect(session.book().trees).toEqual([])
 })
 
-test('preflight: a policy changed since it was confirmed refuses', async ($, on) => {
+test('preflight: a policy changed since it was confirmed refuses and opens nothing', async ($, on) => {
   const changed = { ...(await confirmedPolicy()), tree_usd: 900 }
   const session = masterWorld(on, { store: { [POLICY_KEY]: changed } })
   await $.session.start(START)
 
-  const answered = await $.command.run(rex('master Ship the parser'))
+  const answered = await openedTree($, 'Ship the parser')
 
-  expect(answered.text).toMatch(/^rex master: the policy of this repo changed since you confirmed it, got hash sha256:[0-9a-f]{64}; run \/rex policy confirm$/)
-  expect(session.spawned).toEqual([])
+  expect(answered.deny).toMatch(/^rex_tree_open: the policy of this repo changed since the person confirmed it, got hash sha256:[0-9a-f]{64}; the person runs \/rex policy confirm$/)
+  expect(session.book().trees).toEqual([])
 })
 
-test('preflight: headless default permission mode refuses at the master spawn, and the tree is lost', async ($, on) => {
-  const session = masterWorld(on, {
-    store: { [POLICY_KEY]: await confirmedPolicy({ required_allow: ['Bash(cargo test:*)'] }) },
-    env: { CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '4', CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: '0' },
-    allow: ['Bash(git status:*)'],
-  })
-  await $.session.start(HEADLESS_START)
+test('preflight: a stored policy of the wrong shape refuses with the key to set, and opens nothing', async ($, on) => {
+  const session = masterWorld(on, { store: { [POLICY_KEY]: { ...(await confirmedPolicy()), max_jobs: 'many' } } })
+  await $.session.start(START)
 
-  const answered = await $.command.run(rex('master Ship the parser'))
+  const answered = await openedTree($, 'Ship the parser')
 
-  expect(answered.text).toBe('rex master: headless mode unknown asks no one, so each ask is a deny; run with bypassPermissions or list allow rules in policy required_allow, got Bash(cargo test:*)')
-  expect(session.book().trees.map(tree => tree.state)).toEqual(['lost'])
-  expect(session.book().runs).toEqual([])
+  expect(answered.deny).toBe('rex_tree_open: the stored policy of this repo is unreadable, got policy key max_jobs must be a whole number of at least 1, got "many"; the person runs /rex policy set max_jobs <value>')
+  expect(session.book().trees).toEqual([])
 })
 
-test('preflight: headless passes the permission check when each required allow rule is in the settings', async ($, on) => {
-  const session = masterWorld(on, {
-    store: { [POLICY_KEY]: await confirmedPolicy({ required_allow: ['Bash(cargo test:*)'] }) },
-    env: { CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '4', CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS: '0' },
-    allow: ['Bash(cargo test:*)', 'Read'],
-  })
-  await $.session.start(HEADLESS_START)
-
-  const answered = await $.command.run(rex('master Ship the parser'))
-
-  expect(answered.text).toMatch(/^tree=t[0-9a-z]{9}\nmaster=m1\nmerge=ask\n/)
-  expect(session.book().trees.map(tree => tree.state)).toEqual(['running'])
-})
-
-test('master_starts_after_preflight_with_charter_unchanged', async ($, on) => {
+test('master_starts_after_preflight_with_charter_unchanged: a charter file named with @ reaches the tree and the brief as the file holds it', async ($, on) => {
   const charter = '# Charter\n\nShip the parser.\n\n## Constraints\n\n- Never touch infra/.\n'
   const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy() }, files: { '/home/person/repo/charter.md': charter } })
   await $.session.start(START)
 
-  const answered = await $.command.run(rex('master @charter.md'))
+  const answered = await openedTree($, '@charter.md')
 
   const tree = session.book().trees[0]
-  expect(answered.text).toBe(`tree=${tree?.id ?? ''}\nmaster=m1\n${STARTED_LINES('ask')}`)
-  expect(tree?.charter).toBe(charter)
-  expect(tree?.state).toBe('running')
-  expect(tree?.master).toBe('m1')
-  expect(session.spawned.map(spawn => [spawn.type, spawn.description])).toEqual([['super-rex:master', `rex master ${tree?.id ?? ''}`]])
-  expect(session.spawned[0]?.prompt).toContain(charter)
-  const run = session.book().runs.find(each => each.agentId === 'm1')
-  expect([run?.parent, run?.parentSource, run?.job, run?.tree]).toEqual(['main', 'mod', null, tree?.id])
+  expect(lineOf(answered, 'tree')).toBe(tree?.id)
+  expect([tree?.charter, tree?.state, tree?.master]).toEqual([charter, 'running', 'main'])
+  expect(resultText(answered)).toContain(`<charter>\n${charter}\n</charter>`)
+  expect(session.spawned).toEqual([])
+  expect(session.book().runs).toEqual([])
 })
 
-test('a charter file that cannot be read refuses and starts nothing', async ($, on) => {
+test('the charter is the prompt as the person typed it, never an argument of the tool', async ($, on) => {
   const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy() } })
   await $.session.start(START)
 
-  const answered = await $.command.run(rex('master @missing.md'))
+  await $.prompt.submit(masterPrompt('Ship the parser; keep infra/ as it is.'))
+  const answered = await $.tool.call({ tool: TREE_OPEN, charter: 'Delete infra/.' })
 
-  expect(answered.text).toBe('rex master: charter file /home/person/repo/missing.md could not be read, got HooksError: super-rex: $.fs.read: ENOENT: no file at /home/person/repo/missing.md; name a file in the repo')
-  expect(session.spawned).toEqual([])
+  expect(lineOf(answered, 'state')).toBe('running')
+  expect(session.book().trees.map(tree => tree.charter)).toEqual(['Ship the parser; keep infra/ as it is.'])
+  expect(resultText(answered)).not.toContain('Delete infra/.')
+})
+
+test('a charter file that cannot be read refuses and opens nothing', async ($, on) => {
+  const session = masterWorld(on, { store: { [POLICY_KEY]: await confirmedPolicy() } })
+  await $.session.start(START)
+
+  const answered = await openedTree($, '@missing.md')
+
+  expect(answered.deny).toBe('rex_tree_open: charter file /home/person/repo/missing.md could not be read, got HooksError: super-rex: $.fs.read: ENOENT: no file at /home/person/repo/missing.md; the person names a file in the repo')
+  expect(session.book().trees).toEqual([])
 })

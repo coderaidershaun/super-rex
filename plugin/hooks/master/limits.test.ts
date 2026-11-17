@@ -4,7 +4,7 @@ import type { On } from 'claude-code'
 import type { Engine } from 'claude-code/testing'
 
 import type { Policy } from './policy'
-import { buildRules, byRule, confirmedPolicy, KIND, lineOf, MASTER, masterWorld, POLICY_KEY, rex, settleLong, settleUntil, START, treeBook } from './master-kit'
+import { buildRules, byRule, confirmedPolicy, KIND, lineOf, masterWorld, POLICY_KEY, rex, settleLong, settleUntil, START, treeBook } from './master-kit'
 
 const MINUTE = 60_000
 const PANE = {
@@ -20,7 +20,7 @@ async function treeWithJob($: Engine, on: On, keys: Partial<Policy>) {
   const policy = await confirmedPolicy({ watchdog_minutes: 30, ...keys })
   const session = masterWorld(on, { seed: await treeBook(policy), store: { [POLICY_KEY]: policy }, processAnswer: byRule(buildRules('model-high-effort-high')) })
   await $.session.start(START)
-  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...KIND, agentId: MASTER, request: 'Fix the parser', consequence: 'low' })
+  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...KIND, request: 'Fix the parser', consequence: 'low' })
   return { session, job: lineOf(built, 'job') ?? '', builder: lineOf(built, 'builder') ?? '' }
 }
 

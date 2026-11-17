@@ -53,6 +53,10 @@
       "arguments": ["job"],
       "keys": ["agents_done", "agents_open", "degraded", "job", "limit_usd", "origin", "phase", "spent_usd", "status"]
     },
+    "rex_tree_open": {
+      "arguments": [],
+      "keys": ["asked", "continued", "existing", "merge", "person", "resumed", "state", "tree"]
+    },
     "rex_worktree": {
       "arguments": ["unit"],
       "keys": ["branch", "existing", "start", "worktree"]

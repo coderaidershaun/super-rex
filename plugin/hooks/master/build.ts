@@ -5,13 +5,12 @@ import type { RexBook, RexJob, RexLevel, RexLimit, RexRating, RexRatings, RexTre
 import { addPendingSpawn, closeJob, fail, jobWorktree, openJob, readBook, rebindJob, setMergeAnswer } from '../book/index'
 import { addWorktree, answer, baseRef, baseStart, callerOf, callerRefusal, defaultLimitNano, deny, firstCommit, firstCommitRefusal, git, hasWorktree, removeWorktree, repoPlaces, runOms } from '../tools/index'
 import type { RepoPlaces } from '../tools/index'
-import { BUILDER_BRIEF_FILE, readPluginFile } from './agent-type'
 import { field, isRefused, optionalNumber, optionalObject, optionalText, refused, text, textList, word } from './args'
 import type { Refused } from './args'
-import { builderBrief } from './brief'
+import { builderBrief, BUILDER_BRIEF_FILE, readPluginFile } from './brief'
 import { BUILD_TOOL } from './entries'
 import { maxJobsRefusal, rateLimitRefusal, treeLedgerRefusal } from './gates'
-import { masterMoved, wakeAfterRateLimit } from './idle'
+import { wakeAfterRateLimit } from './rate'
 import { isTier, levelRank, tierRank } from './policy'
 import type { Policy, Tier } from './policy'
 import { pinnedPolicy, treeOfMaster } from './pin'
@@ -244,7 +243,7 @@ export async function serveBuild($: EngineInterface, event: { readonly agentId?:
   const tree = caller.kind === 'master' ? treeOfMaster(book, caller.agentId) : undefined
   if (tree === undefined) {
     await fail($, { kind: 'caller-not-allowed', tool: TOOL, caller: caller.kind })
-    return deny(callerRefusal(BUILD_TOOL, caller) ?? `${TOOL}: only the master of a running tree may call it, got the master of a closed tree; start a tree with /rex master`)
+    return deny(callerRefusal(BUILD_TOOL, caller) ?? `${TOOL}: only the master of a running tree may call it, got a caller with no live tree; the person starts a tree with /super-rex:orchestration-master <goal>`)
   }
   const pinned = await pinnedPolicy($, tree)
   if (pinned.kind === 'refused') {
@@ -299,9 +298,5 @@ export async function serveBuild($: EngineInterface, event: { readonly agentId?:
     mergeAfter: args.mergeAfter,
   })
   await setPolicyAnswer($, opened.job, policy, args.consequence, hash)
-  const started = await startBuilder($, opened.job, tree, cappedAgent(oms.agent, policy.tier_cap), args.request, { places, commit: start.commit, isStale: start.isStale, isCommitMade: made.kind === 'made' })
-  if (started.deny === undefined) {
-    masterMoved(tree.id)
-  }
-  return started
+  return startBuilder($, opened.job, tree, cappedAgent(oms.agent, policy.tier_cap), args.request, { places, commit: start.commit, isStale: start.isStale, isCommitMade: made.kind === 'made' })
 }

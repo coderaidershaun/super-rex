@@ -1,18 +1,16 @@
-// /rex master resume: a new master for the newest tree the store holds open, its jobs and questions put back as they were, and each open job's dead builder started again or asked about by policy.
-import type { CommandRunResult, EngineInterface } from 'claude-code'
+// The resume of a master tree: the newest tree the store holds open comes back into this session with the main loop as its master, its jobs and questions put back as they were, and each open job's dead builder started again or asked about by policy.
+import type { EngineInterface } from 'claude-code'
 
 import type { RexJob, RexJobStatus, RexLevel, RexMergeAnswer, RexOriginKind, RexQuestion, RexTree } from '../../types'
-import { errorText, fail, isOpen, readBook, restoreTree } from '../book/index'
+import { errorText, fail, isOpen, MAIN_MASTER, readBook, restoreTree } from '../book/index'
 import type { Restored } from '../book/index'
 import { parkQuestion } from './ask'
 import type { StatusSection, Table } from '../parts'
 import { restartBuilder } from './build'
-import { spawnMaster } from './start'
 import type { StoredPolicy } from './store'
 import { startWatchdog } from './watch'
 
-const NAME = 'rex master resume'
-const DONE_AGENT: readonly string[] = ['completed', 'failed', 'killed']
+const NAME = 'rex_tree_open resume'
 const START_AGAIN = 'Start a new builder'
 const LEAVE_BLOCKED = 'Leave it blocked'
 
@@ -142,7 +140,7 @@ function questionOf(question: unknown): RexQuestion | null {
   }
 }
 
-/** The tree comes back in this session, with no master yet, pinned to the policy that pre-flight just found confirmed. */
+/** The tree comes back in this session, with its main loop as master, pinned to the policy that pre-flight just found confirmed. */
 function treeOf(tree: unknown, session: string, policyHash: string): RexTree | null {
   const id = textOf(tree, 'id')
   const charter = textOf(tree, 'charter')
@@ -152,7 +150,7 @@ function treeOf(tree: unknown, session: string, policyHash: string): RexTree | n
   return {
     id,
     session,
-    master: null,
+    master: MAIN_MASTER,
     charter,
     charterHash: textOf(tree, 'charter_hash') ?? '',
     policyHash,
@@ -187,42 +185,25 @@ async function storedTree($: EngineInterface, session: string, policyHash: strin
   }
   const tree = treeOf(field(shown, 'tree'), session, policyHash)
   if (tree === null) {
-    return `${NAME}: no open tree in the store of this repo, got none; start one with /rex master <goal>`
+    return `${NAME}: no open tree in the store of this repo, got none; the person starts one with /super-rex:orchestration-master <goal>`
   }
   const jobs = listOf(shown, 'jobs').map(jobOf).filter((job): job is RexJob => job !== null)
   const questions = listOf(shown, 'questions').map(questionOf).filter((question): question is RexQuestion => question !== null)
   return { tree, jobs, questions }
 }
 
-/** A tree of this session whose master still runs; resume would start a second master for it. */
-async function liveRefusal($: EngineInterface): Promise<string | null> {
-  const book = await readBook($)
-  const agents = await $.agent.list()
-  for (const tree of book.trees.filter(each => each.session === book.session && (each.state === 'running' || each.state === 'paused') && each.master !== null)) {
-    const master = agents.find(agent => agent.id === tree.master)
-    if (master !== undefined && !DONE_AGENT.includes(master.status)) {
-      return `${NAME}: tree ${tree.id} is live in this session, got master ${master.id}; use /rex policy confirm`
-    }
-  }
-  return null
-}
-
-function lines(rows: readonly string[]): CommandRunResult {
-  return { text: rows.map(row => `${row}\n`).join('') }
-}
-
 function listed(ids: readonly string[]): string {
   return ids.length === 0 ? 'none' : ids.join(',')
 }
 
-export async function serveResume($: EngineInterface, policy: StoredPolicy, sections: Table<StatusSection>): Promise<CommandRunResult> {
-  const live = await liveRefusal($)
-  if (live !== null) {
-    return { text: live }
-  }
+/** A resumed tree: the lines of the tool's answer, and the digest and charter its brief is made from. */
+export type Resumed = { readonly tree: RexTree; readonly lines: readonly string[]; readonly digest: string }
+
+/** Brings the newest open tree of the store back into this session; a text is the refusal. */
+export async function resumeTree($: EngineInterface, policy: StoredPolicy, sections: Table<StatusSection>): Promise<Resumed | string> {
   const restored = await storedTree($, (await readBook($)).session, policy.hash)
   if (typeof restored === 'string') {
-    return { text: restored }
+    return restored
   }
   await restoreTree($, restored)
   const { tree } = restored
@@ -246,14 +227,10 @@ export async function serveResume($: EngineInterface, policy: StoredPolicy, sect
   }
   const questions = (await readBook($)).questions.filter(question => question.tree === tree.id && question.answer === null)
   digest.push(...questions.map(question => `question ${question.id} parked: ${question.question}`))
-  const started = await spawnMaster($, { tree: tree.id, charter: tree.charter, digest: digest.join('\n'), policy: policy.policy })
-  if ('refused' in started) {
-    return { text: started.refused }
-  }
   const continued: string[] = []
   for (const job of isContinue ? open : []) {
     // A git call that throws stops this job's restart only: the other jobs and the watchdog still start.
-    const restarted = await restartBuilder($, job, { ...tree, master: started.master }, policy.policy).catch((error: unknown) => ({ refused: errorText(error) }))
+    const restarted = await restartBuilder($, job, tree, policy.policy).catch((error: unknown) => ({ refused: errorText(error) }))
     if ('refused' in restarted) {
       $.ui.status(`rex: job ${job.id} of tree ${tree.id} got no new builder: ${restarted.refused}`)
     } else {
@@ -261,5 +238,5 @@ export async function serveResume($: EngineInterface, policy: StoredPolicy, sect
     }
   }
   startWatchdog($, tree.id, policy.policy.watchdog_minutes, sections)
-  return lines([`tree=${tree.id}`, `master=${started.master}`, `continued=${listed(continued)}`, `asked=${listed(asked)}`])
+  return { tree, lines: [`continued=${listed(continued)}`, `asked=${listed(asked)}`], digest: digest.join('\n') }
 }

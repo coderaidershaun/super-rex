@@ -1,5 +1,5 @@
 // Pure changes at the start of a session, when its transcript is first named, and at each prompt the person sends, which the book records before any job exists.
-import type { RexBook, RexJobStartPrompt, RexOriginKind } from '../../types'
+import type { RexBook, RexJobStartPrompt, RexOriginKind, RexTreeStartPrompt } from '../../types'
 import { emptyBook, newIngest, queued } from './events'
 import type { StreamKeys } from './ids'
 
@@ -49,10 +49,13 @@ export type PromptRecord = {
   /** False in prompt mode `off`: nothing is kept but the job-start mark. */
   readonly isRecorded: boolean
   readonly jobStart: Omit<RexJobStartPrompt, 'at'> | null
+  /** Set on the prompt that runs the master skill: the tree that opens next takes its charter from here. */
+  readonly treeStart: Omit<RexTreeStartPrompt, 'at'> | null
 }
 
 export function promptIn(book: RexBook, prompt: PromptRecord, at: number): RexBook {
-  const started = prompt.jobStart === null ? book : { ...book, jobStartPrompt: { ...prompt.jobStart, at } }
+  const withJob = prompt.jobStart === null ? book : { ...book, jobStartPrompt: { ...prompt.jobStart, at } }
+  const started = prompt.treeStart === null ? withJob : { ...withJob, treeStartPrompt: { ...prompt.treeStart, at } }
   if (!prompt.isRecorded) {
     return started
   }

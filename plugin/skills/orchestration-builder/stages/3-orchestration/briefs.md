@@ -6,7 +6,7 @@ For agent that runs orchestrator skill, and for each agent of job that writes a 
 
 - `JOB_DIR`: Absolute path where job branch is checked out. `rex-deliver/start.md` gives it.
 - Author: agent that writes a brief.
-- Assembly: what mod adds to brief at spawn, around text of author: tag block (`Rex-Job`, `Rex-Role`), `<skills>` block, tier text, sandbox text, Return part with output file.
+- Assembly: what mod adds to brief at spawn, around text of author: tag block (`Rex-Job`, `Rex-Role`), `<skills>` block, tier text, shell text, Return part with output file.
 - `<skills>` block: full text of each read-first skill of task, then `Open when` list. Mod takes both from plan row of task that `Task:` line names.
 - Lead skill: Reusable file for lead: `<role>.md` in folder of orchestrator skill.
 - Output file: File where one sub-agent writes its full report: `<HOME_DIR>/.rex/plans/<job ID>/<role>.md`, or `<role>-<n>.md` with lowest free `<n>` from 2. Return part of mod names it. Store folder, not in Git.
@@ -20,7 +20,7 @@ Author writes only first line + five sections. Mod adds assembly. Text of author
 - [ ] `Acceptance:` names evidence: a command in backticks, a test, or a file, output, or log that agent must show.
 - [ ] Write `never` only in `Limits:`.
 - [ ] Last line: fallback line of template, unchanged.
-- [ ] Do not write tag block, skill list, tier text, sandbox text, or Return part. Mod adds them. A second copy costs tokens.
+- [ ] Do not write tag block, skill list, tier text, shell text, or Return part. Mod adds them. A second copy costs tokens.
 - [ ] Paths in brief are absolute. Git worktree does not hold files that Git ignores. Exception: skill file. Name it `<skill>/<file>.md` or `<skill>`. Agent reads it with `rex_skill`.
 - [ ] Writer in Git repo: IF job works in job worktree, THEN brief gives `JOB_DIR`.
 - [ ] Parallel writer: its lines come from `rex-deliver/parallel-writers.md`.

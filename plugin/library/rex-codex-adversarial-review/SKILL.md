@@ -146,7 +146,6 @@ Verdict table:
 
 - [ ] Resolution = `upheld`, `withdrawn`, or `contested`.
 - [ ] List each contested finding with both positions. Never drop disagreement.
-- [ ] Name each command that ran outside sandbox.
 - [ ] IF caller gave output file, THEN write report there. Final message = path, count of findings for each resolution, and each `upheld` BLOCK in one line. ELSE final message = report.
 - [ ] Then stop. Caller decides changes.
 
@@ -156,8 +155,6 @@ Verdict table:
 | --- | --- |
 | `codex` not on PATH | Fallback agent. |
 | Codex says it is not logged in | Fallback agent. Tell caller: run `codex login` for next review. |
-| Host name lookup or connection fails | Network block of sandbox. Run that one command again with `dangerouslyDisableSandbox: true`. IF it fails again, THEN fallback agent. |
+| Host name lookup or connection fails | Run that one command again one time. IF it fails again, THEN fallback agent. |
 | Non-zero exit, OR empty `round-1.md` | Read last 20 lines of `.err` file. Run again one time. IF it fails again, THEN fallback agent. |
 | Review runs too long | Run again with `model_reasoning_effort=medium`, OR make target smaller. |
-
-CAUTION: Run outside sandbox only the one Codex command that cannot reach network. Never run a command outside sandbox because sandbox refused a write.

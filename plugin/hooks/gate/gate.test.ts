@@ -12,7 +12,7 @@ import { callFile, files, JOB, ok, scripted, seededBook } from '../tools/act-kit
 import { GATE_CHECKS, isMergeCommand, isOwnSpawn, refusedAgentArg } from './index'
 import { spawnCase } from '../pipeline/brief'
 import { AUTHOR } from '../pipeline/assembly.fixture'
-import { buildRules, byRule, confirmedPolicy, KIND, lineOf, MASTER, masterWorld, POLICY_KEY, treeBook } from '../master/master-kit'
+import { buildRules, byRule, confirmedPolicy, KIND, lineOf, masterWorld, POLICY_KEY, treeBook } from '../master/master-kit'
 import { registerProbeCheck } from './probe-check.fixture'
 
 const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
@@ -91,7 +91,7 @@ test('depth 4 refused outside a master tree, and allowed below a builder of one'
   files(on, {})
   const started = engineAnswers(on)
   const outside = chain(seededBook(), 3)
-  const withTree: RexBook = { ...outside, trees: [{ id: 't1', session: outside.session, master: 'm1', charter: 'c', charterHash: 'h', policyHash: 'p', state: 'running', ledgerNano: 0, capNano: 1, builders: [{ job: JOB, agentId: 'd1' }], ticks: [], notes: [], startedAt: START_MS, closedAt: null, reportFile: null }] }
+  const withTree: RexBook = { ...outside, trees: [{ id: 't1', session: outside.session, master: 'main', charter: 'c', charterHash: 'h', policyHash: 'p', state: 'running', ledgerNano: 0, capNano: 1, builders: [{ job: JOB, agentId: 'd1' }], ticks: [], notes: [], startedAt: START_MS, closedAt: null, reportFile: null }] }
   world(on, { seed: outside })
   await $.session.start(START)
 
@@ -108,7 +108,7 @@ test('depth 4 below a builder of a master tree passes', async ($, on) => {
   files(on, {})
   const started = engineAnswers(on)
   const book = chain(seededBook(), 3)
-  const tree = { id: 't1', session: book.session, master: 'm1', charter: 'c', charterHash: 'h', policyHash: 'p', state: 'running', ledgerNano: 0, capNano: 1, builders: [{ job: JOB, agentId: 'd1' }], ticks: [], notes: [], startedAt: START_MS, closedAt: null, reportFile: null } as const
+  const tree = { id: 't1', session: book.session, master: 'main', charter: 'c', charterHash: 'h', policyHash: 'p', state: 'running', ledgerNano: 0, capNano: 1, builders: [{ job: JOB, agentId: 'd1' }], ticks: [], notes: [], startedAt: START_MS, closedAt: null, reportFile: null } as const
   world(on, { seed: { ...book, trees: [tree] } })
   await $.session.start(START)
 
@@ -238,7 +238,7 @@ test("the mod's own spawn of a builder starts in its worktree, a cwd that an age
   const session = masterWorld(on, { seed: await treeBook(policy), store: { [POLICY_KEY]: policy }, processAnswer: byRule(buildRules('model-high-effort-high')) })
   await $.session.start(START)
 
-  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...KIND, agentId: MASTER, request: 'Fix the parser; cargo test passes.', consequence: 'low', size: 'small' })
+  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...KIND, request: 'Fix the parser; cargo test passes.', consequence: 'low', size: 'small' })
 
   const id = session.book().jobs[0]?.id ?? ''
   expect(lineOf(built, 'status')).toBe('created')

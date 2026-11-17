@@ -9,7 +9,7 @@ context:
   scaffold_script: scaffold.sh
 execution:
   prompt: >-
-    /rex master Two jobs. Job 1: fix the spelling of "recieve" in NOTES.md.
+    /super-rex:orchestration-master Two jobs. Job 1: fix the spelling of "recieve" in NOTES.md.
     Job 2: add the line "Copyright the authors." to the end of LICENSE.
     Each job merges to main when its checks pass.
   model: sonnet
@@ -39,6 +39,10 @@ execution:
     - Agent(super-rex:model-high-effort-max)
 runs: 1
 graders:
+  - type: tool_used
+    name: the main loop opened the tree as its master
+    tool: mcp__super-rex__rex_tree_open
+    min: 1
   - type: tool_used
     name: the master started two builders
     tool: mcp__super-rex__rex_build

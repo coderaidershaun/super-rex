@@ -38,7 +38,7 @@ test('an unknown sub-command names the ones there are', async ($, on) => {
   await $.session.start(START)
   const answered = await $.command.run(rex('nope now'))
 
-  expect(answered.text).toBe('rex: no sub-command nope; one of watch, status, tree, jobs, doctor, prompts, limit, master, policy, answer')
+  expect(answered.text).toBe('rex: no sub-command nope; one of watch, status, tree, jobs, doctor, prompts, limit, policy, answer')
 })
 
 test('prompts sets the mode from the person and refuses any other origin', async ($, on) => {

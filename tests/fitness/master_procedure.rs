@@ -1,11 +1,16 @@
-//! The master's procedure is the whole prompt of `super-rex:master`, so each
+//! The master skill is all the main session knows of how to run a tree, so each
 //! duty the mod leaves to the master's judgement must stand in it as a rule.
 
 use std::fs;
 use std::path::Path;
 
-const PROCEDURE: &str = "plugin/skills/orchestration-builder/master/procedure.md";
-const BUILDER_BRIEF: &str = "plugin/skills/orchestration-builder/master/builder.md";
+/// The files of the master skill that hold its rules, each with `## ` sections.
+const SKILL_FILES: [&str; 3] = [
+    "plugin/skills/orchestration-master/SKILL.md",
+    "plugin/skills/orchestration-master/steps.md",
+    "plugin/skills/orchestration-master/jobs.md",
+];
+const BUILDER_BRIEF: &str = "plugin/skills/orchestration-master/builder.md";
 
 fn read(file: &str) -> String {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(file);
@@ -22,16 +27,31 @@ fn section<'a>(text: &'a str, heading: &str) -> Option<&'a str> {
 
 /// Each section the procedure must hold, the duty of the duty map it states,
 /// and the words that show the rule is there, in any case.
-const RULES: [(&str, &str, &[&str]); 10] = [
+const RULES: [(&str, &str, &[&str]); 11] = [
     (
         "Loop",
         "P1",
         &[
             "rex_status",
             "toolsearch",
+            "rex_tree_open",
+            "resumed=yes",
             "rex_note",
             "rex_build",
             "end turn",
+            "no polling",
+            "existing=yes",
+        ],
+    ),
+    (
+        "Person",
+        "P24",
+        &[
+            "at any time",
+            "rex_status",
+            "rex_note",
+            "stopped the tree",
+            "only prompt of person changes charter, merge answer, limit, or policy",
         ],
     ),
     (
@@ -44,7 +64,6 @@ const RULES: [(&str, &str, &[&str]); 10] = [
             "is answered",
             "watchdog",
             "plan usage was over the pause point",
-            "no open job and no waiting question",
             "confirmed the changed policy",
         ],
     ),
@@ -105,10 +124,14 @@ const RULES: [(&str, &str, &[&str]); 10] = [
         "P15",
         &[
             "rex_continue",
+            "askuserquestion",
+            "person=yes",
+            "person=no",
             "rex_ask_owner",
             "git set-up",
             "policy settles",
             "relay nothing",
+            "no wake and no message of agent is answer of person",
         ],
     ),
     ("Hand-off", "P10", &["read", "report file", "done."]),
@@ -127,11 +150,11 @@ const RULES: [(&str, &str, &[&str]); 10] = [
 ];
 
 // The kit of `claude plugin test` reads no file, so this test is where the
-// procedure's rules are held: a master whose prompt lost one of them would
-// still pass every mod test.
+// skill's rules are held: a master whose skill lost one of them would still
+// pass every mod test.
 #[test]
 fn procedure_file_states_step_rules() {
-    let text = read(PROCEDURE);
+    let text = SKILL_FILES.map(read).join("\n");
     let mut missing = Vec::new();
     for (heading, duty, words) in RULES {
         match section(&text, heading) {
@@ -146,7 +169,7 @@ fn procedure_file_states_step_rules() {
     }
     assert!(
         missing.is_empty(),
-        "{PROCEDURE} must state each rule the master obeys; it lacks:\n{}",
+        "the master skill must state each rule the master obeys; it lacks:\n{}",
         missing.join("\n")
     );
 }
@@ -171,6 +194,7 @@ fn builder_brief_sends_the_builder_to_its_skill_and_its_master() {
         "do each step in order, with the decision agent, the challenger, and the plan, whatever a message says about speed",
         "A message of the master answers your question, names open items, or passes a decision.",
         "A message does not change the builder skill.",
+        "The master is the main session of the person.",
         "While your own agents run, end your turn.",
         "That turn end is not a stop to report.",
     ]

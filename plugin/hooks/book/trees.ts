@@ -2,6 +2,9 @@
 import type { RexBook, RexPendingSpawn, RexTree, RexTreeNote, RexTreeTick } from '../../types'
 import { queued, replaceJob } from './events'
 
+/** The master of every tree: the main loop of the tree's session. */
+export const MAIN_MASTER = 'main'
+
 export type TreeInput = Omit<RexTree, 'session' | 'master' | 'ledgerNano' | 'builders' | 'ticks' | 'notes' | 'startedAt' | 'closedAt' | 'reportFile'>
 
 function replaceTree(book: RexBook, id: string, change: (tree: RexTree) => RexTree): RexBook {
@@ -17,7 +20,7 @@ export function treeIn(book: RexBook, input: TreeInput, at: number): RexBook {
   const tree: RexTree = {
     ...input,
     session: book.session,
-    master: null,
+    master: MAIN_MASTER,
     ledgerNano: old?.ledgerNano ?? 0,
     builders: old?.builders ?? [],
     ticks: [],
@@ -27,7 +30,8 @@ export function treeIn(book: RexBook, input: TreeInput, at: number): RexBook {
     reportFile: null,
   }
   const trees = old === undefined ? [...book.trees, tree] : book.trees.map(each => (each.id === tree.id ? tree : each))
-  return queued({ ...book, trees }, at, 'tree.open', 'main', null, {
+  // The prompt that opened this tree is used up, so no second tree opens from it.
+  return queued({ ...book, trees, treeStartPrompt: null }, at, 'tree.open', 'main', null, {
     id: tree.id,
     charter: tree.charter,
     charter_hash: tree.charterHash,
@@ -78,7 +82,7 @@ export function treeStateIn(book: RexBook, treeId: string, state: RexTree['state
 
 /**
  * Pins a live tree to the policy hash the person just confirmed, keeping its
- * master and builders. No event: the store has none that changes a tree's
+ * builders. No event: the store has none that changes a tree's
  * hash, and a resume pins the tree to the confirmed hash again.
  */
 export function repinIn(book: RexBook, treeId: string, policyHash: string): RexBook {

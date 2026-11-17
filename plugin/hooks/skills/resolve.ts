@@ -115,8 +115,8 @@ const MISSING: SkillLookup = { kind: 'missing', holds: [] }
 
 /**
  * The skill's folder is the first one in order that holds its SKILL.md; its
- * files come from that folder only. The mod reads files the sandbox may deny
- * an agent, and an agent can write links into `.rex/skills`, so the skill
+ * files come from that folder only. An agent can write links into
+ * `.rex/skills`, and the mod reads any file of the person's, so the skill
  * folder must land inside its root and the file inside the skill folder.
  */
 export async function findSkill($: EngineInterface, places: SkillPlaces, name: string, file: string): Promise<SkillLookup> {

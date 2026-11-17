@@ -27,6 +27,7 @@ export function emptyBook(): RexBook {
     prompts: 'improve',
     jobsFromSdk: true,
     jobStartPrompt: null,
+    treeStartPrompt: null,
     jobs: [],
     runs: [],
     lintAttempts: [],

@@ -5,7 +5,7 @@ import type { Engine } from 'claude-code/testing'
 
 import { spawnInput } from '../book/kit'
 import { AUTHOR } from '../pipeline/assembly.fixture'
-import { buildRules, byRule, confirmedPolicy, KIND, lineOf, MASTER, masterWorld, omsAnswer, POLICY_KEY, START, treeBook } from './master-kit'
+import { buildRules, byRule, confirmedPolicy, KIND, lineOf, masterWorld, omsAnswer, POLICY_KEY, START, treeBook } from './master-kit'
 import type { Rule } from './master-kit'
 
 const BUILD = 'mcp__super-rex__rex_build' as const
@@ -14,12 +14,14 @@ async function builtTree($: Engine, on: On, perJobUsd: number | null, rules: rea
   const policy = await confirmedPolicy({ per_job_usd: perJobUsd })
   const session = masterWorld(on, { seed: await treeBook(policy), store: { [POLICY_KEY]: policy }, processAnswer: byRule(rules) })
   await $.session.start(START)
-  const built = await $.tool.call({ tool: BUILD, ...KIND, agentId: MASTER, request: 'Fix the parser', consequence: 'low' })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'Fix the parser', consequence: 'low' })
   return { session, job: lineOf(built, 'job') ?? '', builder: lineOf(built, 'builder') ?? '' }
 }
 
-async function step($: Engine, agentId: string): Promise<void> {
-  const stream = $.turn.step({ turnId: `turn-${agentId}`, index: 0, model: 'claude-sonnet-5-5', effort: 'high', messageCount: 1, agentId })
+/** One model request of the agent named, or of the main loop when none is named. */
+async function step($: Engine, agentId?: string): Promise<void> {
+  const of = agentId === undefined ? {} : { agentId }
+  const stream = $.turn.step({ turnId: `turn-${agentId ?? 'main'}`, index: 0, model: 'claude-sonnet-5-5', effort: 'high', messageCount: 1, ...of })
   for await (const chunk of stream) {
     expect(chunk).toBeDefined()
   }
@@ -32,7 +34,7 @@ test('builder_tool_calls_reach_dispatcher_and_gate', async ($, on) => {
 
   const opened = await $.tool.call({ tool: 'mcp__super-rex__rex_job_open', agentId: builder, request: 'anything' })
   await step($, builder)
-  await step($, MASTER)
+  await step($)
   const agent = await $.tool.call({ tool: 'Agent', agentId: builder, description: 'worker', prompt: AUTHOR })
   const nested = await $.tool.call({ tool: BUILD, ...KIND, agentId: builder, request: 'x', consequence: 'low' })
 
@@ -42,8 +44,9 @@ test('builder_tool_calls_reach_dispatcher_and_gate', async ($, on) => {
   const builderRun = book.runs.find(run => run.agentId === builder)
   expect(spentJob).toBeGreaterThan(0)
   expect(builderRun?.spentNano).toBe(spentJob)
-  expect(book.trees[0]?.ledgerNano).toBe(book.runs.find(run => run.agentId === MASTER)?.spentNano)
-  expect(book.trees[0]?.ledgerNano).toBeGreaterThan(0)
+  // The main loop is the master: its own request goes to the tree's ledger, and the builder's to its job alone.
+  expect(book.trees[0]?.ledgerNano).toBe(2 * 1e9)
+  expect(spentJob).toBe(2 * 1e9)
   expect(agent.deny).toMatch(new RegExp(`^rex gate: job ${job} has spent \\$\\d+\\.\\d\\d of its \\$0\\.00 limit`))
   expect(nested.deny).toBe('rex_build: only the master may call it, got builder')
 })

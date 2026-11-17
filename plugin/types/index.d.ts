@@ -164,7 +164,7 @@ export type RexRun = {
   readonly agentId: string
   readonly toolUseId: string | null
   readonly job: string | null
-  /** Set on a master's own run: its usage goes to the tree's ledger and to no job. */
+  /** Null on every run: a tree's master is the session's main loop, which has no run. The store's run rows keep the column. */
   readonly tree: string | null
   readonly parent: string
   readonly parentSource: 'engine' | 'mod'
@@ -236,10 +236,11 @@ export type RexTreeNote = {
   readonly text: string
 }
 
-/** A master and the jobs it started, with its charter as the person wrote it. */
+/** A tree of jobs that the main loop of `session` runs as master, with its charter as the person wrote it. */
 export type RexTree = {
   readonly id: string
   readonly session: string
+  /** `main`: the main loop of `session` is the master. Its own steps go to `ledgerNano`. */
   readonly master: string | null
   readonly charter: string
   readonly charterHash: string
@@ -258,7 +259,7 @@ export type RexTree = {
 /** A spawn the mod is about to make, so the run that its `agent.spawn` raises is known before `$.agent.spawn` resolves. */
 export type RexPendingSpawn = {
   readonly description: string
-  readonly kind: 'master' | 'builder'
+  readonly kind: 'builder'
   readonly tree: string
   readonly job: string | null
   readonly at: number
@@ -296,6 +297,13 @@ export type RexJobStartPrompt = {
   readonly at: number
 }
 
+/** The person's prompt that may open a master tree, until a tree opens or another such prompt replaces it; `text` is the charter, `@<path>`, or `resume`. */
+export type RexTreeStartPrompt = {
+  readonly origin: RexOriginKind
+  readonly text: string
+  readonly at: number
+}
+
 /** Versions the pane header shows; `binary` and `claudeCode` stay null until read (`calls/version.json`, `$.session.version()`). */
 export type RexVersions = {
   readonly mod: string
@@ -313,6 +321,7 @@ export type RexBook = {
   readonly prompts: 'off' | 'observe' | 'improve'
   readonly jobsFromSdk: boolean
   readonly jobStartPrompt: RexJobStartPrompt | null
+  readonly treeStartPrompt: RexTreeStartPrompt | null
   readonly jobs: readonly RexJob[]
   readonly runs: readonly RexRun[]
   readonly lintAttempts: readonly RexLintAttempt[]

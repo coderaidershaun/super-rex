@@ -26,7 +26,6 @@ export type Policy = {
   readonly max_jobs: number
   readonly repos: readonly string[]
   readonly allow_headless: boolean
-  readonly master_model: string
   readonly tier_cap: Tier
   readonly on_dead_builder: 'ask' | 'continue'
   readonly watchdog_minutes: number
@@ -50,7 +49,6 @@ export const DEFAULT_POLICY: Policy = {
   max_jobs: 8,
   repos: ['.'],
   allow_headless: false,
-  master_model: 'opus',
   tier_cap: 'high',
   on_dead_builder: 'ask',
   watchdog_minutes: 5,
@@ -157,11 +155,14 @@ function retryOf(value: unknown): RetrySchedule {
 }
 
 /** The policy a stored or typed value holds; a key left out takes its default, a key of the wrong shape throws `PolicyShapeError`. */
+/** Keys a stored policy may still hold and that mean nothing now: the master is the session's main loop, on the session's own model. */
+const RETIRED_KEYS: readonly string[] = ['master_model']
+
 export function policyOf(value: unknown): Policy {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new PolicyShapeError('policy', 'an object', value)
   }
-  const unknownKey = Object.keys(value).find(key => !POLICY_KEYS.some(known => known === key))
+  const unknownKey = Object.keys(value).find(key => !POLICY_KEYS.some(known => known === key) && !RETIRED_KEYS.includes(key))
   if (unknownKey !== undefined) {
     throw new PolicyShapeError(unknownKey, `one of the keys ${POLICY_KEYS.join(', ')}`, unknownKey)
   }
@@ -169,11 +170,7 @@ export function policyOf(value: unknown): Policy {
   const parallel = given('max_parallel_builders')
   const perJob = given('per_job_usd')
   const confirmed = given('confirmed_hash')
-  const masterModel = given('master_model')
   const allowHeadless = given('allow_headless')
-  if (typeof masterModel !== 'string' || masterModel === '') {
-    throw new PolicyShapeError('master_model', 'a model name such as opus', masterModel)
-  }
   if (typeof allowHeadless !== 'boolean') {
     throw new PolicyShapeError('allow_headless', 'true or false', allowHeadless)
   }
@@ -193,7 +190,6 @@ export function policyOf(value: unknown): Policy {
     max_jobs: wholeAtLeast('max_jobs', given('max_jobs'), 1),
     repos: textList('repos', given('repos')),
     allow_headless: allowHeadless,
-    master_model: masterModel,
     tier_cap: oneOf('tier_cap', given('tier_cap'), TIERS),
     on_dead_builder: oneOf('on_dead_builder', given('on_dead_builder'), ['ask', 'continue'] as const),
     watchdog_minutes: wholeAtLeast('watchdog_minutes', given('watchdog_minutes'), 1),
@@ -241,6 +237,9 @@ export function policyWith(policy: Policy, key: string, text: string): Policy {
   if (key === 'confirmed_hash') {
     throw new PolicyShapeError(key, 'set by /rex policy confirm only', text)
   }
+  if (RETIRED_KEYS.includes(key)) {
+    throw new PolicyShapeError(key, 'no key of the policy any more: the master runs on the model of your session', text)
+  }
   return policyOf({ ...policy, [key]: typedValue(text) })
 }
 
@@ -249,7 +248,7 @@ export function policyLines(policy: Policy): readonly string[] {
   return POLICY_KEYS.filter(key => key !== 'confirmed_hash').map(key => `${key}=${canonicalJson(policy[key]).replace(/^"(.*)"$/, '$1')}`)
 }
 
-/** The keys a master reads in its first prompt and in rex_status: what it may decide, and how far it may spend. */
+/** The keys a master reads when its tree opens and in rex_status: what it may decide, and how far it may spend. */
 const MASTER_KEYS = ['merge', 'merge_max_consequence', 'max_parallel_builders', 'max_jobs', 'consequence_ceiling', 'tier_cap', 'tree_usd', 'per_job_usd', 'raise_limits'] as const
 
 /** One `key=value` line for each key a master reads; a key not set reads `none`. */

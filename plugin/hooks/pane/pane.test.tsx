@@ -1,4 +1,4 @@
-// Proves the band and the watch pane: the band's short form of the outline, the pane at each level with its breadcrumb, rail and keys, a press down and up, pages of rows past nine, the fallback, and an answer given by a press.
+// Proves the band and the watch pane: the band's short form of the outline, the pane at each level with its breadcrumb, rail and keys, a press down and up, pages of rows past nine, the fallback, an answer given by a press, and the line of an empty session that names how to start a job or a tree.
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
@@ -12,7 +12,7 @@ import { createParts } from '../parts'
 import { liveBook, WRITTEN_AT } from '../live/live-book.fixture'
 import { DECISIONS_VIEW } from './decisions'
 import { drawPane } from './draw'
-import { crumbLabels, TREE_VIEW } from './drill'
+import { crumbLabels, factsOf, TREE_VIEW } from './drill'
 import { outlineOf, pathTo } from './outline'
 import { PROBE_VIEW } from './probe-view.fixture'
 import { HEADER_VIEW, QUESTIONS_VIEW } from './views'
@@ -332,4 +332,10 @@ test('the decisions tab lists each recorded decision of each job', async ($, on)
   await ui.press({ key: 'view-decisions' })
   expect((await texts(ui)).slice(HEADER.length)).toEqual(['0gaq820001 task:T1 skill=rex-code-tdd · rule: the task writes code'])
   await ui.unmount()
+})
+
+test('a session where nothing runs names the skill that starts a job and the skill that opens a tree', () => {
+  const book: RexBook = { ...emptyBook(), session: SESSION }
+
+  expect(factsOf(book, outlineOf(book, START_MS))).toEqual(['Nothing runs yet. Start a job with /super-rex:orchestration-builder, or a tree with /super-rex:orchestration-master <goal>.'])
 })

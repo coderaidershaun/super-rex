@@ -1,31 +1,22 @@
-// Test support for the master module: answers what a master tree asks of the engine (agent types, spawns, messages, settings, environment, store, usage) and records each ask.
+// Test support for the master module: answers what a master tree asks of the engine (spawns, messages, prompts, settings, environment, store, usage), records each ask, and opens a tree as the person's prompt of the master skill does.
 import { mock } from 'claude-code/testing'
 import type { MockClock } from 'claude-code/testing'
-import type { AgentInfo, AgentSpawnInput, CommandRunInput, On, PromptOrigin, SessionRateLimit, SessionSendInput, TurnStepResult, TurnUsage } from 'claude-code'
+import type { AgentInfo, AgentSpawnInput, CommandRunInput, On, PromptOrigin, PromptSubmitInput, SessionRateLimit, SessionSendInput, ToolCallResult, TurnStepResult, TurnUsage } from 'claude-code'
+import type { Engine } from 'claude-code/testing'
 
 import type { RexBook } from '../../types'
 import { emptyBook, newIngest } from '../book/events'
+import { openJobIn } from '../book/jobs'
 import { CONFIG_ON, ROOT, SESSION, START_MS, world } from '../book/kit'
 import type { ProcessAnswer, ProcessCall, World, WorldOptions } from '../book/kit'
-import { startRunIn } from '../book/runs'
 import { treeIn } from '../book/trees'
 import { DEFAULT_POLICY } from './policy'
 import type { Policy } from './policy'
 import { policyHash } from './store'
 
-export const PROCEDURE_TEXT = '# Master procedure\nRead rex_status first.\n'
 export const BUILDER_TEXT = '# Builder brief\nYou are a builder that a master started.\n'
 /** The store key of the policy of ROOT: `policy:` and the sha256 of `/home/person/repo`. */
 export const POLICY_KEY = 'policy:7b89ea27fe6655eb760c328e5d86092d3940fc708f91ba5edea62aa46516820f'
-
-/** An agent type the mod registered, as the engine was asked to define it. */
-export type RegisteredType = {
-  readonly name: string
-  readonly prompt: string
-  readonly tools: readonly string[] | undefined
-  readonly model: string | undefined
-  readonly effort: string | number | undefined
-}
 
 export type MasterOptions = WorldOptions & {
   /** The variables `$.env.get` answers; depth 4 when not given. */
@@ -39,7 +30,7 @@ export type MasterOptions = WorldOptions & {
   readonly usageRefusal?: string
   /** Refuses a spawn with this text; null lets it start. */
   readonly spawnRefusal?: (e: AgentSpawnInput) => string | null
-  /** Files by absolute path beside the master's two plugin files. */
+  /** Files by absolute path beside the builder's brief file of the master skill. */
   readonly files?: Readonly<Record<string, string>>
 }
 
@@ -61,9 +52,15 @@ function seenSpawn(e: AgentSpawnInput): SeenSpawn {
 }
 
 export type MasterWorld = World & {
-  readonly registered: RegisteredType[]
+  /** The name of each agent type the mod asked the engine to register; the mod registers none. */
+  readonly registered: string[]
   readonly spawned: SeenSpawn[]
+  /** The messages that woke a builder; the master is never sent one. */
   readonly sent: SessionSendInput[]
+  /** Every prompt that reached the session past the plugin, in order. */
+  readonly prompts: PromptSubmitInput[]
+  /** The text of each prompt of this plugin that reached the session: each wake of the master, which is the main loop. */
+  woken: () => readonly string[]
   readonly written: { readonly path: string; readonly text: string }[]
   readonly agents: AgentInfo[]
   /** Makes every later read of the plugin store fail. */
@@ -84,9 +81,6 @@ export function rex(args: string, origin: PromptOrigin = { kind: 'composer' }): 
 }
 
 function agentIdOf(e: AgentSpawnInput, count: number): string {
-  if (e.description.startsWith('rex master ')) {
-    return `m${String(count)}`
-  }
   if (e.description.startsWith('rex builder ')) {
     return `b${String(count)}`
   }
@@ -95,19 +89,17 @@ function agentIdOf(e: AgentSpawnInput, count: number): string {
 
 /** Registers the master's world beneath the plugin, then the shared world; call it before any other hook of the test that answers the same events. */
 export function masterWorld(on: On, options: MasterOptions = {}): MasterWorld {
-  const registered: RegisteredType[] = []
+  const registered: string[] = []
   const spawned: SeenSpawn[] = []
   const sent: SessionSendInput[] = []
+  const prompts: PromptSubmitInput[] = []
   const written: { path: string; text: string }[] = []
   const agents: AgentInfo[] = []
   const tree: Record<string, string> = { ...(options.files ?? {}) }
   let spawns = 0
 
-  on('fs.read', { path: /\/(skills\/orchestration-builder\/master|\.rex\/plans)\// }, (_$, e) => {
-    if (e.path.endsWith('/master/procedure.md')) {
-      return { value: PROCEDURE_TEXT }
-    }
-    if (e.path.endsWith('/master/builder.md')) {
+  on('fs.read', { path: /\/(skills\/orchestration-master|\.rex\/plans)\// }, (_$, e) => {
+    if (e.path.endsWith('/skills/orchestration-master/builder.md')) {
       return { value: BUILDER_TEXT }
     }
     const text = tree[e.path]
@@ -133,7 +125,7 @@ export function masterWorld(on: On, options: MasterOptions = {}): MasterWorld {
     options.usageRefusal === undefined ? { value: { startedAt: 0, context: { window: 200_000 }, rateLimits: [...(options.rateLimits ?? [])] } } : { deny: options.usageRefusal },
   )
   on('agent.register', (_$, e) => {
-    registered.push({ name: e.name, prompt: e.prompt, tools: e.tools, model: e.model, effort: e.effort })
+    registered.push(e.name)
     return { value: { agent: `super-rex:${e.name}` } }
   })
   on('agent.spawn', (_$, e) => {
@@ -152,6 +144,10 @@ export function masterWorld(on: On, options: MasterOptions = {}): MasterWorld {
     sent.push(e)
     return { isDelivered: true }
   })
+  on('prompt.submit', (_$, e) => {
+    prompts.push(e)
+    return { text: e.text }
+  })
 
   on('turn.step', async function* (_$, e) {
     const result: TurnStepResult = { turnId: e.turnId, index: e.index, answer: '', toolUses: [], stopReason: 'end_turn', usage: TURN_USAGE }
@@ -165,27 +161,67 @@ export function masterWorld(on: On, options: MasterOptions = {}): MasterWorld {
   const breakStore = (): void => {
     isStoreBroken = true
   }
-  return { ...shared, registered, spawned, sent, written, agents, breakStore }
+  const woken = (): readonly string[] => prompts.filter(e => e.origin.kind === 'plugin' && e.origin.name === 'super-rex').map(e => e.text)
+  return { ...shared, registered, spawned, sent, prompts, woken, written, agents, breakStore }
 }
 
 export const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
 export const HEADLESS_START = { cwd: ROOT, surface: 'terminal', isInteractive: false } as const
 
-/** What every model request of a test costs: one million input tokens of Sonnet, $3. */
+/** What every model request of a test costs: one million input tokens of Sonnet, $2 by the shared prices table. */
 export const TURN_USAGE: TurnUsage = { model: 'claude-sonnet-5-5', input_tokens: 1_000_000, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }
 
 export const TREE = 't1'
-export const MASTER = 'm1'
 
 /** The classification every rex_build of a test carries, which the tool requires; a test that needs another size or type gives it after. */
 export const KIND = { type: 'fix', size: 'medium', langs: ['rust'] } as const
 
-/** A book after `/rex master` started tree t1 with master m1 under the policy given, with storage on, as a reload finds it. */
+/** A book of this session with storage on and no tree, as a reload finds it. */
+export function sessionBook(): RexBook {
+  return { ...emptyBook(), session: SESSION, storage: 'on', versions: { mod: '0.8.0', binary: '0.8.0', claudeCode: '2.1.323' }, ingest: { ...newIngest('aaaaaaaaaaaaaaaa', '1'.repeat(64)), acked: 0 } }
+}
+
+/** A book after rex_tree_open opened tree t1 under the policy given, its master the main loop of this session, with storage on, as a reload finds it. */
 export async function treeBook(policy: Policy): Promise<RexBook> {
-  const started: RexBook = { ...emptyBook(), session: SESSION, storage: 'on', versions: { mod: '0.8.0', binary: '0.8.0', claudeCode: '2.1.323' }, ingest: { ...newIngest('aaaaaaaaaaaaaaaa', '1'.repeat(64)), acked: 0 } }
-  const opened = treeIn(started, { id: TREE, charter: 'Ship the parser.\n\n## Constraints\n\n- Keep infra/ as it is.\n', charterHash: 'sha256:c', policyHash: await policyHash(policy), state: 'running', capNano: Math.round(policy.tree_usd * 1e9) }, START_MS)
-  const pending: RexBook = { ...opened, pendingSpawns: [{ description: `rex master ${TREE}`, kind: 'master', tree: TREE, job: null, at: START_MS }] }
-  return startRunIn(pending, { agentId: MASTER, toolUseId: null, parentAgentId: null, agentType: 'super-rex:master', description: `rex master ${TREE}`, isOwnSpawn: true }, START_MS)
+  return treeIn(sessionBook(), { id: TREE, charter: 'Ship the parser.\n\n## Constraints\n\n- Keep infra/ as it is.\n', charterHash: 'sha256:c', policyHash: await policyHash(policy), state: 'running', capNano: Math.round(policy.tree_usd * 1e9) }, START_MS)
+}
+
+/** The job the main loop of this session builds, opened from the person's own job-start prompt. */
+export const MAIN_JOB = '0gaq820009'
+
+/** A book of this session whose main loop builds job MAIN_JOB, with no tree. */
+export function mainJobBook(): RexBook {
+  const input = {
+    builder: 'main',
+    tree: null,
+    origin: 'composer',
+    request: 'Fix the lexer',
+    repo: ROOT,
+    base: 'main',
+    type: 'fix',
+    size: 'small',
+    consequence: null,
+    langs: ['rust'],
+    prefs: { duration: null, budget: null, autonomy: 'high' },
+    limit: { nano: 10_000_000_000, source: 'default' },
+    dependsOn: [],
+    mergeAfter: [],
+  } as const
+  return openJobIn(sessionBook(), input, MAIN_JOB, START_MS).book
+}
+
+export const MASTER_SKILL = 'super-rex:orchestration-master'
+export const TREE_OPEN = 'mcp__super-rex__rex_tree_open'
+
+/** The person's prompt of the master skill as the engine raises it: `args` is the goal, `@<file>` or `resume`. */
+export function masterPrompt(args: string, origin: PromptOrigin = { kind: 'composer' }, name: string = MASTER_SKILL): PromptSubmitInput {
+  return { text: `/${name} ${args}`.trimEnd(), command: { name, args }, origin, wait: false }
+}
+
+/** What the session does after the person's prompt of the master skill: the prompt enters, then the main loop calls rex_tree_open. */
+export async function openedTree($: Engine, args: string, origin: PromptOrigin = { kind: 'composer' }): Promise<ToolCallResult> {
+  await $.prompt.submit(masterPrompt(args, origin))
+  return $.tool.call({ tool: TREE_OPEN })
 }
 
 /** One answer of a process call, picked by the first rule whose words start the call's argv; `rex ingest` always gets its last sequence. */
@@ -212,7 +248,7 @@ export function byRule(rules: readonly Rule[], seen: ProcessCall[] = []): (call:
  * engine answers each call of a hook between two settles, so on a busy machine
  * one settle can return before the work that a timer started has ended.
  */
-export async function settleUntil(clock: MockClock, isDone: () => boolean, tries = 200): Promise<void> {
+export async function settleUntil(clock: MockClock, isDone: () => boolean, tries = 1_000): Promise<void> {
   for (let tried = 0; tried < tries && !isDone(); tried += 1) {
     await clock.settle()
   }

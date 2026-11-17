@@ -6,7 +6,7 @@ import { mergeDoneIn, openJobIn } from '../book/jobs'
 import { ROOT, START_MS } from '../book/kit'
 import type { ProcessAnswer, ProcessCall } from '../book/kit'
 import { linkIn } from '../book/trees'
-import { byRule, confirmedPolicy, lineOf, MASTER, masterWorld, placesRules, POLICY_KEY, ran, resultText, settleUntil, START, TREE, treeBook } from './master-kit'
+import { byRule, confirmedPolicy, lineOf, masterWorld, placesRules, POLICY_KEY, ran, resultText, settleUntil, START, TREE, treeBook } from './master-kit'
 import type { Policy } from './policy'
 
 const JOB = '0gaq820002'
@@ -114,8 +114,8 @@ test('a tree builder that closes its merged job loses its own worktree, the clos
 
   const closed = await $.tool.call({ tool: 'mcp__super-rex__rex_job_close', agentId: 'b1', status: 'delivered', outcome: 'parser fixed', deliveries: [{ repo: ROOT, outcome: 'merged' }] })
   await $.turn.complete(ENDED)
-  await settleUntil(session.clock, () => session.sent.some(sent => sent.to === MASTER))
-  const status = await $.tool.call({ tool: 'mcp__super-rex__rex_status', agentId: MASTER, job: JOB })
+  await settleUntil(session.clock, () => session.woken().length > 0)
+  const status = await $.tool.call({ tool: 'mcp__super-rex__rex_status', job: JOB })
 
   expect(resultText(closed).split('\n').filter(line => line.startsWith('removed.') || line.startsWith('kept.'))).toEqual([
     `removed.worktree=${JOB_DIR}`,
@@ -125,6 +125,6 @@ test('a tree builder that closes its merged job loses its own worktree, the clos
   ])
   // The builder's shell sits in the job worktree; the mod never runs a call there, so its removal breaks no call that follows.
   expect(calls.filter(call => call.argv[1] !== 'ingest').map(call => call.cwd).filter(cwd => cwd !== ROOT)).toEqual([])
-  expect(session.sent.find(sent => sent.to === MASTER)?.text).toContain(`job ${JOB} was delivered and its done check ran`)
+  expect(session.woken()[0]).toContain(`job ${JOB} was delivered and its done check ran`)
   expect(['merged', 'branches_gone', 'worktrees_gone'].map(check => lineOf(status, `done.${check}`))).toEqual(['pass', 'pass', 'pass'])
 })

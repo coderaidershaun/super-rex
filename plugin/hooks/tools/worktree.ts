@@ -1,4 +1,4 @@
-// Makes and removes the worktrees of a job with rex worktree, which also lists each one for the sandbox, so no agent of the job runs a worktree command: the job worktree when the job opens, a unit worktree when an agent asks.
+// Makes and removes the worktrees of a job with rex worktree, which also lists each one for the file tools, so no agent of the job runs a worktree command: the job worktree when the job opens, a unit worktree when an agent asks.
 import type { EngineInterface } from 'claude-code'
 
 import { attempt, git, rexWorktree } from './git'

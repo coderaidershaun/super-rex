@@ -1,6 +1,6 @@
 //! `rex worktree add` and `rex worktree remove` on real Git repos: a job's
 //! worktree goes only in `<repo>.worktrees/`, and its path is listed in the
-//! settings file so that Claude Code's sandbox lets git commit there.
+//! settings file so that Claude Code's file tools may work there.
 
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};

@@ -4,7 +4,7 @@ import { expect, test } from 'claude-code/testing'
 import { ROOT, spawnInput, world } from '../book/kit'
 import { files, JOB } from '../tools/act-kit'
 import { AUTHOR, plannedBook, SKILL_FILES, spawnsKept, TDD_HASH, TDD_TEXT } from './assembly.fixture'
-import { SANDBOX_TEXT } from './sandbox'
+import { SHELL_TEXT } from './shell'
 import { TIER_FILE_COPIES } from './tier-files.fixture'
 import { briefBlocks, LEVELS, TIER_BLOCKS, TIER_FILE, TIERS } from './tiers'
 
@@ -67,7 +67,7 @@ for (const tier of TIERS) {
       const blocks = TIER_BLOCKS[tier][level].map(label => BLOCK_TEXT[TIER_FILE[tier]]?.[label] ?? `missing ${label}`)
       const tierPart = blocks.length === 0 ? [] : [blocks.join('\n\n')]
       const returnPart = `Return: write your full report to ${ROOT}/.rex/plans/${JOB}/engineer.md. Your final message has at most 2,000 characters: the path of that file, a summary of at most 5 lines, and one state: done, partial, awaiting decision, or blocked.`
-      expect(started[0]?.prompt).toBe([`Rex-Job: ${JOB}\nRex-Role: engineer`, SKILLS_BLOCK, AUTHOR, ...tierPart, SANDBOX_TEXT, returnPart].join('\n\n'))
+      expect(started[0]?.prompt).toBe([`Rex-Job: ${JOB}\nRex-Role: engineer`, SKILLS_BLOCK, AUTHOR, ...tierPart, SHELL_TEXT, returnPart].join('\n\n'))
     })
   }
 }

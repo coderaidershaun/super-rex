@@ -96,6 +96,10 @@ export async function serveJobOpen($: EngineInterface, event: { readonly agentId
   if (caller.kind === 'builder' && caller.job !== null) {
     return answer(await jobLines($, book, caller.job, await repoPlaces($, caller.job.repo), true, false))
   }
+  if (caller.kind === 'master') {
+    // The main loop is a master here: it starts builders with rex_build, and builds no job of its own beside its tree.
+    return deny(`${TOOL}: the main loop runs a master tree in this session, got a job start; end the tree with rex_report first, or start the job in another session`)
+  }
   if (caller.kind !== 'main' || book.jobStartPrompt === null) {
     await fail($, { kind: 'origin-not-person', action: TOOL, origin: caller.kind })
     return deny(`${TOOL}: only a builder opens a job: the main loop right after your /orchestration-builder prompt, or a builder that rex_build started; you are ${caller.kind}`)

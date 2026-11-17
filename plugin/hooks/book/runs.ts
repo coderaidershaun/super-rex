@@ -1,7 +1,7 @@
 // Pure changes of agent runs: where a run sits in the tree, which job and role it belongs to, what it spent, and how it ended.
 import type { TurnUsage } from 'claude-code'
 
-import type { RexBook, RexJob, RexLintAttempt, RexRun, RexTokens } from '../../types'
+import type { RexBook, RexJob, RexLintAttempt, RexRun, RexTokens, RexTree } from '../../types'
 import { findJob, isOpen, mainJob, NO_TOKENS, queued, replaceJob, tokensData, tokensPlus } from './events'
 import { priceNano } from './prices'
 
@@ -43,12 +43,7 @@ function placeOf(book: RexBook, input: StartRunInput): { readonly place: Place; 
   const pending = input.isOwnSpawn && input.parentAgentId === null ? book.pendingSpawns.find(spawn => spawn.description === input.description) : undefined
   if (pending !== undefined) {
     const rest = { ...book, pendingSpawns: book.pendingSpawns.filter(spawn => spawn !== pending) }
-    const tree = rest.trees.find(each => each.id === pending.tree)
-    if (pending.kind === 'master') {
-      const trees = rest.trees.map(each => (each.id === pending.tree ? { ...each, master: input.agentId } : each))
-      return { place: { parent: 'main', parentSource: 'mod', depth: 1, job: null, tree: pending.tree }, book: { ...rest, trees } }
-    }
-    return { place: { parent: tree?.master ?? 'main', parentSource: 'mod', depth: 1, job: pending.job, tree: null }, book: rest }
+    return { place: { parent: 'main', parentSource: 'mod', depth: 1, job: pending.job, tree: null }, book: rest }
   }
   const parentRun = input.parentAgentId === null ? undefined : findRun(book, input.parentAgentId)
   const ownJob = book.jobs.find(job => isOpen(job) && job.owner.builder === input.agentId)
@@ -212,13 +207,27 @@ export function stepRunIn(book: RexBook, agentId: string, step: StepInput, at: n
   return isNewMark ? queued(changed, at, 'run.mark', agentId, run.job, { agent_id: agentId, mark }) : changed
 }
 
-/** A step of the main loop, which has no run: its usage goes to the open job the main loop builds in this session, so that job's limit counts the whole session's work on it, and to no job when the main loop builds none. */
+/** The live tree the main loop of this session runs as master, if it runs one. */
+export function mainTree(book: RexBook): RexTree | undefined {
+  return book.trees.find(tree => tree.session === book.session && tree.master === 'main' && (tree.state === 'running' || tree.state === 'paused'))
+}
+
+/**
+ * A step of the main loop, which has no run: its usage goes to the open job
+ * the main loop builds in this session, so that job's limit counts the whole
+ * session's work on it. With no such job it goes to the ledger of the tree
+ * the main loop runs as master, and with neither to nothing.
+ */
 export function stepMainIn(book: RexBook, step: StepInput): RexBook {
   const job = mainJob(book)
-  if (job === undefined) {
+  const tree = job === undefined ? mainTree(book) : undefined
+  if (job === undefined && tree === undefined) {
     return book
   }
   const { tokens, spent } = tallyOf(step.usage)
+  if (job === undefined) {
+    return { ...book, trees: book.trees.map(each => (each.id === tree?.id ? { ...each, ledgerNano: each.ledgerNano + spent } : each)) }
+  }
   return replaceJob(book, job.id, old => ({ ...old, tokens: tokensPlus(old.tokens, tokens), spentNano: old.spentNano + spent }))
 }
 

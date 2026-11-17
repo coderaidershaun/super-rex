@@ -1,11 +1,10 @@
-// The mod's own spawns as the engine raises them: no master but the mod's own, pre-flight 5 at the master's spawn, where the session's permission mode is first known, and the link of a builder to its job.
+// The mod's own spawns as the engine raises them: the permission check of a headless run at a builder's spawn, where the session's permission mode is first known, and the link of a builder to its job.
 import type { AgentSpawnInput, AgentSpawnResult, EngineInterface } from 'claude-code'
 
 import type { RexPendingSpawn } from '../../types'
 import { fail, linkBuilder, readBook, startRun } from '../book/index'
 import { DEFAULT_POLICY } from './policy'
 import { readPolicy } from './store'
-import { isWakeOnTheWay } from './wake'
 
 /** The pending spawn this event is, when this plugin's own `$.agent.spawn` raised it. */
 export async function ownPending($: EngineInterface, event: AgentSpawnInput, origin: string | undefined): Promise<RexPendingSpawn | undefined> {
@@ -23,7 +22,7 @@ async function allowRules($: EngineInterface): Promise<readonly string[]> {
 }
 
 /**
- * Headless, an ask is a deny, so a master runs only where no ask comes up:
+ * Headless, an ask is a deny, so a builder starts only where no ask comes up:
  * bypass, or every allow rule the policy requires already in the settings.
  */
 export async function permissionRefusal($: EngineInterface, event: AgentSpawnInput, isInteractive: boolean): Promise<string | null> {
@@ -41,17 +40,17 @@ export async function permissionRefusal($: EngineInterface, event: AgentSpawnInp
     return null
   }
   const seen = required.length === 0 ? 'required_allow is empty' : missing.join(', ')
-  return `rex master: headless mode ${mode} asks no one, so each ask is a deny; run with bypassPermissions or list allow rules in policy required_allow, got ${seen}`
+  return `rex_build: headless mode ${mode} asks no one, so each ask is a deny; run with bypassPermissions or list allow rules in policy required_allow, got ${seen}`
 }
 
-/** A check that throws refuses the master's spawn, as authority must. */
+/** A check that throws refuses the builder's spawn, as authority must. */
 async function guardedRefusal($: EngineInterface, event: AgentSpawnInput, isInteractive: boolean): Promise<string | null> {
   try {
     return await permissionRefusal($, event, isInteractive)
   } catch (error) {
     const name = error instanceof Error ? error.name : 'Error'
-    await fail($, { kind: 'authority-check-failed', check: 'master-permission-mode', error: error instanceof Error ? `${name}: ${error.message}` : String(error) })
-    return `rex master: the permission check failed (${name}); refused`
+    await fail($, { kind: 'authority-check-failed', check: 'builder-permission-mode', error: error instanceof Error ? `${name}: ${error.message}` : String(error) })
+    return `rex_build: the permission check failed (${name}); refused`
   }
 }
 
@@ -79,8 +78,8 @@ export async function spawnOwn($: EngineInterface, request: { readonly subagentT
 
 /**
  * The run of the mod's own agent is recorded here, before the observer
- * records it, so the master's link to its tree and a builder's link to its job
- * never rest on an observer, which may fail and let the spawn go on.
+ * records it, so a builder's link to its job never rests on an observer,
+ * which may fail and let the spawn go on.
  */
 async function recordOwnRun($: EngineInterface, event: AgentSpawnInput, pending: RexPendingSpawn, agentId: string): Promise<void> {
   const flight = inFlight.get(pending.description)
@@ -89,26 +88,9 @@ async function recordOwnRun($: EngineInterface, event: AgentSpawnInput, pending:
   }
   const agentType = flight?.subagentType ?? event.subagentType
   await startRun($, { agentId, toolUseId: event.tool_use_id ?? null, parentAgentId: null, agentType, description: pending.description, isOwnSpawn: true })
-  if (pending.kind === 'builder' && pending.job !== null) {
+  if (pending.job !== null) {
     await linkBuilder($, pending.tree, pending.job, agentId)
   }
-}
-
-/**
- * The master type is offered while a wake of the mod is on the way to a
- * master, so this check, not the offer, holds the authority: a master starts
- * only as the mod's own pending spawn, and runs again only by the mod's wake.
- */
-export async function masterSpawn($: EngineInterface, event: AgentSpawnInput, origin: string | undefined, next: (e: AgentSpawnInput) => Promise<AgentSpawnResult>): Promise<AgentSpawnResult> {
-  const isOwnStart = (await ownPending($, event, origin))?.kind === 'master'
-  const isOwnWake = event.resume !== undefined && isWakeOnTheWay(event.resume.agentId)
-  if (isOwnStart || isOwnWake) {
-    return next(event)
-  }
-  const isModel = origin === undefined || origin === 'engine'
-  const who = event.parentAgentId ?? (isModel ? 'the main loop' : `plugin ${origin}`)
-  await fail($, { kind: 'origin-not-person', action: 'spawn of a master', origin: who })
-  return { deny: `rex master: only /rex master starts a master, got a spawn by ${who}; run /rex master <goal>` }
 }
 
 export async function ownSpawn($: EngineInterface, event: AgentSpawnInput, origin: string | undefined, isInteractive: boolean, next: (e: AgentSpawnInput) => Promise<AgentSpawnResult>): Promise<AgentSpawnResult> {
@@ -116,12 +98,10 @@ export async function ownSpawn($: EngineInterface, event: AgentSpawnInput, origi
   if (pending === undefined) {
     return next(event)
   }
-  if (pending.kind === 'master') {
-    const refusal = await guardedRefusal($, event, isInteractive)
-    if (refusal !== null) {
-      await fail($, { kind: 'preflight-failed', step: 5, text: refusal })
-      return { deny: refusal }
-    }
+  const refusal = await guardedRefusal($, event, isInteractive)
+  if (refusal !== null) {
+    await fail($, { kind: 'preflight-failed', step: 5, text: refusal })
+    return { deny: refusal }
   }
   const result = await next(event)
   if (result.agentId !== undefined) {

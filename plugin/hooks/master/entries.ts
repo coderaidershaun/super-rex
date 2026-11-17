@@ -1,15 +1,23 @@
 // What the master module adds to the shared tables, as data: its sub-commands, its tools, and its gate checks; its own hooks serve each one.
 import type { GateCheck, Subcommand, ToolEntry } from '../parts'
 
-export const MASTER_SUBCOMMAND: Subcommand = { name: 'master', summary: 'Starts a master tree from your goal or charter file, or resumes one', grantsAuthority: true }
 export const POLICY_SUBCOMMAND: Subcommand = { name: 'policy', summary: 'Shows, confirms or sets what a master may decide as you', grantsAuthority: true }
 export const ANSWER_SUBCOMMAND: Subcommand = { name: 'answer', summary: 'Answers a parked question as you', grantsAuthority: true }
 
-export const SUBCOMMANDS: readonly Subcommand[] = [MASTER_SUBCOMMAND, POLICY_SUBCOMMAND, ANSWER_SUBCOMMAND]
+export const SUBCOMMANDS: readonly Subcommand[] = [POLICY_SUBCOMMAND, ANSWER_SUBCOMMAND]
 
 const LEVEL = { type: 'string', enum: ['low', 'medium', 'high'] } as const
 const RATING = { type: 'string', enum: ['low', 'medium', 'high', 'none'] } as const
 const JOB_IDS = { type: 'array', items: { type: 'string' } } as const
+
+export const TREE_OPEN_TOOL: ToolEntry = {
+  name: 'rex_tree_open',
+  description:
+    "Opens the master tree of the person's own /super-rex:orchestration-master prompt, with you, the main loop, as its master; the charter comes from that prompt, never from an argument. With resume as the prompt, the newest open tree of the store comes back. Answers tree, state, existing, resumed, merge, then the charter, the policy, the repo and the code map.",
+  inputSchema: { type: 'object', properties: {} },
+  isDeferred: true,
+  callers: ['main', 'master'],
+}
 
 export const BUILD_TOOL: ToolEntry = {
   name: 'rex_build',
@@ -87,8 +95,9 @@ export const REPORT_TOOL: ToolEntry = {
   callers: ['master'],
 }
 
-export const TOOLS: readonly ToolEntry[] = [BUILD_TOOL, CONTINUE_TOOL, NOTE_TOOL, ASK_OWNER_TOOL, REPORT_TOOL]
+export const TOOLS: readonly ToolEntry[] = [TREE_OPEN_TOOL, BUILD_TOOL, CONTINUE_TOOL, NOTE_TOOL, ASK_OWNER_TOOL, REPORT_TOOL]
 
+export const TREE_OPEN_TOOL_NAME = 'mcp__super-rex__rex_tree_open'
 export const BUILD_TOOL_NAME = 'mcp__super-rex__rex_build'
 export const MERGE_TOOL_NAME = 'mcp__super-rex__rex_merge'
 

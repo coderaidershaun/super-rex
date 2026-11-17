@@ -81,7 +81,7 @@ function agentFacts(run: RexRun, node: OutlineNode): readonly string[] {
 }
 
 function sessionFacts(node: OutlineNode): readonly string[] {
-  return node.children.length === 0 ? ['Nothing runs yet. Start a job with /super-rex:orchestration-builder, or a tree with /rex master <goal>.'] : []
+  return node.children.length === 0 ? ['Nothing runs yet. Start a job with /super-rex:orchestration-builder, or a tree with /super-rex:orchestration-master <goal>.'] : []
 }
 
 export function factsOf(book: RexBook, node: OutlineNode): readonly string[] {

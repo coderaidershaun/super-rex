@@ -1,5 +1,5 @@
 //! `rex init`: sets a repo up in one run that is safe to repeat and never
-//! replaces what the person has, with the sandbox settings first.
+//! replaces what the person has, with the permissions and deny rules first.
 
 mod agents_md;
 mod config;
@@ -26,21 +26,17 @@ use file_change::FileChange;
 use plugin::PluginInstall;
 use pre_commit::{ConfigWrite, HookInstall};
 
-/// The sub-agent depth a master tree needs: master and builder at depth 1,
-/// leads at 2, workers at 3 and their own fan-out at 4.
+/// The sub-agent depth a master tree needs: builders at depth 1, leads at 2,
+/// workers at 3 and their own fan-out at 4.
 pub const MASTER_DEPTH: u32 = 4;
 
 /// Set SuperRex up in a repo. Safe to run twice.
 #[derive(clap::Args, Clone, Debug)]
 #[command(
-    after_help = "Run it from your own shell, in the root of the main checkout (the folder that holds .git). It installs the super-rex plugin at project scope through the claude command and never replaces a file or setting of yours; a kept value that weakens a safety setting is reported, and the run exits 1. Entries that ran every git command outside the sandbox (\"git *\", \"Bash(git *)\") are taken out with a notice: rex lists its job worktrees instead, so git works in the sandbox."
+    after_help = "Run it from your own shell, in the root of the main checkout (the folder that holds .git). It installs the super-rex plugin at project scope through the claude command and never replaces a file or setting of yours. In .claude/settings.local.json it allows every Bash command (\"Bash\"), adds deny rules that still hold over it, and opens the folder above the repo and the job worktrees to agents. It turns no Claude Code sandbox on: the plugin refuses a recursive rm outside the folder that holds the repo. A sandbox an older rex init turned on there (sandbox.enabled, permissions.blockWritesOutsideWorkingDirectories) is turned off, with a notice."
 )]
 pub struct InitOptions {
-    /// Never let an agent run a command outside the sandbox.
-    #[arg(long = "strict")]
-    pub is_strict: bool,
-
-    /// Keep the record of jobs in .rex/rex.db: rex jobs, rex job show, recall, feedback, cost of record and rex master resume need it. With neither storage flag, rex init asks at a terminal (yes by default).
+    /// Keep the record of jobs in .rex/rex.db: rex jobs, rex job show, recall, feedback, cost of record and /super-rex:orchestration-master resume need it. With neither storage flag, rex init asks at a terminal (yes by default).
     #[arg(long = "with-storage")]
     pub is_with_storage: bool,
 
@@ -61,21 +57,20 @@ pub struct InitOptions {
 /// a Git repository, and a recent enough Claude Code must be on PATH. Nothing
 /// is written when one fails.
 ///
-/// Then, in this order: the safety settings, the deny rules, the job
-/// worktrees in `<parent>/<name>.worktrees/` and the sub-agent depth in
-/// `.claude/settings.local.json`, with the hook entries of rex 0.7 and the
-/// stopgap entries that ran git outside the sandbox taken out;
+/// Then, in this order: the rule that allows every Bash command, the deny
+/// rules, the job worktrees in `<parent>/<name>.worktrees/` and the sub-agent
+/// depth in `.claude/settings.local.json`, with the hook entries of rex 0.7
+/// taken out and a sandbox an older run turned on turned off;
 /// `.rex/config.json`; the plugin, through `claude plugin`; once it is in, the
 /// removal of each unchanged copy that rex 0.4 to 0.7 put in `.rex/skills/`,
 /// `.claude/skills/` or `.claude/agents/`; the rex sections of `AGENTS.md`; the block in `.gitignore`; with storage on, the
 /// store in `.rex`; the pre-commit config, and its hooks when `pre-commit` is
 /// on PATH. The settings come first, so a step that stops the install never
-/// leaves the plugin in place without the sandbox.
+/// leaves the plugin in place without the deny rules.
 ///
 /// Nothing of the person's is replaced, and nothing is written through a
-/// symbolic link. A value of the person's that weakens a safety setting is
-/// kept, and it fails the run. `is_strict` writes the setting that keeps every
-/// command inside the sandbox.
+/// symbolic link. A value of the person's that differs from the one rex sets
+/// is kept, with a warning.
 ///
 /// A failure that leaves the rest of the install possible, such as a settings
 /// file rex cannot merge, does not stop it. Each one is printed on stderr at
@@ -86,7 +81,8 @@ pub struct InitOptions {
 /// written; [`InitError::Incomplete`] if any step failed, each one named on
 /// stderr first.
 pub fn run(cwd: &Path, options: InitOptions) -> Result<(), InitError> {
-    let mut failures = preflight::check(cwd)?;
+    preflight::check(cwd)?;
+    let mut failures = Vec::new();
     if let Err(stop) = install(cwd, &options, &mut failures) {
         failures.push(stop);
     }

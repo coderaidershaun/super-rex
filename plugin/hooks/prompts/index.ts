@@ -11,6 +11,9 @@ export { READ_CHARTER, restate } from './restate'
 /** The command names a job-start prompt runs: the plugin's skill, and its bare name, which the engine may also give. */
 const JOB_START_COMMANDS = new Set(['super-rex:orchestration-builder', 'orchestration-builder'])
 
+/** The command names the master skill's prompt runs: the plugin's skill, and its bare name. */
+const TREE_START_COMMANDS = new Set(['super-rex:orchestration-master', 'orchestration-master'])
+
 /** Only the person's own words are acted on; an `sdk` prompt is the person's when the config lets jobs start from it. */
 function personOrigin(origin: PromptOrigin, book: RexBook): RexOriginKind | null {
   if (origin.kind === 'composer' || origin.kind === 'bridge') {
@@ -36,6 +39,7 @@ async function jobStart($: EngineInterface, e: PromptSubmitInput, origin: RexOri
     restatement,
     isRecorded: book.prompts !== 'off',
     jobStart: { origin, text: request, restatement, restatementSkipped: skipped },
+    treeStart: null,
   })
   if (skipped !== null) {
     await fail($, { kind: 'restatement-failed', reason: skipped })
@@ -54,7 +58,7 @@ async function jobStart($: EngineInterface, e: PromptSubmitInput, origin: RexOri
 
 /** Any other prompt of the person while the main loop owns a job: rules only, no model call. */
 async function insideJob($: EngineInterface, e: PromptSubmitInput, origin: RexOriginKind, book: RexBook): Promise<readonly string[]> {
-  await recordPrompt($, { text: e.text, origin, command: e.command ?? null, restatement: null, isRecorded: book.prompts !== 'off', jobStart: null })
+  await recordPrompt($, { text: e.text, origin, command: e.command ?? null, restatement: null, isRecorded: book.prompts !== 'off', jobStart: null, treeStart: null })
   const job = mainJob(book)
   if (job === undefined) {
     return []
@@ -76,9 +80,28 @@ async function insideJob($: EngineInterface, e: PromptSubmitInput, origin: RexOr
   return lines
 }
 
+/**
+ * The prompt that runs the master skill: recorded, and kept so the tree that
+ * opens next takes its charter from the person's own words. A headless prompt
+ * is kept too, whatever the config says of jobs: rex_tree_open asks the
+ * policy whether a tree may start from one.
+ */
+async function treeStart($: EngineInterface, e: PromptSubmitInput, origin: RexOriginKind, book: RexBook): Promise<void> {
+  const text = (e.command?.args ?? '').trim()
+  await recordPrompt($, { text: e.text, origin, command: e.command ?? null, restatement: null, isRecorded: book.prompts !== 'off', jobStart: null, treeStart: { origin, text } })
+}
+
+function isPerson(origin: PromptOrigin): boolean {
+  return origin.kind === 'composer' || origin.kind === 'bridge' || origin.kind === 'sdk'
+}
+
 export function register(on: On, _parts: Parts): void {
   on('prompt.submit', async ($, e, next) => {
     const book = await readBook($)
+    if (book.inert === null && e.command !== undefined && TREE_START_COMMANDS.has(e.command.name) && isPerson(e.origin)) {
+      await treeStart($, e, e.origin.kind === 'sdk' ? 'sdk' : e.origin.kind === 'bridge' ? 'bridge' : 'composer', book)
+      return next(e)
+    }
     const origin = book.inert === null ? personOrigin(e.origin, book) : null
     if (origin === null) {
       return next(e)

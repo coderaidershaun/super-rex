@@ -34,16 +34,6 @@ pub(super) fn with_depth(mut settings: Value) -> Value {
     settings
 }
 
-/// Where the trivy scanner keeps its database on the machine that runs the
-/// tests.
-pub(super) fn trivy_cache() -> &'static str {
-    if cfg!(target_os = "macos") {
-        "~/Library/Caches/trivy"
-    } else {
-        "~/.cache/trivy"
-    }
-}
-
 /// The folder that holds `repo`, as `rex init` names it.
 pub(super) fn parent_of(repo: &Repo) -> String {
     let canonical = repo.path().canonicalize().expect("canonical repo path");
@@ -51,44 +41,17 @@ pub(super) fn parent_of(repo: &Repo) -> String {
     parent.to_str().expect("utf8 parent").to_string()
 }
 
-/// The safety settings `rex init` writes for `repo`, in their order.
-/// The commands that `rex init` lets run outside the sandbox, except with
-/// `--strict`.
-const OUTSIDE_SANDBOX: [&str; 6] = [
-    "git worktree *",
-    "git merge *",
-    "git pull *",
-    "git switch *",
-    "rex init*",
-    "rex worktree *",
-];
-
-/// The allow rules that let `rex worktree` run outside the sandbox with no
-/// prompt, except with `--strict`.
-pub(super) const WORKTREE_ALLOW_RULES: [&str; 2] =
-    ["Bash(rex worktree add *)", "Bash(rex worktree remove *)"];
-
-pub(super) fn safety_settings(repo: &Repo) -> Value {
+/// The permissions `rex init` writes for `repo`, in their order: the folder
+/// above it, the deny rules, and the one rule that allows every Bash command.
+/// No `sandbox` key.
+pub(super) fn permission_settings(repo: &Repo) -> Value {
     json!({
-        "sandbox": {
-            "enabled": true,
-            "failIfUnavailable": false,
-            "allowUnsandboxedCommands": true,
-            "enableWeakerNetworkIsolation": true,
-            "network": { "allowLocalBinding": true },
-            "filesystem": {
-                "allowWrite": ["~/.cargo/registry", "~/.cargo/git", "~/.cargo/.package-cache", "~/.cargo/.package-cache-mutate", "~/.cargo/.global-cache", "~/.cache/pre-commit/patch*", trivy_cache()],
-                "denyRead": ["~/.aws"]
-            },
-            "excludedCommands": OUTSIDE_SANDBOX
-        },
         "permissions": {
             "additionalDirectories": [parent_of(repo)],
-            "blockWritesOutsideWorkingDirectories": true,
             "deny": ["Bash(sudo *)", "Bash(git push --force*)", "Bash(cargo publish*)", "Bash(gh pr merge*--admin*)",
                      PLUGIN_DENY_RULES[0], PLUGIN_DENY_RULES[1], PLUGIN_DENY_RULES[2],
                      PLUGIN_DENY_RULES[3], PLUGIN_DENY_RULES[4], PLUGIN_DENY_RULES[5]],
-            "allow": WORKTREE_ALLOW_RULES
+            "allow": ["Bash"]
         }
     })
 }

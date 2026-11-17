@@ -67,8 +67,8 @@ Other files. Read one only when a step sends you there:
 - [ ] IF push prints `could not lock config file .git/config`, THEN push is complete. Make sure: `git -C "$JOB_DIR" ls-remote origin "$BRANCH"` prints same hash as `git -C "$JOB_DIR" rev-parse "$BRANCH"`.
 - [ ] CAUTION: Never use `git push --force`, or `git rebase` or `git commit --amend` on a pushed commit. These commands rewrite history and can destroy remote work.
 - [ ] CAUTION: Never run `git stash`, `git reset`, or `git clean` in the main checkout. These commands destroy the user's own uncommitted work.
-- [ ] Job repo: mod makes each worktree of job (`rex_job_open`, `rex_worktree`), and removes worktrees + branches of job at `rex_job_close`. Never run `rex worktree`, `git worktree`, or `git branch -D` for them. Other repo: make a worktree only with `rex worktree add`. It lists the worktree, so sandboxed `git commit` works there.
-- [ ] Run each git command of a worktree in the sandbox, with its absolute path after `-C`. Never run `git commit` or `git push` with `dangerouslyDisableSandbox`: their hooks would run outside the sandbox. IF a commit prints `index.lock': Operation not permitted` in a new worktree, THEN run it once more. IF it fails again, THEN report `blocked` with that output.
+- [ ] Job repo: mod makes each worktree of job (`rex_job_open`, `rex_worktree`), and removes worktrees + branches of job at `rex_job_close`. Never run `rex worktree`, `git worktree`, or `git branch -D` for them. Other repo: make a worktree only with `rex worktree add`. It lists the worktree, so file tools work there.
+- [ ] Run each git command of a worktree with its absolute path after `-C`. IF a commit prints `index.lock` in a new worktree, THEN run it once more. IF it fails again, THEN report `blocked` with that output.
 - [ ] CAUTION: Never remove a worktree with `rm` or `--force`. Uncommitted work in it is then lost.
 - [ ] CAUTION: Delete nothing without the job ID in its name. Branches of the user and of other jobs are not yours to delete.
 - [ ] LATER removes branches and worktrees only in End 3.

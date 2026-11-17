@@ -1,11 +1,11 @@
-// Proves /rex master resume: the tree, its jobs and questions come back from rex tree show, an open job's builder starts again or waits on a question by policy, a new master starts with a digest, and no second tree.open reaches the store.
+// Proves the resume of a tree through rex_tree_open after the person's /super-rex:orchestration-master resume: the tree, its jobs and questions come back from rex tree show with the main loop as master, an open job's builder starts again or waits on a question by policy, the answer's brief carries a digest, and no second tree.open reaches the store.
 import { expect, test } from 'claude-code/testing'
 
 import type { ProcessAnswer, ProcessCall } from '../book/kit'
 import { ROOT, SESSION } from '../book/kit'
 import { sharedJson } from '../book/shared'
 import type { Policy } from './policy'
-import { buildRules, byRule, confirmedPolicy, masterWorld, placesRules, POLICY_KEY, ran, rex, settleUntil, START } from './master-kit'
+import { buildRules, byRule, confirmedPolicy, lineOf, masterWorld, openedTree, placesRules, POLICY_KEY, ran, resultText, settleUntil, START } from './master-kit'
 import type { Rule } from './master-kit'
 
 const OLD_SESSION = '11111111-2222-4333-8444-555555555555'
@@ -52,6 +52,11 @@ function treeShow(policyHash: string): ProcessAnswer {
   return ran(`${JSON.stringify(shown)}\n`)
 }
 
+/** The answer of a resume up to the blank line before its brief. */
+function headOf(result: unknown): string {
+  return resultText(result).split('\n\n')[0] ?? ''
+}
+
 /** The kinds of every event the mod sent to `rex ingest`, beside the answers of the rules. */
 function recording(rules: readonly Rule[], calls: ProcessCall[], kinds: string[]): (call: ProcessCall) => ProcessAnswer {
   const answer = byRule(rules, calls)
@@ -87,22 +92,23 @@ test('resume_reattaches_questions_and_continues_or_asks: on_dead_builder continu
   const { session, policy, calls, kinds } = await resumed(on, { on_dead_builder: 'continue' })
   await $.session.start(START)
 
-  const answered = await $.command.run(rex('master resume'))
+  const answered = await openedTree($, 'resume')
   await session.clock.advance(10_000)
   await settleUntil(session.clock, () => kinds.includes('job.rebind'))
 
   const book = session.book()
   const tree = book.trees[0]
   const builder = session.spawned.find(spawn => spawn.description === `rex builder ${JOB}`)
-  const master = session.spawned.find(spawn => spawn.description === 'rex master t1')
-  expect(answered.text).toBe(`tree=t1\nmaster=m1\ncontinued=${JOB}\nasked=none\n`)
-  expect([tree?.session, tree?.state, tree?.policyHash, tree?.master, tree?.charter]).toEqual([SESSION, 'running', policy.confirmed_hash, 'm1', CHARTER])
-  expect(tree?.builders).toEqual([{ job: JOB, agentId: 'b2' }])
-  expect(book.jobs.map(job => [job.id, job.status, job.owner, job.worktree])).toEqual([[JOB, 'planned', { session: SESSION, builder: 'b2' }, `${ROOT}.worktrees/${JOB}`]])
+  const brief = resultText(answered)
+  expect(headOf(answered)).toBe(`tree=t1\nstate=running\nexisting=no\nresumed=yes\ncontinued=${JOB}\nasked=none\nmerge=ask\nperson=yes`)
+  expect([tree?.session, tree?.state, tree?.policyHash, tree?.master, tree?.charter]).toEqual([SESSION, 'running', policy.confirmed_hash, 'main', CHARTER])
+  expect(tree?.builders).toEqual([{ job: JOB, agentId: 'b1' }])
+  expect(book.jobs.map(job => [job.id, job.status, job.owner, job.worktree])).toEqual([[JOB, 'planned', { session: SESSION, builder: 'b1' }, `${ROOT}.worktrees/${JOB}`]])
   expect(book.questions.map(question => [question.id, question.job, question.answer])).toEqual([[QUESTION, JOB, null]])
-  expect(master?.prompt).toContain(`<charter>\n${CHARTER}\n</charter>`)
-  expect(master?.prompt).toContain(`job ${JOB} planned: its builder is gone, so a new builder continues it`)
-  expect(master?.prompt).toContain(`question ${QUESTION} parked: Which parser?`)
+  expect(brief).toContain(`<charter>\n${CHARTER}\n</charter>`)
+  expect(brief).toContain(`job ${JOB} planned: its builder is gone, so a new builder continues it`)
+  expect(brief).toContain(`question ${QUESTION} parked: Which parser?`)
+  expect(book.treeStartPrompt).toBeNull()
   expect([builder?.type, builder?.cwd]).toEqual(['super-rex:model-high-effort-high', `${ROOT}.worktrees/${JOB}`])
   expect(builder?.prompt).toContain(`This job started before a restart. Continue job ${JOB} from the first step not done.`)
   expect(calls.some(call => call.argv[0] === 'rex' && call.argv[1] === 'worktree')).toBe(false)
@@ -116,7 +122,7 @@ test('a builder restarted on resume gets its worktree back on the job branch tha
   const { session, calls, kinds } = await resumed(on, { on_dead_builder: 'continue' }, [branchTip], `worktree ${ROOT}\nHEAD abc\n`)
   await $.session.start(START)
 
-  await $.command.run(rex('master resume'))
+  await openedTree($, 'resume')
   await session.clock.advance(10_000)
   await settleUntil(session.clock, () => kinds.includes('job.rebind'))
 
@@ -130,9 +136,9 @@ test('a git call that throws while a builder restarts on resume leaves that job 
   const { session } = await resumed(on, { on_dead_builder: 'continue' }, [hung])
   await $.session.start(START)
 
-  const answered = await $.command.run(rex('master resume'))
+  const answered = await openedTree($, 'resume')
 
-  expect(answered.text).toBe('tree=t1\nmaster=m1\ncontinued=none\nasked=none\n')
+  expect(headOf(answered)).toBe('tree=t1\nstate=running\nexisting=no\nresumed=yes\ncontinued=none\nasked=none\nmerge=ask\nperson=yes')
   expect(session.statuses.some(line => line.startsWith(`rex: job ${JOB} of tree t1 got no new builder:`) && line.includes('timeout'))).toBe(true)
   expect(session.spawned.some(spawn => spawn.description === `rex builder ${JOB}`)).toBe(false)
 })
@@ -141,30 +147,34 @@ test('resume_reattaches_questions_and_continues_or_asks: on_dead_builder ask par
   const { session, kinds } = await resumed(on, { on_dead_builder: 'ask' })
   await $.session.start(START)
 
-  const answered = await $.command.run(rex('master resume'))
+  const answered = await openedTree($, 'resume')
   await session.clock.advance(10_000)
   await settleUntil(session.clock, () => kinds.includes('question.ask'))
 
   const book = session.book()
   const asked = book.questions.find(question => question.id !== QUESTION)
-  expect(answered.text).toBe(`tree=t1\nmaster=m1\ncontinued=none\nasked=${asked?.id ?? ''}\n`)
+  expect([lineOf(answered, 'continued'), lineOf(answered, 'asked')]).toEqual(['none', asked?.id])
   expect([asked?.tree, asked?.job, asked?.options, asked?.category]).toEqual(['t1', JOB, ['Start a new builder', 'Leave it blocked'], 'other'])
-  expect(session.spawned.map(spawn => spawn.description)).toEqual(['rex master t1'])
+  expect(session.spawned).toEqual([])
   expect(book.jobs[0]?.owner).toEqual({ session: OLD_SESSION, builder: 'b7' })
   expect(book.trees[0]?.builders).toEqual([])
   expect(kinds).not.toContain('tree.open')
 })
 
-test('/rex master resume refuses while a tree of this session is live, and with no open tree in the store', async ($, on) => {
+test('resume refuses with no open tree in the store, and while a tree of this session is live it answers that tree and reads no store', async ($, on) => {
   const policy = await confirmedPolicy()
   const empty = ran('{"tree":null,"jobs":[],"questions":[]}\n')
-  const session = masterWorld(on, { store: { [POLICY_KEY]: policy }, processAnswer: byRule([{ starts: ['rex', 'tree', 'show'], answer: empty }, ...placesRules('origin')]) })
+  const calls: ProcessCall[] = []
+  const session = masterWorld(on, { store: { [POLICY_KEY]: policy }, processAnswer: byRule([{ starts: ['rex', 'tree', 'show'], answer: empty }, ...placesRules('origin')], calls) })
   await $.session.start(START)
 
-  const none = await $.command.run(rex('master resume'))
-  await $.command.run(rex('master Ship the parser'))
-  const live = await $.command.run(rex('master resume'))
+  const none = await openedTree($, 'resume')
+  const opened = await openedTree($, 'Ship the parser')
+  const shows = calls.filter(call => call.argv[1] === 'tree').length
+  const live = await openedTree($, 'resume')
 
-  expect(none.text).toBe('rex master resume: no open tree in the store of this repo, got none; start one with /rex master <goal>')
-  expect(live.text).toBe(`rex master resume: tree ${session.book().trees[0]?.id ?? ''} is live in this session, got master m1; use /rex policy confirm`)
+  expect(none.deny).toBe('rex_tree_open resume: no open tree in the store of this repo, got none; the person starts one with /super-rex:orchestration-master <goal>')
+  expect(headOf(live)).toBe(`tree=${lineOf(opened, 'tree') ?? ''}\nstate=running\nexisting=yes\nresumed=no\nmerge=ask\nperson=yes`)
+  expect(calls.filter(call => call.argv[1] === 'tree').length).toBe(shows)
+  expect(session.book().trees.map(tree => tree.charter)).toEqual(['Ship the parser'])
 })

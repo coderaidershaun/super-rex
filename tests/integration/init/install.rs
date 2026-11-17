@@ -29,7 +29,7 @@ fn config_with_storage(storage: &str) -> Value {
 }
 
 /// What a run with no storage flag and no terminal prints, once storage stays off.
-const STORAGE_OFF: &str = "rex init: storage is off, so rex jobs, rex job show, recall, feedback, the cost of record and rex master resume have nothing to read, and rex watch shows only the snapshots that sessions wrote in the last week; run rex init --with-storage to turn it on";
+const STORAGE_OFF: &str = "rex init: storage is off, so rex jobs, rex job show, recall, feedback, the cost of record and /super-rex:orchestration-master resume have nothing to read, and rex watch shows only the snapshots that sessions wrote in the last week; run rex init --with-storage to turn it on";
 
 #[test]
 fn without_storage_asks_nothing_and_prints_no_notice_and_cannot_be_given_with_with_storage() {

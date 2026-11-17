@@ -20,7 +20,7 @@ Finish or close each job that a 0.7 session still runs. A 0.7 builder calls `rex
 
    ```console
    $ rex --version
-   rex 0.10.0
+   rex 0.11.0
    ```
 
    The mod calls `rex` by `PATH`, and the plugin and the binary must have the same version.
@@ -31,11 +31,11 @@ You do not install the plugin by hand. `rex init` installs it in each repo.
 
 ## In each repo
 
-Run each command yourself, in your own shell, in the root of the main checkout. Do not ask an agent to run them: the sandbox of a session cannot write the Claude Code settings files.
+Run each command yourself, in your own shell, in the root of the main checkout. Do not ask an agent to run them: Claude Code lets no agent write its settings files.
 
 ### 1. Run `rex init`
 
-0.7 always kept a store, `.rex/rex.db`. In 0.8 the store is a choice. To keep recall, feedback, the cost of record and `/rex master resume`, turn it on:
+0.7 always kept a store, `.rex/rex.db`. In 0.8 the store is a choice. To keep recall, feedback, the cost of record and `/super-rex:orchestration-master resume`, turn it on:
 
 ```sh
 rex init --with-storage
@@ -63,14 +63,14 @@ Without `--with-storage`, the record of a job lives only in the session and ends
 - It removes the hook entries that 0.7 wrote in `.claude/settings.local.json` for `rex hook`, `rex gate` and `rex test-hook`. Those commands are gone, and each entry would fail on every event. Your own hooks stay.
 - It adds the new deny rules, the sub-agent depth 4 and the rest of the 0.8 settings, and keeps every value of yours.
 - It writes `.rex/config.json`, which the mod reads when a session starts.
-- It removes the stopgap entries `git *` and `git:*` from `sandbox.excludedCommands`, and `Bash(git *)`, `Bash(git:*)` and `Bash(cd <parent>/*)` from `permissions.allow`, if you added them, with one line for each. They ran git and its hooks outside the sandbox. In their place it lists each job worktree in `<repo>.worktrees/` in `permissions.additionalDirectories`, so that `git commit` works in a worktree inside the sandbox with its hooks still sandboxed.
+- It allows every Bash command (`"Bash"` in `permissions.allow`), and lists each job worktree in `<repo>.worktrees/` in `permissions.additionalDirectories`. It turns no Claude Code sandbox on, and turns off one that an older `rex init` turned on in this file (`sandbox.enabled`, `permissions.blockWritesOutsideWorkingDirectories`), with one line for each. The mod's guard on a recursive `rm` takes its place: the README section "The safety settings" says what it stops.
 - It removes each copy that 0.7 put in `.rex/skills/` (the library), `.claude/skills/` (the 6 skills) and `.claude/agents/` (the 20 grid agents), if you never changed it. A copy in `.rex/skills/` would hide the plugin's skill, because `rex_skill` reads that folder first. A copy in `.claude/` would sit beside the plugin's in the session's list, and the 0.7 `/orchestration-builder` calls commands that 0.8 does not have. Skills of your own in these folders are left alone.
 - It replaces the 0.7 block in `.gitignore` with the 0.8 block. The 0.7 block ignored `/.rex/*`, `.claude/skills/` and `.claude/agents/`, so Git ignored `.rex/config.json` and `.rex/skills/`, which 0.8 tracks.
 
-Each removal of a stopgap entry, a copy or the block is one line on the output:
+Each sandbox setting turned off, and each removal of a copy or the block, is one line on the output:
 
 ```console
-rex init: removed "git *" from sandbox.excludedCommands in .claude/settings.local.json: it ran git and its hooks outside the sandbox, and rex now registers its worktrees, so git works inside it.
+rex init: turned the Claude Code sandbox off in .claude/settings.local.json (sandbox.enabled was true): the plugin's guard on recursive rm replaces it, and each run of rex init turns it off again.
 rex init: removed .rex/skills/rex-code-commenting/: it was an unchanged copy from an older rex, and the plugin ships rex-code-commenting now
 rex init: removed .claude/skills/rex-grill-me/: it was an unchanged copy from an older rex, and the plugin ships rex-grill-me now
 rex init: removed .claude/agents/model-low-effort-low.md: it was an unchanged copy from an older rex, and the plugin ships model-low-effort-low.md now
@@ -117,7 +117,7 @@ Claude Code loads a plugin when a session starts. Start a new session in the mai
 /rex doctor
 ```
 
-The answer starts with `doctor=ok` and ends with `mod=0.10.0`. A `problem=` line says what to fix, such as a binary and a plugin of different versions.
+The answer starts with `doctor=ok` and ends with `mod=0.11.0`. A `problem=` line says what to fix, such as a binary and a plugin of different versions.
 
 ## What changes when you use it
 
@@ -139,4 +139,4 @@ The answer starts with `doctor=ok` and ends with `mod=0.10.0`. A `problem=` line
 | The store, always | The store only with `rex init --with-storage`. |
 | `rex watch` | `/rex watch` in the session. `rex watch` still works at a shell. |
 
-New in 0.8: `/rex status`, `/rex jobs`, `/rex doctor`, `/rex prompts`, `/rex limit`, and, since 0.8.1, master runs with `/rex master`, `/rex policy` and `/rex answer` (`/rex master resume` needs storage). The [README](../README.md) describes each one.
+New in 0.8: `/rex status`, `/rex jobs`, `/rex doctor`, `/rex prompts`, `/rex limit`, and, since 0.8.1, `/rex policy` and `/rex answer` for master runs. Since 0.11 a master run starts with `/super-rex:orchestration-master <goal>` in place of `/rex master` (its `resume` needs storage). The [README](../README.md) describes each one.

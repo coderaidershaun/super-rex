@@ -1,23 +1,26 @@
-// /rex master: the person's own typing starts a master after every pre-flight check passes, with the charter stored as the person wrote it; storage is needed only to resume.
-import type { CommandRunInput, CommandRunResult, EngineInterface } from 'claude-code'
+// rex_tree_open: the main loop opens a master tree right after the person's own prompt of the master skill, once every pre-flight check passes, with the charter taken from that prompt as the person wrote it; storage is needed only to resume.
+import type { EngineInterface, ToolCallResult } from 'claude-code'
 
-import { errorText, fail, openTree, pluginVersion, readBook } from '../book/index'
-import { originRefusal, rexLine } from '../commands/index'
+import type { RexTree, RexTreeStartPrompt } from '../../types'
+import { dropTreeStart, errorText, fail, mainTree, openTree, pluginVersion, readBook } from '../book/index'
 import type { StatusSection, Table } from '../parts'
 import { hashText } from '../skills/index'
-import type { MasterTypeState } from './agent-type'
-import { MASTER_SUBCOMMAND } from './entries'
+import { callerOf, deny, linesText } from '../tools/index'
+import { TREE_OPEN_TOOL } from './entries'
 import { treeIdOf } from './ids'
 import { DEFAULT_POLICY, PolicyShapeError } from './policy'
 import type { MergeRule, Policy } from './policy'
-import { serveResume } from './resume'
-import { spawnMaster } from './start'
+import { resumeTree } from './resume'
+import { briefOf } from './start'
 import { startWatchdog } from './watch'
 import { readPolicy, realRoot, writePolicy } from './store'
 import type { StoredPolicy } from './store'
 
-/** What the entry needs from the module: whether the type registered, and whether a person is at the terminal. */
-export type EntryState = { readonly masterType: MasterTypeState; readonly isInteractive: boolean }
+const TOOL = TREE_OPEN_TOOL.name
+const SKILL = '/super-rex:orchestration-master'
+
+/** What the tool needs from the module: whether a person is at the terminal. */
+export type EntryState = { readonly isInteractive: boolean }
 
 /** The policy as the entry reads it; an unreadable one is a refusal, never the default. */
 type PolicyRead = { readonly kind: 'read'; readonly stored: StoredPolicy | null } | { readonly kind: 'refused'; readonly text: string }
@@ -27,7 +30,7 @@ async function policyRead($: EngineInterface): Promise<PolicyRead> {
     return { kind: 'read', stored: await readPolicy($) }
   } catch (error) {
     if (error instanceof PolicyShapeError) {
-      return { kind: 'refused', text: `rex master: the stored policy of this repo is unreadable, got ${error.message}; run /rex policy set ${error.key} <value>` }
+      return { kind: 'refused', text: `${TOOL}: the stored policy of this repo is unreadable, got ${error.message}; the person runs /rex policy set ${error.key} <value>` }
     }
     throw error
   }
@@ -41,15 +44,15 @@ async function preflightRefusal($: EngineInterface, state: EntryState): Promise<
   const binary = ran.exitCode === 0 ? (/^rex (\S+)\n?$/.exec(ran.stdout)?.[1] ?? ran.stdout.trim()) : `unknown (exit ${String(ran.exitCode)})`
   const plugin = await pluginVersion($)
   if (binary !== plugin) {
-    return { step: 2, text: `rex master: binary ${binary} does not match plugin ${plugin}; run rex doctor` }
+    return { step: 2, text: `${TOOL}: binary ${binary} does not match plugin ${plugin}; the person runs rex doctor` }
   }
   const depthText = await $.env.get('CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH')
   const depth = depthText === undefined ? Number.NaN : Number(depthText)
   if (!Number.isInteger(depth) || depth < MIN_DEPTH) {
-    return { step: 3, text: `rex master: depth is ${depthText ?? 'unset'}; run rex init (it writes 4)` }
+    return { step: 3, text: `${TOOL}: depth is ${depthText ?? 'unset'}; the person runs rex init (it writes 4), then starts a new session` }
   }
   if (!state.isInteractive && (await $.env.get('CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS')) !== '0') {
-    return { step: 4, text: 'rex master: headless runs need CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0, or background agents stop after 10 minutes' }
+    return { step: 4, text: `${TOOL}: headless runs need CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0, or background agents stop after 10 minutes` }
   }
   return null
 }
@@ -81,11 +84,11 @@ async function askFirstPolicy($: EngineInterface): Promise<StoredPolicy | null> 
 async function confirmedPolicy($: EngineInterface, state: EntryState, stored: StoredPolicy | null): Promise<StoredPolicy | string> {
   if (stored === null) {
     if (!state.isInteractive) {
-      return 'rex master: no confirmed policy for this repo; run /rex policy confirm in an interactive session'
+      return `${TOOL}: no confirmed policy for this repo; the person runs /rex policy confirm in an interactive session`
     }
-    return (await askFirstPolicy($)) ?? 'rex master: no confirmed policy for this repo; answer the policy question, or run /rex policy confirm'
+    return (await askFirstPolicy($)) ?? `${TOOL}: no confirmed policy for this repo; the person answers the policy question, or runs /rex policy confirm, then ${SKILL} again`
   }
-  return stored.isConfirmed ? stored : `rex master: the policy of this repo changed since you confirmed it, got hash ${stored.hash}; run /rex policy confirm`
+  return stored.isConfirmed ? stored : `${TOOL}: the policy of this repo changed since the person confirmed it, got hash ${stored.hash}; the person runs /rex policy confirm`
 }
 
 type Charter = { readonly text: string } | { readonly refused: string }
@@ -99,69 +102,90 @@ async function charterOf($: EngineInterface, args: string): Promise<Charter> {
   try {
     return { text: await $.fs.read(path) }
   } catch (error) {
-    return { refused: `rex master: charter file ${path} could not be read, got ${errorText(error)}; name a file in the repo` }
+    return { refused: `${TOOL}: charter file ${path} could not be read, got ${errorText(error)}; the person names a file in the repo` }
   }
 }
 
-function lines(rows: readonly string[]): CommandRunResult {
-  return { text: rows.map(row => `${row}\n`).join('') }
+async function refuse($: EngineInterface, step: number, text: string): Promise<ToolCallResult> {
+  await fail($, { kind: 'preflight-failed', step, text })
+  return deny(text)
 }
 
-async function refuse($: EngineInterface, step: number, text: string): Promise<CommandRunResult> {
-  await fail($, { kind: 'preflight-failed', step, text })
-  return { text }
+/** The answer of the tool: its `key=value` lines, then the brief's blocks. `person` says whether someone is at the terminal to answer a question. */
+function opened(tree: RexTree, policy: Policy, state: EntryState, rows: readonly string[], brief: string): ToolCallResult {
+  const lines = [`tree=${tree.id}`, `state=${tree.state}`, ...rows, `merge=${policy.merge}`, `person=${state.isInteractive ? 'yes' : 'no'}`]
+  return { result: `${linesText(lines)}\n${brief}` }
+}
+
+/** The tree this session's main loop already runs: its brief again, so a master that lost its context reads its charter. */
+async function existing($: EngineInterface, tree: RexTree, start: RexTreeStartPrompt | null, read: PolicyRead & { readonly kind: 'read' }, state: EntryState): Promise<ToolCallResult> {
+  const isNewCharter = start !== null && start.text !== '' && start.text !== 'resume'
+  if (isNewCharter) {
+    await dropTreeStart($)
+    return deny(`${TOOL}: master tree ${tree.id} of this session is still ${tree.state}, got a new charter; end it with rex_report first, then the person runs ${SKILL} <goal> again`)
+  }
+  const policy = read.stored?.policy ?? DEFAULT_POLICY
+  return opened(tree, policy, state, ['existing=yes', 'resumed=no'], await briefOf($, { charter: tree.charter, digest: null, policy }))
 }
 
 /** Every refusal before the tree opens leaves nothing started. */
-export async function serveMaster($: EngineInterface, event: CommandRunInput, state: EntryState, sections: Table<StatusSection>): Promise<CommandRunResult> {
+export async function serveTreeOpen($: EngineInterface, event: { readonly agentId?: string }, state: EntryState, sections: Table<StatusSection>): Promise<ToolCallResult> {
+  const caller = await callerOf($, event.agentId)
+  const book = await readBook($)
+  if (caller.agentId !== null || caller.kind === 'agent') {
+    await fail($, { kind: 'origin-not-person', action: TOOL, origin: caller.agentId ?? caller.kind })
+    return deny(`${TOOL}: only the main loop opens a master tree, right after the person's own ${SKILL} prompt, got ${caller.kind}`)
+  }
+  if (caller.kind === 'builder') {
+    return deny(`${TOOL}: the main loop builds job ${caller.job?.id ?? ''}, got an open job; close it with rex_job_close first, then the person runs ${SKILL} again`)
+  }
   const read = await policyRead($)
   if (read.kind === 'refused') {
     return refuse($, 6, read.text)
   }
-  const policy = read.stored?.policy ?? DEFAULT_POLICY
-  const originText = originRefusal(event, MASTER_SUBCOMMAND, event.origin.kind === 'sdk' && policy.allow_headless)
-  if (originText !== null) {
-    await fail($, { kind: 'origin-not-person', action: 'rex master', origin: event.origin.kind })
-    return { text: originText }
+  const start = book.treeStartPrompt
+  const live = mainTree(book)
+  if (live !== undefined) {
+    return existing($, live, start, read, state)
   }
-  const args = rexLine(event).args
-  if (args === '') {
-    return { text: 'rex master: name your goal, a charter file as @<path>, or resume, got nothing; run /rex master <goal>' }
+  const policy = read.stored?.policy ?? DEFAULT_POLICY
+  if (start === null || (start.origin === 'sdk' && !policy.allow_headless)) {
+    await fail($, { kind: 'origin-not-person', action: TOOL, origin: start === null ? 'no prompt of the master skill' : start.origin })
+    const why = start === null ? `got no ${SKILL} prompt of the person` : 'got a headless prompt while allow_headless of the policy is false'
+    return deny(`${TOOL}: only the person's own ${SKILL} prompt opens a master tree, ${why}; the person runs ${SKILL} <goal>`)
+  }
+  if (start.text === '') {
+    return deny(`${TOOL}: the prompt names no goal, got nothing after ${SKILL}; the person runs ${SKILL} <goal>, ${SKILL} @<charter file>, or ${SKILL} resume`)
   }
   const preflight = await preflightRefusal($, state)
   if (preflight !== null) {
     return refuse($, preflight.step, preflight.text)
   }
-  if (state.masterType.kind === 'unregistered') {
-    return refuse($, 0, `rex master: the master type is not registered, got ${state.masterType.reason}; run /rex doctor`)
-  }
   const confirmed = await confirmedPolicy($, state, read.stored)
   if (typeof confirmed === 'string') {
     await fail($, { kind: 'policy-missing', repo: await $.session.root() })
-    return { text: confirmed }
+    return deny(confirmed)
   }
-  if (args === 'resume') {
-    if ((await readBook($)).storage !== 'on') {
-      return { text: 'rex master resume: needs storage, got storage off; run rex init --with-storage, or start a new tree with /rex master <goal>' }
+  if (start.text === 'resume') {
+    if (book.storage !== 'on') {
+      return deny(`${TOOL}: resume needs storage, got storage off; the person runs rex init --with-storage, or starts a new tree with ${SKILL} <goal>`)
     }
-    return serveResume($, confirmed, sections)
+    const resumed = await resumeTree($, confirmed, sections)
+    if (typeof resumed === 'string') {
+      return deny(resumed)
+    }
+    return opened(resumed.tree, confirmed.policy, state, ['existing=no', 'resumed=yes', ...resumed.lines], await briefOf($, { charter: resumed.tree.charter, digest: resumed.digest, policy: confirmed.policy }))
   }
-  const charter = await charterOf($, args)
+  const charter = await charterOf($, start.text)
   if ('refused' in charter) {
-    return { text: charter.refused }
+    return deny(charter.refused)
   }
-  const tree = treeIdOf(await $.clock.now())
-  await openTree($, { id: tree, charter: charter.text, charterHash: await hashText(charter.text), policyHash: confirmed.hash, state: 'running', capNano: Math.round(confirmed.policy.tree_usd * 1e9) })
-  const started = await spawnMaster($, { tree, charter: charter.text, digest: null, policy: confirmed.policy })
-  if ('refused' in started) {
-    return { text: started.refused }
+  const id = treeIdOf(await $.clock.now())
+  await openTree($, { id, charter: charter.text, charterHash: await hashText(charter.text), policyHash: confirmed.hash, state: 'running', capNano: Math.round(confirmed.policy.tree_usd * 1e9) })
+  startWatchdog($, id, confirmed.policy.watchdog_minutes, sections)
+  const tree = (await readBook($)).trees.find(each => each.id === id)
+  if (tree === undefined) {
+    return deny(`${TOOL}: tree ${id} did not open; call ${TOOL} again`)
   }
-  startWatchdog($, started.tree, confirmed.policy.watchdog_minutes, sections)
-  return lines([
-    `tree=${started.tree}`,
-    `master=${started.master}`,
-    `merge=${confirmed.policy.merge}`,
-    'watch=/rex watch here, or rex watch in another terminal',
-    'answer=/rex answer <question id> <option number>',
-  ])
+  return opened(tree, confirmed.policy, state, ['existing=no', 'resumed=no'], await briefOf($, { charter: charter.text, digest: null, policy: confirmed.policy }))
 }

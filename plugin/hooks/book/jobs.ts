@@ -381,6 +381,7 @@ function replacedOrAdded<T extends { readonly id: string }>(old: readonly T[], r
 export function restoreIn(book: RexBook, restored: Restored): RexBook {
   return {
     ...book,
+    treeStartPrompt: null,
     trees: replacedOrAdded(book.trees, [restored.tree]),
     jobs: replacedOrAdded(book.jobs, restored.jobs),
     questions: replacedOrAdded(book.questions, restored.questions),
