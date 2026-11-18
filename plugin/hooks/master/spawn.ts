@@ -54,6 +54,18 @@ async function guardedRefusal($: EngineInterface, event: AgentSpawnInput, isInte
   }
 }
 
+/** The run and the job link of a builder whose spawn no hook of this module saw. */
+async function recordUnseen($: EngineInterface, request: { readonly subagentType: string; readonly description: string }, agentId: string): Promise<void> {
+  const pending = (await readBook($)).pendingSpawns.find(spawn => spawn.description === request.description)
+  if (pending === undefined) {
+    return
+  }
+  await startRun($, { agentId, toolUseId: null, parentAgentId: null, agentType: request.subagentType, description: pending.description, isOwnSpawn: true })
+  if (pending.job !== null) {
+    await linkBuilder($, pending.tree, pending.job, agentId)
+  }
+}
+
 /** What one `$.agent.spawn` of the mod's own carries between the call and its spawn hook, by the spawn's fixed description. */
 const inFlight = new Map<string, { readonly subagentType: string; agentId: string | null }>()
 
@@ -61,12 +73,21 @@ const inFlight = new Map<string, { readonly subagentType: string; agentId: strin
  * Spawns one of the mod's own agents. The spawn hook records the agent id it
  * saw; the answer takes it from there when the call's own answer lacks it, as
  * the test kit's answer does.
+ *
+ * A spawn made from a timer, as after the person's answer in a dialog or
+ * after a wake that reached nobody, does not pass this plugin's own spawn
+ * hooks (seen live on 2026-11-18: the builder started, with no run and no
+ * link). Its run and its link to the job are then recorded here, so the
+ * watchdog and the master's wakes know the new builder.
  */
 export async function spawnOwn($: EngineInterface, request: { readonly subagentType: string; readonly description: string; readonly prompt: string; readonly cwd?: string }): Promise<AgentSpawnResult> {
   const flight = { subagentType: request.subagentType, agentId: null }
   inFlight.set(request.description, flight)
   try {
     const result = await $.agent.spawn(request)
+    if (result.deny === undefined && result.agentId !== undefined && flight.agentId === null) {
+      await recordUnseen($, request, result.agentId)
+    }
     if (result.deny !== undefined || result.agentId !== undefined || flight.agentId === null) {
       return result
     }

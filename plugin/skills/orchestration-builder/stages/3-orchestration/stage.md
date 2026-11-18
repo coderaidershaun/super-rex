@@ -80,8 +80,7 @@ Agent count = each sub-agent of job: decision agent, challenger, leads, workers,
 
 - [ ] IF count > max, THEN merge tasks into fewer roles. Each sub-agent builds its context from nothing: cache write = most of its cost.
 - [ ] Small plan job fits: decision agent, challenger, plan writer, `plan-reviewer`, fallback reviewer = 5.
-- [ ] Spend limit of job = (max agents + 2) x dollars for each agent of budget: `low` $1.50, `medium` $4.00, `high` $8.00. The 2 = main session. No stated budget = `medium`.
-- [ ] SuperRex table `fixtures/shared/tables/limits.json` holds same caps + dollars. A test compares them. Change both together.
+- [ ] Spend limit of job = $100,000, unless person or policy set one. Agent cap holds whatever the limit.
 
 ## Step 4 — Model for each role
 

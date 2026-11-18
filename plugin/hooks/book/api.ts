@@ -41,6 +41,7 @@ import {
   planJobIn,
   questionIn,
   rebindIn,
+  resetWakesIn,
   restoreIn,
   wakeIn,
 } from './jobs'
@@ -208,6 +209,10 @@ export async function countWake($: Dollar, job: string, reason: WakeReason): Pro
   await change($, (book, at) => wakeIn(book, job, reason, at))
 }
 
+export async function resetWakes($: Dollar, job: string, reason: WakeReason): Promise<void> {
+  await change($, book => resetWakesIn(book, job, reason))
+}
+
 /** Does the book's part of a failure and shows its status line; the caller does the rest by the class it answers. */
 export async function fail($: Dollar, failure: RexFailure): Promise<FailureClass> {
   const keys = newStreamKeys()
@@ -243,8 +248,8 @@ export async function restoreTree($: Dollar, restored: Restored): Promise<void> 
 }
 
 /** Only `/rex policy confirm` calls it, for a paused tree of this session, before it sets the tree running again. */
-export async function repinTree($: Dollar, tree: string, policyHash: string): Promise<void> {
-  await change($, book => repinIn(book, tree, policyHash))
+export async function repinTree($: Dollar, tree: string, policyHash: string, capNano: number): Promise<void> {
+  await change($, book => repinIn(book, tree, policyHash, capNano))
 }
 
 export async function closeTree($: Dollar, tree: string, state: RexTree['state'], reportFile: string | null): Promise<void> {

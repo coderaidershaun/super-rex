@@ -87,14 +87,14 @@ function buildArgs(event: object): BuildArgs | Refused {
   return { request, type, size, consequence, langs, repo, dependsOn, mergeAfter, budgetUsd, ratings }
 }
 
-/** The limit of a tree job: the master's budget up to `per_job_usd`, else `per_job_usd`, else the default by size. */
+/** The limit of a tree job: the master's budget up to `per_job_usd`, else `per_job_usd`, else the default of every job. */
 function limitOf(policy: Policy, args: BuildArgs): RexLimit | Refused {
   const cap = policy.per_job_usd
   if (args.budgetUsd !== null && cap !== null && args.budgetUsd > cap) {
     return refused(TOOL, `budget_usd must be at most per_job_usd of the policy, ${String(cap)}`, args.budgetUsd, 'call it again with a smaller budget or none')
   }
   const usd = args.budgetUsd ?? cap
-  return usd === null ? { nano: defaultLimitNano(args.size, null), source: 'default' } : { nano: Math.round(usd * 1e9), source: 'policy' }
+  return usd === null ? { nano: defaultLimitNano(), source: 'default' } : { nano: Math.round(usd * 1e9), source: 'policy' }
 }
 
 /** A grid agent above the policy's tier cap runs at the cap, with its effort kept. */

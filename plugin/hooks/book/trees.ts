@@ -81,12 +81,12 @@ export function treeStateIn(book: RexBook, treeId: string, state: RexTree['state
 }
 
 /**
- * Pins a live tree to the policy hash the person just confirmed, keeping its
- * builders. No event: the store has none that changes a tree's
- * hash, and a resume pins the tree to the confirmed hash again.
+ * Pins a live tree to the policy the person just confirmed, its hash and its
+ * cap, keeping its builders. No event: the store has none that changes a
+ * tree's hash or cap, and a resume pins the tree to the confirmed policy again.
  */
-export function repinIn(book: RexBook, treeId: string, policyHash: string): RexBook {
-  return replaceTree(book, treeId, old => ({ ...old, policyHash }))
+export function repinIn(book: RexBook, treeId: string, policyHash: string, capNano: number): RexBook {
+  return replaceTree(book, treeId, old => ({ ...old, policyHash, capNano }))
 }
 
 export function pendingIn(book: RexBook, spawn: RexPendingSpawn): RexBook {

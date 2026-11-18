@@ -1,13 +1,16 @@
-// The master's tools besides rex_build and rex_report: a message to one of its builders, a note of its own decision, and a question parked for the person.
+// The master's tools besides rex_build and rex_report: a message to one of its builders, the end of a job it gives up, a note of its own decision, and a question parked for the person.
 import type { EngineInterface, ToolCallResult } from 'claude-code'
 
 import type { RexBook, RexJob, RexTree } from '../../types'
-import { fail, noteTree, readBook } from '../book/index'
+import { closeJob, fail, isOpen, noteTree, readBook } from '../book/index'
 import type { Caller, ToolEntry } from '../parts'
 import { answer, callerOf, callerRefusal, deny } from '../tools/index'
 import { parkQuestion } from './ask'
 import { field, isRefused, optionalText, refused, text, word } from './args'
 import { treeOfMaster } from './pin'
+import { DEFAULT_POLICY } from './policy'
+import { reviveBuilders } from './resume'
+import { readPolicy } from './store'
 import { wakeLater } from './wake'
 
 type MasterCall = { readonly tree: RexTree; readonly book: RexBook } | { readonly refused: string; readonly caller: Caller }
@@ -46,12 +49,59 @@ export async function serveContinue($: EngineInterface, event: { readonly agentI
     await fail($, { kind: 'bad-argument', tool: entry.name, argument: 'arguments', value: problem?.refused ?? '' })
     return deny(problem?.refused ?? `${entry.name}: bad arguments`)
   }
+  if (!isOpen(job)) {
+    return deny(`${entry.name}: job ${job.id} is closed, got status ${job.status}; a closed job reads no message: start a fix job with rex_build, or mark its step not built`)
+  }
   const builder = call.tree.builders.find(each => each.job === job.id)?.agentId
   if (builder === undefined) {
-    return deny(`${entry.name}: job ${job.id} has no builder, got none; call rex_build for it again`)
+    return deny(await noBuilder($, entry.name, call.tree, job))
   }
   wakeLater($, builder, message)
   return answer(['sent=yes', `job=${job.id}`])
+}
+
+/** An open job with no builder, as after a resume: the step of `on_dead_builder` runs for it, and the master reads what to do next. */
+async function noBuilder($: EngineInterface, tool: string, tree: RexTree, job: RexJob): Promise<string> {
+  const policy = (await readPolicy($))?.policy ?? DEFAULT_POLICY
+  const revived = await reviveBuilders($, tree, [job], policy)
+  if (revived.continued.length > 0) {
+    return `${tool}: job ${job.id} had no builder, got none; the mod started a new one that goes on from the job's record: call ${tool} again to send your message`
+  }
+  const asked = revived.asked[0]
+  return asked === undefined
+    ? `${tool}: job ${job.id} has no builder and none started, got none; give the job up with rex_cancel, then build its step again with rex_build`
+    : `${tool}: job ${job.id} has no builder, got none; question ${asked} asks the person whether to start one: tell them, and end your turn`
+}
+
+/**
+ * The master gives one open job of its tree up: the job closes `cancelled`
+ * with the master's reason, its builder is told to stop, and its worktree and
+ * branch stay as they are. This is how a tree the person stopped, or a job
+ * whose builder is gone, comes to an end that rex_report accepts.
+ */
+export async function serveCancel($: EngineInterface, event: { readonly agentId?: string }, entry: ToolEntry): Promise<ToolCallResult> {
+  const call = await masterCall($, entry, event.agentId)
+  if ('refused' in call) {
+    return deny(call.refused)
+  }
+  const id = text(entry.name, event, 'job', 'call it again with the job id')
+  const reason = text(entry.name, event, 'reason', 'call it again with why the job ends')
+  const job = isRefused(id) ? id : treeJob(entry.name, call.book, call.tree, id)
+  const problem = isRefused(job) ? job : isRefused(reason) ? reason : null
+  if (problem !== null || isRefused(job) || isRefused(reason)) {
+    await fail($, { kind: 'bad-argument', tool: entry.name, argument: 'arguments', value: problem?.refused ?? '' })
+    return deny(problem?.refused ?? `${entry.name}: bad arguments`)
+  }
+  if (!isOpen(job)) {
+    return deny(`${entry.name}: job ${job.id} is closed already, got status ${job.status}; nothing to cancel`)
+  }
+  await closeJob($, job.id, { status: 'cancelled', outcome: `cancelled by the master: ${reason}`, deliveries: job.deliveries })
+  await noteTree($, call.tree.id, { job: job.id, text: `rex: the master cancelled this job: ${reason}` })
+  const builder = call.tree.builders.find(each => each.job === job.id)?.agentId
+  if (builder !== undefined) {
+    wakeLater($, builder, `rex: the master cancelled job ${job.id}: ${reason}. The job is closed. Stop work, start no agent, and end your turn.`)
+  }
+  return answer([`job=${job.id}`, 'status=cancelled'])
 }
 
 /** A builder or another agent of a job keeps its own decisions in its report file, which the master and the person read. */

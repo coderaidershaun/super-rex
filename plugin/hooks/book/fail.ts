@@ -50,9 +50,8 @@ export function failIn(book: RexBook, failure: RexFailure, at: number, keys: Str
       return flushFailed(book, failure.reason, keys, at)
     case 'builder-stuck':
     case 'builder-api-error':
-      return failure.isLimit
-        ? { book: blocked(book, failure.job, `builder ${failure.agentId} did not recover`, at), status: `rex: job ${failure.job} blocked: builder ${failure.agentId} did not recover` }
-        : { book, status: null }
+      // The job stays open: the question the mod parks next decides between a new builder and a job left blocked.
+      return { book, status: failure.isLimit ? `rex: job ${failure.job} waits on you: builder ${failure.agentId} did not recover` : null }
     case 'observer-failed':
       return { book: observerMarked(book, failure.agentId, `observer:${failure.event}:${failure.module}`, at), status: null }
     case 'restatement-failed':

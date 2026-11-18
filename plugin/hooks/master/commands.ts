@@ -2,17 +2,16 @@
 import type { CommandRunInput, CommandRunResult, EngineInterface } from 'claude-code'
 
 import type { RexBook, RexQuestion } from '../../types'
-import { answerQuestion, closeTree, fail, readBook, repinTree } from '../book/index'
+import { answerQuestion, closeTree, fail, isOpen, readBook, repinTree } from '../book/index'
 import { originRefusal, rexLine } from '../commands/index'
 import type { StatusSection, Table } from '../parts'
-import { wakeOnAnswer } from './ask'
+import { afterAnswer } from './answers'
 import { ANSWER_SUBCOMMAND, POLICY_SUBCOMMAND } from './entries'
-import { answeredSpend } from './limits'
 import { DEFAULT_POLICY, policyLines, policyWith, PolicyShapeError } from './policy'
 import type { Policy } from './policy'
 import { readPolicy, writePolicy } from './store'
 import type { StoredPolicy } from './store'
-import { wakeMaster } from './wake'
+import { CONTINUE_TEXT, wakeLater, wakeMaster } from './wake'
 
 function lines(rows: readonly string[]): CommandRunResult {
   return { text: rows.map(row => `${row}\n`).join('') }
@@ -48,19 +47,28 @@ async function pauseChanged($: EngineInterface, hash: string): Promise<readonly 
 
 /**
  * Each paused tree of this session runs on under the policy the person just
- * confirmed: pinned to its hash, with its builders, and its master woken to
- * go on.
+ * confirmed: pinned to its hash and to its `tree_usd` as the tree's cap, with
+ * its builders, its master woken to go on, and each builder that had stopped
+ * woken too.
  */
-async function resumeConfirmed($: EngineInterface, hash: string, sections: Table<StatusSection>): Promise<readonly string[]> {
+async function resumeConfirmed($: EngineInterface, hash: string, policy: Policy, sections: Table<StatusSection>): Promise<readonly string[]> {
   const book = await readBook($)
   const resumed = book.trees.filter(tree => tree.session === book.session && tree.state === 'paused')
   for (const tree of resumed) {
-    await repinTree($, tree.id, hash)
+    await repinTree($, tree.id, hash, Math.round(policy.tree_usd * 1e9))
     await closeTree($, tree.id, 'running', null)
   }
   const now = await readBook($)
   for (const tree of now.trees.filter(each => resumed.some(paused => paused.id === each.id))) {
     wakeMaster($, now, tree, 'the person confirmed the changed policy', sections)
+    // A builder that a paused tree refused, at rex_merge say, ended its turn: it goes on now, and a builder at work is left alone.
+    for (const builder of tree.builders) {
+      const job = now.jobs.find(each => each.id === builder.job)
+      const isWorking = now.runs.some(run => run.job === builder.job && run.state === 'open')
+      if (job !== undefined && isOpen(job) && !isWorking) {
+        wakeLater($, builder.agentId, `rex: the person confirmed the changed policy. ${CONTINUE_TEXT(job.id)}`)
+      }
+    }
   }
   return resumed.map(tree => tree.id)
 }
@@ -87,7 +95,7 @@ async function setKey($: EngineInterface, rest: string): Promise<CommandRunResul
 async function confirm($: EngineInterface, sections: Table<StatusSection>): Promise<CommandRunResult> {
   const now = await policyNow($)
   const written = await writePolicy($, now.policy, 'confirm')
-  const resumed = await resumeConfirmed($, written.hash, sections)
+  const resumed = await resumeConfirmed($, written.hash, written.policy, sections)
   const waiting = treesOff(await readBook($), written.hash)
   return lines([...storedLines(written, 'stored'), `resumed=${resumed.length === 0 ? 'none' : resumed.join(',')}`, `still_paused=${waiting.length === 0 ? 'none' : waiting.join(',')}`])
 }
@@ -176,7 +184,6 @@ export async function serveAnswer($: EngineInterface, event: CommandRunInput): P
     return { text: `rex answer: ${typed === '' ? 'nothing' : typed} is not an option of ${question.id}, got ${typed === '' ? 'nothing' : typed}; one of ${numbered(question)}` }
   }
   await answerQuestion($, question.id, { option, source: 'command' })
-  await answeredSpend($, question, option)
-  await wakeOnAnswer($, question, option)
+  await afterAnswer($, question, option)
   return lines([`question=${question.id}`, `answer=${option}`])
 }

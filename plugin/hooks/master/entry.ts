@@ -10,7 +10,7 @@ import { TREE_OPEN_TOOL } from './entries'
 import { treeIdOf } from './ids'
 import { DEFAULT_POLICY, PolicyShapeError } from './policy'
 import type { MergeRule, Policy } from './policy'
-import { resumeTree } from './resume'
+import { resumeLive, resumeTree } from './resume'
 import { briefOf } from './start'
 import { startWatchdog } from './watch'
 import { readPolicy, realRoot, writePolicy } from './store'
@@ -125,6 +125,12 @@ async function existing($: EngineInterface, tree: RexTree, start: RexTreeStartPr
     return deny(`${TOOL}: master tree ${tree.id} of this session is still ${tree.state}, got a new charter; end it with rex_report first, then the person runs ${SKILL} <goal> again`)
   }
   const policy = read.stored?.policy ?? DEFAULT_POLICY
+  if (start?.text === 'resume' && read.stored !== null) {
+    // The person asked to go on: a builder that ended with the last process gets the step of on_dead_builder.
+    await dropTreeStart($)
+    const resumed = await resumeLive($, tree, read.stored)
+    return opened(tree, policy, state, ['existing=yes', 'resumed=yes', ...resumed.lines], await briefOf($, { charter: tree.charter, digest: resumed.digest, policy }))
+  }
   return opened(tree, policy, state, ['existing=yes', 'resumed=no'], await briefOf($, { charter: tree.charter, digest: null, policy }))
 }
 

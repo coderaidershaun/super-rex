@@ -1,11 +1,13 @@
-// Proves the master's other tools: a question parked at once with a status line and its answer read back by number or text, a message that wakes one builder, and a recorded decision that only the master, the main loop of the tree's session, may record.
+// Proves the master's other tools: a question parked at once with a status line and its answer read back by number or text, a message that wakes one builder and never reaches a closed job or a lost builder, a job the master cancels, and a recorded decision that only the master, the main loop of the tree's session, may record.
 import { expect, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 import type { Engine } from 'claude-code/testing'
 
-import { spawnInput } from '../book/kit'
+import { openJobIn } from '../book/jobs'
+import { ROOT, spawnInput, START_MS } from '../book/kit'
 import { AUTHOR } from '../pipeline/assembly.fixture'
-import { buildRules, byRule, confirmedPolicy, KIND, lineOf, masterWorld, POLICY_KEY, resultText, rex, settleUntil, START, TREE, treeBook } from './master-kit'
+import type { Policy } from './policy'
+import { buildRules, byRule, confirmedPolicy, KIND, lineOf, masterWorld, POLICY_KEY, ran, resultText, rex, settleUntil, START, TREE, treeBook } from './master-kit'
 
 async function treeWithJob($: Engine, on: On) {
   const policy = await confirmedPolicy()
@@ -146,4 +148,90 @@ test('/rex answer takes the option number or its text in any case, and needs no 
   expect(outOfRange.text).toBe(`rex answer: 3 is not an option of ${second}, got 3; one of 1 (Merge now), 2 (Wait)`)
   expect(alone.text).toBe(`question=${second}\nanswer=Merge now\n`)
   expect(session.book().questions.map(question => question.answer?.option)).toEqual(['Wait', 'Merge now'])
+})
+
+test('rex_cancel closes an open job of the tree cancelled and tells its builder to stop; it refuses a closed job, a job of no tree of the caller and a caller that is not the master, and rex_report then closes the tree', async ($, on) => {
+  const { session, job, builder } = await treeWithJob($, on)
+
+  const fromBuilder = await $.tool.call({ tool: 'mcp__super-rex__rex_cancel', agentId: builder, job, reason: 'x' })
+  const cancelled = await $.tool.call({ tool: 'mcp__super-rex__rex_cancel', job, reason: 'the person stopped the tree' })
+  const again = await $.tool.call({ tool: 'mcp__super-rex__rex_cancel', job, reason: 'again' })
+  const wrong = await $.tool.call({ tool: 'mcp__super-rex__rex_cancel', job: '0gb0000000', reason: 'x' })
+  await settleUntil(session.clock, () => session.sent.length > 0)
+  const reported = await $.tool.call({ tool: 'mcp__super-rex__rex_report', report: 'Result: the person stopped the tree.' })
+
+  expect(fromBuilder.deny).toBe('rex_cancel: only the master may call it, got builder')
+  expect(resultText(cancelled)).toBe(`job=${job}\nstatus=cancelled\n`)
+  expect(session.book().jobs.map(each => [each.status, each.outcome])).toEqual([['cancelled', 'cancelled by the master: the person stopped the tree']])
+  expect(again.deny).toBe(`rex_cancel: job ${job} is closed already, got status cancelled; nothing to cancel`)
+  expect(wrong.deny).toBe(`rex_cancel: job 0gb0000000 is not a job of your tree ${TREE}, got 0gb0000000; call it with one of ${job}`)
+  expect(session.sent.map(each => [each.to, each.text])).toEqual([[builder, `rex: the master cancelled job ${job}: the person stopped the tree. The job is closed. Stop work, start no agent, and end your turn.`]])
+  expect(session.book().trees[0]?.notes.map(note => [note.job, note.text])).toEqual([[job, 'rex: the master cancelled this job: the person stopped the tree']])
+  expect(lineOf(reported, 'state')).toBe('done')
+})
+
+test('rex_continue refuses a closed job, and sends it nothing', async ($, on) => {
+  const { session, job } = await treeWithJob($, on)
+  await $.tool.call({ tool: 'mcp__super-rex__rex_cancel', job, reason: 'the step is left out' })
+  await settleUntil(session.clock, () => session.sent.length > 0)
+
+  const refused = await $.tool.call({ tool: 'mcp__super-rex__rex_continue', job, message: 'Go on.' })
+
+  expect(refused.deny).toBe(`rex_continue: job ${job} is closed, got status cancelled; a closed job reads no message: start a fix job with rex_build, or mark its step not built`)
+  expect(session.sent.filter(each => each.text === 'Go on.')).toEqual([])
+})
+
+const LOST_JOB = '0gaq7z0001'
+
+/** A live tree whose open job LOST_JOB has no builder in the tree, as after a resume whose question nobody answered yet. */
+async function treeWithLostBuilder($: Engine, on: On, keys: Partial<Policy>) {
+  const policy = await confirmedPolicy(keys)
+  const input = {
+    builder: 'b7',
+    tree: TREE,
+    origin: 'master',
+    request: 'Fix the parser',
+    repo: ROOT,
+    base: 'main',
+    type: 'fix',
+    size: 'small',
+    consequence: 'low',
+    langs: ['rust'],
+    prefs: { duration: null, budget: null, autonomy: null },
+    limit: { nano: 10_000_000_000, source: 'default' },
+    dependsOn: [],
+    mergeAfter: [],
+  } as const
+  const seed = openJobIn(await treeBook(policy), input, LOST_JOB, START_MS).book
+  const listed = `worktree ${ROOT}\nHEAD abc\n\nworktree ${ROOT}.worktrees/${LOST_JOB}\nHEAD abc\nbranch refs/heads/rex/${LOST_JOB}\n`
+  const rules = [{ starts: ['git', '-C', ROOT, 'worktree', 'list', '--porcelain'], answer: ran(listed) }, ...buildRules('model-high-effort-high')]
+  const session = masterWorld(on, { seed, store: { [POLICY_KEY]: policy }, processAnswer: byRule(rules) })
+  await $.session.start(START)
+  return session
+}
+
+test('rex_continue to an open job with no builder starts one under on_dead_builder continue, and its refusal says so', async ($, on) => {
+  const session = await treeWithLostBuilder($, on, { on_dead_builder: 'continue' })
+
+  const refused = await $.tool.call({ tool: 'mcp__super-rex__rex_continue', job: LOST_JOB, message: 'Go on.' })
+
+  expect(refused.deny).toBe(`rex_continue: job ${LOST_JOB} had no builder, got none; the mod started a new one that goes on from the job's record: call rex_continue again to send your message`)
+  expect(session.spawned.map(spawn => [spawn.description, spawn.cwd])).toEqual([[`rex builder ${LOST_JOB}`, `${ROOT}.worktrees/${LOST_JOB}`]])
+  expect(session.book().trees[0]?.builders).toEqual([{ job: LOST_JOB, agentId: 'b1' }])
+  expect(session.book().questions).toEqual([])
+})
+
+test('rex_continue to an open job with no builder parks the question under on_dead_builder ask, and its refusal names it', async ($, on) => {
+  const session = await treeWithLostBuilder($, on, { on_dead_builder: 'ask' })
+
+  const refused = await $.tool.call({ tool: 'mcp__super-rex__rex_continue', job: LOST_JOB, message: 'Go on.' })
+  const again = await $.tool.call({ tool: 'mcp__super-rex__rex_continue', job: LOST_JOB, message: 'Go on.' })
+
+  const asked = session.book().questions
+  expect(asked.map(question => [question.job, question.question, question.options])).toEqual([
+    [LOST_JOB, `The builder of job ${LOST_JOB} ended with the last session. Start a new builder for it?`, ['Start a new builder', 'Leave it blocked']],
+  ])
+  expect(refused.deny).toBe(`rex_continue: job ${LOST_JOB} has no builder, got none; question ${asked[0]?.id ?? ''} asks the person whether to start one: tell them, and end your turn`)
+  expect(again.deny).toBe(refused.deny)
+  expect(session.spawned).toEqual([])
 })

@@ -6,21 +6,18 @@ use std::path::Path;
 use std::str::FromStr;
 use std::time::SystemTime;
 
-use clap::ValueEnum;
 use rusqlite::{OptionalExtension, params};
 
 use crate::capture::{CaptureError, Cost, job_runs};
 use crate::commands::stdout::print_to_stdout;
 use crate::commands::token_text::{cost_text, cost_usd};
 use crate::error::{CommandError, FailureClass, RexError};
-use crate::oms::Level;
-use crate::store::class::Size;
 use crate::store::{JobId, Store, StoreError, StorePaths};
 
 /// Print a job's spend and spend limit, or set a new limit.
 #[derive(clap::Args)]
 #[command(
-    after_help = "Prints `limit_usd=`, `spent_usd=` and `source=` (`default` from the job's budget and size, `set` by a person, or `policy`). Spend is the cost of the job's sub-agents and main session at list prices. Once spend reaches the limit, the plugin refuses new sub-agents."
+    after_help = "Prints `limit_usd=`, `spent_usd=` and `source=` (`default`, which is $100,000 for every job, `set` by a person, or `policy`). Spend is the cost of the job's sub-agents and main session at list prices. Once spend reaches the limit, the plugin refuses new sub-agents."
 )]
 pub struct LimitOptions {
     /// The job whose spend and limit to print.
@@ -113,35 +110,11 @@ const NANODOLLARS_PER_DOLLAR: u64 = 1_000_000_000;
 /// From this share of the limit, `rex status` warns.
 const WARN_PERCENT: u64 = 80;
 
-/// The most sub-agents the builder plans for a job of each size. The builder skill
-/// states the same numbers, and a test holds the two equal.
-fn agent_cap(size: Size) -> u64 {
-    match size {
-        Size::Small => 5,
-        Size::Medium => 6,
-        Size::Large => 10,
-    }
-}
-
-/// What one sub-agent may cost at each stated budget, in billionths of a dollar. A
-/// job that stated no budget gets the medium amount, so a runaway still stops.
-fn nanodollars_per_agent(budget: Option<Level>) -> u64 {
-    match budget.unwrap_or(Level::Medium) {
-        Level::Low => 1_500_000_000,
-        Level::Medium => 4_000_000_000,
-        Level::High => 8_000_000_000,
-    }
-}
-
-/// The main session's spend counts against the limit too. Measured on the jobs in
-/// the store, it costs about as much as two sub-agents.
-const SESSION_IN_AGENTS: u64 = 2;
-
-/// The limit of a job that no person set: its agent cap plus the main session,
-/// times the cost of one agent.
-fn default_nanodollars(budget: Option<Level>, size: Size) -> u64 {
-    (agent_cap(size) + SESSION_IN_AGENTS) * nanodollars_per_agent(budget)
-}
+/// The limit of a job that no person and no policy set, in billionths of a
+/// dollar: $100,000 for every size and budget. It is high on purpose, so a
+/// limit stops a job only when someone chose a lower one. The plugin gives a
+/// new job the same amount, and a test holds the two equal.
+const DEFAULT_NANODOLLARS: u64 = 100_000 * NANODOLLARS_PER_DOLLAR;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LimitSource {
@@ -167,25 +140,24 @@ pub struct SpendLimit {
 }
 
 impl SpendLimit {
-    /// The limit of `job`: the one its row holds, else the default of its
-    /// budget and size.
+    /// The limit of `job`: the one its row holds, else the default of every job.
     ///
     /// # Errors
     /// - [`StoreError::JobNotFound`] for a job not in the store.
-    /// - [`StoreError::Sqlite`] when the read fails, or a stored size, budget or
-    ///   source is not a value rex writes.
+    /// - [`StoreError::Sqlite`] when the read fails, or the stored limit is not
+    ///   an amount rex writes.
     pub fn of(store: &Store, job: &JobId) -> Result<SpendLimit, StoreError> {
-        type Row = (Option<i64>, Option<String>, Option<String>, Option<String>);
+        type Row = (Option<i64>, Option<String>);
         let row: Option<Row> = store
             .conn()
             .query_row(
-                "SELECT limit_nano, limit_source, size, pref_budget FROM job WHERE id = ?1",
+                "SELECT limit_nano, limit_source FROM job WHERE id = ?1",
                 [job.as_str()],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()
             .map_err(StoreError::from)?;
-        let Some((stored, source, size, budget)) = row else {
+        let Some((stored, source)) = row else {
             return Err(StoreError::JobNotFound {
                 job: job.to_string(),
                 store: store.paths().dir.clone(),
@@ -204,19 +176,8 @@ impl SpendLimit {
                 source,
             });
         }
-        // A job the plugin left unclassified counts as medium, which is the
-        // middle of the caps.
-        let size = size
-            .map(|text| <Size as ValueEnum>::from_str(&text, false))
-            .transpose()
-            .map_err(|error| StoreError::from(conversion_failure(Unknown(error))))?
-            .unwrap_or(Size::Medium);
-        let budget = budget
-            .map(|text| <Level as ValueEnum>::from_str(&text, false))
-            .transpose()
-            .map_err(|error| StoreError::from(conversion_failure(Unknown(error))))?;
         Ok(SpendLimit {
-            nanodollars: default_nanodollars(budget, size),
+            nanodollars: DEFAULT_NANODOLLARS,
             source: LimitSource::Default,
         })
     }
@@ -310,11 +271,6 @@ impl SpendLimit {
 fn conversion_failure(error: impl std::error::Error + Send + Sync + 'static) -> rusqlite::Error {
     rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(error))
 }
-
-/// A stored value that is not one of the names rex writes.
-#[derive(thiserror::Error, Debug)]
-#[error("unknown stored value: {0}")]
-struct Unknown(String);
 
 /// A positive amount of US dollars, in billionths of a dollar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

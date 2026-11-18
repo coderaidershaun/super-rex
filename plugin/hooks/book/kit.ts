@@ -1,7 +1,7 @@
 // A session for the mod's tests: answers every call the mod makes on the engine from memory, and records what the mod wrote, showed and ran.
 import { mock } from 'claude-code/testing'
 import type { MockClock } from 'claude-code/testing'
-import type { AgentSpawnInput, ModelCompleteInput, ModelCompleteResult, On, ProcessRunResult, StateRead } from 'claude-code'
+import type { AgentInfo, AgentSpawnInput, ModelCompleteInput, ModelCompleteResult, On, ProcessRunResult, StateRead } from 'claude-code'
 
 import type { RexBook } from '../../types'
 import { BOOK_SHAPE } from './api'
@@ -33,6 +33,8 @@ export type WorldOptions = {
   readonly modelAnswer?: (input: ModelCompleteInput) => ModelAnswer
   /** What `rex --version` prints; null makes the call fail. It is kept apart from the other calls. */
   readonly binaryVersion?: string | null
+  /** What `$.agent.list` answers at each call; when not given, the agent of each open run of the seed, as a reload finds them still running. */
+  readonly listAgents?: () => readonly AgentInfo[]
 }
 
 export type World = {
@@ -164,6 +166,8 @@ export function world(on: On, options: WorldOptions = {}): World {
     return 'reject' in answer ? { deny: answer.reject } : { value: answer }
   })
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
+  const seededAgents: readonly AgentInfo[] = (options.seed?.runs ?? []).filter(run => run.state === 'open').map(run => ({ id: run.agentId, description: run.agentId, type: run.agentType, status: 'running' }))
+  on('agent.list', () => ({ value: [...(options.listAgents?.() ?? seededAgents)] }))
 
   return {
     clock,

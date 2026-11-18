@@ -13,6 +13,10 @@
       "arguments": ["budget_usd", "consequence", "depends_on", "intelligence", "langs", "merge_after", "ratings", "reliability", "repo", "request", "size", "type", "verification"],
       "keys": ["base_commit", "base_stale", "builder", "job", "status", "worktree"]
     },
+    "rex_cancel": {
+      "arguments": ["job", "reason"],
+      "keys": ["job", "status"]
+    },
     "rex_continue": {
       "arguments": ["job", "message"],
       "keys": ["job", "sent"]

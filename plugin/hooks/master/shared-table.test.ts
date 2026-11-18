@@ -24,7 +24,7 @@ function answeredKeys(results: readonly unknown[]): readonly string[] {
   return [...new Set(keys)].sort()
 }
 
-test('rex_build, rex_continue, rex_note and rex_ask_owner answer exactly the keys of the shared tools table', async ($, on) => {
+test('rex_build, rex_continue, rex_note, rex_ask_owner and rex_cancel answer exactly the keys of the shared tools table', async ($, on) => {
   const policy = await confirmedPolicy()
   const unreachable = { starts: ['git', '-C', ROOT, 'fetch'], answer: { exitCode: 128, stdout: '', stderr: "fatal: '/home/person/origin.git' does not appear to be a git repository\n" } }
   masterWorld(on, { seed: await treeBook(policy), store: { [POLICY_KEY]: policy }, processAnswer: byRule([...firstCommitRules(), unreachable, ...buildRules('model-high-effort-high')]) })
@@ -36,11 +36,13 @@ test('rex_build, rex_continue, rex_note and rex_ask_owner answer exactly the key
   const continued = await $.tool.call({ tool: 'mcp__super-rex__rex_continue', job, message: 'Go on.' })
   const noted = await $.tool.call({ tool: 'mcp__super-rex__rex_note', text: 'One step.' })
   const asked = await $.tool.call({ tool: 'mcp__super-rex__rex_ask_owner', question: 'Go?', options: ['Yes', 'No'], recommendation: 'Yes', category: 'scope' })
+  const cancelled = await $.tool.call({ tool: 'mcp__super-rex__rex_cancel', job, reason: 'The step is left out.' })
 
   expect(answeredKeys([built])).toEqual(listedKeys('rex_build'))
   expect(answeredKeys([continued])).toEqual(listedKeys('rex_continue'))
   expect(answeredKeys([noted])).toEqual(listedKeys('rex_note'))
   expect(answeredKeys([asked])).toEqual(listedKeys('rex_ask_owner'))
+  expect(answeredKeys([cancelled])).toEqual(listedKeys('rex_cancel'))
 })
 
 test('rex_report answers exactly the keys of the shared tools table', async ($, on) => {

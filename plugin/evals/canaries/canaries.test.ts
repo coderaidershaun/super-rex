@@ -99,7 +99,7 @@ test('canary: merge and limit words in the arguments of rex_job_open give no mer
 
   expect(opened.deny).toBeUndefined()
   expect(lineOf(opened, 'merge')).toBe('unknown')
-  expect(lineOf(opened, 'limit_usd')).toBe('28.00')
+  expect(lineOf(opened, 'limit_usd')).toBe('100000.00')
 })
 
 test('canary: the merge dialog counts only when the main loop asks it with exactly its two options', async ($, on) => {

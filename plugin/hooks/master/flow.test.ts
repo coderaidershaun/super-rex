@@ -1,10 +1,10 @@
-// Proves how a tree moves and ends: rex_report closes it only with nothing open and only for the master, a master's turn end never wakes or closes it, a wake of the mod reaches the master as a prompt of the plugin that carries no authority, the master's own steps go to the tree's ledger, and the main loop gets no turn for a tree builder's notice.
+// Proves how a tree moves and ends: rex_report closes it only with nothing open and only for the master, a question of a job that closed holds it open no more, a master's turn end never wakes or closes it, a wake of the mod reaches the master as a prompt of the plugin that carries no authority, the master's own steps go to the tree's ledger, and the main loop gets no turn for a tree builder's notice.
 import { expect, test } from 'claude-code/testing'
 import type { On, PromptSubmitInput } from 'claude-code'
 import type { Engine } from 'claude-code/testing'
 
 import { ROOT } from '../book/kit'
-import { buildRules, byRule, confirmedPolicy, KIND, lineOf, MAIN_JOB, mainJobBook, masterPrompt, masterWorld, POLICY_KEY, resultText, rex, settleLong, settleUntil, START, TREE, treeBook } from './master-kit'
+import { buildRules, byRule, confirmedPolicy, KIND, lineOf, MAIN_JOB, mainJobBook, masterPrompt, masterWorld, POLICY_KEY, ran, resultText, rex, settleLong, settleUntil, START, TREE, treeBook } from './master-kit'
 import type { MasterOptions } from './master-kit'
 
 const REPORT = `${ROOT}/.rex/plans/${TREE}/final-report.md`
@@ -86,7 +86,7 @@ test('rex_status of the master ends with the policy it works under, one policy.<
   const main = await $.tool.call({ tool: 'mcp__super-rex__rex_status' })
 
   const keys = ['merge', 'merge_max_consequence', 'max_parallel_builders', 'max_jobs', 'consequence_ceiling', 'tier_cap', 'tree_usd', 'per_job_usd', 'raise_limits']
-  expect(keys.map(key => lineOf(status, `policy.${key}`))).toEqual(['ask', 'medium', 'auto', '8', 'high', 'high', '150', 'none', 'ask'])
+  expect(keys.map(key => lineOf(status, `policy.${key}`))).toEqual(['ask', 'medium', 'auto', '8', 'high', 'high', '100000', 'none', 'ask'])
   expect(resultText(main)).not.toContain('policy.')
 })
 
@@ -180,4 +180,18 @@ test('the notice of a builder of a closed tree passes as it came', async ($, on)
 
   expect(answered.drop).toBeUndefined()
   expect(session.prompts.map(e => [e.text, e.origin.kind])).toEqual([[notification('b1').text, 'task-notification']])
+})
+
+test('a question of a job that closed holds rex_report no more: the mod answers it Not needed and the tree closes', async ($, on) => {
+  const session = await liveTree($, on, { processAnswer: byRule([{ starts: ['rex', 'job', 'show'], answer: ran('{}\n') }, ...buildRules('model-high-effort-high')]) })
+  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...KIND, request: 'Fix the parser', consequence: 'low' })
+  const job = lineOf(built, 'job') ?? ''
+  const asked = await $.tool.call({ tool: 'mcp__super-rex__rex_ask_owner', job, question: 'Keep the old errors?', options: ['Yes', 'No'], recommendation: 'Yes', category: 'scope' })
+  const id = lineOf(asked, 'question') ?? ''
+  await $.tool.call({ tool: 'mcp__super-rex__rex_job_close', agentId: lineOf(built, 'builder') ?? '', status: 'blocked', outcome: 'needs a person', deliveries: [] })
+
+  const closed = await $.tool.call({ tool: 'mcp__super-rex__rex_report', report: 'Result: the parser is blocked.' })
+
+  expect(resultText(closed)).toBe(`tree=${TREE}\nstate=done\nreport=${REPORT}\n`)
+  expect(session.book().questions.map(question => [question.id, question.answer?.option, question.answer?.source])).toEqual([[id, 'Not needed', 'mod']])
 })

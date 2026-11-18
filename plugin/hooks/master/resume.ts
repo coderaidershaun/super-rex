@@ -2,17 +2,16 @@
 import type { EngineInterface } from 'claude-code'
 
 import type { RexJob, RexJobStatus, RexLevel, RexMergeAnswer, RexOriginKind, RexQuestion, RexTree } from '../../types'
-import { errorText, fail, isOpen, MAIN_MASTER, readBook, restoreTree } from '../book/index'
+import { fail, isOpen, MAIN_MASTER, readBook, restoreTree } from '../book/index'
 import type { Restored } from '../book/index'
-import { parkQuestion } from './ask'
+import { goneQuestionText, LEAVE_BLOCKED, START_AGAIN, startAgain } from './answers'
+import { announceQuestion, parkQuestion } from './ask'
 import type { StatusSection, Table } from '../parts'
-import { restartBuilder } from './build'
+import type { Policy } from './policy'
 import type { StoredPolicy } from './store'
 import { startWatchdog } from './watch'
 
 const NAME = 'rex_tree_open resume'
-const START_AGAIN = 'Start a new builder'
-const LEAVE_BLOCKED = 'Leave it blocked'
 
 function field(value: unknown, key: string): unknown {
   return typeof value === 'object' && value !== null && !Array.isArray(value) ? Reflect.get(value, key) : undefined
@@ -125,7 +124,7 @@ function questionOf(question: unknown): RexQuestion | null {
     return null
   }
   const option = textOf(question, 'answer')
-  const source = oneOf(textOf(question, 'answer_source'), ['dialog', 'pane', 'command'] as const) ?? 'command'
+  const source = oneOf(textOf(question, 'answer_source'), ['dialog', 'pane', 'command', 'mod'] as const) ?? 'command'
   return {
     id,
     tree: textOf(question, 'tree'),
@@ -140,8 +139,8 @@ function questionOf(question: unknown): RexQuestion | null {
   }
 }
 
-/** The tree comes back in this session, with its main loop as master, pinned to the policy that pre-flight just found confirmed. */
-function treeOf(tree: unknown, session: string, policyHash: string): RexTree | null {
+/** The tree comes back in this session, with its main loop as master, pinned to the policy that pre-flight just found confirmed: its hash, and its `tree_usd` as the cap. */
+function treeOf(tree: unknown, session: string, policy: StoredPolicy): RexTree | null {
   const id = textOf(tree, 'id')
   const charter = textOf(tree, 'charter')
   if (id === null || charter === null) {
@@ -153,10 +152,10 @@ function treeOf(tree: unknown, session: string, policyHash: string): RexTree | n
     master: MAIN_MASTER,
     charter,
     charterHash: textOf(tree, 'charter_hash') ?? '',
-    policyHash,
+    policyHash: policy.hash,
     state: 'running',
     ledgerNano: 0,
-    capNano: nanoOf(numberOf(tree, 'cap_usd')),
+    capNano: nanoOf(policy.policy.tree_usd),
     builders: [],
     ticks: [],
     notes: [],
@@ -166,8 +165,29 @@ function treeOf(tree: unknown, session: string, policyHash: string): RexTree | n
   }
 }
 
+/**
+ * An open job comes back with what it has spent so far, as `rex limit` reads
+ * it from the store, so its limit holds across a resume. A read that fails
+ * leaves the spend at nothing, and the job still comes back.
+ */
+async function withStoredSpend($: EngineInterface, job: RexJob): Promise<RexJob> {
+  const ran = await $.process.run(['rex', 'limit', job.id, '--json'], { cwd: await $.session.root() })
+  if (ran.exitCode !== 0) {
+    return job
+  }
+  try {
+    const shown: unknown = JSON.parse(ran.stdout)
+    return { ...job, spentNano: nanoOf(numberOf(shown, 'spent_usd')) }
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return job
+    }
+    throw error
+  }
+}
+
 /** The answer of `rex tree show --json`, or the text that refuses the resume. */
-async function storedTree($: EngineInterface, session: string, policyHash: string): Promise<Restored | string> {
+async function storedTree($: EngineInterface, session: string, policy: StoredPolicy): Promise<Restored | string> {
   const ran = await $.process.run(['rex', 'tree', 'show', '--json'], { cwd: await $.session.root() })
   if (ran.exitCode !== 0) {
     const line = ran.stderr.split('\n')[0]?.trim() ?? ''
@@ -183,11 +203,12 @@ async function storedTree($: EngineInterface, session: string, policyHash: strin
     }
     throw error
   }
-  const tree = treeOf(field(shown, 'tree'), session, policyHash)
+  const tree = treeOf(field(shown, 'tree'), session, policy)
   if (tree === null) {
     return `${NAME}: no open tree in the store of this repo, got none; the person starts one with /super-rex:orchestration-master <goal>`
   }
-  const jobs = listOf(shown, 'jobs').map(jobOf).filter((job): job is RexJob => job !== null)
+  const stored = listOf(shown, 'jobs').map(jobOf).filter((job): job is RexJob => job !== null)
+  const jobs = await Promise.all(stored.map(job => (isOpen(job) ? withStoredSpend($, job) : Promise.resolve(job))))
   const questions = listOf(shown, 'questions').map(questionOf).filter((question): question is RexQuestion => question !== null)
   return { tree, jobs, questions }
 }
@@ -196,12 +217,39 @@ function listed(ids: readonly string[]): string {
   return ids.length === 0 ? 'none' : ids.join(',')
 }
 
+/** What became of the open jobs whose builders are gone: the jobs a new builder goes on with, and the questions parked for the others. */
+export type Revived = { readonly continued: readonly string[]; readonly asked: readonly string[] }
+
+/**
+ * Each open job whose builder is gone gets a new builder that goes on from
+ * the job's record (`on_dead_builder: continue`), or one question for the
+ * person (`ask`); a job that already has such a question waiting gets no
+ * second one. A restart that fails stops that job's restart only.
+ */
+export async function reviveBuilders($: EngineInterface, tree: RexTree, jobs: readonly RexJob[], policy: Policy): Promise<Revived> {
+  const continued: string[] = []
+  const asked: string[] = []
+  for (const job of jobs) {
+    if (policy.on_dead_builder === 'continue') {
+      if (await startAgain($, tree, job, 'its builder ended with the last session, and on_dead_builder of the policy is continue')) {
+        continued.push(job.id)
+      }
+      continue
+    }
+    const text = goneQuestionText(job.id)
+    const waiting = (await readBook($)).questions.find(question => question.job === job.id && question.question === text && question.answer === null)
+    const question = waiting ?? (await parkQuestion($, { tree: tree.id, job: job.id, question: text, options: [START_AGAIN, LEAVE_BLOCKED], recommendation: START_AGAIN, category: 'other', mergeFor: null }))
+    asked.push(question.id)
+  }
+  return { continued, asked }
+}
+
 /** A resumed tree: the lines of the tool's answer, and the digest and charter its brief is made from. */
 export type Resumed = { readonly tree: RexTree; readonly lines: readonly string[]; readonly digest: string }
 
 /** Brings the newest open tree of the store back into this session; a text is the refusal. */
 export async function resumeTree($: EngineInterface, policy: StoredPolicy, sections: Table<StatusSection>): Promise<Resumed | string> {
-  const restored = await storedTree($, (await readBook($)).session, policy.hash)
+  const restored = await storedTree($, (await readBook($)).session, policy)
   if (typeof restored === 'string') {
     return restored
   }
@@ -210,33 +258,38 @@ export async function resumeTree($: EngineInterface, policy: StoredPolicy, secti
   const open = restored.jobs.filter(isOpen)
   const isContinue = policy.policy.on_dead_builder === 'continue'
   const digest = restored.jobs.map(job => `job ${job.id} ${job.status}${isOpen(job) ? (isContinue ? ': its builder is gone, so a new builder continues it' : ': its builder is gone, and a question asks the person') : ''}`)
-  const asked: string[] = []
-  if (!isContinue) {
-    for (const job of open) {
-      const question = await parkQuestion($, {
-        tree: tree.id,
-        job: job.id,
-        question: `The builder of job ${job.id} ended with the last session. Start a new builder for it?`,
-        options: [START_AGAIN, LEAVE_BLOCKED],
-        recommendation: START_AGAIN,
-        category: 'other',
-        mergeFor: null,
-      })
-      asked.push(question.id)
-    }
+  // A question that waited when the last session ended is shown again, so the person can answer it here.
+  for (const question of restored.questions.filter(each => each.answer === null)) {
+    announceQuestion($, question)
   }
+  const revived = await reviveBuilders($, tree, open, policy.policy)
   const questions = (await readBook($)).questions.filter(question => question.tree === tree.id && question.answer === null)
   digest.push(...questions.map(question => `question ${question.id} parked: ${question.question}`))
-  const continued: string[] = []
-  for (const job of isContinue ? open : []) {
-    // A git call that throws stops this job's restart only: the other jobs and the watchdog still start.
-    const restarted = await restartBuilder($, job, tree, policy.policy).catch((error: unknown) => ({ refused: errorText(error) }))
-    if ('refused' in restarted) {
-      $.ui.status(`rex: job ${job.id} of tree ${tree.id} got no new builder: ${restarted.refused}`)
-    } else {
-      continued.push(job.id)
-    }
-  }
   startWatchdog($, tree.id, policy.policy.watchdog_minutes, sections)
-  return { tree, lines: [`continued=${listed(continued)}`, `asked=${listed(asked)}`], digest: digest.join('\n') }
+  return { tree, lines: [`continued=${listed(revived.continued)}`, `asked=${listed(revived.asked)}`], digest: digest.join('\n') }
+}
+
+/**
+ * `resume` typed in the session that still holds the tree, as after the
+ * person stopped a builder: the tree stays as it is, and each open job whose
+ * builder the engine no longer lists gets the step of `on_dead_builder`. A
+ * builder the engine still lists is left alone.
+ */
+export async function resumeLive($: EngineInterface, tree: RexTree, policy: StoredPolicy): Promise<Resumed> {
+  const book = await readBook($)
+  const alive = new Set((await $.agent.list()).map(agent => agent.id))
+  const jobs = book.jobs.filter(job => job.tree === tree.id)
+  const gone = jobs.filter(isOpen).filter(job => {
+    const builder = tree.builders.find(each => each.job === job.id)?.agentId
+    return builder === undefined || !alive.has(builder)
+  })
+  const revived = await reviveBuilders($, tree, gone, policy.policy)
+  const isContinue = policy.policy.on_dead_builder === 'continue'
+  const digest = jobs.map(job => {
+    const state = !gone.some(each => each.id === job.id) ? '' : isContinue ? ': its builder is gone, so a new builder continues it' : ': its builder is gone, and a question asks the person'
+    return `job ${job.id} ${job.status}${state}`
+  })
+  const questions = (await readBook($)).questions.filter(question => question.tree === tree.id && question.answer === null)
+  digest.push(...questions.map(question => `question ${question.id} parked: ${question.question}`))
+  return { tree, lines: [`continued=${listed(revived.continued)}`, `asked=${listed(revived.asked)}`], digest: digest.join('\n') }
 }

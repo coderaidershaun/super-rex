@@ -35,7 +35,7 @@ test('job_open_only_after_person_job_prompt', async ($, on) => {
   expect(lineOf(opened, 'existing')).toBe('no')
   expect(lineOf(opened, 'merge')).toBe('unknown')
   expect(lineOf(opened, 'storage')).toBe('off')
-  expect(lineOf(opened, 'limit_usd')).toBe('32.00')
+  expect(lineOf(opened, 'limit_usd')).toBe('100000.00')
   expect(lineOf(opened, 'branch')).toBe(`rex/${lineOf(opened, 'job') ?? ''}`)
   expect(lineOf(opened, 'base')).toBe('main')
   expect(lineOf(opened, 'worktree')).toBe(`${ROOT}.worktrees/${lineOf(opened, 'job') ?? ''}`)
@@ -50,7 +50,7 @@ test('job_open_only_after_person_job_prompt', async ($, on) => {
   expect(session.book().jobs.map(job => [job.owner.session, job.owner.builder])).toEqual([[session.book().session, 'main']])
 })
 
-test('a job opened with no stated limit gets the default of its size and budget from the limits table', async ($, on) => {
+test('a job opened with no stated limit gets the one default of the limits table, whatever its size', async ($, on) => {
   files(on, {})
   promptsPass(on)
   const calls: ProcessCall[] = []
@@ -60,7 +60,7 @@ test('a job opened with no stated limit gets the default of its size and budget 
   await $.prompt.submit(jobStart({ kind: 'composer' }))
   const opened = await $.tool.call({ tool: 'mcp__super-rex__rex_job_open', request: 'Fix the parser', size: 'small' })
 
-  expect(lineOf(opened, 'limit_usd')).toBe('28.00')
+  expect(lineOf(opened, 'limit_usd')).toBe('100000.00')
   expect(lineOf(opened, 'storage')).toBe('on')
   // The rex worktree call names the job's own path, so only its first words are known ahead.
   expect(calls.map(call => call.argv.slice(0, 4))).toEqual(OPEN_CALLS.map(call => call.argv.slice(0, 4)))

@@ -1,8 +1,9 @@
-// `/rex limit <job> [usd]`: shows a job's spend and limit, or sets the limit, from the person's own typing only.
+// `/rex limit <job> [usd]`: shows a job's spend and limit, or sets the limit, from the person's own typing only; a higher limit wakes the builder of a tree job that stood at the old one.
 import type { CommandRunInput, CommandRunResult, EngineInterface } from 'claude-code'
 
 import { fail, MAX_LIMIT_USD, readBook, setLimit } from '../book/index'
 import { originRefusal, rexLine } from '../commands/index'
+import { limitSetByPerson } from '../master/limits'
 import type { Subcommand } from '../parts'
 import { dollars } from './checks'
 
@@ -32,6 +33,7 @@ export async function serveLimit($: EngineInterface, event: CommandRunInput): Pr
       return { text: `rex limit: ${text} is not an amount from 0 to ${String(MAX_LIMIT_USD)} dollars, got ${text}` }
     }
     await setLimit($, job.id, { nano: Math.round(usd * 1e9), source: 'set' })
+    await limitSetByPerson($, job, 'by the person, with /rex limit')
   }
   const shown = (await readBook($)).jobs.find(each => each.id === job.id) ?? job
   return { text: `job=${shown.id}\nspent_usd=${dollars(shown.spentNano)}\nlimit_usd=${dollars(shown.limit.nano)}\nlimit_source=${shown.limit.source}\n` }

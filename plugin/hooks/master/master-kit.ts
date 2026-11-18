@@ -1,7 +1,7 @@
-// Test support for the master module: answers what a master tree asks of the engine (spawns, messages, prompts, settings, environment, store, usage), records each ask, and opens a tree as the person's prompt of the master skill does.
+// Test support for the master module: answers what a master tree asks of the engine (spawns, the agents that run, messages delivered or not, prompts, settings, environment, store, usage), records each ask, and opens a tree as the person's prompt of the master skill does.
 import { mock } from 'claude-code/testing'
 import type { MockClock } from 'claude-code/testing'
-import type { AgentInfo, AgentSpawnInput, CommandRunInput, On, PromptOrigin, PromptSubmitInput, SessionRateLimit, SessionSendInput, ToolCallResult, TurnStepResult, TurnUsage } from 'claude-code'
+import type { AgentInfo, AgentSpawnInput, CommandRunInput, On, PromptOrigin, PromptSubmitInput, SessionRateLimit, SessionSendInput, SessionSendResult, ToolCallResult, TurnStepResult, TurnUsage } from 'claude-code'
 import type { Engine } from 'claude-code/testing'
 
 import type { RexBook } from '../../types'
@@ -32,6 +32,8 @@ export type MasterOptions = WorldOptions & {
   readonly spawnRefusal?: (e: AgentSpawnInput) => string | null
   /** Files by absolute path beside the builder's brief file of the master skill. */
   readonly files?: Readonly<Record<string, string>>
+  /** What `$.session.send` answers for each message; delivered when not given. */
+  readonly deliver?: (e: SessionSendInput) => SessionSendResult
 }
 
 /** A spawn as the test saw it. The kit hands a plugin's own spawn over in the Agent tool's spelling, so each field is read in either. */
@@ -139,10 +141,9 @@ export function masterWorld(on: On, options: MasterOptions = {}): MasterWorld {
     agents.push({ id: agentId, description: e.description, type: seenSpawn(e).type, status: 'running', spawnedBy: 'super-rex' })
     return { model: 'claude-opus-5-5', agentId }
   })
-  on('agent.list', () => ({ value: [...agents] }))
   on('session.send', (_$, e) => {
     sent.push(e)
-    return { isDelivered: true }
+    return options.deliver?.(e) ?? { isDelivered: true }
   })
   on('prompt.submit', (_$, e) => {
     prompts.push(e)
@@ -157,7 +158,7 @@ export function masterWorld(on: On, options: MasterOptions = {}): MasterWorld {
   on('tool.call', { tool: 'Agent' }, (_$, e) => ({ result: `started ${String(e.description)}` }))
 
   // With no answers of its own, a test runs in a repo of mode origin, whose places a master's start reads.
-  const shared = world(on, { config: CONFIG_ON, processAnswer: byRule(placesRules('origin')), ...options })
+  const shared = world(on, { config: CONFIG_ON, processAnswer: byRule(placesRules('origin')), listAgents: () => agents, ...options })
   const breakStore = (): void => {
     isStoreBroken = true
   }

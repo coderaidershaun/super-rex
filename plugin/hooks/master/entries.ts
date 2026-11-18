@@ -59,6 +59,19 @@ export const CONTINUE_TOOL: ToolEntry = {
   callers: ['master'],
 }
 
+export const CANCEL_TOOL: ToolEntry = {
+  name: 'rex_cancel',
+  description:
+    'Gives one open job of your tree up: closes it cancelled with your reason and tells its builder to stop. Its worktree and branch stay. Use it when the person stopped the tree, or when a job cannot go on and its step is built again or left out. Answers job and status.',
+  inputSchema: {
+    type: 'object',
+    properties: { job: { type: 'string' }, reason: { type: 'string', description: 'Why the job ends, in one sentence.' } },
+    required: ['job', 'reason'],
+  },
+  isDeferred: true,
+  callers: ['master'],
+}
+
 export const NOTE_TOOL: ToolEntry = {
   name: 'rex_note',
   description: 'Records one decision of yours in the tree: what you decided, why, and the option you did not take. Answers noted, the count of notes.',
@@ -95,7 +108,7 @@ export const REPORT_TOOL: ToolEntry = {
   callers: ['master'],
 }
 
-export const TOOLS: readonly ToolEntry[] = [TREE_OPEN_TOOL, BUILD_TOOL, CONTINUE_TOOL, NOTE_TOOL, ASK_OWNER_TOOL, REPORT_TOOL]
+export const TOOLS: readonly ToolEntry[] = [TREE_OPEN_TOOL, BUILD_TOOL, CONTINUE_TOOL, CANCEL_TOOL, NOTE_TOOL, ASK_OWNER_TOOL, REPORT_TOOL]
 
 export const TREE_OPEN_TOOL_NAME = 'mcp__super-rex__rex_tree_open'
 export const BUILD_TOOL_NAME = 'mcp__super-rex__rex_build'

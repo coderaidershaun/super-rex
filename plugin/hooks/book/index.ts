@@ -36,6 +36,7 @@ export {
   recordPrompt,
   recordSkillOpen,
   repinTree,
+  resetWakes,
   restoreTree,
   setLimit,
   setMergeAnswer,

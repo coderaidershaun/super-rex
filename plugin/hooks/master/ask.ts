@@ -2,9 +2,10 @@
 import type { EngineInterface } from 'claude-code'
 
 import type { RexBook, RexQuestion } from '../../types'
-import { addQuestion, answerQuestion, errorText, readBook } from '../book/index'
+import { addQuestion, answerQuestion, errorText, isOpen, readBook } from '../book/index'
 import type { QuestionInput } from '../book/index'
 import type { StatusSection, Table } from '../parts'
+import { afterAnswer } from './answers'
 import { isLiveTree } from './pin'
 import { wakeLater, wakeMaster } from './wake'
 
@@ -67,7 +68,7 @@ function askLater($: EngineInterface, question: RexQuestion): void {
           return
         }
         await answerQuestion($, question.id, { option, source: 'dialog' })
-        await wakeOnAnswer($, question, option)
+        await afterAnswer($, question, option)
       })
       .catch((error: unknown) => {
         // A dialog the person dismissed is no failure: the question waits for its command.
@@ -89,4 +90,34 @@ export async function parkQuestion($: EngineInterface, input: QuestionInput): Pr
   const parked = await addQuestion($, input)
   announceQuestion($, parked)
   return parked
+}
+
+/** The answer the mod gives a question that nobody needs to answer any more. */
+export const NOT_NEEDED = 'Not needed'
+
+/** True for a question whose answer could still change something: a spend question while its job is at its limit, any other while its job is open. */
+function isStillNeeded(book: RexBook, question: RexQuestion): boolean {
+  const job = book.jobs.find(each => each.id === (question.mergeFor ?? question.job))
+  if (job === undefined) {
+    return true
+  }
+  return isOpen(job) && (question.category !== 'spend' || job.spentNano >= job.limit.nano)
+}
+
+/**
+ * Closes each waiting question of a tree that nothing waits on any more: its
+ * job closed, or its job is under its spend limit again because the person
+ * set a higher one. The mod answers it `Not needed`, so it stops showing as
+ * waiting, stops holding the watchdog off its job, and no longer keeps
+ * rex_report from closing the tree. It wakes nobody.
+ */
+export async function settleMoot($: EngineInterface, treeId: string): Promise<void> {
+  const book = await readBook($)
+  const moot = book.questions.filter(question => question.tree === treeId && question.answer === null && !isStillNeeded(book, question))
+  for (const question of moot) {
+    await answerQuestion($, question.id, { option: NOT_NEEDED, source: 'mod' })
+  }
+  if (moot.length > 0) {
+    $.ui.status(statusAfterAnswer(await readBook($)))
+  }
 }

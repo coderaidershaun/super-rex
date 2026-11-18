@@ -1,9 +1,9 @@
 // Refuses an agent start or a shell command that a gate check refuses: spend over the limit, depth outside a master tree, a fork in a job, an agent of a job that would not start as its sub-agent, a merge around rex_merge. An inert mod refuses nothing.
 import type { AgentSpawnInput, AgentSpawnResult, EngineInterface, HookFailure, On } from 'claude-code'
 
-import { fail, markDegraded, MAX_LIMIT_USD, newestOpenJob, readBook, setLimit } from '../book/index'
+import { fail, markDegraded, newestOpenJob, readBook, setLimit } from '../book/index'
 import type { GateCheck, Parts } from '../parts'
-import { failureName } from '../tools/index'
+import { failureName, higherLimitInStore } from '../tools/index'
 import { agentArgRefusal, agentKindRefusal, depthVerdict, forkRefusal, isMergeCommand, isOverLimit, isOwnSpawn, jobOfLoop, refusedAgentArg, spendRefusal, tripwireRefusal } from './checks'
 import { LIMIT_SUBCOMMAND, serveLimit } from './limit'
 
@@ -17,25 +17,18 @@ export const GATE_CHECKS: readonly GateCheck[] = [
   { name: 'merge-tripwire', site: { kind: 'tool', tool: 'Bash' }, failure: 'closed' },
 ]
 
-/** With storage on, a person may have raised the limit at a shell; a higher limit they set is taken before refusing, if it is one /rex limit would take. */
+/** A person may have raised the limit at a shell; a higher limit they set there is taken before refusing. */
 async function overLimitAfterReread($: EngineInterface, agentId: string | undefined): Promise<string | null> {
   const book = await readBook($)
   const job = jobOfLoop(book, agentId)
   if (book.inert !== null || job === undefined || !isOverLimit(job)) {
     return null
   }
-  if (book.storage === 'on') {
-    const read = await $.process.run(['rex', 'limit', job.id, '--json'], { cwd: await $.session.root() })
-    const stored: unknown = read.exitCode === 0 ? JSON.parse(read.stdout) : null
-    const usd: unknown = typeof stored === 'object' && stored !== null ? Reflect.get(stored, 'limit_usd') : undefined
-    const source: unknown = typeof stored === 'object' && stored !== null ? Reflect.get(stored, 'source') : undefined
-    const isInRange = typeof usd === 'number' && Number.isFinite(usd) && usd >= 0 && usd <= MAX_LIMIT_USD
-    const nano = isInRange ? Math.round(usd * 1e9) : 0
-    if (source === 'set' && nano > job.limit.nano) {
-      await setLimit($, job.id, { nano, source: 'set' })
-      if (job.spentNano < nano) {
-        return null
-      }
+  const nano = await higherLimitInStore($, book, job)
+  if (nano !== null) {
+    await setLimit($, job.id, { nano, source: 'set' })
+    if (job.spentNano < nano) {
+      return null
     }
   }
   await fail($, { kind: 'spend-limit-reached', job: job.id, spentNano: job.spentNano, limitNano: job.limit.nano })

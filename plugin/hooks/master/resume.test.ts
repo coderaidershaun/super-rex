@@ -1,11 +1,11 @@
-// Proves the resume of a tree through rex_tree_open after the person's /super-rex:orchestration-master resume: the tree, its jobs and questions come back from rex tree show with the main loop as master, an open job's builder starts again or waits on a question by policy, the answer's brief carries a digest, and no second tree.open reaches the store.
+// Proves the resume of a tree through rex_tree_open after the person's /super-rex:orchestration-master resume: the tree, its jobs and questions come back from rex tree show with the main loop as master, the confirmed tree_usd as its cap and each open job's stored spend, an open job's builder starts again or waits on a question by policy, the answer's brief carries a digest, and no second tree.open reaches the store; a resume of the live tree revives only builders the engine no longer lists, and a new process ends the runs of the agents it lost.
 import { expect, test } from 'claude-code/testing'
 
 import type { ProcessAnswer, ProcessCall } from '../book/kit'
 import { ROOT, SESSION } from '../book/kit'
 import { sharedJson } from '../book/shared'
 import type { Policy } from './policy'
-import { buildRules, byRule, confirmedPolicy, lineOf, masterWorld, openedTree, placesRules, POLICY_KEY, ran, resultText, settleUntil, START } from './master-kit'
+import { buildRules, byRule, confirmedPolicy, KIND, lineOf, masterWorld, openedTree, placesRules, POLICY_KEY, ran, resultText, rex, settleUntil, START } from './master-kit'
 import type { Rule } from './master-kit'
 
 const OLD_SESSION = '11111111-2222-4333-8444-555555555555'
@@ -82,6 +82,7 @@ async function resumed(on: Parameters<typeof masterWorld>[0], keys: Partial<Poli
     ...before,
     { starts: ['rex', 'tree', 'show', '--json'], answer: treeShow(policy.confirmed_hash ?? '') },
     { starts: ['git', '-C', ROOT, 'worktree', 'list', '--porcelain'], answer: ran(listed) },
+    { starts: ['rex', 'limit'], answer: ran(`${JSON.stringify({ job: JOB, spent_usd: 1.5, limit_usd: 100_000, source: 'default' })}\n`) },
     ...buildRules('model-high-effort-high'),
   ]
   const session = masterWorld(on, { store: { [POLICY_KEY]: policy }, processAnswer: recording(rules, calls, kinds) })
@@ -89,7 +90,7 @@ async function resumed(on: Parameters<typeof masterWorld>[0], keys: Partial<Poli
 }
 
 test('resume_reattaches_questions_and_continues_or_asks: on_dead_builder continue starts the job a new builder', async ($, on) => {
-  const { session, policy, calls, kinds } = await resumed(on, { on_dead_builder: 'continue' })
+  const { session, policy, calls, kinds } = await resumed(on, { on_dead_builder: 'continue', tree_usd: 400 })
   await $.session.start(START)
 
   const answered = await openedTree($, 'resume')
@@ -102,6 +103,9 @@ test('resume_reattaches_questions_and_continues_or_asks: on_dead_builder continu
   const brief = resultText(answered)
   expect(headOf(answered)).toBe(`tree=t1\nstate=running\nexisting=no\nresumed=yes\ncontinued=${JOB}\nasked=none\nmerge=ask\nperson=yes`)
   expect([tree?.session, tree?.state, tree?.policyHash, tree?.master, tree?.charter]).toEqual([SESSION, 'running', policy.confirmed_hash, 'main', CHARTER])
+  // The cap is the confirmed policy's tree_usd, not the stored cap_usd of 150; the spend is what rex limit read from the store.
+  expect(tree?.capNano).toBe(400_000_000_000)
+  expect(book.jobs.map(job => job.spentNano)).toEqual([1_500_000_000])
   expect(tree?.builders).toEqual([{ job: JOB, agentId: 'b1' }])
   expect(book.jobs.map(job => [job.id, job.status, job.owner, job.worktree])).toEqual([[JOB, 'planned', { session: SESSION, builder: 'b1' }, `${ROOT}.worktrees/${JOB}`]])
   expect(book.questions.map(question => [question.id, question.job, question.answer])).toEqual([[QUESTION, JOB, null]])
@@ -161,7 +165,7 @@ test('resume_reattaches_questions_and_continues_or_asks: on_dead_builder ask par
   expect(kinds).not.toContain('tree.open')
 })
 
-test('resume refuses with no open tree in the store, and while a tree of this session is live it answers that tree and reads no store', async ($, on) => {
+test('resume refuses with no open tree in the store, and while a tree of this session is live it resumes that tree in place and reads no store', async ($, on) => {
   const policy = await confirmedPolicy()
   const empty = ran('{"tree":null,"jobs":[],"questions":[]}\n')
   const calls: ProcessCall[] = []
@@ -174,7 +178,44 @@ test('resume refuses with no open tree in the store, and while a tree of this se
   const live = await openedTree($, 'resume')
 
   expect(none.deny).toBe('rex_tree_open resume: no open tree in the store of this repo, got none; the person starts one with /super-rex:orchestration-master <goal>')
-  expect(headOf(live)).toBe(`tree=${lineOf(opened, 'tree') ?? ''}\nstate=running\nexisting=yes\nresumed=no\nmerge=ask\nperson=yes`)
+  expect(headOf(live)).toBe(`tree=${lineOf(opened, 'tree') ?? ''}\nstate=running\nexisting=yes\nresumed=yes\ncontinued=none\nasked=none\nmerge=ask\nperson=yes`)
   expect(calls.filter(call => call.argv[1] === 'tree').length).toBe(shows)
   expect(session.book().trees.map(tree => tree.charter)).toEqual(['Ship the parser'])
+})
+
+test('on_dead_builder ask on resume: the answer Start a new builder starts one for the job', async ($, on) => {
+  const { session, kinds } = await resumed(on, { on_dead_builder: 'ask' })
+  await $.session.start(START)
+
+  const answered = await openedTree($, 'resume')
+  await settleUntil(session.clock, () => kinds.includes('question.ask'))
+  const asked = lineOf(answered, 'asked') ?? ''
+  const reply = await $.command.run(rex(`answer ${asked} Start a new builder`))
+  await settleUntil(session.clock, () => session.spawned.length > 0)
+
+  const book = session.book()
+  expect(reply.text).toBe(`question=${asked}\nanswer=Start a new builder\n`)
+  expect(session.spawned.map(spawn => [spawn.description, spawn.cwd])).toEqual([[`rex builder ${JOB}`, `${ROOT}.worktrees/${JOB}`]])
+  expect(book.trees[0]?.builders).toEqual([{ job: JOB, agentId: 'b1' }])
+  expect(book.jobs[0]?.owner).toEqual({ session: SESSION, builder: 'b1' })
+  expect(book.trees[0]?.notes.map(note => note.text)).toEqual([`rex: started a new builder b1 for this job (the person's answer Start a new builder to question ${asked})`])
+})
+
+test('resume typed while the tree is live leaves a listed builder alone, and asks for one the engine no longer lists', async ($, on) => {
+  const { session } = await resumed(on, { on_dead_builder: 'ask' })
+  await $.session.start(START)
+  await openedTree($, 'Ship the parser')
+  const built = await $.tool.call({ tool: 'mcp__super-rex__rex_build', ...KIND, request: 'Fix the parser', consequence: 'low' })
+  const job = lineOf(built, 'job') ?? ''
+
+  const listed = await openedTree($, 'resume')
+  session.agents.splice(0)
+  const gone = await openedTree($, 'resume')
+
+  const asked = session.book().questions
+  expect([lineOf(listed, 'resumed'), lineOf(listed, 'continued'), lineOf(listed, 'asked')]).toEqual(['yes', 'none', 'none'])
+  expect([lineOf(gone, 'existing'), lineOf(gone, 'resumed'), lineOf(gone, 'continued'), lineOf(gone, 'asked')]).toEqual(['yes', 'yes', 'none', asked[0]?.id])
+  expect(asked.map(question => [question.job, question.question, question.options])).toEqual([[job, `The builder of job ${job} ended with the last session. Start a new builder for it?`, ['Start a new builder', 'Leave it blocked']]])
+  expect(resultText(gone)).toContain(`job ${job} created: its builder is gone, and a question asks the person`)
+  expect(session.spawned.filter(spawn => spawn.description.startsWith('rex builder '))).toHaveLength(1)
 })

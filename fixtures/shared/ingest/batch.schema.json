@@ -1100,7 +1100,8 @@
                       "enum": [
                         "dialog",
                         "pane",
-                        "command"
+                        "command",
+                        "mod"
                       ]
                     }
                   }

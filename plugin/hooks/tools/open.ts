@@ -133,7 +133,7 @@ export async function serveJobOpen($: EngineInterface, event: { readonly agentId
     consequence: parsed.consequence,
     langs: parsed.langs,
     prefs: parsed.prefs,
-    limit: { nano: defaultLimitNano(parsed.size, parsed.prefs.budget), source: 'default' },
+    limit: { nano: defaultLimitNano(), source: 'default' },
     dependsOn: [],
     mergeAfter: [],
   })

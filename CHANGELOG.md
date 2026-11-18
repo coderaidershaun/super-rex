@@ -4,6 +4,48 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.11.1 - 2026-11-18
+
+Install the binary and the plugin of this version together, then start a new session. After Claude Code itself was closed, a tree comes back with `/super-rex:orchestration-master resume`: the mod's record of a session does not outlive its process.
+
+What changes for you:
+
+- **Spend limits no longer stop your work.** Every job gets a default limit of $100,000, and a master tree a default cap of $100,000. Before, a job got $10.50 to $96 by its size and budget, and a tree $150. A limit now stops a job only where you, the policy or the master set a lower one.
+- **A master tree never waits in silence.** Raising a limit wakes the builder that stood at it. Each answer to a question of the mod now does something. A builder that is gone gets a new builder or one question. The master can give a job up.
+
+**What to redo.** A policy that an older release stored holds its own `tree_usd` (150). In each repo with a stored policy, run `/rex policy show`, and when it says `tree_usd=150`, `/rex policy set tree_usd 100000`, then `/rex policy confirm`.
+
+### Added
+
+- **The tool `rex_cancel`.** The master closes one open job of its tree `cancelled`, with a reason. The job's builder is told to stop, and the worktree and branch stay. The master uses it when you stop the tree, and for a job that cannot go on and whose step is built again or left out. Before, only a builder could close a job, so a job whose builder was gone kept its tree open for ever.
+- **`/super-rex:orchestration-master resume` in the session that still holds the tree.** It answers `existing=yes` and `resumed=yes`, and each open job whose builder no longer runs, such as one you stopped, gets a new builder or a question, by `on_dead_builder`. Before, it answered `existing=yes` and restarted nothing.
+- **The answer `Not needed`.** The mod closes a question that nothing waits on any more: a question of a job that closed, and a spend question of a job that is under its limit again. Such a question no longer shows as waiting, no longer holds the watchdog off its job, and no longer keeps `rex_report` from closing the tree.
+
+### Changed
+
+- **The default spend limit of a job is $100,000**, the same for every size and budget, in the binary (`rex limit`) and in the mod. The default `tree_usd` of the policy is 100000.
+- **A limit you set wakes the builder.** `/rex limit <job> <usd>` wakes the builder of a tree job that stood at its limit at once, and `rex limit <job> --set <usd>` at a shell does at the next watchdog tick. The spend question that waited is closed.
+- **`Raise` and `Keep the limit` act at once**, from the dialog as from `/rex answer`. `Keep the limit`, `raise_limits: never`, a second raise under `allowed`, and a tree cap with no room left now tell the builder to close the job `blocked`, with one status line for you. Before, the job stayed open and nobody was told.
+- **`Build it again`, `Start a new builder` and `Leave it blocked` act.** The first two start a new builder in the job's worktree, which goes on from the job's record. `Leave it blocked` closes the job `blocked`. A job the watchdog gave up on now stays open until you answer, with the line `rex: job <id> waits on you: builder <agent> did not recover`. Before, the job was closed `blocked` first and nothing acted on the answers.
+- **A builder started after a dialog answer is linked to its job.** A spawn made from a timer does not pass the plugin's own spawn hooks, so the mod now records the run and the link itself. Found in a live run of this release.
+- **`/rex policy confirm` wakes each builder that a paused tree had stopped.**
+- **The watchdog counts wakes in a row.** A job that spends again starts its count of stuck wakes from nothing, and a turn that ends well sets the count of API-error tries back. Before, both counted over the whole life of a job, so a long job was blocked by its third quiet spell.
+- **A wake that cannot reach a builder** starts a new builder (`on_dead_builder: continue`) or parks one question (`ask`). Before, it showed a status line only.
+- **A question the master asks you in the conversation holds the watchdog off idle builders**, so the builder that waits for your answer is not told to go on without it.
+- **`rex_continue` refuses a closed job**, and for an open job with no builder it runs the step of `on_dead_builder` and says what happened. Before, it told the master to call `rex_build`, which opened a second job.
+- **`/rex policy confirm` gives a running tree the new `tree_usd` as its cap.** Before, the cap stayed as it was when the tree opened, though the refusal told you to raise it this way.
+- **Resume** brings each open job back with what it has spent, takes the tree's cap from the policy you confirmed, and shows each question that waited again. Before, every job came back with a spend of $0, and a question that waited was shown nowhere.
+- **Stopping a tree.** The master skill now closes each open job with `rex_cancel` and starts no fix job for a tree you stopped.
+
+### Removed
+
+- The table of default limits by size and budget, in `rex limit`, in `fixtures/shared/tables/limits.json` and in stage 3 of the builder skill. The agent caps of stage 3 stay.
+
+### Known limits
+
+- `Build it again` starts a second builder in the worktree of the first. When the first is only slow and not dead, both may write there.
+- A resumed tree counts its master's own spend from nothing, because the store does not hold it.
+
 ## 0.11.0 - 2026-11-17
 
 Install the binary and the plugin of this version together, run `rex init` again in each repo, then start a new session.

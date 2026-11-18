@@ -1,4 +1,4 @@
-// Proves the pure changes a master tree rests on: a tree opens with the main loop as master and uses up its start prompt, the main loop's steps go to its job or else its tree's ledger, a tree re-pinned to a confirmed policy keeps its master and builders, a restored tree comes back with its jobs and questions by id, and neither queues anything for the store.
+// Proves the pure changes a master tree rests on: a tree opens with the main loop as master and uses up its start prompt, the main loop's steps go to its job or else its tree's ledger, a tree re-pinned to a confirmed policy takes its hash and cap and keeps its master and builders, a restored tree comes back with its jobs and questions by id, and neither queues anything for the store.
 import { expect, test } from 'claude-code/testing'
 
 import { emptyBook } from './events'
@@ -78,14 +78,14 @@ test("a step of the main loop goes to its own open job before any tree, and to n
   expect(stepMainIn(elsewhere, STEP)).toBe(elsewhere)
 })
 
-test('repinIn pins the tree to the new hash and keeps its master, builders and state, with no event for the store', () => {
+test('repinIn pins the tree to the new hash and cap and keeps its master, builders and state, with no event for the store', () => {
   const before = runningTree()
 
-  const after = repinIn(before, 't1', 'sha256:new')
+  const after = repinIn(before, 't1', 'sha256:new', 500_000_000_000)
 
-  expect(after.trees[0]).toEqual({ ...before.trees[0], policyHash: 'sha256:new' })
+  expect(after.trees[0]).toEqual({ ...before.trees[0], policyHash: 'sha256:new', capNano: 500_000_000_000 })
   expect(after.ingest).toBe(before.ingest)
-  expect(repinIn(before, 't9', 'sha256:new')).toEqual(before)
+  expect(repinIn(before, 't9', 'sha256:new', 500_000_000_000)).toEqual(before)
 })
 
 test('restoreIn puts a tree, its jobs and its questions back by id, replacing what the book holds of one id, with no event', () => {

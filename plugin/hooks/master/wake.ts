@@ -5,6 +5,7 @@ import type { RexBook, RexTree } from '../../types'
 import { errorText, MAIN_MASTER } from '../book/index'
 import type { StatusSection, Table } from '../parts'
 import { statusLines } from '../tools/index'
+import { wakeUndelivered } from './answers'
 
 /** What a woken builder reads: go on from where its record says it stopped. */
 export const CONTINUE_TEXT = (job: string): string => `Continue job ${job} from the first step not done.`
@@ -14,9 +15,10 @@ export function wakeLater($: EngineInterface, agentId: string, text: string): vo
   $.clock.after(0, () => {
     void $.session
       .send({ to: { agentId }, text })
-      .then(sent => {
+      .then(async sent => {
         if (!sent.isDelivered) {
-          $.ui.status(`rex: ${agentId} was not woken: ${sent.reason}`)
+          // A builder no wake reaches gets a new builder or a question for the person, not silence.
+          await wakeUndelivered($, agentId, sent.reason)
         }
       })
       .catch((error: unknown) => {

@@ -351,6 +351,15 @@ export function wakeIn(book: RexBook, jobId: string, reason: WakeReason, at: num
   return queued(woken, at, 'job.wake', job.owner.builder, jobId, { reason, count })
 }
 
+/** A job that moved again starts its count of wakes from nothing; no event, as the store keeps no count. */
+export function resetWakesIn(book: RexBook, jobId: string, reason: WakeReason): RexBook {
+  const job = findJob(book, jobId)
+  if (job === undefined || (reason === 'stuck' ? job.stuckWakes : job.retries) === 0) {
+    return book
+  }
+  return replaceJob(book, jobId, old => (reason === 'stuck' ? { ...old, stuckWakes: 0 } : { ...old, retries: 0 }))
+}
+
 export type MergeDone = { readonly repo: string; readonly base: string; readonly branch: string; readonly mergeCommit: string }
 
 /** A merge that `rex_merge` pushed: recorded as a merged delivery of the job, so its close can name it. */

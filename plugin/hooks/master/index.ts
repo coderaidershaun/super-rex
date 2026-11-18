@@ -8,7 +8,7 @@ import { serveBuild } from './build'
 import { CHARTER_PART } from './brief'
 import { setAsking } from './ask'
 import { serveAnswer, servePolicy } from './commands'
-import { ASK_OWNER_TOOL, BUILD_TOOL_NAME, CONTINUE_TOOL, GATE_CHECKS, MERGE_TOOL_NAME, NOTE_TOOL, REPORT_TOOL, SUBCOMMANDS, TOOLS, TREE_OPEN_TOOL_NAME } from './entries'
+import { ASK_OWNER_TOOL, BUILD_TOOL_NAME, CANCEL_TOOL, CONTINUE_TOOL, GATE_CHECKS, MERGE_TOOL_NAME, NOTE_TOOL, REPORT_TOOL, SUBCOMMANDS, TOOLS, TREE_OPEN_TOOL_NAME } from './entries'
 import { serveTreeOpen } from './entry'
 import { serveMergePolicy } from './merge-policy'
 import { notificationAnswer } from './notify'
@@ -18,8 +18,8 @@ import { serveReport } from './report'
 import { ownSpawn } from './spawn'
 import { STATUS_SECTIONS, withPolicyLines } from './status'
 import { readPolicy } from './store'
-import { serveAskOwner, serveContinue, serveNote } from './tools'
-import { builderEnded, startWatchdog } from './watch'
+import { serveAskOwner, serveCancel, serveContinue, serveNote } from './tools'
+import { builderEnded, conversationQuestion, startWatchdog } from './watch'
 
 const OWN_SPAWN = /^rex builder /
 
@@ -84,10 +84,24 @@ export function register(on: On, parts: Parts): void {
   }))
 
   on('tool.call', { tool: 'mcp__super-rex__rex_continue' }, ($, e) => serveContinue($, e, CONTINUE_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_continue', next.error))
+  on('tool.call', { tool: 'mcp__super-rex__rex_cancel' }, ($, e) => serveCancel($, e, CANCEL_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_cancel', next.error))
   on('tool.call', { tool: 'mcp__super-rex__rex_note' }, ($, e) => serveNote($, e, NOTE_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_note', next.error))
   on('tool.call', { tool: 'mcp__super-rex__rex_ask_owner' }, ($, e) => serveAskOwner($, e, ASK_OWNER_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_ask_owner', next.error))
   on('tool.call', { tool: 'mcp__super-rex__rex_status' }, ($, e, next) => withPolicyLines($, e, next)).catch(($, _e, next) => toolFailed($, 'rex_status', next.error))
   on('tool.call', { tool: 'mcp__super-rex__rex_report' }, ($, e) => serveReport($, e, REPORT_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_report', next.error))
+
+  // While the main loop has a question open in the conversation, the watchdog wakes no idle builder: it may wait for that answer.
+  on('tool.call', { tool: 'AskUserQuestion' }, async (_$, e, next) => {
+    if (e.agentId !== undefined) {
+      return next(e)
+    }
+    conversationQuestion('opened')
+    try {
+      return await next(e)
+    } finally {
+      conversationQuestion('closed')
+    }
+  }).catch((_$, e, next) => next(e))
 
   on('turn.complete', { reason: /(?:)/ }, async ($, e, next) => {
     const result = await next(e)

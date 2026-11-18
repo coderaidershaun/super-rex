@@ -6,6 +6,7 @@ import { closeTree, fail, isOpen, readBook } from '../book/index'
 import type { ToolEntry } from '../parts'
 import { answer, deny } from '../tools/index'
 import { isRefused, text } from './args'
+import { settleMoot } from './ask'
 import { handOffFile } from './brief'
 import { treeJobs } from './gates'
 import { forgetTree } from './rate'
@@ -56,7 +57,9 @@ export async function serveReport($: EngineInterface, event: { readonly agentId?
     await fail($, { kind: 'bad-argument', tool: entry.name, argument: 'report', value: report.refused })
     return deny(report.refused)
   }
-  const open = openWork(call.book, call.tree)
+  // A question of a job that closed has nothing left to answer, and does not hold the tree open.
+  await settleMoot($, call.tree.id)
+  const open = openWork(await readBook($), call.tree)
   if (open !== null) {
     return deny(`${entry.name}: ${open}`)
   }

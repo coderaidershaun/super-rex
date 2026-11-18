@@ -66,7 +66,9 @@ text_enum!(EndReason {
 });
 text_enum!(stored OpenHow { Attached = "attached", RexSkill = "rex_skill", Read = "read" });
 text_enum!(stored Category { Merge = "merge", Scope = "scope", Spend = "spend", Other = "other" });
-text_enum!(stored AnswerSource { Dialog = "dialog", Pane = "pane", Command = "command" });
+text_enum!(stored AnswerSource {
+    Dialog = "dialog", Pane = "pane", Command = "command", Mod = "mod",
+});
 text_enum!(stored OpenTreeState { Running = "running", Paused = "paused", Blocked = "blocked" });
 text_enum!(stored ClosedTreeState { Done = "done", Blocked = "blocked", Lost = "lost" });
 

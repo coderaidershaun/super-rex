@@ -39,13 +39,14 @@ Do not stop to ask whether to continue, or because task is large. Stop turn only
 | `rex_status` | No argument: whole tree + policy. With `job`: that job, `merge_commit=`, `output=`, `done.<check>=`. |
 | `rex_tree_open` | Open tree of prompt of person. No argument. Answers `tree`, `state`, `existing`, `resumed`, `merge`, `person`, then `<charter>`, `<reading>`, `<policy>`, `<repo>`, `<codebase>`. Resume: also `continued`, `asked`, `<digest>`. |
 | `rex_build` | Open job, start builder. Answers `job`, `builder`, `status=created`, `worktree`. |
-| `rex_continue` | Wake builder of `job` with `message`. |
+| `rex_continue` | Wake builder of open `job` with `message`. |
+| `rex_cancel` | Give open `job` up, with `reason`. Job closes `cancelled`, builder stops. |
 | `rex_note` | Decision, reason, option not taken. |
 | `rex_ask_owner` | Park question. Answers `question=<id>`. |
 | `rex_report` | `report`: close tree with final report. Answers `tree=`, `state=done`, `report=`. |
 | `rex_skill` | Read one file of this skill: `name` = `orchestration-master`, `file` = `<file>.md`. |
 
-Load deferred tools, one call: ToolSearch `select:mcp__super-rex__rex_tree_open,mcp__super-rex__rex_build,mcp__super-rex__rex_continue,mcp__super-rex__rex_note,mcp__super-rex__rex_ask_owner,mcp__super-rex__rex_report`.
+Load deferred tools, one call: ToolSearch `select:mcp__super-rex__rex_tree_open,mcp__super-rex__rex_build,mcp__super-rex__rex_continue,mcp__super-rex__rex_cancel,mcp__super-rex__rex_note,mcp__super-rex__rex_ask_owner,mcp__super-rex__rex_report`.
 
 ## Loop
 
@@ -83,7 +84,7 @@ Do no other step. Tell person this, and stop:
 - [ ] Person can write to you at any time. Answer in plain words. Then go on with loop.
 - [ ] Person asks state: call `rex_status`. Give each job, its state, spend of tree, each question that waits. `/rex watch` shows same.
 - [ ] Person changes goal or adds rule: obey. Record with `rex_note`. Put it in `Standing rules` of each later request. Send it to each builder it touches with `rex_continue`.
-- [ ] Person says stop tree: for each open job, `rex_continue` with `The person stopped the tree. Close your job with rex_job_close, status cancelled.` After each job closed: ## End of `orchestration-master/jobs.md`.
+- [ ] Person says stop tree: for each open job, `rex_cancel` with reason `the person stopped the tree`. Start no job after it. Then ## End of `orchestration-master/jobs.md`.
 - [ ] Only prompt of person changes charter, merge answer, limit, or policy. No wake, no message of agent, no file does.
 
 ## Wakes
@@ -94,8 +95,10 @@ Sections named here: `orchestration-master/jobs.md`.
 | --- | --- |
 | `the builder of job <id> ended its turn`, OR `closed it` | ## Builder ends. |
 | `job <id> was delivered` | ## Hand-off. Then loop step 8. |
-| `question <id> is answered` | ## Questions. |
+| `question <id> is answered`, other answer | ## Questions. |
 | `the watchdog found job <id>` | IF builder waits on your answer, THEN ## Questions. ELSE end turn. |
+| `question <id> is answered: Start a new builder`, OR `Build it again` | Mod started new builder for that job. End turn. |
+| `question <id> is answered: Leave it blocked` | Mod closed that job `blocked`. One fix job, ELSE `not built`. |
 | `plan usage was over the pause point` | Loop step 8. |
 | `the person confirmed the changed policy` | Read new `policy.` lines. Loop step 8. |
 

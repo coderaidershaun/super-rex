@@ -115,7 +115,7 @@ test("the tree's brief holds the charter's reading with no Missing line, the pol
     'max_jobs=8',
     'consequence_ceiling=high',
     'tier_cap=high',
-    'tree_usd=150',
+    'tree_usd=100000',
     'per_job_usd=20',
     'raise_limits=ask',
   ].join('\n')

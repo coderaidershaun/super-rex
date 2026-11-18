@@ -26,6 +26,7 @@ test('every tool of the table is registered at session start, and only rex_skill
     ['rex_tree_open', true],
     ['rex_build', true],
     ['rex_continue', true],
+    ['rex_cancel', true],
     ['rex_note', true],
     ['rex_ask_owner', true],
     ['rex_report', true],

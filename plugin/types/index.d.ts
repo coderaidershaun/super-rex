@@ -200,7 +200,8 @@ export type RexLintAttempt = {
 
 export type RexAnswer = {
   readonly option: string
-  readonly source: 'dialog' | 'pane' | 'command'
+  /** `mod`: the mod closed a question that an act of the person or the end of its job left with nothing to answer. */
+  readonly source: 'dialog' | 'pane' | 'command' | 'mod'
   readonly at: number
 }
 

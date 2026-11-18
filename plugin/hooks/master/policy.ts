@@ -42,7 +42,7 @@ export const DEFAULT_POLICY: Policy = {
   always_ask_paths: ['contracts/**', 'infra/**', '**/*.env*'],
   consequence_ceiling: 'high',
   per_job_usd: null,
-  tree_usd: 150,
+  tree_usd: 100_000,
   raise_limits: 'ask',
   max_parallel_builders: 'auto',
   pause_at_rate_limit_pct: 85,

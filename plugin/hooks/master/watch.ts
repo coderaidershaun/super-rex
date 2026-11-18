@@ -2,9 +2,10 @@
 import type { EngineInterface, Timer } from 'claude-code'
 
 import type { RexBook, RexJob, RexTree, RexTreeTick } from '../../types'
-import { bookWrites, countWake, errorText, fail, isOpen, readBook, tickTree } from '../book/index'
+import { bookWrites, countWake, errorText, fail, isOpen, readBook, resetWakes, tickTree } from '../book/index'
 import type { StatusSection, Table } from '../parts'
-import { parkQuestion } from './ask'
+import { blockAndAsk } from './answers'
+import { settleMoot } from './ask'
 import { runDoneCheck } from './done'
 import { treeJobs } from './gates'
 import { DEFAULT_POLICY } from './policy'
@@ -24,6 +25,17 @@ const STUCK_WAKES = 2
  * just before a tick has a whole period to be resumed by the engine first.
  */
 const IDLE_TICKS = 2
+
+/**
+ * The questions the master has open in the conversation right now. Such a
+ * question is in no record, so while one is open no idle job is woken: its
+ * builder may be the one that waits for the person's answer.
+ */
+const conversation = { open: 0 }
+
+export function conversationQuestion(change: 'opened' | 'closed'): void {
+  conversation.open = Math.max(0, conversation.open + (change === 'opened' ? 1 : -1))
+}
 
 /** The watchdog of each live tree and the retry each job waits on; a reload cancels both, and session start sets the watchdogs again. */
 const watchdogs = new Map<string, Timer>()
@@ -62,19 +74,6 @@ function builderOf(tree: RexTree, job: string): string | undefined {
  */
 function quietTicks(tick: RexTreeTick, now: number, policy: Policy): number {
   return Math.round((now - tick.at) / (policy.watchdog_minutes * MINUTE_MS))
-}
-
-/** A job no wake helped waits on the person, and its builder is not woken again. */
-async function blockAndAsk($: EngineInterface, tree: RexTree, job: RexJob, why: string): Promise<void> {
-  await parkQuestion($, {
-    tree: tree.id,
-    job: job.id,
-    question: `Job ${job.id} is blocked: ${why}. What should the master do?`,
-    options: ['Build it again', 'Leave it blocked'],
-    recommendation: 'Leave it blocked',
-    category: 'other',
-    mergeFor: null,
-  })
 }
 
 /** True while an agent that the builder or one of its leads started, at any depth, still runs: the builder waits for it, and the engine resumes the builder when it ends. */
@@ -117,9 +116,18 @@ async function tickJob($: EngineInterface, book: RexBook, tree: RexTree, job: Re
   const seen = tree.ticks.find(tick => tick.job === job.id)
   if (seen?.spentNano !== job.spentNano) {
     await tickTree($, tree.id, { job: job.id, spentNano: job.spentNano })
+    // A job that spends again is not stuck: its next quiet time is counted from nothing.
+    if (seen !== undefined) {
+      await resetWakes($, job.id, 'stuck')
+    }
     return NONE
   }
   const isWorking = book.runs.find(run => run.agentId === builder)?.state === 'open'
+  if (conversation.open > 0 && !book.runs.some(run => run.job === job.id && run.state === 'open')) {
+    // The quiet time of an idle job starts again once the person answered the master.
+    await tickTree($, tree.id, { job: job.id, spentNano: job.spentNano })
+    return NONE
+  }
   const period = stuckPeriod(book, job.id, policy)
   const quiet = quietTicks(seen, now, policy)
   if (period === null || quiet < period.ticks) {
@@ -164,6 +172,7 @@ export async function watchdogTick($: EngineInterface, treeId: string, sections:
     stopWatchdog(treeId)
     return
   }
+  await settleMoot($, tree.id)
   const open = treeJobs(book, tree.id).filter(isOpen)
   if (open.length === 0) {
     return
@@ -257,6 +266,10 @@ export async function builderEnded($: EngineInterface, end: TurnEnd, sections: T
     await retryBuilder($, tree, job, agentId)
     return
   }
+  // A turn that ended well ends the run of API errors: the next error is the first again.
+  await resetWakes($, job.id, 'retry')
+  // A job that closed leaves its questions with nothing to answer, so the master reads none as waiting.
+  await settleMoot($, tree.id)
   if (job.status === 'delivered' && job.doneChecks.length === 0) {
     $.clock.after(0, () => {
       void afterDelivery($, job, tree, sections).catch((error: unknown) => {
