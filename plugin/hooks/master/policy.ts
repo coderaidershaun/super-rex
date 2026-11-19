@@ -248,8 +248,8 @@ export function policyLines(policy: Policy): readonly string[] {
   return POLICY_KEYS.filter(key => key !== 'confirmed_hash').map(key => `${key}=${canonicalJson(policy[key]).replace(/^"(.*)"$/, '$1')}`)
 }
 
-/** The keys a master reads when its tree opens and in rex_status: what it may decide, and how far it may spend. */
-const MASTER_KEYS = ['merge', 'merge_max_consequence', 'max_parallel_builders', 'max_jobs', 'consequence_ceiling', 'tier_cap', 'tree_usd', 'per_job_usd', 'raise_limits'] as const
+/** The keys a master reads when its tree opens and in rex_status: what it may decide, and how far a job may spend. The tree's budget is the person's answer when it opens, which the tree holds. */
+const MASTER_KEYS = ['merge', 'merge_max_consequence', 'max_parallel_builders', 'max_jobs', 'consequence_ceiling', 'tier_cap', 'per_job_usd', 'raise_limits'] as const
 
 /** One `key=value` line for each key a master reads; a key not set reads `none`. */
 export function masterPolicyLines(policy: Policy): readonly string[] {

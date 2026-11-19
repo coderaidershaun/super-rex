@@ -47,15 +47,14 @@ async function pauseChanged($: EngineInterface, hash: string): Promise<readonly 
 
 /**
  * Each paused tree of this session runs on under the policy the person just
- * confirmed: pinned to its hash and to its `tree_usd` as the tree's cap, with
- * its builders, its master woken to go on, and each builder that had stopped
- * woken too.
+ * confirmed: pinned to its hash, with its builders, its budget and its time,
+ * its master woken to go on, and each builder that had stopped woken too.
  */
-async function resumeConfirmed($: EngineInterface, hash: string, policy: Policy, sections: Table<StatusSection>): Promise<readonly string[]> {
+async function resumeConfirmed($: EngineInterface, hash: string, sections: Table<StatusSection>): Promise<readonly string[]> {
   const book = await readBook($)
   const resumed = book.trees.filter(tree => tree.session === book.session && tree.state === 'paused')
   for (const tree of resumed) {
-    await repinTree($, tree.id, hash, Math.round(policy.tree_usd * 1e9))
+    await repinTree($, tree.id, hash)
     await closeTree($, tree.id, 'running', null)
   }
   const now = await readBook($)
@@ -95,7 +94,7 @@ async function setKey($: EngineInterface, rest: string): Promise<CommandRunResul
 async function confirm($: EngineInterface, sections: Table<StatusSection>): Promise<CommandRunResult> {
   const now = await policyNow($)
   const written = await writePolicy($, now.policy, 'confirm')
-  const resumed = await resumeConfirmed($, written.hash, written.policy, sections)
+  const resumed = await resumeConfirmed($, written.hash, sections)
   const waiting = treesOff(await readBook($), written.hash)
   return lines([...storedLines(written, 'stored'), `resumed=${resumed.length === 0 ? 'none' : resumed.join(',')}`, `still_paused=${waiting.length === 0 ? 'none' : waiting.join(',')}`])
 }

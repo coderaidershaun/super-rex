@@ -48,13 +48,13 @@ import {
 import type { JobClose, MergeDone, OpenJobInput, PlanAmendment, QuestionInput, Restored, WakeReason } from './jobs'
 import { endRunIn, lintAttemptIn, mainTree, runOutputIn, skillOpenIn, startRunIn, stepMainIn, stepRunIn } from './runs'
 import type { EndInput, SkillOpen, StartRunInput, StepInput } from './runs'
-import { linkIn, noteIn, pendingIn, repinIn, tickIn, treeIn, treeStateIn } from './trees'
-import type { TreeInput } from './trees'
+import { limitsIn, linkIn, noteIn, pendingIn, repinIn, tickIn, treeIn, treeStateIn } from './trees'
+import type { TreeInput, TreeLimits } from './trees'
 
 type Dollar = EngineInterface
 
 /** Change the tag when the book's shape changes: a reload then declines what older code stored. */
-export const BOOK_SHAPE = 'book-4'
+export const BOOK_SHAPE = 'book-5'
 export const bookAtom = atom({ plugin: 'super-rex', key: 'book' } as const, emptyBook(), { shape: BOOK_SHAPE })
 
 export function readBook($: Dollar): Promise<RexBook> {
@@ -248,8 +248,13 @@ export async function restoreTree($: Dollar, restored: Restored): Promise<void> 
 }
 
 /** Only `/rex policy confirm` calls it, for a paused tree of this session, before it sets the tree running again. */
-export async function repinTree($: Dollar, tree: string, policyHash: string, capNano: number): Promise<void> {
-  await change($, book => repinIn(book, tree, policyHash, capNano))
+export async function repinTree($: Dollar, tree: string, policyHash: string): Promise<void> {
+  await change($, book => repinIn(book, tree, policyHash))
+}
+
+/** Only the person's own answer or command calls it: the budget or the time of a live tree. */
+export async function setTreeLimits($: Dollar, tree: string, limits: TreeLimits): Promise<void> {
+  await change($, book => limitsIn(book, tree, limits))
 }
 
 export async function closeTree($: Dollar, tree: string, state: RexTree['state'], reportFile: string | null): Promise<void> {

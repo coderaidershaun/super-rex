@@ -20,7 +20,7 @@ Finish or close each job that a 0.7 session still runs. A 0.7 builder calls `rex
 
    ```console
    $ rex --version
-   rex 0.11.1
+   rex 0.12.0
    ```
 
    The mod calls `rex` by `PATH`, and the plugin and the binary must have the same version.
@@ -70,7 +70,7 @@ Without `--with-storage`, the record of a job lives only in the session and ends
 Each sandbox setting turned off, and each removal of a copy or the block, is one line on the output:
 
 ```console
-rex init: turned the Claude Code sandbox off in .claude/settings.local.json (sandbox.enabled was true): the plugin's guard on recursive rm replaces it, and each run of rex init turns it off again.
+rex init: turned the Claude Code sandbox off in .claude/settings.local.json (sandbox.enabled was true): the plugin's guard replaces it, and each run of rex init turns it off again.
 rex init: removed .rex/skills/rex-code-commenting/: it was an unchanged copy from an older rex, and the plugin ships rex-code-commenting now
 rex init: removed .claude/skills/rex-grill-me/: it was an unchanged copy from an older rex, and the plugin ships rex-grill-me now
 rex init: removed .claude/agents/model-low-effort-low.md: it was an unchanged copy from an older rex, and the plugin ships model-low-effort-low.md now
@@ -117,7 +117,7 @@ Claude Code loads a plugin when a session starts. Start a new session in the mai
 /rex doctor
 ```
 
-The answer starts with `doctor=ok` and ends with `mod=0.11.1`. A `problem=` line says what to fix, such as a binary and a plugin of different versions.
+The answer starts with `doctor=ok` and ends with `mod=0.12.0`. A `problem=` line says what to fix, such as a binary and a plugin of different versions.
 
 ## What changes when you use it
 

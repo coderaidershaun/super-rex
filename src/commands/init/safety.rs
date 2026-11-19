@@ -88,7 +88,7 @@ pub(super) fn turn_old_sandbox_off(settings: &mut Map<String, Value>) -> Vec<Str
     {
         *enabled = Value::Bool(false);
         notices.push(format!(
-            "rex init: turned the Claude Code sandbox off in {SETTINGS_FILE} (sandbox.enabled was true): the plugin's guard on recursive rm replaces it, and each run of rex init turns it off again."
+            "rex init: turned the Claude Code sandbox off in {SETTINGS_FILE} (sandbox.enabled was true): the plugin's guard replaces it, and each run of rex init turns it off again."
         ));
     }
     if let Some(Value::Object(permissions)) = settings.get_mut("permissions")
@@ -96,7 +96,7 @@ pub(super) fn turn_old_sandbox_off(settings: &mut Map<String, Value>) -> Vec<Str
     {
         permissions.remove("blockWritesOutsideWorkingDirectories");
         notices.push(format!(
-            "rex init: removed permissions.blockWritesOutsideWorkingDirectories from {SETTINGS_FILE} (it was true): the plugin's guard on recursive rm replaces it, and each run of rex init removes it again."
+            "rex init: removed permissions.blockWritesOutsideWorkingDirectories from {SETTINGS_FILE} (it was true): the plugin's guard replaces it, and each run of rex init removes it again."
         ));
     }
     notices

@@ -41,6 +41,10 @@
       "arguments": ["job", "text"],
       "keys": ["noted"]
     },
+    "rex_raise": {
+      "arguments": ["job", "limit", "reason", "to"],
+      "keys": ["question", "state"]
+    },
     "rex_recall": {
       "arguments": ["job"],
       "keys": ["reason", "recall"]
@@ -59,7 +63,7 @@
     },
     "rex_tree_open": {
       "arguments": [],
-      "keys": ["asked", "continued", "existing", "merge", "person", "resumed", "state", "tree"]
+      "keys": ["asked", "budget_usd", "continued", "ends_at", "existing", "merge", "person", "resumed", "state", "time", "tree"]
     },
     "rex_worktree": {
       "arguments": ["unit"],

@@ -4,12 +4,15 @@ import type { EngineInterface } from 'claude-code'
 import type { RexJob, RexQuestion, RexTree } from '../../types'
 import { closeJob, errorText, isOpen, noteTree, readBook, resetWakes } from '../book/index'
 import { parkQuestion, wakeOnAnswer } from './ask'
+import { answeredTreeLimit } from './budget'
 import { restartBuilder } from './build'
 import { answeredSpend } from './limits'
 import { isLiveTree } from './pin'
 import { DEFAULT_POLICY } from './policy'
 import type { Policy } from './policy'
+import { answeredRequest } from './raise'
 import { readPolicy } from './store'
+import { treeOver } from './tree-limits'
 
 /** The options of the two questions the mod asks about a job whose builder cannot go on. */
 export const START_AGAIN = 'Start a new builder'
@@ -94,9 +97,11 @@ async function answeredBuilder($: EngineInterface, question: RexQuestion, option
   await startAgain($, tree, job, `the person's answer ${option} to question ${question.id}`)
 }
 
-/** Everything an answer of the person sets going, in one order whatever the way it came: the raise, the builder, then the wakes of whoever waits. */
+/** Everything an answer of the person sets going, in one order whatever the way it came: the raise of a job's limit, the budget or time of the tree, the builder, then the wakes of whoever waits. */
 export async function afterAnswer($: EngineInterface, question: RexQuestion, option: string): Promise<void> {
   await answeredSpend($, question, option)
+  await answeredTreeLimit($, question, option)
+  await answeredRequest($, question, option)
   await answeredBuilder($, question, option)
   await wakeOnAnswer($, question, option)
 }
@@ -113,6 +118,10 @@ export async function wakeUndelivered($: EngineInterface, agentId: string, reaso
   const tree = book.trees.find(each => each.session === book.session && isLiveTree(each) && each.builders.some(builder => builder.agentId === agentId))
   const job = book.jobs.find(each => each.id === tree?.builders.find(builder => builder.agentId === agentId)?.job)
   if (tree === undefined || job === undefined || !isOpen(job)) {
+    return
+  }
+  // A tree at its budget or its time starts no new builder: the person's answer about the limit comes first.
+  if (treeOver(book, tree, await $.clock.now()) !== null) {
     return
   }
   const why = `its builder ${agentId} could not be woken (${reason})`

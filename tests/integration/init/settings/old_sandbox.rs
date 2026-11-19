@@ -60,9 +60,9 @@ const OLD: &str = r#"{
 }
 "#;
 
-const SANDBOX_OFF: &str = "rex init: turned the Claude Code sandbox off in .claude/settings.local.json (sandbox.enabled was true): the plugin's guard on recursive rm replaces it, and each run of rex init turns it off again.\n";
+const SANDBOX_OFF: &str = "rex init: turned the Claude Code sandbox off in .claude/settings.local.json (sandbox.enabled was true): the plugin's guard replaces it, and each run of rex init turns it off again.\n";
 
-const BLOCK_REMOVED: &str = "rex init: removed permissions.blockWritesOutsideWorkingDirectories from .claude/settings.local.json (it was true): the plugin's guard on recursive rm replaces it, and each run of rex init removes it again.\n";
+const BLOCK_REMOVED: &str = "rex init: removed permissions.blockWritesOutsideWorkingDirectories from .claude/settings.local.json (it was true): the plugin's guard replaces it, and each run of rex init removes it again.\n";
 
 fn written(repo: &crate::init::support::Repo) -> Value {
     serde_json::from_str(&read_settings(repo)).expect("settings JSON")

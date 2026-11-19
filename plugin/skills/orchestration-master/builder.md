@@ -26,6 +26,7 @@ The mod set up Git for your job: repo, base branch, your branch, and worktree. D
 - IF you need a decision that the request does not give, THEN write the question, 2 to 4 short options, and your recommendation in your report. End your turn with the state `awaiting decision`.
 - IF `rex_merge` answers `merged=no` with a question, THEN end your turn with the state `awaiting decision` and the question ID. The answer of the person wakes you: call `rex_merge` again.
 - IF the mod refuses an agent at the spend limit of your job, THEN do not close the job. End your turn with the state `blocked`, the spend, and the limit. A message of the mod tells you when the limit is raised: go on. IF a message of the mod says the limit stays, THEN call `rex_job_close` with status `blocked`.
+- IF the mod refuses an agent because the master tree `has spent ... of its budget` or `has run for its time`, THEN do not close the job. End your turn with the state `blocked` and that reason. A message of the mod tells you when the tree may go on: go on. IF a message of the mod says the tree stops, THEN call `rex_job_close` with status `blocked`, and give what is done and what is left.
 - IF a message of the mod says the master cancelled your job, THEN the job is closed: stop work, start no agent, end your turn.
 
 ## Limits

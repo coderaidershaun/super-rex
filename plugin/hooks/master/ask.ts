@@ -7,6 +7,7 @@ import type { QuestionInput } from '../book/index'
 import type { StatusSection, Table } from '../parts'
 import { afterAnswer } from './answers'
 import { isLiveTree } from './pin'
+import { isLimitStillReached, isTreeLimitQuestion, requestKind } from './tree-limits'
 import { wakeLater, wakeMaster } from './wake'
 
 /** How `$.ui.ask` rejects when the person dismisses the dialog with no answer. */
@@ -21,6 +22,11 @@ const asking: { isInteractive: boolean; sections: Table<StatusSection> | null } 
 export function setAsking(isInteractive: boolean, sections: Table<StatusSection>): void {
   asking.isInteractive = isInteractive
   asking.sections = sections
+}
+
+/** Whether a person is at the terminal to answer a dialog, and the status sections a woken master reads. */
+export function personNow(): { readonly isInteractive: boolean; readonly sections: Table<StatusSection> | null } {
+  return asking
 }
 
 export function questionStatus(question: RexQuestion): string {
@@ -92,11 +98,38 @@ export async function parkQuestion($: EngineInterface, input: QuestionInput): Pr
   return parked
 }
 
+/**
+ * The mod's question about a tree's budget or time, and a request of the
+ * master to raise a limit, hold no tree open once every job of it closed: the
+ * master ends the tree with its report, and the question is answered `Not needed`.
+ */
+export async function settleLimitQuestions($: EngineInterface, treeId: string): Promise<void> {
+  const book = await readBook($)
+  if (book.jobs.some(job => job.tree === treeId && isOpen(job))) {
+    return
+  }
+  const waiting = book.questions.filter(question => question.tree === treeId && question.answer === null && (isTreeLimitQuestion(question) || requestKind(question) !== null))
+  for (const question of waiting) {
+    await answerQuestion($, question.id, { option: NOT_NEEDED, source: 'mod' })
+  }
+  if (waiting.length > 0) {
+    $.ui.status(statusAfterAnswer(await readBook($)))
+  }
+}
+
 /** The answer the mod gives a question that nobody needs to answer any more. */
 export const NOT_NEEDED = 'Not needed'
 
-/** True for a question whose answer could still change something: a spend question while its job is at its limit, any other while its job is open. */
-function isStillNeeded(book: RexBook, question: RexQuestion): boolean {
+/** True for a question whose answer could still change something: a question about a tree's budget or time while the tree stands at that limit, a spend question while its job is at its limit, any other while its job is open. */
+function isStillNeeded(book: RexBook, question: RexQuestion, now: number): boolean {
+  if (isTreeLimitQuestion(question)) {
+    return isLimitStillReached(book, question, now)
+  }
+  if (requestKind(question) !== null) {
+    // A request of the master to raise a limit waits for the person whether or not the limit is reached yet.
+    const asked = book.jobs.find(each => each.id === question.job)
+    return asked === undefined || isOpen(asked)
+  }
   const job = book.jobs.find(each => each.id === (question.mergeFor ?? question.job))
   if (job === undefined) {
     return true
@@ -106,14 +139,15 @@ function isStillNeeded(book: RexBook, question: RexQuestion): boolean {
 
 /**
  * Closes each waiting question of a tree that nothing waits on any more: its
- * job closed, or its job is under its spend limit again because the person
- * set a higher one. The mod answers it `Not needed`, so it stops showing as
+ * job closed, its job is under its spend limit again because the person set a
+ * higher one, or its tree is under its budget and its time again. The mod answers it `Not needed`, so it stops showing as
  * waiting, stops holding the watchdog off its job, and no longer keeps
  * rex_report from closing the tree. It wakes nobody.
  */
 export async function settleMoot($: EngineInterface, treeId: string): Promise<void> {
   const book = await readBook($)
-  const moot = book.questions.filter(question => question.tree === treeId && question.answer === null && !isStillNeeded(book, question))
+  const now = await $.clock.now()
+  const moot = book.questions.filter(question => question.tree === treeId && question.answer === null && !isStillNeeded(book, question, now))
   for (const question of moot) {
     await answerQuestion($, question.id, { option: NOT_NEEDED, source: 'mod' })
   }

@@ -152,7 +152,7 @@ test('rex_build refuses the main loop of a session whose tree is closed', async 
   expect(session.book().jobs).toEqual([])
 })
 
-test('rex_build_refuses_over_policy: the tree ledger at its cap', async ($, on) => {
+test('rex_build_refuses_over_policy: the tree at its budget, with the command that raises it', async ($, on) => {
   const policy = await confirmedPolicy({ tree_usd: 10 })
   const seeded = await treeBook(policy)
   const spent = { ...seeded, trees: seeded.trees.map(tree => ({ ...tree, ledgerNano: 10_000_000_000 })) }
@@ -161,7 +161,7 @@ test('rex_build_refuses_over_policy: the tree ledger at its cap', async ($, on) 
 
   const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'x', consequence: 'low' })
 
-  expect(built.deny).toBe(`rex gate: master tree ${TREE} has spent $10.00 of its $10.00; tell the person: they raise the cap with /rex policy set tree_usd <usd>, then /rex policy confirm`)
+  expect(built.deny).toBe(`rex gate: master tree ${TREE} has spent $10 of its budget of $10; nothing new starts until the person raises it (they answer the mod's question, or type /rex budget <usd>) or stops the tree; end your turn, and the mod wakes you`)
   expect(session.book().jobs).toEqual([])
 })
 

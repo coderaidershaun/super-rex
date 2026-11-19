@@ -91,6 +91,7 @@ async function resumed(on: Parameters<typeof masterWorld>[0], keys: Partial<Poli
 
 test('resume_reattaches_questions_and_continues_or_asks: on_dead_builder continue starts the job a new builder', async ($, on) => {
   const { session, policy, calls, kinds } = await resumed(on, { on_dead_builder: 'continue', tree_usd: 400 })
+  session.limitAnswers.budget = '$1,500'
   await $.session.start(START)
 
   const answered = await openedTree($, 'resume')
@@ -101,10 +102,10 @@ test('resume_reattaches_questions_and_continues_or_asks: on_dead_builder continu
   const tree = book.trees[0]
   const builder = session.spawned.find(spawn => spawn.description === `rex builder ${JOB}`)
   const brief = resultText(answered)
-  expect(headOf(answered)).toBe(`tree=t1\nstate=running\nexisting=no\nresumed=yes\ncontinued=${JOB}\nasked=none\nmerge=ask\nperson=yes`)
+  expect(headOf(answered)).toBe(`tree=t1\nstate=running\nexisting=no\nresumed=yes\ncontinued=${JOB}\nasked=none\nmerge=ask\nbudget_usd=100000.00\ntime=unlimited\nends_at=none\nperson=yes`.replace('budget_usd=100000.00', 'budget_usd=1500.00'))
   expect([tree?.session, tree?.state, tree?.policyHash, tree?.master, tree?.charter]).toEqual([SESSION, 'running', policy.confirmed_hash, 'main', CHARTER])
-  // The cap is the confirmed policy's tree_usd, not the stored cap_usd of 150; the spend is what rex limit read from the store.
-  expect(tree?.capNano).toBe(400_000_000_000)
+  // The budget is the person's answer to the dialog of the resume, not the stored cap_usd of 150 nor tree_usd of 400; the spend is what rex limit read from the store.
+  expect(tree?.capNano).toBe(1_500_000_000_000)
   expect(book.jobs.map(job => job.spentNano)).toEqual([1_500_000_000])
   expect(tree?.builders).toEqual([{ job: JOB, agentId: 'b1' }])
   expect(book.jobs.map(job => [job.id, job.status, job.owner, job.worktree])).toEqual([[JOB, 'planned', { session: SESSION, builder: 'b1' }, `${ROOT}.worktrees/${JOB}`]])
@@ -142,7 +143,7 @@ test('a git call that throws while a builder restarts on resume leaves that job 
 
   const answered = await openedTree($, 'resume')
 
-  expect(headOf(answered)).toBe('tree=t1\nstate=running\nexisting=no\nresumed=yes\ncontinued=none\nasked=none\nmerge=ask\nperson=yes')
+  expect(headOf(answered)).toBe('tree=t1\nstate=running\nexisting=no\nresumed=yes\ncontinued=none\nasked=none\nmerge=ask\nbudget_usd=100000.00\ntime=unlimited\nends_at=none\nperson=yes')
   expect(session.statuses.some(line => line.startsWith(`rex: job ${JOB} of tree t1 got no new builder:`) && line.includes('timeout'))).toBe(true)
   expect(session.spawned.some(spawn => spawn.description === `rex builder ${JOB}`)).toBe(false)
 })
@@ -178,7 +179,7 @@ test('resume refuses with no open tree in the store, and while a tree of this se
   const live = await openedTree($, 'resume')
 
   expect(none.deny).toBe('rex_tree_open resume: no open tree in the store of this repo, got none; the person starts one with /super-rex:orchestration-master <goal>')
-  expect(headOf(live)).toBe(`tree=${lineOf(opened, 'tree') ?? ''}\nstate=running\nexisting=yes\nresumed=yes\ncontinued=none\nasked=none\nmerge=ask\nperson=yes`)
+  expect(headOf(live)).toBe(`tree=${lineOf(opened, 'tree') ?? ''}\nstate=running\nexisting=yes\nresumed=yes\ncontinued=none\nasked=none\nmerge=ask\nbudget_usd=100000.00\ntime=unlimited\nends_at=none\nperson=yes`)
   expect(calls.filter(call => call.argv[1] === 'tree').length).toBe(shows)
   expect(session.book().trees.map(tree => tree.charter)).toEqual(['Ship the parser'])
 })

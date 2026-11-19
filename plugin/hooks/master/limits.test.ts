@@ -1,10 +1,12 @@
-// Proves the spend limit of a tree job: raise_limits of the policy doubles it once, by policy or by the person's answer to a spend question, up to the tree's cap; a limit that stays has the builder told once to close blocked; a limit the person sets with /rex limit or at a shell settles the spend question and wakes the builder; and a confirmed tree_usd is the tree's cap.
+// Proves the spend limit of a tree job: raise_limits of the policy doubles it once, by policy or by the person's answer to a spend question, up to the tree's cap; a limit that stays has the builder told once to close blocked; a limit the person sets with /rex limit or at a shell settles the spend question and wakes the builder; and a confirmed policy leaves the tree's budget and time as they were.
 import { expect, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 import type { Engine } from 'claude-code/testing'
 
 import type { Policy } from './policy'
+import { START_MS } from '../book/kit'
 import { buildRules, byRule, confirmedPolicy, KIND, lineOf, masterWorld, POLICY_KEY, ran, rex, settleLong, settleUntil, START, treeBook } from './master-kit'
+import { whenText } from './tree-limits'
 import type { Rule } from './master-kit'
 
 const MINUTE = 60_000
@@ -46,7 +48,7 @@ async function spend($: Engine, builder: string, turn: string): Promise<void> {
   await stream.result
 }
 
-test('raise_limits allowed doubles the limit of a job at its limit once, up to the tree cap, and wakes its builder; at the cap the builder is told once to close blocked', { timeoutMs: 20_000 }, async ($, on) => {
+test('raise_limits allowed doubles the limit of a job at its limit once, up to the tree budget, and wakes its builder; at the tree budget the mod asks about the tree, and the builder is not told to close', { timeoutMs: 20_000 }, async ($, on) => {
   const { session, job, builder } = await treeWithJob($, on, { raise_limits: 'allowed', per_job_usd: 2, tree_usd: 3 })
 
   await spend($, builder, 'turn-1')
@@ -59,16 +61,25 @@ test('raise_limits allowed doubles the limit of a job at its limit once, up to t
 
   expect(raised).toEqual({ nano: 3 * DOLLAR, source: 'policy' })
   expect(session.book().jobs[0]?.limit).toEqual({ nano: 3 * DOLLAR, source: 'policy' })
-  const kept = 'the cap of the tree, $3.00, leaves no room to raise it'
-  expect(session.book().trees[0]?.notes.map(note => [note.job, note.text])).toEqual([
-    [job, 'rex: raised the spend limit of this job from $2.00 to $3.00 by policy raise_limits allowed'],
-    [job, `rex: kept the spend limit of this job at $3.00: ${kept}`],
-  ])
-  expect(limitWakes(session.sent, builder)).toEqual([
-    `rex: the spend limit of job ${job} is now $3.00. Continue job ${job} from the first step not done.`,
-    `rex: the spend limit of job ${job} stays at $3.00: ${kept}. Close your job with rex_job_close, status blocked.`,
-  ])
-  expect(session.book().questions).toEqual([])
+  expect(session.book().trees[0]?.notes.map(note => [note.job, note.text])).toEqual([[job, 'rex: raised the spend limit of this job from $2.00 to $3.00 by policy raise_limits allowed']])
+  expect(limitWakes(session.sent, builder)).toEqual([`rex: the spend limit of job ${job} is now $3.00. Continue job ${job} from the first step not done.`])
+  expect(session.book().questions.map(question => [question.job, question.question, question.options])).toEqual([[null, 'Master tree t1 has spent its budget of $3. Raise it to $10?', ['Raise it', 'Stop the tree']]])
+})
+
+test("a job's own spend limit is raised by the person's answer while its tree is well under its budget, and no tree question is asked", { timeoutMs: 20_000 }, async ($, on) => {
+  const { session, job, builder } = await treeWithJob($, on, { raise_limits: 'ask', per_job_usd: 2, tree_usd: 250 })
+
+  await spend($, builder, 'turn-1')
+  await session.clock.advance(30 * MINUTE)
+  await settleUntil(session.clock, () => session.book().questions.length > 0)
+  const id = session.book().questions[0]?.id ?? ''
+  await $.command.run(rex(`answer ${id} Raise`))
+  await settleUntil(session.clock, () => limitWakes(session.sent, builder).length > 0)
+
+  expect(session.book().questions.map(question => [question.job, question.options])).toEqual([[job, ['Raise', 'Keep the limit']]])
+  expect(session.book().jobs[0]?.limit).toEqual({ nano: 4 * DOLLAR, source: 'set' })
+  expect(limitWakes(session.sent, builder)).toEqual([`rex: the spend limit of job ${job} is now $4.00. Continue job ${job} from the first step not done.`])
+  expect(session.book().trees[0]?.capNano).toBe(250 * DOLLAR)
 })
 
 test('raise_limits ask parks one spend question, and the answer Raise doubles the limit', { timeoutMs: 20_000 }, async ($, on) => {
@@ -185,17 +196,18 @@ test('the watchdog takes a higher limit the person set at a shell: the limit is 
   expect(session.book().trees[0]?.notes.map(note => note.text)).toEqual(['rex: raised the spend limit of this job from $2.00 to $10.00 by the person, with rex limit at a shell'])
 })
 
-test('/rex policy set tree_usd, then confirm, gives the paused tree the new cap, which rex_status shows', { timeoutMs: 20_000 }, async ($, on) => {
-  const { session } = await treeWithJob($, on, {})
+test('/rex policy set tree_usd, then confirm, runs the paused tree on with the budget and the time it had, which rex_status shows', { timeoutMs: 20_000 }, async ($, on) => {
+  const policy = await confirmedPolicy({ watchdog_minutes: 30 })
+  const deadlineAt = START_MS + 8 * 60 * MINUTE
+  const session = masterWorld(on, { seed: await treeBook(policy, { capNano: 250 * DOLLAR, timeMs: 8 * 60 * MINUTE, deadlineAt }), store: { [POLICY_KEY]: policy } })
+  await $.session.start(START)
 
-  const before = await $.tool.call({ tool: 'mcp__super-rex__rex_status' })
   const set = await $.command.run(rex('policy set tree_usd 500'))
   const confirmed = await $.command.run(rex('policy confirm'))
   const after = await $.tool.call({ tool: 'mcp__super-rex__rex_status' })
 
-  expect(lineOf(before, 'tree_cap_usd')).toBe('100000.00')
   expect(set.text).toContain('paused=t1')
   expect(confirmed.text).toContain('resumed=t1')
-  expect(lineOf(after, 'tree_cap_usd')).toBe('500.00')
-  expect([session.book().trees[0]?.state, session.book().trees[0]?.capNano]).toEqual(['running', 500 * DOLLAR])
+  expect([lineOf(after, 'tree_cap_usd'), lineOf(after, 'tree_time'), lineOf(after, 'tree_ends_at')]).toEqual(['250.00', '8 hours', whenText(deadlineAt)])
+  expect([session.book().trees[0]?.state, session.book().trees[0]?.capNano, session.book().trees[0]?.timeMs, session.book().trees[0]?.deadlineAt]).toEqual(['running', 250 * DOLLAR, 8 * 60 * MINUTE, deadlineAt])
 })

@@ -37,7 +37,7 @@ Person starts builder: `/super-rex:orchestration-builder <request>`, or `/super-
 | `orchestration-builder/classify.md` | Step 2: definition of each value, fill rules. |
 | `orchestration-builder/open.md` | Steps 3 to 5: open job, merge answer, recall. |
 | `orchestration-builder/decide.md` | Steps 6 + 7. |
-| `orchestration-builder/run.md` | Steps 8 to 10, after `rex_job_plan`. Also `## Shell` there: IF mod refuses recursive `rm` with `rex guard: ALERT`. |
+| `orchestration-builder/run.md` | Steps 8 to 10, after `rex_job_plan`. Also `## Shell` there: IF mod refuses command with `rex guard: ALERT`. |
 | `orchestration-builder/open-job.md` | `rex_job_open` gives `existing=yes`. |
 | `orchestration-builder/plan-jobs.md` | Job = plan job OR plan execution. |
 | `orchestration-builder/on-request.md` | Requester asks for review of pull request, or for feedback. |

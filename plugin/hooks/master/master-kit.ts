@@ -1,4 +1,4 @@
-// Test support for the master module: answers what a master tree asks of the engine (spawns, the agents that run, messages delivered or not, prompts, settings, environment, store, usage), records each ask, and opens a tree as the person's prompt of the master skill does.
+// Test support for the master module: answers what a master tree asks of the engine (spawns, the agents that run, messages delivered or not, prompts, settings, environment, store, usage, the dialogs of a tree's budget and time), records each ask, and opens a tree as the person's prompt of the master skill does.
 import { mock } from 'claude-code/testing'
 import type { MockClock } from 'claude-code/testing'
 import type { AgentInfo, AgentSpawnInput, CommandRunInput, On, PromptOrigin, PromptSubmitInput, SessionRateLimit, SessionSendInput, SessionSendResult, ToolCallResult, TurnStepResult, TurnUsage } from 'claude-code'
@@ -13,6 +13,7 @@ import { treeIn } from '../book/trees'
 import { DEFAULT_POLICY } from './policy'
 import type { Policy } from './policy'
 import { policyHash } from './store'
+import { BUDGET_QUESTION, TIME_QUESTION } from './tree-limits'
 
 export const BUILDER_TEXT = '# Builder brief\nYou are a builder that a master started.\n'
 /** The store key of the policy of ROOT: `policy:` and the sha256 of `/home/person/repo`. */
@@ -34,7 +35,21 @@ export type MasterOptions = WorldOptions & {
   readonly files?: Readonly<Record<string, string>>
   /** What `$.session.send` answers for each message; delivered when not given. */
   readonly deliver?: (e: SessionSendInput) => SessionSendResult
+  /** The person's answer to the budget dialog of a tree that opens; null dismisses it. `Extra high ($100,000)` when not given. */
+  readonly budget?: string | null
+  /** The person's answer to the time dialog of a tree that opens; null dismisses it. `Unlimited` when not given. */
+  readonly time?: string | null
+  /** The person's answer to any other dialog: a text, null to dismiss it, undefined to leave it to the hooks beneath. */
+  readonly dialog?: (question: string, labels: readonly string[]) => string | null | undefined
 }
+
+/** A dialog of the main loop as the person saw it. */
+export type SeenDialog = { readonly question: string; readonly header: string | null; readonly labels: readonly string[] }
+
+export { BUDGET_QUESTION, TIME_QUESTION }
+/** What the person answers the two dialogs of a tree that opens, unless a test says otherwise: the old default budget, and no time limit. */
+export const DEFAULT_BUDGET = 'Extra high ($100,000)'
+export const DEFAULT_TIME = 'Unlimited'
 
 /** A spawn as the test saw it. The kit hands a plugin's own spawn over in the Agent tool's spelling, so each field is read in either. */
 export type SeenSpawn = { readonly type: string; readonly description: string; readonly prompt: string; readonly cwd: string | null }
@@ -47,6 +62,27 @@ function textField(e: object, ...keys: readonly string[]): string | null {
     }
   }
   return null
+}
+
+function firstQuestion(e: object): object | null {
+  const questions: unknown = Reflect.get(e, 'questions')
+  const first: unknown = Array.isArray(questions) ? questions[0] : undefined
+  return typeof first === 'object' && first !== null ? first : null
+}
+
+/** The question, chip and option labels of an AskUserQuestion call. */
+export function seenDialog(e: object): SeenDialog {
+  const first = firstQuestion(e)
+  const question: unknown = first === null ? undefined : Reflect.get(first, 'question')
+  const header: unknown = first === null ? undefined : Reflect.get(first, 'header')
+  const options: unknown = first === null ? undefined : Reflect.get(first, 'options')
+  const labels = Array.isArray(options) ? options.map((option: unknown) => (typeof option === 'object' && option !== null ? String(Reflect.get(option, 'label')) : String(option))) : []
+  return { question: typeof question === 'string' ? question : '', header: typeof header === 'string' && header !== '' ? header : null, labels }
+}
+
+/** The answer of an AskUserQuestion call: the text the person chose or typed, or a dismiss. */
+export function dialogAnswer(question: string, chosen: string | null): ToolCallResult {
+  return chosen === null ? { deny: "The user doesn't want to proceed with this tool use." } : { result: { questions: [], answers: { [question]: chosen } } }
 }
 
 function seenSpawn(e: AgentSpawnInput): SeenSpawn {
@@ -67,6 +103,12 @@ export type MasterWorld = World & {
   readonly agents: AgentInfo[]
   /** Makes every later read of the plugin store fail. */
   breakStore: () => void
+  /** Every dialog of the main loop that reached the kit, in order. */
+  readonly dialogs: SeenDialog[]
+  /** The text of each line the mod wrote to the transcript with `$.ui.log`, in order. */
+  readonly logs: string[]
+  /** What the person answers the next budget and time dialogs; a test changes them between two calls. */
+  readonly limitAnswers: { budget: string | null; time: string | null }
 }
 
 /** A policy as the store holds it after the person confirmed it: the default with the keys given, and its own hash. */
@@ -98,7 +140,31 @@ export function masterWorld(on: On, options: MasterOptions = {}): MasterWorld {
   const written: { path: string; text: string }[] = []
   const agents: AgentInfo[] = []
   const tree: Record<string, string> = { ...(options.files ?? {}) }
+  const dialogs: SeenDialog[] = []
+  const limitAnswers = { budget: options.budget === undefined ? DEFAULT_BUDGET : options.budget, time: options.time === undefined ? DEFAULT_TIME : options.time }
+  const logs: string[] = []
   let spawns = 0
+
+  on('ui.log', (_$, e) => {
+    logs.push(e.text)
+    return { value: undefined }
+  })
+  // The person at the terminal: the two dialogs of a tree that opens get the answers of the test, any other the test's own or none.
+  on('tool.call', { tool: 'AskUserQuestion' }, (_$, e, next) => {
+    if (e.agentId !== undefined) {
+      return next(e)
+    }
+    const seen = seenDialog(e)
+    dialogs.push(seen)
+    if (seen.question === BUDGET_QUESTION) {
+      return dialogAnswer(seen.question, limitAnswers.budget)
+    }
+    if (seen.question === TIME_QUESTION) {
+      return dialogAnswer(seen.question, limitAnswers.time)
+    }
+    const chosen = options.dialog?.(seen.question, seen.labels)
+    return chosen === undefined ? next(e) : dialogAnswer(seen.question, chosen)
+  })
 
   on('fs.read', { path: /\/(skills\/orchestration-master|\.rex\/plans)\// }, (_$, e) => {
     if (e.path.endsWith('/skills/orchestration-master/builder.md')) {
@@ -163,7 +229,7 @@ export function masterWorld(on: On, options: MasterOptions = {}): MasterWorld {
     isStoreBroken = true
   }
   const woken = (): readonly string[] => prompts.filter(e => e.origin.kind === 'plugin' && e.origin.name === 'super-rex').map(e => e.text)
-  return { ...shared, registered, spawned, sent, prompts, woken, written, agents, breakStore }
+  return { ...shared, registered, spawned, sent, prompts, woken, written, agents, breakStore, dialogs, logs, limitAnswers }
 }
 
 export const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
@@ -182,9 +248,14 @@ export function sessionBook(): RexBook {
   return { ...emptyBook(), session: SESSION, storage: 'on', versions: { mod: '0.8.0', binary: '0.8.0', claudeCode: '2.1.323' }, ingest: { ...newIngest('aaaaaaaaaaaaaaaa', '1'.repeat(64)), acked: 0 } }
 }
 
+/** The budget and the time a seeded tree holds; a key left out is the budget `tree_usd` of the policy, or no time limit. */
+export type SeedLimits = { readonly capNano?: number; readonly timeMs?: number | null; readonly deadlineAt?: number | null }
+
 /** A book after rex_tree_open opened tree t1 under the policy given, its master the main loop of this session, with storage on, as a reload finds it. */
-export async function treeBook(policy: Policy): Promise<RexBook> {
-  return treeIn(sessionBook(), { id: TREE, charter: 'Ship the parser.\n\n## Constraints\n\n- Keep infra/ as it is.\n', charterHash: 'sha256:c', policyHash: await policyHash(policy), state: 'running', capNano: Math.round(policy.tree_usd * 1e9) }, START_MS)
+export async function treeBook(policy: Policy, limits: SeedLimits = {}): Promise<RexBook> {
+  const charter = 'Ship the parser.\n\n## Constraints\n\n- Keep infra/ as it is.\n'
+  const capNano = limits.capNano ?? Math.round(policy.tree_usd * 1e9)
+  return treeIn(sessionBook(), { id: TREE, charter, charterHash: 'sha256:c', policyHash: await policyHash(policy), state: 'running', capNano, timeMs: limits.timeMs ?? null, deadlineAt: limits.deadlineAt ?? null }, START_MS)
 }
 
 /** The job the main loop of this session builds, opened from the person's own job-start prompt. */

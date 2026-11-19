@@ -98,6 +98,8 @@ export function liveBook(session: string = FIXTURE_SESSION, shift = 0): RexBook 
         state: 'running',
         ledgerNano: 400_000_000,
         capNano: 150_000_000_000,
+        timeMs: null,
+        deadlineAt: null,
         builders: [{ job: '0geh5fafkb', agentId: 'abuilder01' }],
         ticks: [],
         notes: [{ at: at('2026-11-15T20:34:17.000Z'), job: null, text: 'Step list: one step. Both apps touch the same files, so one builder does both.' }],

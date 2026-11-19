@@ -7,13 +7,15 @@ import { toolFailed } from '../tools/index'
 import { serveBuild } from './build'
 import { CHARTER_PART } from './brief'
 import { setAsking } from './ask'
+import { serveTreeLimit } from './budget'
 import { serveAnswer, servePolicy } from './commands'
-import { ASK_OWNER_TOOL, BUILD_TOOL_NAME, CANCEL_TOOL, CONTINUE_TOOL, GATE_CHECKS, MERGE_TOOL_NAME, NOTE_TOOL, REPORT_TOOL, SUBCOMMANDS, TOOLS, TREE_OPEN_TOOL_NAME } from './entries'
+import { ASK_OWNER_TOOL, BUILD_TOOL_NAME, CANCEL_TOOL, CONTINUE_TOOL, GATE_CHECKS, MERGE_TOOL_NAME, NOTE_TOOL, RAISE_TOOL, REPORT_TOOL, SUBCOMMANDS, TOOLS, TREE_OPEN_TOOL_NAME } from './entries'
 import { serveTreeOpen } from './entry'
 import { serveMergePolicy } from './merge-policy'
 import { notificationAnswer } from './notify'
 import { liveTrees } from './pin'
 import { DEFAULT_POLICY } from './policy'
+import { serveRaise } from './raise'
 import { serveReport } from './report'
 import { ownSpawn } from './spawn'
 import { STATUS_SECTIONS, withPolicyLines } from './status'
@@ -79,6 +81,12 @@ export function register(on: On, parts: Parts): void {
   on('command.run', { command: 'rex', args: /^policy(\s|$)/ }, ($, e) => servePolicy($, e, parts.statusSections)).catch((_$, _e, next) => ({
     text: `rex policy: failed (${next.error.message ?? next.error.kind}); run /rex policy show to see what was stored`,
   }))
+  on('command.run', { command: 'rex', args: /^budget(\s|$)/ }, ($, e) => serveTreeLimit($, e, 'budget')).catch((_$, _e, next) => ({
+    text: `rex budget: failed (${next.error.message ?? next.error.kind}); run /rex budget to see what the tree holds`,
+  }))
+  on('command.run', { command: 'rex', args: /^time(\s|$)/ }, ($, e) => serveTreeLimit($, e, 'time')).catch((_$, _e, next) => ({
+    text: `rex time: failed (${next.error.message ?? next.error.kind}); run /rex time to see what the tree holds`,
+  }))
   on('command.run', { command: 'rex', args: /^answer(\s|$)/ }, ($, e) => serveAnswer($, e)).catch((_$, _e, next) => ({
     text: `rex answer: failed (${next.error.message ?? next.error.kind}); run /rex status to see whether it was recorded`,
   }))
@@ -87,6 +95,7 @@ export function register(on: On, parts: Parts): void {
   on('tool.call', { tool: 'mcp__super-rex__rex_cancel' }, ($, e) => serveCancel($, e, CANCEL_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_cancel', next.error))
   on('tool.call', { tool: 'mcp__super-rex__rex_note' }, ($, e) => serveNote($, e, NOTE_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_note', next.error))
   on('tool.call', { tool: 'mcp__super-rex__rex_ask_owner' }, ($, e) => serveAskOwner($, e, ASK_OWNER_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_ask_owner', next.error))
+  on('tool.call', { tool: 'mcp__super-rex__rex_raise' }, ($, e) => serveRaise($, e, RAISE_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_raise', next.error))
   on('tool.call', { tool: 'mcp__super-rex__rex_status' }, ($, e, next) => withPolicyLines($, e, next)).catch(($, _e, next) => toolFailed($, 'rex_status', next.error))
   on('tool.call', { tool: 'mcp__super-rex__rex_report' }, ($, e) => serveReport($, e, REPORT_TOOL)).catch(($, _e, next) => toolFailed($, 'rex_report', next.error))
 

@@ -37,16 +37,17 @@ Do not stop to ask whether to continue, or because task is large. Stop turn only
 | Tool | Use |
 | --- | --- |
 | `rex_status` | No argument: whole tree + policy. With `job`: that job, `merge_commit=`, `output=`, `done.<check>=`. |
-| `rex_tree_open` | Open tree of prompt of person. No argument. Answers `tree`, `state`, `existing`, `resumed`, `merge`, `person`, then `<charter>`, `<reading>`, `<policy>`, `<repo>`, `<codebase>`. Resume: also `continued`, `asked`, `<digest>`. |
+| `rex_tree_open` | Open tree of prompt of person. No argument. Mod first asks person for budget and time of tree: 2 dialogs. Answers `tree`, `state`, `existing`, `resumed`, `merge`, `budget_usd`, `time`, `ends_at`, `person`, then `<charter>`, `<reading>`, `<limits>`, `<policy>`, `<repo>`, `<codebase>`. Resume: also `continued`, `asked`, `<digest>`. |
 | `rex_build` | Open job, start builder. Answers `job`, `builder`, `status=created`, `worktree`. |
 | `rex_continue` | Wake builder of open `job` with `message`. |
 | `rex_cancel` | Give open `job` up, with `reason`. Job closes `cancelled`, builder stops. |
 | `rex_note` | Decision, reason, option not taken. |
 | `rex_ask_owner` | Park question. Answers `question=<id>`. |
+| `rex_raise` | Ask person to raise limit: `limit` = `budget`, `time`, or `job`; `to` = new value; `reason`; `job` IF limit is `job`. Mod parks question. Only answer of person sets value. Answers `question=<id>`, `state`. |
 | `rex_report` | `report`: close tree with final report. Answers `tree=`, `state=done`, `report=`. |
 | `rex_skill` | Read one file of this skill: `name` = `orchestration-master`, `file` = `<file>.md`. |
 
-Load deferred tools, one call: ToolSearch `select:mcp__super-rex__rex_tree_open,mcp__super-rex__rex_build,mcp__super-rex__rex_continue,mcp__super-rex__rex_cancel,mcp__super-rex__rex_note,mcp__super-rex__rex_ask_owner,mcp__super-rex__rex_report`.
+Load deferred tools, one call: ToolSearch `select:mcp__super-rex__rex_tree_open,mcp__super-rex__rex_build,mcp__super-rex__rex_continue,mcp__super-rex__rex_cancel,mcp__super-rex__rex_note,mcp__super-rex__rex_ask_owner,mcp__super-rex__rex_raise,mcp__super-rex__rex_report`.
 
 ## Loop
 
@@ -55,8 +56,8 @@ Load deferred tools, one call: ToolSearch `select:mcp__super-rex__rex_tree_open,
 2. Load deferred tools with ToolSearch.
 3. Call rex_tree_open. IF mod refuses call, THEN give person its reason text and stop.
 4. IF answer gives resumed=yes, THEN read <digest>: start no open job again. Go to 9.
-5. Read <charter>, <reading>, <policy>, <repo>, <codebase>. Read max 5 repo files (Read, Glob, Grep).
-6. Read orchestration-master/steps.md. Cut goal into steps: its ## Steps.
+5. Read <charter>, <reading>, <limits>, <policy>, <repo>, <codebase>. Read max 5 repo files (Read, Glob, Grep).
+6. Read orchestration-master/steps.md. Cut goal into steps that fit budget and time of <limits>: its ## Steps.
 7. Call rex_note: each step, why, cut not taken.
 8. Call rex_build for each step whose dependencies are delivered, up to max_parallel_builders open jobs: its ## Request + ## Refusals.
 9. Tell person in max 6 lines: steps, jobs that run, what waits. End turn.
@@ -66,6 +67,7 @@ Load deferred tools, one call: ToolSearch `select:mcp__super-rex__rex_tree_open,
 
 - [ ] After builders start, end turn. No polling, no sleep, no Monitor. Mod wakes you.
 - [ ] IF you lost charter or policy from context, THEN call `rex_tree_open` again: `existing=yes` gives them again.
+- [ ] Budget and time of tree are choice of person. You cannot set them. `rex_raise` asks person to raise one: mod shows dialog, person confirms. `rex_status` with no argument gives spend, budget (cap), time, and end of tree. Tree at budget or time: ## Tree limit of `orchestration-master/jobs.md`.
 
 | File | Read when |
 | --- | --- |

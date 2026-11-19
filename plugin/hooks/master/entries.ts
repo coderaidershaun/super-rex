@@ -4,7 +4,10 @@ import type { GateCheck, Subcommand, ToolEntry } from '../parts'
 export const POLICY_SUBCOMMAND: Subcommand = { name: 'policy', summary: 'Shows, confirms or sets what a master may decide as you', grantsAuthority: true }
 export const ANSWER_SUBCOMMAND: Subcommand = { name: 'answer', summary: 'Answers a parked question as you', grantsAuthority: true }
 
-export const SUBCOMMANDS: readonly Subcommand[] = [POLICY_SUBCOMMAND, ANSWER_SUBCOMMAND]
+export const BUDGET_SUBCOMMAND: Subcommand = { name: 'budget', summary: "Shows or sets the budget of this session's master tree", grantsAuthority: true }
+export const TIME_SUBCOMMAND: Subcommand = { name: 'time', summary: "Shows or sets how long this session's master tree may run", grantsAuthority: true }
+
+export const SUBCOMMANDS: readonly Subcommand[] = [POLICY_SUBCOMMAND, ANSWER_SUBCOMMAND, BUDGET_SUBCOMMAND, TIME_SUBCOMMAND]
 
 const LEVEL = { type: 'string', enum: ['low', 'medium', 'high'] } as const
 const RATING = { type: 'string', enum: ['low', 'medium', 'high', 'none'] } as const
@@ -13,7 +16,7 @@ const JOB_IDS = { type: 'array', items: { type: 'string' } } as const
 export const TREE_OPEN_TOOL: ToolEntry = {
   name: 'rex_tree_open',
   description:
-    "Opens the master tree of the person's own /super-rex:orchestration-master prompt, with you, the main loop, as its master; the charter comes from that prompt, never from an argument. With resume as the prompt, the newest open tree of the store comes back. Answers tree, state, existing, resumed, merge, then the charter, the policy, the repo and the code map.",
+    "Opens the master tree of the person's own /super-rex:orchestration-master prompt, with you, the main loop, as its master; the charter comes from that prompt, never from an argument. With resume as the prompt, the newest open tree of the store comes back. A new or resumed tree first asks the person for its budget and its time. Answers tree, state, existing, resumed, merge, budget_usd, time and ends_at, then the charter, the limits, the policy, the repo and the code map.",
   inputSchema: { type: 'object', properties: {} },
   isDeferred: true,
   callers: ['main', 'master'],
@@ -22,7 +25,7 @@ export const TREE_OPEN_TOOL: ToolEntry = {
 export const BUILD_TOOL: ToolEntry = {
   name: 'rex_build',
   description:
-    "Opens one job of your tree and starts its builder in the job's own worktree, with the fixed builder brief and your request. Refused over the policy: spend of the tree, rate limit, job counts, consequence. Answers job, builder, status and worktree, and base_commit=made when the mod made the repo's first commit.",
+    "Opens one job of your tree and starts its builder in the job's own worktree, with the fixed builder brief and your request. Refused while the tree stands at its budget or its time, and over the policy: rate limit, job counts, consequence. Answers job, builder, status and worktree, and base_commit=made when the mod made the repo's first commit.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -99,6 +102,24 @@ export const ASK_OWNER_TOOL: ToolEntry = {
   callers: ['master'],
 }
 
+export const RAISE_TOOL: ToolEntry = {
+  name: 'rex_raise',
+  description:
+    "Asks the person to raise the budget of your tree, change its time, or raise the spend limit of one open job. The mod parks your request as a question with your reason; only the person's own answer sets the new value. Call it when the person told you to raise a limit, or when the work needs more than the limits give. Answers question and state (parked, or waiting when such a request already waits); end your turn, and the mod wakes you with the answer.",
+  inputSchema: {
+    type: 'object',
+    properties: {
+      limit: { type: 'string', enum: ['budget', 'time', 'job'] },
+      to: { type: 'string', description: 'The new value. Budget or job: low, medium, high, xhigh, or dollars such as 750. Time: short, medium, long, unlimited, or a span such as 90m, 36h, 2d, counted from the answer.' },
+      job: { type: 'string', description: 'The open job, when limit is job.' },
+      reason: { type: 'string', description: 'Why, in one sentence. The person reads it.' },
+    },
+    required: ['limit', 'to', 'reason'],
+  },
+  isDeferred: true,
+  callers: ['master'],
+}
+
 export const REPORT_TOOL: ToolEntry = {
   name: 'rex_report',
   description:
@@ -108,7 +129,7 @@ export const REPORT_TOOL: ToolEntry = {
   callers: ['master'],
 }
 
-export const TOOLS: readonly ToolEntry[] = [TREE_OPEN_TOOL, BUILD_TOOL, CONTINUE_TOOL, CANCEL_TOOL, NOTE_TOOL, ASK_OWNER_TOOL, REPORT_TOOL]
+export const TOOLS: readonly ToolEntry[] = [TREE_OPEN_TOOL, BUILD_TOOL, CONTINUE_TOOL, CANCEL_TOOL, NOTE_TOOL, ASK_OWNER_TOOL, RAISE_TOOL, REPORT_TOOL]
 
 export const TREE_OPEN_TOOL_NAME = 'mcp__super-rex__rex_tree_open'
 export const BUILD_TOOL_NAME = 'mcp__super-rex__rex_build'

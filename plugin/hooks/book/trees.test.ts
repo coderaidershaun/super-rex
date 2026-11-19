@@ -6,7 +6,7 @@ import { ROOT, SESSION, START_MS } from './kit'
 import { openJobIn, questionIn, restoreIn } from './jobs'
 import { stepMainIn } from './runs'
 import { promptIn } from './session'
-import { linkIn, MAIN_MASTER, repinIn, treeIn, treeStateIn } from './trees'
+import { limitsIn, linkIn, MAIN_MASTER, repinIn, treeIn, treeStateIn } from './trees'
 
 function runningTree() {
   const opened = treeIn({ ...emptyBook(), session: SESSION }, { id: 't1', charter: 'Ship it.', charterHash: 'sha256:0', policyHash: 'sha256:old', state: 'paused', capNano: 0 }, START_MS)
@@ -78,14 +78,27 @@ test("a step of the main loop goes to its own open job before any tree, and to n
   expect(stepMainIn(elsewhere, STEP)).toBe(elsewhere)
 })
 
-test('repinIn pins the tree to the new hash and cap and keeps its master, builders and state, with no event for the store', () => {
+test('repinIn pins the tree to the new hash and keeps its budget, its time, its master, builders and state, with no event for the store', () => {
   const before = runningTree()
 
-  const after = repinIn(before, 't1', 'sha256:new', 500_000_000_000)
+  const after = repinIn(before, 't1', 'sha256:new')
 
-  expect(after.trees[0]).toEqual({ ...before.trees[0], policyHash: 'sha256:new', capNano: 500_000_000_000 })
+  expect(after.trees[0]).toEqual({ ...before.trees[0], policyHash: 'sha256:new' })
   expect(after.ingest).toBe(before.ingest)
-  expect(repinIn(before, 't9', 'sha256:new', 500_000_000_000)).toEqual(before)
+  expect(repinIn(before, 't9', 'sha256:new')).toEqual(before)
+})
+
+test('limitsIn sets the budget or the time of a tree and leaves the other as it is, with no event for the store', () => {
+  const before = runningTree()
+
+  const raised = limitsIn(before, 't1', { capNano: 250_000_000_000 })
+  const timed = limitsIn(raised, 't1', { time: { timeMs: 3_600_000, deadlineAt: 9_000_000 } })
+
+  expect(raised.trees[0]).toEqual({ ...before.trees[0], capNano: 250_000_000_000 })
+  expect(timed.trees[0]).toEqual({ ...before.trees[0], capNano: 250_000_000_000, timeMs: 3_600_000, deadlineAt: 9_000_000 })
+  expect(limitsIn(timed, 't1', { time: { timeMs: null, deadlineAt: null } }).trees[0]).toEqual(raised.trees[0])
+  expect(timed.ingest).toBe(before.ingest)
+  expect(limitsIn(before, 't9', { capNano: 1 })).toEqual(before)
 })
 
 test('restoreIn puts a tree, its jobs and its questions back by id, replacing what the book holds of one id, with no event', () => {

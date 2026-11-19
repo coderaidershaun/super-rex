@@ -9,13 +9,15 @@ import { field, isRefused, optionalNumber, optionalObject, optionalText, refused
 import type { Refused } from './args'
 import { builderBrief, BUILDER_BRIEF_FILE, readPluginFile } from './brief'
 import { BUILD_TOOL } from './entries'
-import { maxJobsRefusal, rateLimitRefusal, treeLedgerRefusal } from './gates'
+import { treeAtLimit } from './budget'
+import { maxJobsRefusal, rateLimitRefusal, treeSpentNano } from './gates'
 import { wakeAfterRateLimit } from './rate'
 import { isTier, levelRank, tierRank } from './policy'
 import type { Policy, Tier } from './policy'
 import { pinnedPolicy, treeOfMaster } from './pin'
 import { realRoot } from './store'
 import { spawnOwn } from './spawn'
+import { treeLimitRefusal } from './tree-limits'
 
 const TOOL = 'rex_build'
 const LEVELS: readonly RexLevel[] = ['low', 'medium', 'high']
@@ -119,9 +121,12 @@ async function closedCheck($: EngineInterface, check: string, run: () => Promise
 }
 
 async function gateRefusal($: EngineInterface, book: RexBook, tree: RexTree, policy: Policy, args: BuildArgs): Promise<string | null> {
-  const ledger = await closedCheck($, 'tree-ledger', () => Promise.resolve(treeLedgerRefusal(book, tree)))
+  const now = await $.clock.now()
+  const ledger = await closedCheck($, 'tree-ledger', () => Promise.resolve(treeLimitRefusal(book, tree, now)))
   if (ledger !== null) {
-    await fail($, { kind: 'tree-ledger', tree: tree.id, spentNano: tree.ledgerNano, capNano: tree.capNano })
+    await fail($, { kind: 'tree-ledger', tree: tree.id, spentNano: treeSpentNano(book, tree), capNano: tree.capNano })
+    // The person is asked at once, not at the next tick of the watchdog; the master reads the same in this refusal.
+    await treeAtLimit($, tree.id, false)
     return ledger
   }
   const rate = await closedCheck($, 'rate-limit-pause', async () => rateLimitRefusal((await $.session.usage()).rateLimits, policy))

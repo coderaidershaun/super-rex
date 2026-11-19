@@ -2,10 +2,12 @@
 import type { EngineInterface, Timer } from 'claude-code'
 
 import type { RexBook, RexJob, RexTree, RexTreeTick } from '../../types'
-import { bookWrites, countWake, errorText, fail, isOpen, readBook, resetWakes, tickTree } from '../book/index'
+import { bookWrites, closeJob, countWake, errorText, fail, isOpen, readBook, resetWakes, tickTree } from '../book/index'
 import type { StatusSection, Table } from '../parts'
 import { blockAndAsk } from './answers'
 import { settleMoot } from './ask'
+import { isStoppedAt, limitName, treeAtLimit } from './budget'
+import type { TreeOver } from './tree-limits'
 import { runDoneCheck } from './done'
 import { treeJobs } from './gates'
 import { DEFAULT_POLICY } from './policy'
@@ -163,6 +165,33 @@ function bookReader($: EngineInterface): () => Promise<RexBook> {
   }
 }
 
+/**
+ * The open jobs of a tree that stands at its budget or its time. While the
+ * person has not stopped the tree, each job's quiet time starts again, so no
+ * builder is woken or counted stuck for waiting. Once the tree stopped, a job
+ * with nothing running whose builder did not close it within the idle period
+ * is closed `blocked` by the mod, so the master can end the tree.
+ */
+async function tickAtLimit($: EngineInterface, book: RexBook, treeId: string, over: TreeOver, sections: Table<StatusSection>): Promise<void> {
+  const tree = book.trees.find(each => each.id === treeId)
+  if (!isLive(tree)) {
+    return
+  }
+  const policy = await policyOrDefault($)
+  const now = await $.clock.now()
+  const isStopped = isStoppedAt(tree, over)
+  for (const job of treeJobs(book, tree.id).filter(isOpen)) {
+    const seen = tree.ticks.find(tick => tick.job === job.id)
+    const isRunning = book.runs.some(run => run.job === job.id && run.state === 'open')
+    if (!isStopped || isRunning || seen?.spentNano !== job.spentNano) {
+      await tickTree($, tree.id, { job: job.id, spentNano: job.spentNano })
+    } else if (quietTicks(seen, now, policy) >= IDLE_TICKS) {
+      await closeJob($, job.id, { status: 'blocked', outcome: `closed by the mod: the tree stopped at ${limitName(over)}, and the builder did not close the job`, deliveries: job.deliveries })
+      wakeMaster($, await readBook($), tree, `the mod closed job ${job.id} blocked: the tree stopped at ${limitName(over)}, and its builder did not close it`, sections)
+    }
+  }
+}
+
 /** Ticks each open job; the master hears only of the first wake of a stopped builder, never of builders at work. A quiet tick writes nothing. */
 export async function watchdogTick($: EngineInterface, treeId: string, sections: Table<StatusSection>): Promise<void> {
   const current = bookReader($)
@@ -173,6 +202,12 @@ export async function watchdogTick($: EngineInterface, treeId: string, sections:
     return
   }
   await settleMoot($, tree.id)
+  // A tree at its budget or its time is asked about once, whether a job is open or not, and no builder of it is woken to go on.
+  const over = await treeAtLimit($, tree.id, true)
+  if (over !== null) {
+    await tickAtLimit($, await current(), tree.id, over, sections)
+    return
+  }
   const open = treeJobs(book, tree.id).filter(isOpen)
   if (open.length === 0) {
     return

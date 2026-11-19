@@ -1,8 +1,12 @@
-// Refuses an agent start or a shell command that a gate check refuses: spend over the limit, depth outside a master tree, a fork in a job, an agent of a job that would not start as its sub-agent, a merge around rex_merge. An inert mod refuses nothing.
+// Refuses an agent start or a shell command that a gate check refuses: spend over the job's limit, a master tree at its budget or its time, depth outside a master tree, a fork in a job, an agent of a job that would not start as its sub-agent, a merge around rex_merge. An inert mod refuses nothing.
 import type { AgentSpawnInput, AgentSpawnResult, EngineInterface, HookFailure, On } from 'claude-code'
 
+import type { RexBook, RexJob } from '../../types'
 import { fail, markDegraded, newestOpenJob, readBook, setLimit } from '../book/index'
 import type { GateCheck, Parts } from '../parts'
+import { treeAtLimit } from '../master/budget'
+import { treeSpentNano } from '../master/gates'
+import { treeLimitRefusal } from '../master/tree-limits'
 import { failureName, higherLimitInStore } from '../tools/index'
 import { agentArgRefusal, agentKindRefusal, depthVerdict, forkRefusal, isMergeCommand, isOverLimit, isOwnSpawn, jobOfLoop, refusedAgentArg, spendRefusal, tripwireRefusal } from './checks'
 import { LIMIT_SUBCOMMAND, serveLimit } from './limit'
@@ -17,11 +21,29 @@ export const GATE_CHECKS: readonly GateCheck[] = [
   { name: 'merge-tripwire', site: { kind: 'tool', tool: 'Bash' }, failure: 'closed' },
 ]
 
+/** A job of a master tree starts no agent while its tree stands at its budget or its time; the mod asks the person at once, and tells the master. */
+async function treeAtLimitRefusal($: EngineInterface, book: RexBook, job: RexJob): Promise<string | null> {
+  const tree = book.trees.find(each => each.id === job.tree && each.session === book.session && (each.state === 'running' || each.state === 'paused'))
+  const refusal = tree === undefined ? null : treeLimitRefusal(book, tree, await $.clock.now())
+  if (tree !== undefined && refusal !== null) {
+    await fail($, { kind: 'tree-ledger', tree: tree.id, spentNano: treeSpentNano(book, tree), capNano: tree.capNano })
+    await treeAtLimit($, tree.id, true)
+  }
+  return refusal
+}
+
 /** A person may have raised the limit at a shell; a higher limit they set there is taken before refusing. */
 async function overLimitAfterReread($: EngineInterface, agentId: string | undefined): Promise<string | null> {
   const book = await readBook($)
   const job = jobOfLoop(book, agentId)
-  if (book.inert !== null || job === undefined || !isOverLimit(job)) {
+  if (book.inert !== null || job === undefined) {
+    return null
+  }
+  const tree = await treeAtLimitRefusal($, book, job)
+  if (tree !== null) {
+    return tree
+  }
+  if (!isOverLimit(job)) {
     return null
   }
   const nano = await higherLimitInStore($, book, job)

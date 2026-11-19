@@ -1,17 +1,19 @@
-// rex_tree_open: the main loop opens a master tree right after the person's own prompt of the master skill, once every pre-flight check passes, with the charter taken from that prompt as the person wrote it; storage is needed only to resume.
+// rex_tree_open: the main loop opens a master tree right after the person's own prompt of the master skill, once every pre-flight check passes and the person chose its budget and its time, with the charter taken from that prompt as the person wrote it; storage is needed only to resume.
 import type { EngineInterface, ToolCallResult } from 'claude-code'
 
 import type { RexTree, RexTreeStartPrompt } from '../../types'
 import { dropTreeStart, errorText, fail, mainTree, openTree, pluginVersion, readBook } from '../book/index'
 import type { StatusSection, Table } from '../parts'
 import { hashText } from '../skills/index'
-import { callerOf, deny, linesText } from '../tools/index'
+import { callerOf, deny, linesText, usd } from '../tools/index'
+import { openLimits, timeFrom } from './budget'
 import { TREE_OPEN_TOOL } from './entries'
 import { treeIdOf } from './ids'
 import { DEFAULT_POLICY, PolicyShapeError } from './policy'
 import type { MergeRule, Policy } from './policy'
 import { resumeLive, resumeTree } from './resume'
 import { briefOf } from './start'
+import { spanText, whenText } from './tree-limits'
 import { startWatchdog } from './watch'
 import { readPolicy, realRoot, writePolicy } from './store'
 import type { StoredPolicy } from './store'
@@ -113,7 +115,8 @@ async function refuse($: EngineInterface, step: number, text: string): Promise<T
 
 /** The answer of the tool: its `key=value` lines, then the brief's blocks. `person` says whether someone is at the terminal to answer a question. */
 function opened(tree: RexTree, policy: Policy, state: EntryState, rows: readonly string[], brief: string): ToolCallResult {
-  const lines = [`tree=${tree.id}`, `state=${tree.state}`, ...rows, `merge=${policy.merge}`, `person=${state.isInteractive ? 'yes' : 'no'}`]
+  const limits = [`budget_usd=${usd(tree.capNano)}`, `time=${spanText(tree.timeMs)}`, `ends_at=${tree.deadlineAt === null ? 'none' : whenText(tree.deadlineAt)}`]
+  const lines = [`tree=${tree.id}`, `state=${tree.state}`, ...rows, `merge=${policy.merge}`, ...limits, `person=${state.isInteractive ? 'yes' : 'no'}`]
   return { result: `${linesText(lines)}\n${brief}` }
 }
 
@@ -129,9 +132,9 @@ async function existing($: EngineInterface, tree: RexTree, start: RexTreeStartPr
     // The person asked to go on: a builder that ended with the last process gets the step of on_dead_builder.
     await dropTreeStart($)
     const resumed = await resumeLive($, tree, read.stored)
-    return opened(tree, policy, state, ['existing=yes', 'resumed=yes', ...resumed.lines], await briefOf($, { charter: tree.charter, digest: resumed.digest, policy }))
+    return opened(tree, policy, state, ['existing=yes', 'resumed=yes', ...resumed.lines], await briefOf($, { tree, digest: resumed.digest, policy }))
   }
-  return opened(tree, policy, state, ['existing=yes', 'resumed=no'], await briefOf($, { charter: tree.charter, digest: null, policy }))
+  return opened(tree, policy, state, ['existing=yes', 'resumed=no'], await briefOf($, { tree, digest: null, policy }))
 }
 
 /** Every refusal before the tree opens leaves nothing started. */
@@ -176,22 +179,28 @@ export async function serveTreeOpen($: EngineInterface, event: { readonly agentI
     if (book.storage !== 'on') {
       return deny(`${TOOL}: resume needs storage, got storage off; the person runs rex init --with-storage, or starts a new tree with ${SKILL} <goal>`)
     }
-    const resumed = await resumeTree($, confirmed, sections)
+    const resumed = await resumeTree($, confirmed, sections, state.isInteractive)
     if (typeof resumed === 'string') {
       return deny(resumed)
     }
-    return opened(resumed.tree, confirmed.policy, state, ['existing=no', 'resumed=yes', ...resumed.lines], await briefOf($, { charter: resumed.tree.charter, digest: resumed.digest, policy: confirmed.policy }))
+    return opened(resumed.tree, confirmed.policy, state, ['existing=no', 'resumed=yes', ...resumed.lines], await briefOf($, { tree: resumed.tree, digest: resumed.digest, policy: confirmed.policy }))
   }
   const charter = await charterOf($, start.text)
   if ('refused' in charter) {
     return deny(charter.refused)
   }
-  const id = treeIdOf(await $.clock.now())
-  await openTree($, { id, charter: charter.text, charterHash: await hashText(charter.text), policyHash: confirmed.hash, state: 'running', capNano: Math.round(confirmed.policy.tree_usd * 1e9) })
+  // The person gives the tree its budget and its time; the time counts from their answer.
+  const limits = await openLimits($, state.isInteractive, confirmed.policy)
+  if (typeof limits === 'string') {
+    return deny(limits)
+  }
+  const now = await $.clock.now()
+  const id = treeIdOf(now)
+  await openTree($, { id, charter: charter.text, charterHash: await hashText(charter.text), policyHash: confirmed.hash, state: 'running', capNano: limits.capNano, ...timeFrom(limits.timeMs, now) })
   startWatchdog($, id, confirmed.policy.watchdog_minutes, sections)
   const tree = (await readBook($)).trees.find(each => each.id === id)
   if (tree === undefined) {
     return deny(`${TOOL}: tree ${id} did not open; call ${TOOL} again`)
   }
-  return opened(tree, confirmed.policy, state, ['existing=no', 'resumed=no'], await briefOf($, { charter: charter.text, digest: null, policy: confirmed.policy }))
+  return opened(tree, confirmed.policy, state, ['existing=no', 'resumed=no'], await briefOf($, { tree, digest: null, policy: confirmed.policy }))
 }

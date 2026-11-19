@@ -4,6 +4,53 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.12.0 - 2026-11-19
+
+Install the binary and the plugin of this version together, then start a new session.
+
+What changes for you:
+
+- **A master tree asks for its budget and its time when it opens.** Two dialogs, four options each. The tree stops starting work at either, and asks you to raise it or stop.
+- **The guard stops more than a recursive `rm`.** It now refuses the shell commands that could be a major disaster, such as a `DROP TABLE` through a database client, a disk wipe or a `terraform destroy`. No Claude Code sandbox is needed, and `rex init` turns none on.
+
+### Added
+
+- **The budget question.** Each time a master tree opens, new or resumed from the store, the mod asks `How much may this master tree spend?` with the options `Low ($10)`, `Medium ($250)`, `High ($5,000)` and `Extra high ($100,000)`. Under Other you can type another amount. The budget covers the master's own requests and every job of the tree. Before, a tree took `tree_usd` of the policy and asked nothing.
+- **The time question.** The second dialog asks `How long may this master tree run?` with the options `Short term (1 hour)`, `Medium term (8 hours)`, `Long term (3 days)` and `Unlimited`, or a span you type, such as `90m`, `36h` or `2d`. The time counts from your answer. Before, a tree had no time limit.
+- **A tree at its budget or at the end of its time starts nothing new.** `rex_build` opens no job and no job of the tree starts a new agent. The mod asks you once, `Raise it` or `Stop the tree` for the budget, `Give it more time` or `Stop the tree` for the time, and the watchdog wakes no builder while the question waits. `Raise it` takes the next of the four budgets; `Give it more time` gives the same span again. `Stop the tree` tells each builder to close its job `blocked` and the master to end the tree with its report; a job whose builder does not close it is closed by the mod after 2 watchdog ticks. A headless tree, with nobody to ask, stops.
+- **`/rex budget [amount]` and `/rex time [span]`.** They show the budget, the spend, the time and the end of this session's tree, or set one of them from your own typing: `low`, `medium`, `high`, `xhigh` or an amount, and `short`, `medium`, `long`, `unlimited` or a span. A tree that stood at the limit goes on: its question is closed as `Not needed`, and its master and its stopped builders are woken.
+- **The commands are shown at the limit.** When a tree reaches its budget or its time, the mod writes into the transcript each command that changes it: the two answers of its question, `/rex budget`, `/rex time`, `/rex limit` and `/rex policy show`.
+- **The tool `rex_raise`: the master asks, you confirm.** Tell the master to raise the budget, the time or a job's limit, or let it ask when the work needs more. The mod shows you the request with the master's reason, and the options `Raise it to $<amount>` (or `Give it <span>`) and `Keep the budget`, `Keep the time` or `Keep the limit`. Only your own answer sets the value; a master cannot raise a limit itself, and a headless run cannot ask.
+- **The master reads its limits.** The answer of `rex_tree_open` has the lines `budget_usd=`, `time=` and `ends_at=` and a `<limits>` block, and `rex_status` has `tree_time=` and `tree_ends_at=`. The master skill plans the steps to fit both, and has a section for a tree at its limit.
+- **The guard stops the commands that could be a major disaster.** A Bash or Monitor call is refused with `rex guard: ALERT`, and you get a status line `rex: ALERT: stopped ...`, when it would:
+  - send `DROP DATABASE`, `DROP SCHEMA`, `DROP TABLE`, `DROP KEYSPACE`, `TRUNCATE` or a `DELETE FROM` with no `WHERE` to a database client (`psql`, `mysql`, `sqlite3` and the like), in an argument, a here-document, a here-string or a pipe, or run `dropdb`, `dropuser`, `mysqladmin drop`, `redis-cli FLUSHALL` or a MongoDB drop;
+  - delete with `find -delete` or `find -exec rm` from the root, the home folder, the main checkout (with no test that picks files) or outside the folders agents may clear, or run `git clean -x` or `-X` with force in the main checkout;
+  - write over a disk: `dd of=/dev/...`, a redirect to a disk device, `mkfs`, `wipefs`, `diskutil eraseDisk` and others;
+  - change the mode or owner of the root or the home folder recursively;
+  - stop the machine, kill every process, delete the crontab, or start a fork bomb;
+  - delete cloud resources: `terraform destroy`, `kubectl delete namespace`, `aws s3 rb`, `gcloud projects delete`, `gh repo delete` and the other rows of `ROWS` in `plugin/hooks/guard/disaster.ts`;
+  - force-push or delete `main` or `master`.
+
+  The same words where no such program runs are left alone: `grep -rn "DROP TABLE" migrations/`, a commit message, a file written with `cat > m.sql`. `sqlite3` and `duckdb` on a throwaway database (in memory, in a temp folder or in a job worktree) still run. If you mean the command, run it in your own shell. Before, the guard stopped only a recursive `rm`.
+
+### Changed
+
+- **`tree_usd` of the policy is the budget of a headless tree only.** With you at the terminal, your answer to the budget question sets the budget. `tree_usd` no longer shows in the `<policy>` block or in the `policy.` lines of `rex_status`.
+- **`/rex policy confirm` keeps a tree's budget.** Before, it set the tree's cap to `tree_usd`.
+- **Resume asks for the budget and the time again.** What the jobs spent before counts against the new budget. Before, a resumed tree took `tree_usd`.
+- **The refusal of `rex_build` at the budget** now reads `rex gate: master tree <id> has spent $<spent> of its budget of $<budget>; nothing new starts until the person raises it (they answer the mod's question, or type /rex budget <usd>) or stops the tree; end your turn, and the mod wakes you`. Before, it told you to raise `tree_usd` and confirm the policy.
+- **A wake that cannot reach a builder starts no new builder while the tree stands at its budget or its time.**
+- **The guard's failure text.** A check of the guard that fails still refuses the command. The text is now `rex guard: the check of <a recursive rm | a database delete | a disaster command | a command> failed (<error>); refused`.
+- **The shell text of each brief** and the builder skill say what the guard stops.
+- **The notices of `rex init`** about a sandbox that an older run turned on now end `the plugin's guard replaces it`.
+
+### Known limits
+
+- The budget and the time stop new jobs and new agents only. Agents that already run finish their turn, so a tree can end a little over its budget.
+- The end of the time is checked at each `rex_build`, at each new agent and at each watchdog tick, so you can be asked up to one watchdog period (5 minutes by default) after it.
+- The store keeps the budget a tree opened with and no time. `rex tree show` after the session prints that first budget, and a resume asks you for both again.
+- The guard is a tripwire that reads the command text, not a sandbox. It does not see SQL in a file (`psql -f`, `mysql < file`), tables dropped by an ORM, a migration tool or a test runner, commands inside a script file, `find ... | xargs rm`, `rsync --delete`, or a program named by a variable.
+
 ## 0.11.1 - 2026-11-18
 
 Install the binary and the plugin of this version together, then start a new session. After Claude Code itself was closed, a tree comes back with `/super-rex:orchestration-master resume`: the mod's record of a session does not outlive its process.

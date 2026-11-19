@@ -5,7 +5,11 @@ import { queued, replaceJob } from './events'
 /** The master of every tree: the main loop of the tree's session. */
 export const MAIN_MASTER = 'main'
 
-export type TreeInput = Omit<RexTree, 'session' | 'master' | 'ledgerNano' | 'builders' | 'ticks' | 'notes' | 'startedAt' | 'closedAt' | 'reportFile'>
+/** What opens a tree. A tree given no time has no time limit. */
+export type TreeInput = Omit<RexTree, 'session' | 'master' | 'ledgerNano' | 'builders' | 'ticks' | 'notes' | 'startedAt' | 'closedAt' | 'reportFile' | 'timeMs' | 'deadlineAt'> & {
+  readonly timeMs?: number | null
+  readonly deadlineAt?: number | null
+}
 
 function replaceTree(book: RexBook, id: string, change: (tree: RexTree) => RexTree): RexBook {
   return { ...book, trees: book.trees.map(tree => (tree.id === id ? change(tree) : tree)) }
@@ -19,6 +23,8 @@ export function treeIn(book: RexBook, input: TreeInput, at: number): RexBook {
   const old = findTree(book, input.id)
   const tree: RexTree = {
     ...input,
+    timeMs: input.timeMs ?? null,
+    deadlineAt: input.deadlineAt ?? null,
     session: book.session,
     master: MAIN_MASTER,
     ledgerNano: old?.ledgerNano ?? 0,
@@ -81,12 +87,20 @@ export function treeStateIn(book: RexBook, treeId: string, state: RexTree['state
 }
 
 /**
- * Pins a live tree to the policy the person just confirmed, its hash and its
- * cap, keeping its builders. No event: the store has none that changes a
- * tree's hash or cap, and a resume pins the tree to the confirmed policy again.
+ * Pins a live tree to the policy the person just confirmed, keeping its
+ * builders, its budget and its time. No event: the store has none that
+ * changes a tree's hash, and a resume pins the tree to the confirmed policy again.
  */
-export function repinIn(book: RexBook, treeId: string, policyHash: string, capNano: number): RexBook {
-  return replaceTree(book, treeId, old => ({ ...old, policyHash, capNano }))
+export function repinIn(book: RexBook, treeId: string, policyHash: string): RexBook {
+  return replaceTree(book, treeId, old => ({ ...old, policyHash }))
+}
+
+/** The budget or the time of a tree as the person set it; a key left out stays as it is. */
+export type TreeLimits = { readonly capNano?: number; readonly time?: { readonly timeMs: number | null; readonly deadlineAt: number | null } }
+
+/** No event: the store has none that changes a tree's budget, and holds no time; `rex watch` reads both from the live file. */
+export function limitsIn(book: RexBook, treeId: string, limits: TreeLimits): RexBook {
+  return replaceTree(book, treeId, old => ({ ...old, capNano: limits.capNano ?? old.capNano, timeMs: limits.time === undefined ? old.timeMs : limits.time.timeMs, deadlineAt: limits.time === undefined ? old.deadlineAt : limits.time.deadlineAt }))
 }
 
 export function pendingIn(book: RexBook, spawn: RexPendingSpawn): RexBook {

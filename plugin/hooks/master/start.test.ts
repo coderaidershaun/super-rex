@@ -33,7 +33,10 @@ for (const [chosen, merge] of ANSWERS) {
   test(`the first tree of a repo asks one policy question, and ${chosen} stores merge ${merge} with max_parallel_builders auto`, async ($, on) => {
     const session = masterWorld(on)
     const asked: { readonly question: string; readonly labels: readonly string[] }[] = []
-    on('tool.call', { tool: 'AskUserQuestion' }, (_$, e) => {
+    on('tool.call', { tool: 'AskUserQuestion' }, (_$, e, next) => {
+      if (questionOf(e) !== MERGE_QUESTION) {
+        return next(e)
+      }
       asked.push({ question: questionOf(e), labels: labelsOf(e) })
       return { result: { questions: [], answers: { [questionOf(e)]: chosen } } }
     })
@@ -53,7 +56,7 @@ for (const [chosen, merge] of ANSWERS) {
 
 test('a dismissed first policy question opens no tree and stores no policy', async ($, on) => {
   const session = masterWorld(on)
-  on('tool.call', { tool: 'AskUserQuestion' }, () => ({ deny: "The user doesn't want to proceed with this tool use." }))
+  on('tool.call', { tool: 'AskUserQuestion' }, (_$, e, next) => (questionOf(e) === MERGE_QUESTION ? { deny: "The user doesn't want to proceed with this tool use." } : next(e)))
   await $.session.start(START)
 
   const answered = await openedTree($, 'Ship the parser')
@@ -98,7 +101,7 @@ function codebaseRules(files: number): readonly Rule[] {
   return [{ starts: ['rex', 'codebase', '--only', 'code', '--with-context'], answer: ran(`${lines.join('\n')}\n`) }]
 }
 
-test("the tree's brief holds the charter's reading with no Missing line, the policy, then the code map", async ($, on) => {
+test("the tree's brief holds the charter's reading with no Missing line, the budget and time, the policy, then the code map", async ($, on) => {
   const policy = await confirmedPolicy({ merge: 'allowed_if_checks_pass', per_job_usd: 20 })
   const session = masterWorld(on, { store: { [POLICY_KEY]: policy }, processAnswer: byRule([...placesRules('origin'), ...codebaseRules(3)]), modelAnswer: () => ({ isAnswered: true, text: READING, usage: USAGE }) })
   await $.session.start(START)
@@ -115,11 +118,13 @@ test("the tree's brief holds the charter's reading with no Missing line, the pol
     'max_jobs=8',
     'consequence_ceiling=high',
     'tier_cap=high',
-    'tree_usd=100000',
     'per_job_usd=20',
     'raise_limits=ask',
   ].join('\n')
   expect(prompt).toContain(`\n<policy>\n${block}\n</policy>\n`)
+  expect(prompt).toContain('\n<limits>\nbudget_usd=100000.00\ntime=unlimited\nends_at=none\n</limits>\n')
+  expect(prompt.indexOf('</reading>')).toBeLessThan(prompt.indexOf('<limits>'))
+  expect(prompt.indexOf('</limits>')).toBeLessThan(prompt.indexOf('<policy>'))
   expect(prompt).toContain('\n<codebase>\nsrc/file1.rs  The file number 1.\nsrc/file2.rs  The file number 2.\nsrc/file3.rs  The file number 3.\n</codebase>\n')
   expect(prompt.indexOf('</reading>')).toBeLessThan(prompt.indexOf('<policy>'))
   expect(prompt.indexOf('</policy>')).toBeLessThan(prompt.indexOf('<codebase>'))

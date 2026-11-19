@@ -6,6 +6,7 @@ import { fail, isOpen, MAIN_MASTER, readBook, restoreTree } from '../book/index'
 import type { Restored } from '../book/index'
 import { goneQuestionText, LEAVE_BLOCKED, START_AGAIN, startAgain } from './answers'
 import { announceQuestion, parkQuestion } from './ask'
+import { openLimits, timeFrom } from './budget'
 import type { StatusSection, Table } from '../parts'
 import type { Policy } from './policy'
 import type { StoredPolicy } from './store'
@@ -139,7 +140,7 @@ function questionOf(question: unknown): RexQuestion | null {
   }
 }
 
-/** The tree comes back in this session, with its main loop as master, pinned to the policy that pre-flight just found confirmed: its hash, and its `tree_usd` as the cap. */
+/** The tree comes back in this session, with its main loop as master, pinned to the hash of the policy that pre-flight just found confirmed. Its budget and time here are the ones of a tree with nobody at the terminal; the resume sets the person's own. */
 function treeOf(tree: unknown, session: string, policy: StoredPolicy): RexTree | null {
   const id = textOf(tree, 'id')
   const charter = textOf(tree, 'charter')
@@ -156,6 +157,8 @@ function treeOf(tree: unknown, session: string, policy: StoredPolicy): RexTree |
     state: 'running',
     ledgerNano: 0,
     capNano: nanoOf(policy.policy.tree_usd),
+    timeMs: null,
+    deadlineAt: null,
     builders: [],
     ticks: [],
     notes: [],
@@ -248,11 +251,17 @@ export async function reviveBuilders($: EngineInterface, tree: RexTree, jobs: re
 export type Resumed = { readonly tree: RexTree; readonly lines: readonly string[]; readonly digest: string }
 
 /** Brings the newest open tree of the store back into this session; a text is the refusal. */
-export async function resumeTree($: EngineInterface, policy: StoredPolicy, sections: Table<StatusSection>): Promise<Resumed | string> {
-  const restored = await storedTree($, (await readBook($)).session, policy)
-  if (typeof restored === 'string') {
-    return restored
+export async function resumeTree($: EngineInterface, policy: StoredPolicy, sections: Table<StatusSection>, isInteractive: boolean): Promise<Resumed | string> {
+  const stored = await storedTree($, (await readBook($)).session, policy)
+  if (typeof stored === 'string') {
+    return stored
   }
+  // A resumed tree gets a budget and a time of the person's own choice again; what its jobs spent before counts against the budget.
+  const limits = await openLimits($, isInteractive, policy.policy)
+  if (typeof limits === 'string') {
+    return limits
+  }
+  const restored = { ...stored, tree: { ...stored.tree, capNano: limits.capNano, ...timeFrom(limits.timeMs, await $.clock.now()) } }
   await restoreTree($, restored)
   const { tree } = restored
   const open = restored.jobs.filter(isOpen)

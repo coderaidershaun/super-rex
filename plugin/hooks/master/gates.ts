@@ -1,9 +1,8 @@
-// The gate checks of rex_build as pure decisions over the book and the policy: spend of the tree, the plan's rate limit, and the counts and consequence the policy allows.
+// The gate checks of rex_build as pure decisions over the book and the policy: the plan's rate limit, and the counts and consequence the policy allows. The tree's own budget and time are in tree-limits.ts.
 import type { SessionRateLimit } from 'claude-code'
 
 import type { RexBook, RexJob, RexLevel, RexTree } from '../../types'
 import { isOpen } from '../book/index'
-import { usd } from '../tools/index'
 import { levelRank, parallelLimit } from './policy'
 import type { Policy } from './policy'
 
@@ -14,13 +13,6 @@ export function treeJobs(book: RexBook, tree: string): readonly RexJob[] {
 /** What the tree has spent: the master's own requests and every job's spend. */
 export function treeSpentNano(book: RexBook, tree: RexTree): number {
   return treeJobs(book, tree.id).reduce((sum, job) => sum + job.spentNano, tree.ledgerNano)
-}
-
-export function treeLedgerRefusal(book: RexBook, tree: RexTree): string | null {
-  const spent = treeSpentNano(book, tree)
-  return spent >= tree.capNano
-    ? `rex gate: master tree ${tree.id} has spent $${usd(spent)} of its $${usd(tree.capNano)}; tell the person: they raise the cap with /rex policy set tree_usd <usd>, then /rex policy confirm`
-    : null
 }
 
 export function rateLimitRefusal(limits: readonly SessionRateLimit[], policy: Policy): string | null {

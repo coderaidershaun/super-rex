@@ -42,6 +42,7 @@ export {
   setMergeAnswer,
   setPromptMode,
   setRunOutput,
+  setTreeLimits,
   setVersions,
   startRun,
   stepMain,
@@ -58,7 +59,7 @@ export type { JobClose, MergeDone, OpenJobInput, PlanAmendment, QuestionInput, R
 export { mainTree } from './runs'
 export type { EndInput, SkillOpen, StartRunInput, StepInput } from './runs'
 export { MAIN_MASTER } from './trees'
-export type { TreeInput } from './trees'
+export type { TreeInput, TreeLimits } from './trees'
 export { pluginVersion } from './config'
 export { limitIgnoredLine, MAX_LIMIT_USD, readPersonWords } from './words'
 

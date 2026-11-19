@@ -248,7 +248,12 @@ export type RexTree = {
   readonly policyHash: string
   readonly state: 'running' | 'paused' | 'blocked' | 'done' | 'lost'
   readonly ledgerNano: number
+  /** The budget of the tree: what the master and every job of it may spend together. */
   readonly capNano: number
+  /** The time the person gave the tree, counted from when they set it; null for no limit. */
+  readonly timeMs: number | null
+  /** When that time ends; null for no limit. */
+  readonly deadlineAt: number | null
   readonly builders: readonly RexTreeBuilder[]
   readonly ticks: readonly RexTreeTick[]
   readonly notes: readonly RexTreeNote[]

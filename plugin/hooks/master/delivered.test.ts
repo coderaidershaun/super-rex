@@ -122,7 +122,7 @@ test('rex_status of the main loop that runs the tree gives the lines of each liv
   const main = await $.tool.call({ tool: 'mcp__super-rex__rex_status' })
 
   const id = lineOf(asked, 'question') ?? ''
-  const tree = `job=none\nquestion.${id}=parked\ntree=${TREE}\ntree_state=running\ntree_spent_usd=0.00\ntree_cap_usd=100000.00\njob.${OTHER}.status=created\njob.${OTHER}.builder=b2\nnotes=1\nnote.1=Lexer after parser.\n`
+  const tree = `job=none\nquestion.${id}=parked\ntree=${TREE}\ntree_state=running\ntree_spent_usd=0.00\ntree_cap_usd=100000.00\ntree_time=unlimited\ntree_ends_at=none\njob.${OTHER}.status=created\njob.${OTHER}.builder=b2\nnotes=1\nnote.1=Lexer after parser.\n`
   expect(resultText(main).startsWith(tree)).toBe(true)
   expect(resultText(main).slice(tree.length).split('\n').filter(line => line !== '').every(line => line.startsWith('policy.'))).toBe(true)
   expect(lineOf(main, 'policy.merge')).toBe('ask')

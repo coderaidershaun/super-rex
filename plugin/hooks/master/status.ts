@@ -8,6 +8,7 @@ import { handOffFile } from './brief'
 import { treeJobs, treeSpentNano } from './gates'
 import { liveTrees, treeOfMaster } from './pin'
 import { masterPolicyLines, PolicyShapeError } from './policy'
+import { spanText, whenText } from './tree-limits'
 import { readPolicy } from './store'
 
 function questionLines(questions: readonly RexQuestion[]): readonly string[] {
@@ -46,6 +47,8 @@ function treeLines(book: RexBook, tree: RexTree): readonly string[] {
     `tree_state=${tree.state}`,
     `tree_spent_usd=${usd(treeSpentNano(book, tree))}`,
     `tree_cap_usd=${usd(tree.capNano)}`,
+    `tree_time=${spanText(tree.timeMs)}`,
+    `tree_ends_at=${tree.deadlineAt === null ? 'none' : whenText(tree.deadlineAt)}`,
     ...jobs,
     `notes=${String(tree.notes.length)}`,
     ...notes,

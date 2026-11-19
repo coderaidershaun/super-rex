@@ -1,17 +1,54 @@
-// Stops a recursive rm that would delete the root, the home folder, the repo itself, or anything outside the folder that holds the repo, and tells the person.
-// rex init turns no sandbox on, so this guard is what stands between an agent's wrong path and the person's files. An inert mod stops nothing.
+// Stops a shell command that could be a disaster that is hard to undo (a delete of the wrong folder, destructive SQL, a write over a disk, a cloud delete, a forced push to main) and tells the person.
+// rex init turns no sandbox on, so this guard is what stands between an agent's wrong command and the person's files and data. An inert mod stops nothing.
 import type { EngineInterface, HookFailure, On } from 'claude-code'
 
 import { errorText, readBook } from '../book/index'
 import type { GateCheck, Parts } from '../parts'
 import { failureName, git } from '../tools/index'
-import { alertText, mayRemove, rmAlert } from './rm'
-import type { RmPlaces } from './rm'
+import { statusOf } from './alert'
+import type { Alert } from './alert'
+import { disasterAlerts, mayBeDisaster } from './disaster'
+import { deleteAlerts, mayRemove } from './rm'
+import type { RmPlaces } from './shell'
+import { mayDropData, sqlAlerts } from './sql'
 
-export { alertText, clearable, commandsOf, rmAlert } from './rm'
-export type { RmAlert, RmPlaces } from './rm'
+export { alertOf, statusOf } from './alert'
+export type { Alert } from './alert'
+export { disasterAlerts, ROWS } from './disaster'
+export { alertText, deleteAlerts, rmAlert } from './rm'
+export type { RmAlert } from './rm'
+export { clearable, commandsOf, simpleCommands } from './shell'
+export type { RmPlaces } from './shell'
+export { sqlAlerts } from './sql'
 
-export const GUARD_CHECKS: readonly GateCheck[] = [{ name: 'rm-guard', site: { kind: 'tool', tool: 'Bash' }, failure: 'closed' }]
+export const GUARD_CHECKS: readonly GateCheck[] = [
+  { name: 'rm-guard', site: { kind: 'tool', tool: 'Bash' }, failure: 'closed' },
+  { name: 'sql-guard', site: { kind: 'tool', tool: 'Bash' }, failure: 'closed' },
+  { name: 'disaster-guard', site: { kind: 'tool', tool: 'Bash' }, failure: 'closed' },
+]
+
+/** Each check: its name, what it guards in the words of a failure, its cheap first look, and its alerts. */
+const CHECKS: readonly { readonly name: string; readonly subject: string; readonly may: (command: string) => boolean; readonly alerts: (command: string, places: RmPlaces) => readonly Alert[] }[] = [
+  { name: 'rm-guard', subject: 'a recursive rm', may: mayRemove, alerts: deleteAlerts },
+  { name: 'sql-guard', subject: 'a database delete', may: mayDropData, alerts: sqlAlerts },
+  { name: 'disaster-guard', subject: 'a disaster command', may: mayBeDisaster, alerts: disasterAlerts },
+]
+
+/** True when one of the checks may stop the command; else the guard costs it one test of each pattern and no book read. */
+export function mayAlarm(command: string): boolean {
+  return CHECKS.some(check => check.may(command))
+}
+
+/** The first alert of the first check that stops the command, or null when the command may run. */
+export function guardAlert(command: string, places: RmPlaces): Alert | null {
+  for (const check of CHECKS) {
+    const alert = check.may(command) ? check.alerts(command, places)[0] : undefined
+    if (alert !== undefined) {
+      return alert
+    }
+  }
+  return null
+}
 
 /** The temp folders of macOS and Linux, under each name the system gives them. */
 const TEMP_FOLDERS: readonly string[] = ['/tmp', '/private/tmp', '/var/tmp', '/private/var/tmp', '/var/folders', '/private/var/folders']
@@ -59,30 +96,42 @@ export async function placesOf($: EngineInterface): Promise<RmPlaces> {
   }
 }
 
-async function guardRefusal($: EngineInterface, command: string, agentId: string | undefined): Promise<string | null> {
-  if (!mayRemove(command) || (await readBook($)).inert !== null) {
-    return null
-  }
-  const places = await placesOf($)
-  const alert = rmAlert(command, places)
-  if (alert === null) {
-    return null
-  }
-  $.ui.status(`rex: ALERT: stopped a recursive rm of ${alert.target} (${alert.reason}) by ${agentId ?? 'the main session'}; run it yourself if you mean it`)
-  return alertText(alert, places)
-}
-
-/** The guard's own error refuses the command, so a broken guard never lets a delete through unseen. */
+/**
+ * The refusal of the first alert of the first check that stops the command,
+ * with one status line for the person. A check's own error refuses the
+ * command, so a broken guard never lets a disaster through unseen.
+ */
 async function guarded($: EngineInterface, command: string, agentId: string | undefined): Promise<string | null> {
-  try {
-    return await guardRefusal($, command, agentId)
-  } catch (error) {
-    return `rex guard: the check of a recursive rm failed (${errorText(error)}); refused`
+  const checks = CHECKS.filter(check => check.may(command))
+  if (checks.length === 0) {
+    return null
   }
+  let places: RmPlaces
+  try {
+    if ((await readBook($)).inert !== null) {
+      return null
+    }
+    places = await placesOf($)
+  } catch (error) {
+    return `rex guard: the check of a command failed (${errorText(error)}); refused`
+  }
+  for (const check of checks) {
+    let alert: Alert | undefined
+    try {
+      alert = check.alerts(command, places)[0]
+    } catch (error) {
+      return `rex guard: the check of ${check.subject} failed (${errorText(error)}); refused`
+    }
+    if (alert !== undefined) {
+      $.ui.status(statusOf(alert, agentId ?? 'the main session'))
+      return alert.text
+    }
+  }
+  return null
 }
 
 function failed(error: HookFailure): { readonly deny: string } {
-  return { deny: `rex guard: rm-guard failed (${failureName(error)}); refused` }
+  return { deny: `rex guard: the guard failed (${failureName(error)}); refused` }
 }
 
 export function register(on: On, parts: Parts): void {

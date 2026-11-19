@@ -1,9 +1,9 @@
-// Proves the rm guard: a recursive rm of the root, the home folder, the repo itself or anything outside the folder that holds the repo is stopped with an alert, and every delete below that folder, a job worktree or a temp folder runs.
+// Proves the guard's delete rules and its hooks: a recursive rm, a find that deletes or a git clean of ignored files in the wrong folder is stopped with an alert, and every delete below the folder that holds the repo, a job worktree or a temp folder runs.
 import { expect, test } from 'claude-code/testing'
 
 import { CONFIG_OFF, ROOT, world } from '../book/kit'
 import type { ProcessCall } from '../book/kit'
-import { alertText, clearable, commandsOf, GUARD_CHECKS, rmAlert } from './index'
+import { alertText, clearable, commandsOf, GUARD_CHECKS, guardAlert, rmAlert, simpleCommands } from './index'
 import type { RmPlaces } from './index'
 
 const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
@@ -149,6 +149,52 @@ test('the words of a command are read as the shell reads them', () => {
   expect(texts('a 2>&1 >out <in b')).toEqual([['a', 'b']])
 })
 
+test('the reader keeps each redirect, here-document body, here-string and pipeline beside the words', () => {
+  const [cat, psql] = simpleCommands("cat <<'EOF' | psql app >> /dev/sda\nDROP TABLE x;\nEOF\necho done")
+
+  expect(cat?.input).toEqual(['DROP TABLE x;'])
+  expect(psql?.upstream).toEqual([cat])
+  expect(psql?.redirects.map(redirect => `${redirect.op} ${redirect.target.map(part => (part.kind === 'text' ? part.text : '')).join('')}`)).toEqual(['>> /dev/sda'])
+  expect(simpleCommands('psql <<< "drop table x" 2>&1 &> log')[0]?.input).toEqual(['drop table x'])
+  expect(simpleCommands('a || b')[1]?.upstream).toEqual([])
+})
+
+test('a shell that reads its script from a here-document or a pipe is read too', () => {
+  expect(rmAlert('bash <<EOF\nrm -rf ~\nEOF', PLACES)?.target).toBe('/Users/sam')
+  expect(rmAlert('echo "rm -rf /" | sh', PLACES)?.target).toBe('/')
+  expect(rmAlert('bash build.sh <<EOF\nrm -rf ~\nEOF', PLACES)).toBeNull()
+})
+
+function deleted(command: string, places: RmPlaces = PLACES): string | null {
+  const alert = guardAlert(command, places)
+  return alert === null ? null : `${alert.what}: ${alert.reason}`
+}
+
+test('a find that deletes is judged by its start folders: the machine\'s own folders always, the repo only with no test that picks files, and anything outside the folders agents may clear', () => {
+  expect(deleted('find / -delete')).toBe('a find -delete in /: deletes files below the root folder')
+  expect(deleted('find ~ -name "*.log" -delete')).toBe('a find -delete in /Users/sam: deletes files below your home folder')
+  expect(deleted('find . -type f -delete')).toBe('a find -delete in /Users/sam/Code/app: deletes files below the main checkout of this repo')
+  expect(deleted('find ~/Documents -exec rm -rf {} +')).toBe('a find -exec rm in /Users/sam/Documents: deletes files below a folder outside /Users/sam/Code and the temp folders')
+  expect(deleted('find -L "$HOME" -mindepth 1 -delete')).toBe('a find -delete in /Users/sam: deletes files below your home folder')
+  expect(deleted('cd / && find . -delete')).toBe('a find -delete in /: deletes files below the root folder')
+
+  const passed = ['find . -name "*.pyc" -delete', 'find . -name node_modules -prune -exec rm -rf {} +', 'find target -type f -delete', 'find /tmp -name "rex-*" -delete', 'find "$TMPDIR" -mtime +1 -delete', 'find . -type d -empty -delete', 'find ~ -name "*.log"', 'find / -name x -print', 'find .. -maxdepth 2 -name dist -exec rm -rf {} +']
+  expect(passed.filter(command => deleted(command) !== null)).toEqual([])
+  expect(deleted('find . -delete', IN_WORKTREE)).toBeNull()
+})
+
+test('a git clean of ignored files with force in the main checkout is stopped, and one in a job worktree, a dry run or one that keeps ignored files runs', () => {
+  expect(deleted('git clean -fdx')).toBe('a git clean -fdx in the main checkout /Users/sam/Code/app: deletes every ignored file there, such as `.env` files and the store in `.rex/`, and no commit holds them')
+  expect(deleted('git clean -f -X')).not.toBeNull()
+  expect(deleted('git clean --force -x -d')).not.toBeNull()
+  expect(deleted('cd src && git clean -xfd')).not.toBeNull()
+  expect(deleted('git -C /Users/sam/Code/app clean -ffdx', IN_WORKTREE)).not.toBeNull()
+
+  const passed = ['git clean -fd', 'git clean -ndx', 'git clean -fdx --dry-run', 'git clean -x', 'git -C ../app.worktrees/0gaq820001 clean -fdx']
+  expect(passed.filter(command => deleted(command) !== null)).toEqual([])
+  expect(deleted('git clean -fdx', IN_WORKTREE)).toBeNull()
+})
+
 test('the alert tells the agent what was stopped, why, where a recursive rm may delete, and that the person runs it', () => {
   const alert = rmAlert('rm -rf ~/Documents', PLACES)
 
@@ -196,5 +242,24 @@ test('a Bash or Monitor call with a recursive rm outside the allowed folders is 
   expect(session.ran).toEqual(['ls -la', 'rm -rf target'])
   expect(session.statuses).toContain('rex: ALERT: stopped a recursive rm of / (the root folder) by the main session; run it yourself if you mean it')
   expect(calls.map(call => call.argv.join(' '))).toEqual([`git -C ${ROOT} rev-parse --path-format=absolute --git-common-dir`])
-  expect(GUARD_CHECKS.map(check => `${check.name} ${check.failure}`)).toEqual(['rm-guard closed'])
+  expect(GUARD_CHECKS.map(check => `${check.name} ${check.failure}`)).toEqual(['rm-guard closed', 'sql-guard closed', 'disaster-guard closed'])
+})
+
+test('a Bash call with destructive SQL or another disaster is refused with its alert and one line for the person, and the ordinary commands beside it run', async ($, on) => {
+  const calls: ProcessCall[] = []
+  const session = shell(on, calls)
+  await $.session.start(START)
+
+  const selected = await $.tool.call({ tool: 'Bash', command: 'psql -c "SELECT 1"' })
+  const dropped = await $.tool.call({ tool: 'Bash', command: 'psql -c "DROP TABLE users"' })
+  const destroyed = await $.tool.call({ tool: 'Monitor', description: 'tear down', timeout_ms: 1000, command: 'terraform destroy -auto-approve' })
+
+  expect(selected.deny).toBeUndefined()
+  expect(dropped.deny).toBe(
+    'rex guard: ALERT: a DROP TABLE through psql was stopped: it deletes a table and all its rows. This does not look right. Check the command first, and do not reach the same end with another command. IF the person wants this, THEN tell them, and they run it in their own shell.',
+  )
+  expect(destroyed.deny).toContain('rex guard: ALERT: a terraform destroy was stopped: it deletes the infrastructure it manages.')
+  expect(session.ran).toEqual(['psql -c "SELECT 1"'])
+  expect(session.statuses).toContain('rex: ALERT: stopped a DROP TABLE through psql (deletes a table and all its rows) by the main session; run it yourself if you mean it')
+  expect(session.statuses).toContain('rex: ALERT: stopped a terraform destroy (deletes the infrastructure it manages) by the main session; run it yourself if you mean it')
 })

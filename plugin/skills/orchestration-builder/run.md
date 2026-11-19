@@ -45,11 +45,11 @@ Now you = orchestrator. Hold these values under these exact names. `rex-deliver`
 
 Shell command runs with no sandbox. Deny rules of repo settings hold.
 
-Mod refuses recursive `rm` of root folder, home folder, main checkout of repo, its `.git`, or folder outside these: folder that holds repo, job worktrees, temp folders. Refusal starts with `rex guard: ALERT`.
+Mod refuses recursive `rm` or `find -delete` of root folder, home folder, main checkout of repo, its `.git`, or folder outside these: folder that holds repo, job worktrees, temp folders. Mod also refuses: destructive SQL through database client (`DROP`, `TRUNCATE`, `DELETE` with no `WHERE`), `git clean -x` in main checkout, write over disk, stop of machine, cloud delete (`terraform destroy` and others), forced push to `main` or `master`. Refusal starts with `rex guard: ALERT`.
 
-CAUTION: Check the path of each recursive `rm` before you run it. A recursive `rm` deletes files that no commit holds, and no command gets them back.
+CAUTION: Check the path of each recursive `rm` and the target of each delete before you run it. A delete of files or data that no commit holds cannot be undone.
 
-- [ ] IF mod gives `rex guard: ALERT`, THEN path is wrong, OR delete is for user. Never delete same folder with other command.
+- [ ] IF mod gives `rex guard: ALERT`, THEN command is wrong, OR command is for user. Never reach same end with other command.
 - [ ] IF task cannot go on without that delete, THEN give user command, with `! ` before it, and say why.
 - [ ] Never give user other command to run IF you or sub-agent can run it.
 - [ ] Report names each alert.
@@ -57,7 +57,7 @@ CAUTION: Check the path of each recursive `rm` before you run it. A recursive `r
 Brief text. Mod adds it to each brief at spawn. Write it yourself only in a brief to an agent outside a job:
 
 ```
-Shell commands run with no sandbox, so a wrong path in a recursive `rm` deletes files that no commit holds. The mod stops a recursive `rm` of the root folder, the home folder, the main checkout of the repo, or a folder outside the folder that holds the repo, its job worktrees and the temp folders. Its refusal starts with `rex guard: ALERT`. If you get that alert, check the path, and do not delete the same folder with another command. In your report, name each alert you got.
+Shell commands run with no sandbox, so a wrong command can delete files or data that no commit holds. The mod stops a recursive `rm` or a `find -delete` of the root folder, the home folder, the main checkout of the repo, or a folder outside the folder that holds the repo, its job worktrees and the temp folders. It also stops destructive SQL through a database client, a write over a disk, a cloud delete such as `terraform destroy`, and a forced push to `main`. Its refusal starts with `rex guard: ALERT`. If you get that alert, check the command, and do not reach the same end with another command. In your report, name each alert you got.
 ```
 
 ## Step 9 — Deliver

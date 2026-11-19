@@ -85,8 +85,9 @@ test('rex_status of the master ends with the policy it works under, one policy.<
   await $.tool.call({ tool: 'mcp__super-rex__rex_report', report: 'Result: nothing to build.' })
   const main = await $.tool.call({ tool: 'mcp__super-rex__rex_status' })
 
-  const keys = ['merge', 'merge_max_consequence', 'max_parallel_builders', 'max_jobs', 'consequence_ceiling', 'tier_cap', 'tree_usd', 'per_job_usd', 'raise_limits']
-  expect(keys.map(key => lineOf(status, `policy.${key}`))).toEqual(['ask', 'medium', 'auto', '8', 'high', 'high', '100000', 'none', 'ask'])
+  const keys = ['merge', 'merge_max_consequence', 'max_parallel_builders', 'max_jobs', 'consequence_ceiling', 'tier_cap', 'per_job_usd', 'raise_limits']
+  expect(keys.map(key => lineOf(status, `policy.${key}`))).toEqual(['ask', 'medium', 'auto', '8', 'high', 'high', 'none', 'ask'])
+  expect(lineOf(status, 'policy.tree_usd')).toBeUndefined()
   expect(resultText(main)).not.toContain('policy.')
 })
 

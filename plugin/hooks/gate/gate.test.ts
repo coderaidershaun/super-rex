@@ -91,7 +91,7 @@ test('depth 4 refused outside a master tree, and allowed below a builder of one'
   files(on, {})
   const started = engineAnswers(on)
   const outside = chain(seededBook(), 3)
-  const withTree: RexBook = { ...outside, trees: [{ id: 't1', session: outside.session, master: 'main', charter: 'c', charterHash: 'h', policyHash: 'p', state: 'running', ledgerNano: 0, capNano: 1, builders: [{ job: JOB, agentId: 'd1' }], ticks: [], notes: [], startedAt: START_MS, closedAt: null, reportFile: null }] }
+  const withTree: RexBook = { ...outside, trees: [{ id: 't1', session: outside.session, master: 'main', charter: 'c', charterHash: 'h', policyHash: 'p', state: 'running', ledgerNano: 0, capNano: 1, timeMs: null, deadlineAt: null, builders: [{ job: JOB, agentId: 'd1' }], ticks: [], notes: [], startedAt: START_MS, closedAt: null, reportFile: null }] }
   world(on, { seed: outside })
   await $.session.start(START)
 
@@ -108,7 +108,7 @@ test('depth 4 below a builder of a master tree passes', async ($, on) => {
   files(on, {})
   const started = engineAnswers(on)
   const book = chain(seededBook(), 3)
-  const tree = { id: 't1', session: book.session, master: 'main', charter: 'c', charterHash: 'h', policyHash: 'p', state: 'running', ledgerNano: 0, capNano: 1, builders: [{ job: JOB, agentId: 'd1' }], ticks: [], notes: [], startedAt: START_MS, closedAt: null, reportFile: null } as const
+  const tree = { id: 't1', session: book.session, master: 'main', charter: 'c', charterHash: 'h', policyHash: 'p', state: 'running', ledgerNano: 0, capNano: 1, timeMs: null, deadlineAt: null, builders: [{ job: JOB, agentId: 'd1' }], ticks: [], notes: [], startedAt: START_MS, closedAt: null, reportFile: null } as const
   world(on, { seed: { ...book, trees: [tree] } })
   await $.session.start(START)
 

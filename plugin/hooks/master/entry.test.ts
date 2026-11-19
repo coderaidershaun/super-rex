@@ -123,7 +123,7 @@ test('a tree opens with storage off, in the book of the session, its master the 
   const answered = await openedTree($, 'Ship the parser')
 
   const tree = session.book().trees[0]
-  expect(headOf(answered)).toBe(`tree=${tree?.id ?? ''}\nstate=running\nexisting=no\nresumed=no\nmerge=ask\nperson=yes`)
+  expect(headOf(answered)).toBe(`tree=${tree?.id ?? ''}\nstate=running\nexisting=no\nresumed=no\nmerge=ask\nbudget_usd=100000.00\ntime=unlimited\nends_at=none\nperson=yes`)
   expect(resultText(answered)).toContain('\n\nThe charter of this tree, as the person wrote it:\n<charter>\nShip the parser\n</charter>\n')
   expect([session.book().storage, tree?.state, tree?.master, tree?.session]).toEqual(['off', 'running', 'main', session.book().session])
   expect(session.book().treeStartPrompt).toBeNull()
@@ -139,7 +139,7 @@ test('rex_tree_open again with no new prompt answers the live tree with existing
   const again = await $.tool.call({ tool: TREE_OPEN })
 
   const id = lineOf(first, 'tree') ?? ''
-  expect(headOf(again)).toBe(`tree=${id}\nstate=running\nexisting=yes\nresumed=no\nmerge=ask\nperson=yes`)
+  expect(headOf(again)).toBe(`tree=${id}\nstate=running\nexisting=yes\nresumed=no\nmerge=ask\nbudget_usd=100000.00\ntime=unlimited\nends_at=none\nperson=yes`)
   expect(resultText(again)).toContain('<charter>\nShip the parser\n</charter>')
   expect(session.book().trees.map(tree => tree.id)).toEqual([id])
 })
