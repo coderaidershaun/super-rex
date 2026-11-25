@@ -2,7 +2,7 @@
 import type { EngineInterface, ToolCallResult } from 'claude-code'
 
 import type { RexBook, RexJob } from '../../types'
-import { addQuestion, fail, readBook, recordMergeDone } from '../book/index'
+import { addQuestion, applyAutoMerge, fail, readBook, recordMergeDone } from '../book/index'
 import type { ToolEntry } from '../parts'
 import { answer, baseRef, callerOf, callerRefusal, deny, git, hadOwnCommit, jobArgRefusal, repoPlaces } from '../tools/index'
 import type { Git } from '../tools/index'
@@ -169,7 +169,8 @@ export async function serveMerge($: EngineInterface, event: { readonly agentId?:
   }
   locks.set(job.repo, job.id)
   try {
-    return await mergeLocked($, await readBook($), job)
+    // A job opened before the repo got auto-merge takes its answer here; one opened after has it since its open.
+    return await mergeLocked($, await readBook($), await applyAutoMerge($, job))
   } finally {
     locks.delete(job.repo)
   }

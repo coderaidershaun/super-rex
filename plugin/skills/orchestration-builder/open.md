@@ -34,7 +34,7 @@ Result keys: `job`, `status`, `existing` (`yes` or `no`), `merge` (`yes`, `no`, 
 Reason: A merge can need the approval of a person, or it can start a deployment.
 
 1. Plan job: `MERGE` = `no`. Do not ask. Plan job writes no file in Git repo, so nothing merges.
-2. IF `merge` of `rex_job_open` = `yes` or `no`, THEN `MERGE` = that value. Ask nothing.
+2. IF `merge` of `rex_job_open` = `yes` or `no`, THEN `MERGE` = that value. Ask nothing. Repo with auto-merge (`rex init --auto-merge`) gives `yes` for each job with no other answer.
 3. IF a master started you, THEN ask nothing. `MERGE` = `yes`: End 2 of `rex-deliver/end.md` calls `rex_merge`. With no answer of policy, `rex_merge` parks a merge question for person and gives `merged=no`, `question=<id>`. Then end turn with state `awaiting decision` + question ID. Mod wakes you when person answers: call `rex_merge` again. Answer `Keep the branch` gives `no`.
 4. IF `origin` of `rex_status` (with `job`) = `sdk`, THEN job runs headless and no person can answer: `MERGE` = `no`. A headless request that wants a merge says `merge: yes` in its text: then step 2 applies.
 5. ELSE ask requester with AskUserQuestion tool. One question, two options, exact text. Mod records only this form:

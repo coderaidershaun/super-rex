@@ -1,9 +1,9 @@
-// Reads .rex/config.json, which says whether this session keeps a store, and the plugin's own version from its manifest.
+// Reads .rex/config.json, which says whether this session keeps a store and whether its jobs merge with no question, and the plugin's own version from its manifest.
 import type { EngineInterface } from 'claude-code'
 
 import { errorText } from './failure'
 
-type Config = { readonly storage: 'on' | 'off'; readonly jobsFromSdk: boolean }
+type Config = { readonly storage: 'on' | 'off'; readonly jobsFromSdk: boolean; readonly autoMerge: boolean }
 type ConfigRead = { readonly kind: 'missing' } | { readonly kind: 'unreadable'; readonly reason: string } | { readonly kind: 'read'; readonly config: Config }
 
 export async function readConfig($: EngineInterface, root: string): Promise<ConfigRead> {
@@ -32,13 +32,17 @@ export function parseConfig(text: string): ConfigRead {
   }
   const storage: unknown = Reflect.get(value, 'storage')
   const jobsFromSdk: unknown = Reflect.get(value, 'jobs_from_sdk')
+  const autoMerge: unknown = Reflect.get(value, 'auto_merge')
   if (storage !== 'on' && storage !== 'off') {
     return { kind: 'unreadable', reason: `storage must be "on" or "off", got ${JSON.stringify(storage) ?? 'nothing'}` }
   }
   if (jobsFromSdk !== undefined && typeof jobsFromSdk !== 'boolean') {
     return { kind: 'unreadable', reason: `jobs_from_sdk must be true or false, got ${JSON.stringify(jobsFromSdk)}` }
   }
-  return { kind: 'read', config: { storage, jobsFromSdk: jobsFromSdk ?? true } }
+  if (autoMerge !== undefined && typeof autoMerge !== 'boolean') {
+    return { kind: 'unreadable', reason: `auto_merge must be true or false, got ${JSON.stringify(autoMerge)}` }
+  }
+  return { kind: 'read', config: { storage, jobsFromSdk: jobsFromSdk ?? true, autoMerge: autoMerge ?? false } }
 }
 
 /** The plugin's own version, from its manifest; `unknown` when the manifest cannot be read. */

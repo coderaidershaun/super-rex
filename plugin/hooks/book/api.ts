@@ -31,6 +31,7 @@ import { jobIdOf, newStreamKeys, randomNumber } from './ids'
 import {
   amendPlanIn,
   answerIn,
+  autoMergeIn,
   closeJobIn,
   decisionIn,
   doneCheckIn,
@@ -176,6 +177,14 @@ export function recordDecision($: Dollar, job: string, decision: RexDecision): P
 
 export async function setMergeAnswer($: Dollar, job: string, answer: Omit<RexMergeAnswer, 'at'>): Promise<void> {
   await change($, (book, at) => mergeAnswerIn(book, job, { ...answer, at }, at))
+}
+
+/** The job with the repo's auto-merge answer when it had none: for a job opened before the repo got auto-merge, such as one a resume put back. */
+export function applyAutoMerge($: Dollar, job: RexJob): Promise<RexJob> {
+  return changeWith($, (book, at) => {
+    const changed = autoMergeIn(book, job.id, at)
+    return { book: changed, value: changed.jobs.find(each => each.id === job.id) ?? job }
+  })
 }
 
 export async function setLimit($: Dollar, job: string, limit: RexLimit): Promise<void> {

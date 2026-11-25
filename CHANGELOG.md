@@ -4,6 +4,28 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.13.0 - 2026-11-25
+
+Install the binary and the plugin of this version together, then start a new session.
+
+What changes for you:
+
+- **`rex init --auto-merge` lets every job merge with no merge question.** A builder's own job and each job of a master tree merge to the base branch once their checks pass, so a run that nobody watches no longer waits on a merge answer.
+
+### Added
+
+- **`rex init --auto-merge` and `--no-auto-merge`.** The first writes `"auto_merge": true` to `.rex/config.json`, the second `false`. A run with neither flag keeps what the config holds, and a new config gets `false`. While auto-merge is on, each run of `rex init` prints a line that says so.
+- **A builder's own job merges with no question.** In a repo with auto-merge, `rex_job_open` answers `merge=yes` for a job with no other answer, so the builder skill asks no merge question, also in a headless run.
+- **Each job of a master tree merges with no question.** `rex_build` gives each job the merge answer `yes`, whatever its consequence. The policy's `merge: ask`, `merge_max_consequence` and `always_ask_paths` ask nothing. `merge_checks` still run before each merge, and `merge_after` still orders them. `rex_tree_open` answers `merge=auto`.
+- **The first master tree of a repo with auto-merge asks no policy question.** The mod stores and confirms the default policy with `merge: allowed_if_checks_pass`.
+- **A job opened before auto-merge was on takes the answer at its next `rex_merge`**, so a tree that stalled on merges goes on after `rex init --auto-merge` and a resume in a new session. A merge question that already waits stays open until you answer it.
+
+### Unchanged
+
+- Your own `merge: no`, the answer `Keep the branch`, and a policy with `merge: never` all hold over auto-merge.
+- `rex_merge` is still the only path to the base branch, with every check it made before. A base branch that takes no direct push still ends as a kept branch.
+- The store's form: an auto-merge answer is recorded as source `policy` with no policy hash.
+
 ## 0.12.0 - 2026-11-19
 
 Install the binary and the plugin of this version together, then start a new session.

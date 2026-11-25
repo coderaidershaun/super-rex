@@ -67,9 +67,15 @@ const MERGE_OPTIONS: readonly { readonly text: string; readonly rule: MergeRule 
   { text: 'Ask me for each job', rule: 'ask' },
 ]
 
-/** The person's first policy: one question, then the policy stored and confirmed; null when the question was dismissed. */
+/**
+ * The person's first policy: one question, then the policy stored and confirmed; null when the question was dismissed.
+ * In a repo with auto-merge the question is not asked: `rex init --auto-merge` was the person's answer to it.
+ */
 async function askFirstPolicy($: EngineInterface): Promise<StoredPolicy | null> {
   try {
+    if ((await readBook($)).autoMerge) {
+      return await writePolicy($, { ...DEFAULT_POLICY, merge: 'allowed_if_checks_pass' }, 'confirm')
+    }
     const chosen = await $.ui.ask(MERGE_QUESTION, MERGE_OPTIONS.map(option => option.text))
     const merge = MERGE_OPTIONS.find(option => option.text === chosen)?.rule ?? 'ask'
     const policy: Policy = { ...DEFAULT_POLICY, merge }
@@ -113,10 +119,14 @@ async function refuse($: EngineInterface, step: number, text: string): Promise<T
   return deny(text)
 }
 
-/** The answer of the tool: its `key=value` lines, then the brief's blocks. `person` says whether someone is at the terminal to answer a question. */
-function opened(tree: RexTree, policy: Policy, state: EntryState, rows: readonly string[], brief: string): ToolCallResult {
+/**
+ * The answer of the tool: its `key=value` lines, then the brief's blocks. `person` says whether someone is at the terminal to answer a question.
+ * `merge=auto` stands for a repo with auto-merge, where each job merges with no question; a policy of `never` still shows as `never`.
+ */
+async function opened($: EngineInterface, tree: RexTree, policy: Policy, state: EntryState, rows: readonly string[], brief: string): Promise<ToolCallResult> {
+  const merge = (await readBook($)).autoMerge && policy.merge !== 'never' ? 'auto' : policy.merge
   const limits = [`budget_usd=${usd(tree.capNano)}`, `time=${spanText(tree.timeMs)}`, `ends_at=${tree.deadlineAt === null ? 'none' : whenText(tree.deadlineAt)}`]
-  const lines = [`tree=${tree.id}`, `state=${tree.state}`, ...rows, `merge=${policy.merge}`, ...limits, `person=${state.isInteractive ? 'yes' : 'no'}`]
+  const lines = [`tree=${tree.id}`, `state=${tree.state}`, ...rows, `merge=${merge}`, ...limits, `person=${state.isInteractive ? 'yes' : 'no'}`]
   return { result: `${linesText(lines)}\n${brief}` }
 }
 
@@ -132,9 +142,9 @@ async function existing($: EngineInterface, tree: RexTree, start: RexTreeStartPr
     // The person asked to go on: a builder that ended with the last process gets the step of on_dead_builder.
     await dropTreeStart($)
     const resumed = await resumeLive($, tree, read.stored)
-    return opened(tree, policy, state, ['existing=yes', 'resumed=yes', ...resumed.lines], await briefOf($, { tree, digest: resumed.digest, policy }))
+    return opened($, tree, policy, state, ['existing=yes', 'resumed=yes', ...resumed.lines], await briefOf($, { tree, digest: resumed.digest, policy }))
   }
-  return opened(tree, policy, state, ['existing=yes', 'resumed=no'], await briefOf($, { tree, digest: null, policy }))
+  return opened($, tree, policy, state, ['existing=yes', 'resumed=no'], await briefOf($, { tree, digest: null, policy }))
 }
 
 /** Every refusal before the tree opens leaves nothing started. */
@@ -183,7 +193,7 @@ export async function serveTreeOpen($: EngineInterface, event: { readonly agentI
     if (typeof resumed === 'string') {
       return deny(resumed)
     }
-    return opened(resumed.tree, confirmed.policy, state, ['existing=no', 'resumed=yes', ...resumed.lines], await briefOf($, { tree: resumed.tree, digest: resumed.digest, policy: confirmed.policy }))
+    return opened($, resumed.tree, confirmed.policy, state, ['existing=no', 'resumed=yes', ...resumed.lines], await briefOf($, { tree: resumed.tree, digest: resumed.digest, policy: confirmed.policy }))
   }
   const charter = await charterOf($, start.text)
   if ('refused' in charter) {
@@ -202,5 +212,5 @@ export async function serveTreeOpen($: EngineInterface, event: { readonly agentI
   if (tree === undefined) {
     return deny(`${TOOL}: tree ${id} did not open; call ${TOOL} again`)
   }
-  return opened(tree, confirmed.policy, state, ['existing=no', 'resumed=no'], await briefOf($, { tree, digest: null, policy: confirmed.policy }))
+  return opened($, tree, confirmed.policy, state, ['existing=no', 'resumed=no'], await briefOf($, { tree, digest: null, policy: confirmed.policy }))
 }

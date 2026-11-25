@@ -18,7 +18,7 @@ const REQUEST = 'Fix the parser. Merge to main: yes'
 
 /** The book the shared example batch comes from: a session, the job-start prompt, and the job it opened. */
 function exampleBook(): RexBook {
-  const setup = { session: SESSION, storage: 'on', jobsFromSdk: true, inert: null, claudeCode: '2.1.323', plugin: '0.8.0' } as const
+  const setup = { session: SESSION, storage: 'on', jobsFromSdk: true, autoMerge: false, inert: null, claudeCode: '2.1.323', plugin: '0.8.0' } as const
   const started = sessionIn(emptyBook(), setup, START_MS, { stream: STREAM, secret: SECRET })
   const prompted = promptIn(
     started,

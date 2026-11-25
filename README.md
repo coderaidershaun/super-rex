@@ -4,7 +4,7 @@
 
 # SuperRex
 
-This is version 0.12.0 of SuperRex.
+This is version 0.13.0 of SuperRex.
 
 SuperRex plans and runs a job in your repo with Claude Code's own sub-agents, and keeps a record of how it went. It ships as three parts of one version:
 
@@ -66,6 +66,8 @@ The flags:
 | --- | --- |
 | `--with-storage` | Keeps the record of jobs in `.rex/rex.db`. `rex jobs`, `rex job show`, recall, feedback, the cost of record and `/super-rex:orchestration-master resume` need it. See "Storage". Once on, a later run without the flag keeps it on. |
 | `--without-storage` | Keeps no record of jobs, and asks nothing. With neither flag, `rex init` asks at a terminal, `keep a record of jobs in .rex/rex.db? … [Y/n]`, and an empty answer is yes. A run with no terminal, such as one an agent starts, asks nothing and keeps storage off. When storage stays off without this flag, `rex init` says so, names what needs the store, and says that `rex watch` then shows only the snapshots that sessions wrote in the last week. A store that is already on stays on, with either flag. |
+| `--auto-merge` | Lets every job merge to its base branch with no merge question once its checks pass: a builder's own job and each job of a master tree. Writes `"auto_merge": true` to `.rex/config.json`, and a later run without the flag keeps it. See "Auto-merge". |
+| `--no-auto-merge` | Turns auto-merge off again. |
 | `--depth <levels>` | The most levels of sub-agents a session may start, written as `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`. Default 4, which a master tree needs: its builders run at depth 1, and their workers start their own sub-agents at depth 4. A higher value of yours is kept; a lower one is kept with a warning that `/super-rex:orchestration-master` then refuses to start. With the flag, the value you give is written. |
 | `--plugin-source <path or owner/repo>` | Where the plugin's marketplace is. Default `coderaidershaun/super-rex`. A folder works too: in this repo, `rex init --plugin-source .` makes each session run the working copy of `plugin/`. |
 
@@ -74,7 +76,7 @@ What it writes:
 | Path | What | In Git |
 | --- | --- | --- |
 | `.claude/settings.local.json` | The permissions (the rule that allows every Bash command, the deny rules and the working folders) and the sub-agent depth, merged into your file. | No |
-| `.rex/config.json` | What the mod reads when a session starts: `storage` (`on` or `off`), `depth`, `jobs_from_sdk` (whether a headless `claude -p` prompt may start a job, default `true`) and `min_claude_code`. | Yes |
+| `.rex/config.json` | What the mod reads when a session starts: `storage` (`on` or `off`), `auto_merge` (whether every job merges with no merge question, default `false`), `depth`, `jobs_from_sdk` (whether a headless `claude -p` prompt may start a job, default `true`) and `min_claude_code`. | Yes |
 | `.rex/rex.db` | The store. Only with `--with-storage`. | No |
 | `.rex/orchestrators/` | The orchestrator library, empty at first. Jobs add the rest (see Files in "Reference"). | No |
 | `.gitignore` | A block that starts with `# rex:ignore superrex`. It ignores `.claude/settings.local.json`, `/.claude/worktrees/`, `/.rex/rex.db*`, `/.rex/events.jsonl`, `/.rex/orchestrators/`, `/.rex/plans/`, `/.rex/worktrees/` and `/.rex/live/`. The rest of `.rex/` is tracked: `.rex/config.json`, which a fresh clone needs, and `.rex/skills/`, the skills of the repo itself. | Yes |
@@ -391,6 +393,7 @@ The engine's own notice that a builder of a live tree ended a turn does not reac
 | Key | What it does |
 | --- | --- |
 | `merge`, `merge_max_consequence` | `never`, `ask` (default) or `allowed_if_checks_pass`, and `medium`. With `allowed_if_checks_pass`, a job at or under `merge_max_consequence` gets the merge answer `yes` from the policy; with `never`, `no`; with `ask`, none, so `rex_merge` parks a merge question for you. |
+| `auto_merge` of `.rex/config.json` | Not a key of the policy: `rex init --auto-merge` sets it for the repo. With it, each job of a tree gets the merge answer `yes` whatever its consequence, `always_ask_paths` asks nothing, and `rex_tree_open` answers `merge=auto`. A policy with `merge: never` still gives `no`. See "Auto-merge". |
 | `merge_checks` | Commands, each a list of words, that must exit 0 in the job's worktree before a merge that the policy allowed. With none (the default), the builder's own checks are the checks of the merge. |
 | `always_ask_paths` | Globs, default `contracts/**`, `infra/**` and `**/*.env*`. A diff that touches one turns a policy answer into a question for you. |
 | `per_job_usd`, `raise_limits`, `tree_usd` | The limit of each job (default none: each job gets the default limit of $100,000), whether a job's limit may be raised, and the budget of a tree that opens with nobody at the terminal (default $100,000; with you there, the budget question sets it). With `raise_limits: allowed`, a job at its limit gets it doubled once, up to the tree's budget; with `ask` (default), the mod parks a question with the options `Raise` and `Keep the limit`; with `never`, the job stops at its limit. See "Spend limits in a tree" below. |
@@ -438,11 +441,38 @@ rex: master tree t0gkm2x1ab has spent $10.02 of its budget of $10. Nothing new s
 
 **The final report.** The master ends the tree with `rex_report` once each step is delivered or no step can go on, and once no job of the tree is open and no question of it waits. Until then `rex_report` refuses, with `rex_report: job <id> is still open, got status <status>; wait for it, or tell its builder what to do with rex_continue` (the master gives a job that cannot go on up with `rex_cancel`) or `rex_report: question <id> still waits for the person, got no answer; end your turn, and report after the answer`. The mod writes `.rex/plans/<tree id>/final-report.md` and closes the tree as `done`. The report holds one line for each job (its status, request, merge commit, report file, done check and outcome) and the master's report, which the skill asks to give the result against each part of the goal, the evidence, and each item `not run`, `not proven` or `not built`, with the reason. The master then tells you the result in a few lines, with the path of the report. Only `rex_report` ends a tree: when the master's turn ends, the tree stays open, and the mod neither wakes the master for that nor closes the tree itself. If the session stopped with work left, tell it to go on.
 
+## Auto-merge
+
+By default a job merges only after you agreed: the builder asks its one merge question, and a master tree follows its policy, which asks you for each job unless you chose otherwise. A run that nobody watches then waits on that answer. `rex init --auto-merge` takes the question away for the whole repo:
+
+```console
+$ rex init --auto-merge
+rex init: .rex/config.json updated
+rex init: auto-merge is on, so every job merges to its base branch with no merge question once its checks pass, a builder's own job and each job of a master tree; a policy with merge never, and your own words merge: no, still hold; run rex init --no-auto-merge to turn it off
+```
+
+It writes `"auto_merge": true` to `.rex/config.json`. Commit the file, and every clone and worktree of the repo has it. The mod reads it when a session starts, so start a new session after you change it. Then:
+
+- **A builder's own job** (`/super-rex:orchestration-builder`) gets the merge answer `yes` when it opens. The builder asks no merge question, also in a headless run, and `rex_merge` merges once the checks pass.
+- **Each job of a master tree** gets the answer `yes` when `rex_build` opens it, whatever its consequence and whatever paths its diff touches: `merge: ask`, `merge_max_consequence` and `always_ask_paths` of the policy ask nothing. The `merge_checks` of the policy still run before each merge, and `merge_after` still orders the merges.
+- **The first master tree in the repo** asks no policy question: the mod stores and confirms the default policy with `merge: allowed_if_checks_pass`.
+- **A job opened before auto-merge was on**, such as one a resumed tree put back, takes the answer at its next `rex_merge`. A merge question that already waits for it stays open until you answer it.
+
+What still says no:
+
+- Your own words. `merge: no` in a request or a later prompt holds over auto-merge, and so does `Keep the branch` on a merge question.
+- A policy with `merge: never`. Its jobs keep their branches.
+- Everything `rex_merge` checks: one squash commit over the base, a base that did not move, the builder's checks, and a base branch that takes a direct push. A protected main still ends as a kept branch for a person to merge.
+
+The record shows an auto-merge answer as `merge_source=policy` with no policy hash.
+
+Auto-merge is a tag in a file of the working folder, so an agent that edits `.rex/config.json` could turn it on for the next session. The policy of a master, which lives outside the working folders, cannot be changed that way. Use auto-merge in a repo where a merge to the base branch by an agent is acceptable, and leave it off where a merge starts a deployment that a person must approve.
+
 ## The commands
 
 `rex commands` lists them all. Paths in the outputs below are shortened to `/home/ana/code/shop`.
 
-**`rex init [--with-storage | --without-storage] [--depth <levels>] [--plugin-source <path or owner/repo>]`**: set SuperRex up in a repo. See above.
+**`rex init [--with-storage | --without-storage] [--auto-merge | --no-auto-merge] [--depth <levels>] [--plugin-source <path or owner/repo>]`**: set SuperRex up in a repo. See above.
 
 **`rex migrate`**: move a store of version 1, which the previous release made, to version 2, in one transaction. Every other command refuses a version 1 store with `error: store is version 1; run rex migrate` and exit 2. `rex init --with-storage` runs the same migration itself, after a backup, so you rarely need this command. Each job is kept: a job asked by a person gets the origin `composer`, any other `sdk`, and a spend limit that was set moves into the job.
 
@@ -462,11 +492,11 @@ A store of any other version is refused with exit 2, and nothing is written. Age
 ```console
 $ rex doctor
 doctor=ok
-binary=0.12.0
+binary=0.13.0
 store=v2
 storage=on
 claude=2.1.323
-plugin=0.12.0
+plugin=0.13.0
 ```
 
 **`rex job show [<job>] [--json]`**: print one job's record: origin, builder, tree, classification, preferences, merge answer and its source, places, limit, degraded marks, plan, roles with their model selection and skills, deliveries, sub-agent runs with the skills each opened and their tokens and cost, the main session's tokens and cost, the request, the breakdown and the recalled experience. With no job, it shows the open job of the main session of `$CLAUDE_CODE_SESSION_ID`. `status` is the shown status (`running` for a planned job with a sub-agent open), `stored_status` the status as stored. `--json` adds the transitions, each run's brief and final message, the questions, the decisions, the skill manifest and the feedback.

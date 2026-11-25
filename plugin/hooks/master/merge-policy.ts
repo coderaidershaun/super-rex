@@ -1,9 +1,10 @@
 // The policy's rules over rex_merge of a tree job, checked before the merge module runs: the pinned policy, the merge order, the paths that always ask, and the checks a policy answer needs.
+// In a repo with auto-merge no path asks: the answer is yes with no question, and the merge checks still run.
 // Every merge question of a tree job, its own or one the merge module parked, is shown to the person with its status line and dialog.
 import type { EngineInterface, ToolCallResult } from 'claude-code'
 
 import type { RexBook, RexJob } from '../../types'
-import { errorText, fail, readBook } from '../book/index'
+import { applyAutoMerge, errorText, fail, readBook } from '../book/index'
 import { answer, baseRef, callerOf, deny, git, repoPlaces } from '../tools/index'
 import { announceQuestion, parkQuestion } from './ask'
 import { pinnedPolicy } from './pin'
@@ -60,11 +61,13 @@ type Verdict = { readonly kind: 'pass'; readonly job: string | null } | { readon
 
 async function verdictOf($: EngineInterface, agentId: string | undefined): Promise<Verdict> {
   const caller = await callerOf($, agentId)
-  const job = caller.job
+  const called = caller.job
   // A job with no plan passes on, so rex_merge refuses it before any policy check runs a command or parks a question.
-  if (caller.kind !== 'builder' || job === null || job.tree === null || job.status !== 'planned') {
+  if (caller.kind !== 'builder' || called === null || called.tree === null || called.status !== 'planned') {
     return { kind: 'pass', job: null }
   }
+  // A job opened before the repo got auto-merge takes its answer here, so the merge checks below run for it too.
+  const job = await applyAutoMerge($, called)
   const passed: Verdict = { kind: 'pass', job: job.id }
   const book = await readBook($)
   const tree = book.trees.find(each => each.id === job.tree)
@@ -87,7 +90,7 @@ async function verdictOf($: EngineInterface, agentId: string | undefined): Promi
   const ref = baseRef({ base: job.base, remote: (await repoPlaces($, job.repo)).remote })
   const diff = await git($, job.repo, ['diff', '--name-only', `${ref}...${job.branch}`])
   const touched = diff.stdout.split('\n').filter(path => path !== '' && policy.always_ask_paths.some(glob => matchesGlob(path, glob)))
-  if (touched.length > 0) {
+  if (touched.length > 0 && !book.autoMerge) {
     return { kind: 'answer', result: answer(['merged=no', `question=${await parkedQuestion($, book, job, touched)}`]) }
   }
   const failed = await failedCheck($, job, policy)

@@ -4,7 +4,7 @@ import type { On } from 'claude-code'
 import type { Engine } from 'claude-code/testing'
 
 import type { ProcessCall } from '../book/kit'
-import { ROOT } from '../book/kit'
+import { CONFIG_AUTO_MERGE, ROOT } from '../book/kit'
 import type { Policy } from './policy'
 import { buildRules, byRule, confirmedPolicy, KIND, lineOf, masterWorld, POLICY_KEY, ran, resultText, rex, settleUntil, START, treeBook } from './master-kit'
 import type { MasterOptions, Rule } from './master-kit'
@@ -213,6 +213,48 @@ test('a diff that touches always_ask_paths turns a policy answer into a merge qu
   expect(session.book().questions[0]?.question).toContain('infra/main.tf')
   expect(session.book().questions[0]?.mergeFor).toBe(lineOf(built, 'job'))
   expect(calls.some(call => call.argv.includes('push') || call.argv[0] === 'cargo')).toBe(false)
+})
+
+test('in a repo with auto-merge a tree job under merge: ask merges with no question, also when its diff touches always_ask_paths', async ($, on) => {
+  const calls: ProcessCall[] = []
+  const session = await treeWith($, on, { merge: 'ask', merge_checks: [['cargo', 'test']] }, [{ starts: ['cargo'], answer: ran() }, ...mergeRules('src/a.rs\ninfra/main.tf\n')], calls, { config: CONFIG_AUTO_MERGE })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'one', consequence: 'high' })
+  await planAs($, built)
+  const answer = session.book().jobs[0]?.merge
+
+  const merged = await $.tool.call({ tool: MERGE, agentId: lineOf(built, 'builder') ?? '' })
+
+  expect([answer?.answer, answer?.source, answer?.policyHash]).toEqual(['yes', 'policy', null])
+  expect(lineOf(merged, 'merged')).toBe('yes')
+  expect(session.book().questions).toEqual([])
+  expect(calls.filter(call => call.argv[0] === 'cargo')).toHaveLength(1)
+  expect(calls.filter(call => call.argv.includes('push'))).toHaveLength(1)
+})
+
+test('in a repo with auto-merge a failed merge check still refuses the merge', async ($, on) => {
+  const calls: ProcessCall[] = []
+  const failing: Rule = { starts: ['cargo', 'test'], answer: { exitCode: 101, stdout: '', stderr: 'test parser ... FAILED\n' } }
+  await treeWith($, on, { merge: 'ask', merge_checks: [['cargo', 'test']] }, [failing, ...mergeRules('src/a.rs\n')], calls, { config: CONFIG_AUTO_MERGE })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'one', consequence: 'low' })
+  await planAs($, built)
+
+  const refused = await $.tool.call({ tool: MERGE, agentId: lineOf(built, 'builder') ?? '' })
+
+  expect(refused.deny).toMatch(/^rex_merge: merge check cargo test failed/)
+  expect(calls.some(call => call.argv.includes('push'))).toBe(false)
+})
+
+test('in a repo with auto-merge a policy of merge: never still keeps the branch', async ($, on) => {
+  const calls: ProcessCall[] = []
+  const session = await treeWith($, on, { merge: 'never' }, mergeRules('src/a.rs\n'), calls, { config: CONFIG_AUTO_MERGE })
+  const built = await $.tool.call({ tool: BUILD, ...KIND, request: 'one', consequence: 'low' })
+  await planAs($, built)
+
+  const refused = await $.tool.call({ tool: MERGE, agentId: lineOf(built, 'builder') ?? '' })
+
+  expect(session.book().jobs[0]?.merge?.answer).toBe('no')
+  expect(refused.deny).toMatch(/has no merge answer, got no \(policy\);/)
+  expect(calls.some(call => call.argv.includes('push'))).toBe(false)
 })
 
 test('a merge question the policy check parks shows the status line with the command that answers it', async ($, on) => {

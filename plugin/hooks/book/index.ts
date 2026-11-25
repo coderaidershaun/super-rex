@@ -11,6 +11,7 @@ export {
   addQuestion,
   amendPlan,
   answerQuestion,
+  applyAutoMerge,
   bookWrites,
   closeJob,
   closeTree,
@@ -70,9 +71,9 @@ export function register(on: On, _parts: Parts): void {
     const read = await readConfig($, root)
     const engine = await $.session.version()
     const plugin = await pluginVersion($)
-    const config = read.kind === 'read' ? read.config : { storage: 'off' as const, jobsFromSdk: true }
+    const config = read.kind === 'read' ? read.config : { storage: 'off' as const, jobsFromSdk: true, autoMerge: false }
     const inert = read.kind === 'missing' ? 'no .rex/config.json in the session root' : null
-    await setUpSession($, { session, storage: config.storage, jobsFromSdk: config.jobsFromSdk, inert, claudeCode: engine.version, plugin })
+    await setUpSession($, { session, storage: config.storage, jobsFromSdk: config.jobsFromSdk, autoMerge: config.autoMerge, inert, claudeCode: engine.version, plugin })
     if (read.kind === 'unreadable') {
       await fail($, { kind: 'config-unreadable', reason: read.reason })
     }

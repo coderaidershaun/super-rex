@@ -104,6 +104,7 @@ export function openJobIn(book: RexBook, input: OpenJobInput, id: string, at: nu
   if (words?.merge !== null && words?.merge !== undefined && source !== null) {
     changed = mergeAnswerIn(changed, id, { answer: words.merge, source, question: null, policyHash: null, at }, at)
   }
+  changed = autoMergeIn(changed, id, at)
   if (start?.restatementSkipped !== null && start?.restatementSkipped !== undefined) {
     changed = withMark(changed, id, `restatement:${start.restatementSkipped}`, at)
   }
@@ -252,6 +253,18 @@ export function mergeAnswerIn(book: RexBook, jobId: string, answer: RexMergeAnsw
     question: answer.question,
     policy_hash: answer.policyHash,
   })
+}
+
+/**
+ * The repo's auto-merge (`auto_merge` of `.rex/config.json`) answers `yes` for a job that has no merge answer yet.
+ * It never replaces an answer: a person's `merge: no` and a policy's `never` both hold.
+ */
+export function autoMergeIn(book: RexBook, jobId: string, at: number): RexBook {
+  const job = findJob(book, jobId)
+  if (!book.autoMerge || job === undefined || job.merge !== null) {
+    return book
+  }
+  return mergeAnswerIn(book, jobId, { answer: 'yes', source: 'policy', question: null, policyHash: null, at }, at)
 }
 
 export function limitIn(book: RexBook, jobId: string, limit: RexLimit, at: number): RexBook {

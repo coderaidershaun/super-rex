@@ -44,6 +44,14 @@ pub struct InitOptions {
     #[arg(long = "without-storage", conflicts_with = "is_with_storage")]
     pub is_without_storage: bool,
 
+    /// Let every job merge to its base branch with no merge question: a builder's own job and each job of a master tree. Writes "auto_merge": true to .rex/config.json; a later run without the flag keeps it.
+    #[arg(long = "auto-merge")]
+    pub is_auto_merge: bool,
+
+    /// Turn auto-merge off again: each job asks before it merges, or follows the master's policy.
+    #[arg(long = "no-auto-merge", conflicts_with = "is_auto_merge")]
+    pub is_no_auto_merge: bool,
+
     /// The most levels of sub-agents a session may start [default: 4, or a higher value of yours].
     #[arg(long, value_name = "LEVELS", value_parser = clap::value_parser!(u32).range(1..=64))]
     pub depth: Option<u32>,
@@ -117,14 +125,22 @@ fn install(
     let wanted = config::Wanted {
         is_storage_on: is_storage_wanted,
         depth,
+        auto_merge: match (options.is_auto_merge, options.is_no_auto_merge) {
+            (true, _) => Some(true),
+            (false, true) => Some(false),
+            (false, false) => None,
+        },
     };
     let is_storage_on = match config::ensure_config(cwd, wanted) {
-        Ok((change, is_storage_on)) => {
+        Ok((change, after)) => {
             report_file_change(config::CONFIG_FILENAME, change)?;
             if change != FileChange::Unchanged {
                 to_commit.push(config::CONFIG_FILENAME);
             }
-            is_storage_on
+            if after.is_auto_merge {
+                print_line_to_stdout(config::AUTO_MERGE_NOTICE)?;
+            }
+            after.is_storage_on
         }
         Err(failure) => {
             failures.push(failure);

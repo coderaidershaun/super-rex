@@ -34,7 +34,7 @@ const JOB_INPUT = {
 
 /** A session whose stream the binary already holds, with one open job whose opening waits to be sent. */
 function bookWithWaitingJob(): RexBook {
-  const setup = { session: SESSION, storage: 'on', jobsFromSdk: true, inert: null, claudeCode: '2.1.323', plugin: '0.8.0' } as const
+  const setup = { session: SESSION, storage: 'on', jobsFromSdk: true, autoMerge: false, inert: null, claudeCode: '2.1.323', plugin: '0.8.0' } as const
   const started = acked(sessionIn(emptyBook(), setup, START_MS, { stream: STREAM, secret: SECRET }), 0)
   return openJobIn(started, JOB_INPUT, '0gaq820001', START_MS + 2000).book
 }
@@ -204,7 +204,7 @@ test('ingest_wrong_secret_resets_stream', async ($, on) => {
 })
 
 test('parked_question_blocks_job_at_session_end', async ($, on) => {
-  const setup = { session: SESSION, storage: 'on', jobsFromSdk: true, inert: null, claudeCode: '2.1.323', plugin: '0.8.0' } as const
+  const setup = { session: SESSION, storage: 'on', jobsFromSdk: true, autoMerge: false, inert: null, claudeCode: '2.1.323', plugin: '0.8.0' } as const
   const started = acked(sessionIn(emptyBook(), setup, START_MS, { stream: STREAM, secret: SECRET }), 0)
   const tree = treeIn(started, { id: 't1', charter: 'Fix the parser.', charterHash: 'sha256:0', policyHash: 'sha256:1', state: 'running', capNano: 0 }, START_MS)
   const job = openJobIn(tree, { ...JOB_INPUT, builder: 'b1', tree: 't1', origin: 'master' }, '0gaq820001', START_MS + 1000).book

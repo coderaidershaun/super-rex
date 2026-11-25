@@ -37,7 +37,7 @@ Do not stop to ask whether to continue, or because task is large. Stop turn only
 | Tool | Use |
 | --- | --- |
 | `rex_status` | No argument: whole tree + policy. With `job`: that job, `merge_commit=`, `output=`, `done.<check>=`. |
-| `rex_tree_open` | Open tree of prompt of person. No argument. Mod first asks person for budget and time of tree: 2 dialogs. Answers `tree`, `state`, `existing`, `resumed`, `merge`, `budget_usd`, `time`, `ends_at`, `person`, then `<charter>`, `<reading>`, `<limits>`, `<policy>`, `<repo>`, `<codebase>`. Resume: also `continued`, `asked`, `<digest>`. |
+| `rex_tree_open` | Open tree of prompt of person. No argument. Mod first asks person for budget and time of tree: 2 dialogs. Answers `tree`, `state`, `existing`, `resumed`, `merge` (`auto` = repo has auto-merge: each job merges with no question), `budget_usd`, `time`, `ends_at`, `person`, then `<charter>`, `<reading>`, `<limits>`, `<policy>`, `<repo>`, `<codebase>`. Resume: also `continued`, `asked`, `<digest>`. |
 | `rex_build` | Open job, start builder. Answers `job`, `builder`, `status=created`, `worktree`. |
 | `rex_continue` | Wake builder of open `job` with `message`. |
 | `rex_cancel` | Give open `job` up, with `reason`. Job closes `cancelled`, builder stops. |

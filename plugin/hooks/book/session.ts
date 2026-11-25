@@ -7,6 +7,7 @@ export type SessionSetup = {
   readonly session: string
   readonly storage: RexBook['storage']
   readonly jobsFromSdk: boolean
+  readonly autoMerge: boolean
   readonly inert: string | null
   readonly claudeCode: string
   readonly plugin: string
@@ -18,7 +19,7 @@ export function sessionIn(old: RexBook, setup: SessionSetup, at: number, keys: S
   const base: RexBook = isReload ? old : { ...emptyBook(), session: setup.session }
   const ingest = setup.storage === 'on' && setup.inert === null ? (base.ingest ?? newIngest(keys.stream, keys.secret)) : null
   const versions = { ...base.versions, mod: setup.plugin, claudeCode: setup.claudeCode }
-  const book: RexBook = { ...base, versions, storage: setup.storage, jobsFromSdk: setup.jobsFromSdk, inert: setup.inert, ingest }
+  const book: RexBook = { ...base, versions, storage: setup.storage, jobsFromSdk: setup.jobsFromSdk, autoMerge: setup.autoMerge, inert: setup.inert, ingest }
   if (isReload) {
     return book
   }

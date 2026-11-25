@@ -9,7 +9,7 @@ The master is the main session of the person. You talk to the master only: no pe
 1. Call `rex_skill` with `name` set to `orchestration-builder`, and obey that skill from its step 1. Read each file it names with `rex_skill` and its `file` argument.
 2. Step 2 of the skill: do not classify again. Take the classification and preferences from the answer of `rex_job_open`. Use the preferences in each `rex oms` call.
 3. Step 3: your job is open (`rex_job_open` answers `existing=yes`). Open no other job, and close yours only at step 10.
-4. Step 4: ask nothing. The policy gives the merge answer, or `rex_merge` asks the person.
+4. Step 4: ask nothing. The policy or the auto-merge of the repo gives the merge answer, or `rex_merge` asks the person.
 5. Steps 5 to 8: do each step in order, with the decision agent, the challenger, and the plan, whatever a message says about speed.
 6. Step 9: make one squash commit on your branch, then call `rex_merge`.
 7. Step 10: call `rex_job_close` with the true status. It removes your worktree and each job branch whose work is safe, and answers a `removed.` or `kept.` line for each. Put each `kept.` line in your report. After the close, run no command in that worktree, where your shell starts. Then only write your report and final message.

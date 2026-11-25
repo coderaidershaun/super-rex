@@ -28,7 +28,7 @@ export type RexOwner = {
   readonly builder: string
 }
 
-/** The latest merge answer of a job. A person's answer replaces an earlier one; `question` names the parked question it answered. */
+/** The latest merge answer of a job. A person's answer replaces an earlier one; `question` names the parked question it answered. Source `policy` with no `policyHash` is the repo's auto-merge. */
 export type RexMergeAnswer = {
   readonly answer: 'yes' | 'no'
   readonly source: 'dialog' | 'person-prompt' | 'sdk-prompt' | 'question' | 'policy'
@@ -326,6 +326,8 @@ export type RexBook = {
   readonly storage: 'on' | 'off'
   readonly prompts: 'off' | 'observe' | 'improve'
   readonly jobsFromSdk: boolean
+  /** `auto_merge` of `.rex/config.json`, read when the session starts: every job gets the merge answer `yes` with no question. */
+  readonly autoMerge: boolean
   readonly jobStartPrompt: RexJobStartPrompt | null
   readonly treeStartPrompt: RexTreeStartPrompt | null
   readonly jobs: readonly RexJob[]

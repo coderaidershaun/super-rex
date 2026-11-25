@@ -159,7 +159,7 @@ test('a job id counts seconds since 2026 and ends in four random characters', ()
 })
 
 test("own_spawn_takes_pending_entry: the mod's spawn of a builder takes its pending entry and its job, under the main loop that is the tree's master", () => {
-  const setup = { session: SESSION, storage: 'off', jobsFromSdk: true, inert: null, claudeCode: '2.1.323', plugin: '0.8.0' } as const
+  const setup = { session: SESSION, storage: 'off', jobsFromSdk: true, autoMerge: false, inert: null, claudeCode: '2.1.323', plugin: '0.8.0' } as const
   const started = sessionIn(emptyBook(), setup, START_MS, { stream: 'a'.repeat(16), secret: '1'.repeat(64) })
   const withTree = treeIn(started, { id: 't1', charter: 'Ship it.', charterHash: 'sha256:0', policyHash: 'sha256:1', state: 'running', capNano: 0 }, START_MS)
   const withJob = openJobIn(withTree, { ...JOB_INPUT, builder: 'pending', tree: 't1', origin: 'master' }, '0gaq82j000', START_MS).book

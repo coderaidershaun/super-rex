@@ -12,6 +12,8 @@ export const ROOT = '/home/person/repo'
 export const START_MS = 1_794_600_000_000
 export const CONFIG_ON = '{ "version": 1, "storage": "on", "depth": 4, "jobs_from_sdk": true, "min_claude_code": "2.1.323" }'
 export const CONFIG_OFF = '{ "version": 1, "storage": "off", "depth": 4, "jobs_from_sdk": true, "min_claude_code": "2.1.323" }'
+/** A repo after `rex init --auto-merge`. */
+export const CONFIG_AUTO_MERGE = '{ "version": 1, "storage": "on", "auto_merge": true, "depth": 4, "jobs_from_sdk": true, "min_claude_code": "2.1.323" }'
 export const PLUGIN_VERSION = '0.8.0'
 
 export type ProcessCall = {

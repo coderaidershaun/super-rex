@@ -25,7 +25,7 @@ fn config(repo: &Repo) -> Value {
 }
 
 fn config_with_storage(storage: &str) -> Value {
-    json!({ "version": 1, "storage": storage, "depth": 4, "jobs_from_sdk": true, "min_claude_code": "2.1.323" })
+    json!({ "version": 1, "storage": storage, "auto_merge": false, "depth": 4, "jobs_from_sdk": true, "min_claude_code": "2.1.323" })
 }
 
 /// What a run with no storage flag and no terminal prints, once storage stays off.
@@ -190,8 +190,46 @@ fn init_with_and_without_storage_writes_config() {
 
     assert_eq!(
         config(&own),
-        json!({ "storage": "on", "jobs_from_sdk": false, "note": "mine", "version": 1, "depth": 6, "min_claude_code": "2.1.323" })
+        json!({ "storage": "on", "auto_merge": false, "jobs_from_sdk": false, "note": "mine", "version": 1, "depth": 6, "min_claude_code": "2.1.323" })
     );
+}
+
+/// What each run prints while auto-merge is on.
+const AUTO_MERGE_ON: &str = "rex init: auto-merge is on, so every job merges to its base branch with no merge question once its checks pass, a builder's own job and each job of a master tree; a policy with merge never, and your own words merge: no, still hold; run rex init --no-auto-merge to turn it off\n";
+
+#[test]
+fn auto_merge_is_off_until_its_flag_and_stays_on_until_the_flag_that_turns_it_off() {
+    let repo = repo();
+
+    let plain = rex_init_ok(&repo, &["--without-storage"]);
+    assert_eq!(config(&repo)["auto_merge"], json!(false));
+    assert!(
+        !plain.stdout.contains("auto-merge"),
+        "got: {}",
+        plain.stdout
+    );
+
+    let on = rex_init_ok(&repo, &["--auto-merge"]);
+    assert_eq!(config(&repo)["auto_merge"], json!(true));
+    assert!(on.stdout.contains(AUTO_MERGE_ON), "got: {}", on.stdout);
+    assert!(
+        on.stdout.contains("rex init: .rex/config.json updated\n"),
+        "got: {}",
+        on.stdout
+    );
+
+    // A run without the flag keeps it, and says again that it is on.
+    let kept = rex_init_ok(&repo, &[]);
+    assert_eq!(config(&repo)["auto_merge"], json!(true));
+    assert!(kept.stdout.contains(AUTO_MERGE_ON), "got: {}", kept.stdout);
+
+    let off = rex_init_ok(&repo, &["--no-auto-merge"]);
+    assert_eq!(config(&repo)["auto_merge"], json!(false));
+    assert!(!off.stdout.contains(AUTO_MERGE_ON), "got: {}", off.stdout);
+
+    let both = rex_init(&repo, &["--auto-merge", "--no-auto-merge"]);
+    assert_eq!(both.status.code(), Some(2));
+    assert_eq!(config(&repo)["auto_merge"], json!(false));
 }
 
 #[test]

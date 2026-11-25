@@ -1,7 +1,7 @@
 // Proves a tree's open: one first policy question in the person's words, a stored policy that still holds the retired key master_model, and a brief with the charter's own reading, the policy, the repo's places and the map of the code.
 import { expect, test } from 'claude-code/testing'
 
-import { ROOT } from '../book/kit'
+import { CONFIG_AUTO_MERGE, ROOT } from '../book/kit'
 import { READ_CHARTER } from '../prompts/index'
 import { byRule, confirmedPolicy, lineOf, masterWorld, openedTree, placesRules, POLICY_KEY, ran, resultText, rex, START } from './master-kit'
 import type { Rule } from './master-kit'
@@ -53,6 +53,27 @@ for (const [chosen, merge] of ANSWERS) {
     expect(session.book().trees.map(tree => tree.state)).toEqual(['running'])
   })
 }
+
+test('the first tree of a repo with auto-merge asks no policy question, stores merge allowed_if_checks_pass, and answers merge=auto', async ($, on) => {
+  const session = masterWorld(on, { config: CONFIG_AUTO_MERGE })
+  const asked: string[] = []
+  on('tool.call', { tool: 'AskUserQuestion' }, (_$, e, next) => {
+    if (questionOf(e) === MERGE_QUESTION) {
+      asked.push(questionOf(e))
+    }
+    return next(e)
+  })
+  await $.session.start(START)
+
+  const answered = await openedTree($, 'Ship the parser')
+  const policy = await $.command.run(rex('policy show'))
+
+  expect(asked).toEqual([])
+  expect(lineOf(answered, 'merge')).toBe('auto')
+  expect(policy.text).toContain('\nmerge=allowed_if_checks_pass\n')
+  expect(policy.text).toContain('\nconfirmed=yes\n')
+  expect(session.book().trees.map(tree => tree.state)).toEqual(['running'])
+})
 
 test('a dismissed first policy question opens no tree and stores no policy', async ($, on) => {
   const session = masterWorld(on)
