@@ -20,7 +20,7 @@ Finish or close each job that a 0.7 session still runs. A 0.7 builder calls `rex
 
    ```console
    $ rex --version
-   rex 0.13.0
+   rex 0.14.0
    ```
 
    The mod calls `rex` by `PATH`, and the plugin and the binary must have the same version.
@@ -117,7 +117,7 @@ Claude Code loads a plugin when a session starts. Start a new session in the mai
 /rex doctor
 ```
 
-The answer starts with `doctor=ok` and ends with `mod=0.13.0`. A `problem=` line says what to fix, such as a binary and a plugin of different versions.
+The answer starts with `doctor=ok` and ends with `mod=0.14.0`. A `problem=` line says what to fix, such as a binary and a plugin of different versions.
 
 ## What changes when you use it
 

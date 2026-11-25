@@ -93,3 +93,5 @@ Skill that table does not give, OR answer that challenger proves wrong:
 A person starts these, OR builder reads their files by path: `orchestration-builder`, `rex-deliver`, `rex-feedback`, `rex-grill-me`. No task gets them.
 
 `rex-rules`: router for session with no builder. It sends that session to this table. No task gets it.
+
+`rex-simplify`: makes content clear and short for a person. A person or a session starts it. Table gives it to no task. Task that writes document or report for a person can get it by override.

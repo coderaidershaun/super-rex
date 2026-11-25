@@ -4,7 +4,7 @@
 
 # SuperRex
 
-This is version 0.13.0 of SuperRex.
+This is version 0.14.0 of SuperRex.
 
 SuperRex plans and runs a job in your repo with Claude Code's own sub-agents, and keeps a record of how it went. It ships as three parts of one version:
 
@@ -492,11 +492,11 @@ A store of any other version is refused with exit 2, and nothing is written. Age
 ```console
 $ rex doctor
 doctor=ok
-binary=0.13.0
+binary=0.14.0
 store=v2
 storage=on
 claude=2.1.323
-plugin=0.13.0
+plugin=0.14.0
 ```
 
 **`rex job show [<job>] [--json]`**: print one job's record: origin, builder, tree, classification, preferences, merge answer and its source, places, limit, degraded marks, plan, roles with their model selection and skills, deliveries, sub-agent runs with the skills each opened and their tokens and cost, the main session's tokens and cost, the request, the breakdown and the recalled experience. With no job, it shows the open job of the main session of `$CLAUDE_CODE_SESSION_ID`. `status` is the shown status (`running` for a planned job with a sub-agent open), `stored_status` the status as stored. `--json` adds the transitions, each run's brief and final message, the questions, the decisions, the skill manifest and the feedback.
@@ -799,7 +799,7 @@ An agent reads all of `SKILL.md`, so it holds only the rules an agent needs ever
 
 ## Skills and the agent grid
 
-The plugin holds 31 skills in two folders. Claude Code lists the 7 in `plugin/skills/` as commands of the plugin; it does not list the 24 of the library, `plugin/library/`, so they cost no context in a session. Each brief gets its read-first skills from the mod, and an agent opens the others with `rex_skill`.
+The plugin holds 32 skills in two folders. Claude Code lists the 8 in `plugin/skills/` as commands of the plugin; it does not list the 24 of the library, `plugin/library/`, so they cost no context in a session. Each brief gets its read-first skills from the mod, and an agent opens the others with `rex_skill`.
 
 The skills that you start:
 
@@ -807,6 +807,7 @@ The skills that you start:
 - **The master:** `/super-rex:orchestration-master <goal>`, `/super-rex:orchestration-master @<charter file>` or `/super-rex:orchestration-master resume`. Only you start it, and the main session runs it (see "Master runs"). `SKILL.md` holds the loop and the wakes; `steps.md` how to cut the goal into steps and write each request; `jobs.md` what to do when a builder ends, how to ask you, how to check a delivered job, and the final report; `builder.md` the fixed brief that the mod gives each builder.
 - **Delivery:** `rex-deliver` (only you start it), `rex-pr-review` and `rex-feedback`.
 - **`rex-grill-me`:** it questions you about a plan or a design until the two of you agree on each decision.
+- **`rex-simplify`:** it makes a text clear and short for a person: an answer, a report, a document, or the comments of a code file. Start it with `/super-rex:rex-simplify <file or text>`, and add `for <reader>` to say who reads it. A session also loads it by itself before it sends you a complex report. A test reader, which is a Haiku agent that gets the text and nothing else, reports each place that it did not understand. The session then keeps only the parts that the reader needs, fills each gap in them, and puts the message first and the steps in order. It holds the result to a word limit that it set before the read: half the words for a padded answer or report. A new test reader checks the result. `SKILL.md` holds the rules; `how-to.md` holds the five stages and the test reader's brief.
 - **The router, `rex-rules`:** a session that writes or reviews code without the builder loads it by itself, or you start it. It tells the session to read the four rulebooks that every task that writes code gets, then the rows of the assignment table that fit its work.
 
 The skill library:

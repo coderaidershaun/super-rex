@@ -4,6 +4,33 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+## 0.14.0 - 2026-11-25
+
+Install the binary and the plugin of this version together, then start a new session.
+
+What changes for you:
+
+- **The skill `rex-simplify` makes a text clear and short for a person.** A small model that gets the text and nothing else reports each place that it did not understand. The session rewrites the text from that report, then cuts what the reader does not need.
+
+### Added
+
+- **The skill `/super-rex:rex-simplify [file or text] [for <reader>]`.** It takes an answer, a report, a document, an HTML page, a PDF or the comments of a code file. With no argument it takes the session's own draft, or its last reply to you. You start it, a session loads it by itself before it sends you a complex report, and an agent of a job reads it with `rex_skill`.
+- **A test reader finds the gaps.** The session starts a Haiku agent, `super-rex:model-low-effort-low`, and gives it the text and one line about the reader: no request, no summary and no purpose, because each of those would hide a gap that the real reader still finds. The test reader answers in a fixed form: the main point in its own words, what the text asks of its reader, each gap with the exact words and its kind, and the parts it could skip. A gap is one of six kinds: a term that is not explained, a pointer to something outside the text, a missing step, a part that comes too late, a heavy sentence, or a vague claim.
+- **Five stages.** The session writes the message and a word limit before the read, so that the test reader's report cannot bend them. The limit is half the words for a padded answer or report, and the same number of words for a document that readers look facts up in. Then the session keeps only the parts that the reader needs, fills each gap in them, and puts the message first and the steps in order. It cuts points, not grammar, so the result stays in full sentences. A new test reader checks a text that needed a large repair, for at most 2 rounds.
+- **Shown in a real session.** A padded report of 371 words came back at 196. Its first four sentences give the cause, the fix, and the decision that the reader must make. The facts that the session could not find are listed as open. The two test reads and the rewrite cost $0.23 with the session on Sonnet.
+- **`SKILL.md` is short, and `how-to.md` holds the method.** `SKILL.md` has the words, the inputs and the rules. `how-to.md` has the stages, the test reader's brief, the usual faults of each model tier, and the repair for each kind of gap. An agent reads it only when it runs the skill.
+
+- **What the skill never does.** It never changes a fact, a number, a name, a command, a path, quoted text or what code does, and it never cuts a warning about a loss of data or funds. It only leaves out the parts that the reader does not need. A fact that it cannot find is listed as open, never invented. A file that Git does not track, or that has uncommitted changes, is not edited in place: the result goes to `<name>.simple.<ext>` beside it.
+
+### Unchanged
+
+- No row of the assignment table gives `rex-simplify` to a task, so no job starts a test reader unless you or a decision agent ask for one. The table names the skill under "Not in table", and a decision agent can give it by an override to a task that writes a document or a report for a person.
+
+### Known limits
+
+- Shown in a real session: the skill started by `/super-rex:rex-simplify` on a file, and loaded by a session for its own answer. Not shown: the skill inside a job, where the mod checks the test reader's brief. That brief passes the mod's check in a job with no plan; in a job with a plan the first start is refused once, and the second start passes.
+- The test reader is a model, not a person. It knows more terms than most readers, so it finds missing steps and undefined project names better than it finds jargon.
+
 ## 0.13.0 - 2026-11-25
 
 Install the binary and the plugin of this version together, then start a new session.
