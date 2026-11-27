@@ -17,6 +17,8 @@ metadata:
     - prove an approach works first
     - try an unproven crate or service
     - run a quick throwaway experiment
+  open_when:
+    - { skill: rex-code-tests-integration-testing, file: real-funds.md, when: "you spend real funds" }
 ---
 
 # Spike — Hard Rules

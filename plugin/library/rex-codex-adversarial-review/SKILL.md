@@ -18,6 +18,9 @@ metadata:
     - review the plan of a plan job
     - get a second opinion on a plan
     - challenge a code change
+  open_when:
+    - { skill: rex-agent-prompting, when: "you write a fallback brief" }
+    - { skill: orchestration-builder, file: stages/3-orchestration/briefs.md, when: "inside a job" }
 ---
 
 # Adversarial Review

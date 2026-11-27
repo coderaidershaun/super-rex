@@ -19,6 +19,8 @@ metadata:
     - write the priority block of a repo
   files:
     - { path: write.md, role: topic, when: "the repo has no priority block and you are the orchestrator" }
+  open_when:
+    - { skill: rex-code-commenting, file: module-comments.md, when: "you write a module comment" }
 ---
 
 # Repo Priorities — Hard Rules

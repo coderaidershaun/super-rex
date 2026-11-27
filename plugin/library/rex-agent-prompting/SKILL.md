@@ -23,6 +23,8 @@ metadata:
     - { path: haiku.md, role: topic, when: "you start an agent of tier low" }
     - { path: opus.md, role: topic, when: "you start an agent of tier high" }
     - { path: sonnet.md, role: topic, when: "you start an agent of tier medium" }
+  open_when:
+    - { skill: orchestration-builder, file: stages/3-orchestration/briefs.md, when: "you write a SuperRex job brief" }
 ---
 
 # Agent Prompting

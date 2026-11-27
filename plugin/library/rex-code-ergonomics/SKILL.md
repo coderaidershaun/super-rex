@@ -20,6 +20,10 @@ metadata:
     - design a public API
   files:
     - { path: examples.md, role: topic, when: "you want bad and good code for a section" }
+  open_when:
+    - { skill: rex-code-error-writing, when: "you write error handling" }
+    - { skill: rex-code-folder-management, when: "you place a module" }
+    - { skill: rex-code-tests-unit-testing, when: "you write inline unit tests" }
 ---
 
 # Rust Ergonomics — Hard Rules

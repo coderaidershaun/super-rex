@@ -23,6 +23,7 @@ metadata:
     - { path: examples.md, role: topic, when: "you write a contract test and want its shape" }
   open_when:
     - { skill: rex-code-tdd, file: mocking.md, when: "a test crosses to an outside API or database, depends on time or randomness, or crosses the file system" }
+    - { skill: rex-code-tests-unit-testing, when: "you compare the test lanes" }
 ---
 
 # Rust Contract Seam Tests — Hard Rules

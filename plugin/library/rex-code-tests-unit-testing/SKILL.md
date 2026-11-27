@@ -21,6 +21,7 @@ metadata:
     - promote a unit test to a fitness function
   open_when:
     - { skill: rex-code-tdd, file: mocking.md, when: "a test crosses to an outside API or database, depends on time or randomness, or crosses the file system" }
+    - { skill: rex-code-tdd, when: "you run the red-green loop" }
 ---
 
 # Rust Unit Tests — Hard Rules

@@ -31,6 +31,7 @@ metadata:
   open_when:
     - { skill: rex-code-folder-management, file: audit.md, when: "you audit code" }
     - { skill: rex-code-failure-policy, file: audit.md, when: "you audit code" }
+    - { skill: rex-code-improve-codebase-architecture, when: "you apply the deletion test" }
 ---
 
 # Smell, Brittleness + Rot Detection

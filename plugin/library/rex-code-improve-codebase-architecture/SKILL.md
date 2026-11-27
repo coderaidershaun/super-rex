@@ -29,6 +29,14 @@ metadata:
     - { path: INTERFACE-DESIGN.md, role: topic, when: "the candidate changes an interface" }
     - { path: LANGUAGE.md, role: topic, when: "you need the full definition of a term" }
     - { path: rank.md, role: topic, when: "you rank candidates in step 2" }
+  open_when:
+    - { skill: rex-code-folder-management, when: "step 1 starts" }
+    - { skill: rex-code-folder-management, file: audit.md, when: "step 1.3" }
+    - { skill: rex-code-folder-management, file: move.md, when: "step 1.4" }
+    - { skill: rex-code-priorities, when: "step 1 starts" }
+    - { skill: rex-code-ergonomics, when: "you judge names" }
+    - { skill: rex-code-design-sketch, when: "a pattern term" }
+    - { skill: orchestration-builder, file: stages/3-orchestration/briefs.md, when: "inside a job" }
 ---
 
 # Improve Codebase Architecture

@@ -18,6 +18,8 @@ metadata:
     - design a new system before its code
     - draw the architecture as boxes and arrows
     - fit a new module to existing code
+  open_when:
+    - { skill: rex-code-improve-codebase-architecture, when: "you apply the deletion test" }
 ---
 
 # Design Sketch — Hard Rules

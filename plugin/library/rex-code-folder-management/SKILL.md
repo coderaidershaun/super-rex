@@ -23,6 +23,9 @@ metadata:
   files:
     - { path: audit.md, role: topic, when: "you audit code" }
     - { path: move.md, role: topic, when: "you move a file, module or folder" }
+  open_when:
+    - { skill: rex-code-improve-codebase-architecture, file: LANGUAGE.md, when: "you need a term in full" }
+    - { skill: rex-code-commenting, file: module-comments.md, when: "you write a module comment" }
 ---
 
 # Folder Management — Hard Rules

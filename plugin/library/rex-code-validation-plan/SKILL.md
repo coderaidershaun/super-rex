@@ -21,6 +21,8 @@ metadata:
     - prove the order of a flow
   files:
     - { path: examples.md, role: topic, when: "you write your first trace, or are not sure of its shape" }
+  open_when:
+    - { skill: rex-code-failure-policy, file: failure-table.md, when: "you list failure scenarios" }
 ---
 
 # Validation Plan — Hard Rules

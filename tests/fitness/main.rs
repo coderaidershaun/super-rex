@@ -3,6 +3,7 @@
 
 mod init;
 mod library_metadata;
+mod library_open_when;
 mod master_procedure;
 mod oms_skills;
 mod plugin;
