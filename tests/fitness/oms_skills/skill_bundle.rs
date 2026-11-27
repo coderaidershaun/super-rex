@@ -14,12 +14,11 @@ struct BundledSkill {
     skill: Skill,
 }
 
-/// Each skill folder of the bundle with its Markdown files, in
-/// `plugin/skills` and in the library, and every skill file that text may
-/// name. The bundle is Markdown, so a Markdown file that is not UTF-8 is a
-/// mistake.
+/// Each skill folder of the bundle with its files, in `plugin/skills` and in
+/// the library, and every skill file that text may name. A Markdown file that
+/// is not UTF-8 is a mistake.
 fn bundle_skills() -> (Vec<BundledSkill>, KnownSkills) {
-    let mut files_by_folder: BTreeMap<(&str, String), Vec<SkillFile>> = BTreeMap::new();
+    let mut files_by_folder: BTreeMap<(&str, String), Skill> = BTreeMap::new();
     let mut known = KnownSkills::default();
 
     for (path, bytes) in walk() {
@@ -30,12 +29,8 @@ fn bundle_skills() -> (Vec<BundledSkill>, KnownSkills) {
             continue;
         };
         let below_root = path.strip_prefix(root).expect("the path is below its root");
-        if below_root.extension().is_none_or(|ext| ext != "md") {
-            continue;
-        }
-        let text = String::from_utf8(bytes.to_vec())
-            .unwrap_or_else(|_| panic!("{} is not UTF-8", path.display()));
-        known.paths.insert(below_root.to_path_buf());
+        let is_markdown = below_root.extension().is_some_and(|ext| ext == "md");
+        known.insert(below_root.to_path_buf());
 
         let mut parts = below_root.components();
         let Some(folder) = parts.next() else {
@@ -46,21 +41,28 @@ fn bundle_skills() -> (Vec<BundledSkill>, KnownSkills) {
             continue;
         }
         let folder = folder.as_os_str().to_string_lossy().into_owned();
-        files_by_folder
-            .entry((root, folder))
-            .or_default()
-            .push(SkillFile {
-                path: in_skill,
-                text,
+        let skill = files_by_folder
+            .entry((root, folder.clone()))
+            .or_insert_with(|| Skill {
+                folder,
+                files: Vec::new(),
+                other_files: Vec::new(),
             });
+        if !is_markdown {
+            skill.other_files.push(in_skill);
+            continue;
+        }
+        let text = String::from_utf8(bytes.to_vec())
+            .unwrap_or_else(|_| panic!("{} is not UTF-8", path.display()));
+        skill.files.push(SkillFile {
+            path: in_skill,
+            text,
+        });
     }
 
     let skills = files_by_folder
         .into_iter()
-        .map(|((root, folder), files)| BundledSkill {
-            root,
-            skill: Skill { folder, files },
-        })
+        .map(|((root, _), skill)| BundledSkill { root, skill })
         .collect();
     (skills, known)
 }
@@ -182,6 +184,19 @@ fn every_skill_and_agent_of_the_bundle_obeys_its_rules() {
         Rule::B2,
         Rule::B4,
         Rule::B5,
+        Rule::M1,
+        Rule::M2,
+        Rule::M3,
+        Rule::M4,
+        Rule::M5,
+        Rule::M6,
+        Rule::M7,
+        Rule::M8,
+        Rule::M9,
+        Rule::M10,
+        Rule::M11,
+        Rule::M12,
+        Rule::M13,
     ];
     let mut findings = findings_of(&skills, &known, &rules);
     findings.extend(long_stage_files(&skills));

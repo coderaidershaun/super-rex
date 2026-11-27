@@ -3,6 +3,7 @@
 
 mod check;
 mod list;
+mod metadata;
 
 use std::fs;
 use std::path::Path;

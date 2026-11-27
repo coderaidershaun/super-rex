@@ -8,16 +8,17 @@ metadata:
   claims:
     facts:
       writes_code: true
-    activity: [builds_feature, fixes_bug]
+    activity: [build, fix]
     touches:
-      - file_system
-      - time_or_randomness
-    quality: [invariant]
-    artefact: [unit_test, property_test]
+      - system-boundary
+    quality: []
+    artefact:
+      - unit-test
+      - fitness-test
   placement: open-when
   scope:
     languages: [rust]
-    latency_scale: ns_us
+    latency_scale: [ns_us]
   not_when: "A task that writes no code."
   intents:
     - prove that a nested skill header loads

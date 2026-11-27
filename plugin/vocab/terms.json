@@ -1,0 +1,104 @@
+{
+  "version": "1",
+  "about": "The shared vocabulary of skill libraries: every term a skill's metadata header or a search request may use. Each group names the header field and the request field that take its terms. docs/skill-library-vocabulary.md maps each criterion of plugin/assign/table.json to these terms and gives the rules that rex skills check applies.",
+  "kinds": {
+    "header": "kind",
+    "request": "kinds",
+    "terms": [
+      { "term": "rule", "about": "Standards for how a type of work must be done." },
+      { "term": "method", "about": "A way of working for one activity." },
+      { "term": "tool", "about": "How to use one named technology." },
+      { "term": "reference", "about": "Material to look things up in." }
+    ]
+  },
+  "categories": {
+    "header": "category",
+    "request": "categories",
+    "terms": [
+      { "term": "coding-standards", "about": "How code must be written: naming, types, comments, errors, layout, dependencies, failure handling, language gaps." },
+      { "term": "testing", "about": "How to test, and the rules for each type of test." },
+      { "term": "design", "about": "Work before code: sketches, validation plans, spikes, priorities." },
+      { "term": "code-health", "about": "Finding and fixing problems in existing code." },
+      { "term": "performance", "about": "Speed and resource use." },
+      { "term": "review", "about": "Checking someone else's plan or change." },
+      { "term": "diagrams", "about": "Diagrams and visual documentation." },
+      { "term": "agent-instructions", "about": "Writing skills, prompts and briefs for agents." }
+    ]
+  },
+  "facts": {
+    "header": "claims.facts",
+    "request": "facts",
+    "terms": [
+      { "term": "writes_code", "type": "boolean", "values": "closed", "allowed": [true, false], "supplied_by": "decision-agent", "claimable": true, "about": "The task writes or changes code." },
+      { "term": "languages", "type": "list", "values": "closed", "allowed": ["rust", "go", "c", "cpp", "python", "js", "ts", "shell", "java", "kotlin", "scala", "csharp", "swift", "objc", "dart", "php", "ruby", "lua", "haskell", "elixir", "r", "sql", "zig", "perl"], "supplied_by": "decision-agent", "claimable": true, "about": "The languages of the task's code, as rex codebase --only names them." },
+      { "term": "role", "type": "string", "values": "open", "pattern": "^[a-z0-9][a-z0-9-]*$", "supplied_by": "decision-agent", "claimable": true, "about": "The role of the agent the request is for, as the plan names it, such as plan-reviewer." },
+      { "term": "repo_has", "type": "list", "values": "open", "pattern": null, "supplied_by": "mod", "claimable": true, "about": "Paths of files present in the repo, relative to its root, such as Cargo.toml." },
+      { "term": "repo_dependencies", "type": "list", "values": "open", "pattern": null, "supplied_by": "mod", "claimable": true, "about": "Names of the packages the repo depends on, as its manifests name them." },
+      { "term": "latency_scale", "type": "string", "values": "closed", "allowed": ["ns_us", "ms"], "supplied_by": "decision-agent", "claimable": false, "about": "The time budget of the task's hot path: ns_us is nanoseconds to tens of microseconds, ms is milliseconds or slower. Left out when the task names no budget." }
+    ]
+  },
+  "scope_keys": {
+    "header": "scope",
+    "request": null,
+    "terms": [
+      { "term": "writes_code", "fact": "writes_code", "about": "The skill applies only to a task whose writes_code is one of the listed values." },
+      { "term": "languages", "fact": "languages", "about": "The skill applies only to code in one of the listed languages." },
+      { "term": "latency_scale", "fact": "latency_scale", "about": "The skill applies only to a hot path of one of the listed time budgets." }
+    ]
+  },
+  "activities": {
+    "header": "claims.activity",
+    "request": "activity",
+    "terms": [
+      { "term": "build", "about": "Builds a new feature." },
+      { "term": "fix", "about": "Fixes a bug." },
+      { "term": "refactor", "about": "Changes the structure of code without changing what it does." },
+      { "term": "design", "about": "Designs a system, feature or module before its code." },
+      { "term": "review", "about": "Reviews a branch or pull request that it wrote none of." },
+      { "term": "audit", "about": "Audits existing code for problems." },
+      { "term": "test", "about": "Writes or changes tests and no other code." },
+      { "term": "document", "about": "Writes or changes documentation, not code." }
+    ]
+  },
+  "touches": {
+    "header": "claims.touches",
+    "request": "touches",
+    "terms": [
+      { "term": "system-boundary", "about": "A test crosses to an outside API or database, the file system, time or randomness." },
+      { "term": "file-layout", "about": "Creates, splits or moves a file, module or folder." },
+      { "term": "dependencies", "about": "Adds or upgrades a dependency." },
+      { "term": "outside-input", "about": "Handles input from outside the program." },
+      { "term": "long-running", "about": "Keeps long-running state, or writes a main loop." },
+      { "term": "retry", "about": "Retries an operation or reconnects to a service." },
+      { "term": "unproven-approach", "about": "Rests on an approach, crate or outside service that is not proven." },
+      { "term": "legacy-code", "about": "Changes code that is old or that the agent does not know." },
+      { "term": "architecture", "about": "Module grouping, refactor candidates and architecture friction." },
+      { "term": "trade-offs", "about": "A decision that depends on a ranking of qualities." },
+      { "term": "sub-agent", "about": "Starts a sub-agent." },
+      { "term": "threads", "about": "Threads, locks and work shared between cores." },
+      { "term": "allocation", "about": "Memory allocation and its cost." }
+    ]
+  },
+  "qualities": {
+    "header": "claims.quality",
+    "request": "must_have",
+    "terms": [
+      { "term": "latency", "about": "How long one operation takes, including its tail." },
+      { "term": "readability", "about": "How easily a person reads and changes the code." }
+    ]
+  },
+  "artefacts": {
+    "header": "claims.artefact",
+    "request": "artefacts",
+    "terms": [
+      { "term": "unit-test", "about": "A unit test of a pure function." },
+      { "term": "contract-test", "about": "A test of the interface between two modules." },
+      { "term": "fitness-test", "about": "A test of an invariant that must always hold, or a property test." },
+      { "term": "integration-test", "about": "A test against the real outside world: an API, an exchange, a database or a WebSocket." },
+      { "term": "diagram", "about": "A diagram in a plan or document." },
+      { "term": "plan", "about": "The plan of a code plan job." },
+      { "term": "instructions", "about": "A skill, a prompt or agent instructions." },
+      { "term": "brief", "about": "A brief for another agent." }
+    ]
+  }
+}

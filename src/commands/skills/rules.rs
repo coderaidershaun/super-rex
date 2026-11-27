@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 use super::SKILL_FILE;
 use super::header::{Header, HeaderError, Parts};
+use super::metadata::{self, SkillFolder};
 use super::references::{KnownSkills, broken_links, unknown_skill_paths};
 
 /// Claude Code cuts a skill's listing entry, `description - when_to_use`, at
@@ -107,6 +108,46 @@ pub enum Rule {
     /// agent reads all of `SKILL.md`, so the text for one step or one case
     /// belongs in a sibling file that the agent reads only when it needs it.
     B5,
+    /// `metadata.kind` is one of the kinds of the vocabulary. The rules M1 to
+    /// M13 run only on a `metadata` map that holds a key a search reads, such
+    /// as `kind`; a skill without one is found by its name and text alone.
+    M1,
+    /// `metadata.category` is one of the categories of the vocabulary.
+    M2,
+    /// `metadata.claims` holds only the fields `facts`, `activity`, `touches`,
+    /// `quality` and `artefact`, and each claim is a term of the vocabulary
+    /// that a skill may claim, with a value of the fact's type. A misspelt
+    /// term matches no search, and nothing reports it.
+    M3,
+    /// `metadata.placement` is `full` or `open-when`.
+    M4,
+    /// Each key of `metadata.scope` is a scope key of the vocabulary, and
+    /// holds a list of at least one allowed value.
+    M5,
+    /// `metadata.not_when` is one line, and is there when the scope has a key,
+    /// because a caller sees it when the scope leaves the skill out.
+    M6,
+    /// `metadata.intents` holds three to five pieces of text, none empty.
+    M7,
+    /// Each item of `metadata.files` has a `path` other than `SKILL.md`, a
+    /// `role` of `topic`, `language` or `code`, and a vocabulary `language`
+    /// when its role is `language` or `code`. Its own `intents`, when there,
+    /// are one to five pieces of text.
+    M8,
+    /// `metadata.files` lists every file of the skill folder but `SKILL.md`,
+    /// and every file it lists is in the folder.
+    M9,
+    /// Each item of `metadata.open_when` has its case in `when`, and names a
+    /// skill, a file of this skill, or a file of another skill that exists.
+    M10,
+    /// Each skill that `metadata.requires` or `metadata.replaces` names
+    /// exists.
+    M11,
+    /// `metadata.max_topics` is a positive whole number.
+    M12,
+    /// The fields of `metadata` that a search reads hold at most 120 words,
+    /// not counting keys or file paths.
+    M13,
 }
 
 impl Rule {
@@ -128,6 +169,19 @@ impl Rule {
             Rule::B3 => "B3",
             Rule::B4 => "B4",
             Rule::B5 => "B5",
+            Rule::M1 => "M1",
+            Rule::M2 => "M2",
+            Rule::M3 => "M3",
+            Rule::M4 => "M4",
+            Rule::M5 => "M5",
+            Rule::M6 => "M6",
+            Rule::M7 => "M7",
+            Rule::M8 => "M8",
+            Rule::M9 => "M9",
+            Rule::M10 => "M10",
+            Rule::M11 => "M11",
+            Rule::M12 => "M12",
+            Rule::M13 => "M13",
         }
     }
 }
@@ -158,6 +212,9 @@ pub struct Skill {
     pub folder: String,
     /// `SKILL.md` and the skill's other Markdown files.
     pub files: Vec<SkillFile>,
+    /// Every other file of the skill folder or below it, relative to it.
+    /// Only rule M9 reads them, and only by their paths.
+    pub other_files: Vec<PathBuf>,
 }
 
 /// Checks one skill against every rule and gives the findings in rule order,
@@ -181,6 +238,9 @@ pub fn check_skill(skill: &Skill, known: &KnownSkills) -> Vec<Finding> {
             for (rule, message) in skill_md_findings(&skill.folder, &file.text) {
                 finding(skill_md, rule, message);
             }
+            for (rule, message) in metadata_findings(skill, &file.text, known) {
+                finding(skill_md, rule, message);
+            }
         }
         None => finding(skill_md, Rule::H1, "SKILL.md is missing".to_owned()),
     }
@@ -201,6 +261,23 @@ pub fn check_skill(skill: &Skill, known: &KnownSkills) -> Vec<Finding> {
 
     findings.sort_by_key(|finding| finding.rule);
     findings
+}
+
+/// The findings of rules M1 to M13, which read the `metadata` map of the
+/// header of `skill_md`. None when the header cannot be read, which H1 or H2
+/// reports.
+fn metadata_findings(skill: &Skill, skill_md: &str, known: &KnownSkills) -> Vec<(Rule, String)> {
+    let Some(header) = Header::of_skill_file(skill_md) else {
+        return Vec::new();
+    };
+    let markdown_files = skill.files.iter().map(|file| file.path.clone());
+    let folder = SkillFolder {
+        files: markdown_files
+            .chain(skill.other_files.iter().cloned())
+            .collect(),
+        known,
+    };
+    metadata::findings(&header, &folder)
 }
 
 /// The findings of every rule that reads `SKILL.md` alone: H1 to H9, B1, B2

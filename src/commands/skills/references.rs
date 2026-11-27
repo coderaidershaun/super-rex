@@ -9,7 +9,7 @@ use super::SKILL_FILE;
 
 /// The folders whose skills a skill's text may name, as a person reads them
 /// in a message. `rex_skill` finds a skill in one of them.
-const SKILL_FOLDERS_TEXT: &str = "plugin/skills, plugin/library or .rex/skills";
+pub(super) const SKILL_FOLDERS_TEXT: &str = "plugin/skills, plugin/library or .rex/skills";
 
 /// The folders that 0.7 skill text named a skill by. A path that starts with
 /// one names a folder that changes with each plugin version.
@@ -33,6 +33,28 @@ pub struct KnownSkills {
     /// such as `rex-code-tdd/mocking.md`. A skill is known when its
     /// `SKILL.md` is here (rule B4).
     pub paths: BTreeSet<PathBuf>,
+    /// Each file of each skill, Markdown or not, written the same way. An
+    /// `open_when` item of a skill header may name any of them.
+    pub files: BTreeSet<PathBuf>,
+}
+
+impl KnownSkills {
+    /// Adds `file`, a file of a skill written as `<skill>/<file>`.
+    pub fn insert(&mut self, file: PathBuf) {
+        if file.extension().is_some_and(|extension| extension == "md") {
+            self.paths.insert(file.clone());
+        }
+        self.files.insert(file);
+    }
+
+    pub(super) fn has_skill(&self, name: &str) -> bool {
+        self.paths.contains(&Path::new(name).join(SKILL_FILE))
+    }
+
+    /// True when `file` is a file of the skill `name`.
+    pub(super) fn has_file(&self, name: &str, file: &str) -> bool {
+        self.files.contains(&Path::new(name).join(file))
+    }
 }
 
 /// A message for each Markdown link in `text` to a `.md` file that is not one

@@ -12,7 +12,7 @@ repository = "https://github.com/coderaidershaun/super-rex"
 readme = "README.md"
 keywords = ["agent", "claude", "orchestration", "skills", "cli"]
 categories = ["command-line-utilities", "development-tools"]
-include = ["plugin/skills/**/*", "plugin/agents/**/*", "plugin/library/**/*", "plugin/.claude-plugin/plugin.json", "fixtures/shared/**/*", "src/**/*", "tests/**/*", "build.rs", "Cargo.toml", "README.md", "LICENSE"]
+include = ["plugin/skills/**/*", "plugin/agents/**/*", "plugin/library/**/*", "plugin/vocab/terms.json", "plugin/.claude-plugin/plugin.json", "fixtures/shared/**/*", "src/**/*", "tests/**/*", "build.rs", "Cargo.toml", "README.md", "LICENSE"]
 
 [[bin]]
 name = "rex"

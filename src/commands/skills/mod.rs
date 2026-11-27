@@ -4,6 +4,7 @@
 mod check;
 mod header;
 mod list;
+mod metadata;
 mod references;
 mod rules;
 mod serve;

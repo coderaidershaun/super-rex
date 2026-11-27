@@ -1,11 +1,29 @@
-//! Reads the header at the top of a `SKILL.md`. Listing and checking skills
-//! both read it here, so the two commands always see the same fields.
+//! Reads the header at the top of a `SKILL.md`, with its `metadata` map.
+//! Listing and checking skills both read it here, so they see the same fields.
 
 use std::fs;
 use std::path::Path;
 
 use yaml_rust2::yaml::Hash;
 use yaml_rust2::{ScanError, Yaml, YamlLoader};
+
+/// The keys of the `metadata` map that a skill library search reads. Claude
+/// Code treats `metadata` as free-form, so any other key, such as `author`,
+/// is left alone.
+pub(super) const METADATA_KEYS: [&str; 12] = [
+    "kind",
+    "category",
+    "claims",
+    "placement",
+    "scope",
+    "not_when",
+    "intents",
+    "files",
+    "open_when",
+    "requires",
+    "replaces",
+    "max_topics",
+];
 
 /// A `SKILL.md` cut at its header. Line ends are LF.
 pub(super) struct Parts {
@@ -79,6 +97,19 @@ impl Header {
         self.fields.get(&Yaml::String(key.to_owned()))
     }
 
+    /// The `metadata` map, or `None` when the header has none, it is not a
+    /// map, or it holds none of [`METADATA_KEYS`].
+    pub(super) fn metadata(&self) -> Option<Metadata<'_>> {
+        let Some(Yaml::Hash(map)) = self.value("metadata") else {
+            return None;
+        };
+        let metadata = Metadata(map);
+        METADATA_KEYS
+            .iter()
+            .any(|key| metadata.get(key).is_some())
+            .then_some(metadata)
+    }
+
     /// The value of `key` as one line of text, or `None` when it is missing or
     /// is not a string.
     pub(super) fn text(&self, key: &str) -> Option<String> {
@@ -111,6 +142,23 @@ impl Header {
         let continued = lines.take_while(|line| line.is_empty() || line.starts_with([' ', '\t']));
         let written: Vec<&str> = std::iter::once(first).chain(continued).collect();
         Some(one_line(&written.join(" ")))
+    }
+}
+
+/// The `metadata` map of a header that holds a key a search reads.
+pub(super) struct Metadata<'a>(&'a Hash);
+
+impl<'a> Metadata<'a> {
+    pub(super) fn get(&self, key: &str) -> Option<&'a Yaml> {
+        self.0.get(&Yaml::String(key.to_owned()))
+    }
+
+    /// The values of the keys of [`METADATA_KEYS`], in written order.
+    pub(super) fn search_fields(&self) -> impl Iterator<Item = (&'a str, &'a Yaml)> {
+        self.0.iter().filter_map(|(key, value)| {
+            let key = key.as_str()?;
+            METADATA_KEYS.contains(&key).then_some((key, value))
+        })
     }
 }
 
