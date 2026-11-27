@@ -8,6 +8,29 @@ when_to_use: >
   "code rot", "bit rot", "stale code", "what has gone stale", "old TODOs",
   "code quality audit", "review for smells", "is this maintainable",
   "refactor opportunities in X".
+metadata:
+  kind: method
+  category: code-health
+  claims:
+    activity: [audit]
+    touches: [legacy-code]
+  placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code."
+  intents:
+    - find code smells
+    - audit names in a module
+    - find stale code and old TODOs
+    - refactor unfamiliar code
+  files:
+    - { path: brittleness.md, role: topic, when: "you look for code that breaks on a small change" }
+    - { path: naming.md, role: topic, when: "you check names" }
+    - { path: rot.md, role: topic, when: "you look for code that has gone stale" }
+    - { path: smells.md, role: topic, when: "you look for smells in Rust form" }
+    - { path: sweep.md, role: topic, when: "the scope is a module or a crate" }
+  open_when:
+    - { skill: rex-code-folder-management, file: audit.md, when: "you audit code" }
+    - { skill: rex-code-failure-policy, file: audit.md, when: "you audit code" }
 ---
 
 # Smell, Brittleness + Rot Detection

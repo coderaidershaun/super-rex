@@ -6,6 +6,25 @@ when_to_use: >
   Use when the user wants to build features or fix bugs with TDD, mentions
   "red-green-refactor", wants integration tests, or asks for test-first
   development.
+metadata:
+  kind: method
+  category: testing
+  claims:
+    activity: [build, fix]
+    touches: [system-boundary]
+  placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code."
+  intents:
+    - build a feature test first
+    - fix a bug with a failing test first
+    - red-green-refactor loop
+  files:
+    - { path: deep-modules.md, role: topic, when: "you look for deep modules while you plan" }
+    - { path: interface-design.md, role: topic, when: "you design an interface for testability" }
+    - { path: mocking.md, role: topic, when: "a test crosses to an outside API or database, depends on time or randomness, or crosses the file system" }
+    - { path: refactoring.md, role: topic, when: "all tests pass and you refactor" }
+    - { path: tests.md, role: topic, when: "you are not sure that a test checks behavior and not implementation" }
 ---
 
 # Test-Driven Development

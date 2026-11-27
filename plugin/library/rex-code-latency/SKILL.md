@@ -9,6 +9,52 @@ when_to_use: >
   Use when a Rust hotpath has a latency problem: "p99", "tail latency",
   "jitter", "lock-free", "false sharing", "kernel bypass", "busy poll", "time
   this function".
+metadata:
+  kind: reference
+  category: performance
+  claims:
+    quality: [latency]
+  placement: full
+  scope: { writes_code: [true], languages: [rust], latency_scale: [ns_us] }
+  not_when: "A hot path measured in milliseconds, or one on a host you do not control."
+  intents:
+    - fix tail latency of a Rust hot path
+    - find the cause of jitter
+    - time a function of a few nanoseconds
+  max_topics: 2
+  files:
+    - { path: cpu/branching.md, role: topic }
+    - { path: cpu/branching-code.md, role: code, language: rust }
+    - { path: cpu/cache-hierarchy.md, role: topic }
+    - { path: cpu/cache-hierarchy-code.md, role: code, language: rust }
+    - { path: cpu/cache-line-layout.md, role: topic }
+    - { path: cpu/cache-line-layout-code.md, role: code, language: rust }
+    - { path: crates.md, role: topic }
+    - { path: glossary.md, role: topic }
+    - { path: measure.md, role: topic, when: "you measure the hot path" }
+    - { path: measure-code.md, role: code, language: rust }
+    - { path: measurement/counters.md, role: topic }
+    - { path: measurement/counters-code.md, role: code, language: rust }
+    - { path: measurement/logging.md, role: topic }
+    - { path: measurement/logging-code.md, role: code, language: rust }
+    - { path: memory/reclamation.md, role: topic }
+    - { path: memory/reclamation-code.md, role: code, language: rust }
+    - { path: memory/zero-alloc.md, role: topic }
+    - { path: memory/zero-alloc-code.md, role: code, language: rust }
+    - { path: network/kernel-bypass.md, role: topic }
+    - { path: network/kernel-bypass-code.md, role: code, language: rust }
+    - { path: network/sockets.md, role: topic }
+    - { path: network/sockets-code.md, role: code, language: rust }
+    - { path: os/cpu-isolation.md, role: topic }
+    - { path: os/cpu-isolation-code.md, role: code, language: rust }
+    - { path: os/huge-pages.md, role: topic }
+    - { path: os/huge-pages-code.md, role: code, language: rust }
+    - { path: os/jitter.md, role: topic }
+    - { path: setup.md, role: topic }
+    - { path: threads/atomics.md, role: topic }
+    - { path: threads/atomics-code.md, role: code, language: rust }
+    - { path: threads/ring-buffers.md, role: topic }
+    - { path: threads/ring-buffers-code.md, role: code, language: rust }
 ---
 
 # Code latency

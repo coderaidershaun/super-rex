@@ -8,6 +8,21 @@ when_to_use: >
   Use when you create, split, or move a module, file, or folder, review a tree,
   or the user says "tidy the modules", "group modules", "folder structure",
   "where does this file go", "subfolders", "mod.rs".
+metadata:
+  kind: rule
+  category: coding-standards
+  claims:
+    touches: [file-layout]
+  placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code."
+  intents:
+    - create or split a module
+    - move a file, module or folder
+    - decide where a file goes
+  files:
+    - { path: audit.md, role: topic, when: "you audit code" }
+    - { path: move.md, role: topic, when: "you move a file, module or folder" }
 ---
 
 # Folder Management — Hard Rules

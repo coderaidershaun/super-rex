@@ -8,6 +8,19 @@ when_to_use: >
   RETRY, HALT row lacks scenario, or user says "validation plan", "expected
   trace", "what happens step by step", "prove the order", "failure scenarios",
   "how do we know it works".
+metadata:
+  kind: rule
+  category: design
+  claims:
+    activity: [design]
+    artefact: [plan]
+  placement: full
+  intents:
+    - write expected traces before code
+    - list the failure scenarios of a plan
+    - prove the order of a flow
+  files:
+    - { path: examples.md, role: topic, when: "you write your first trace, or are not sure of its shape" }
 ---
 
 # Validation Plan — Hard Rules

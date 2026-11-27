@@ -294,3 +294,120 @@ These are the checks of section 10 that depend on the vocabulary, stated with th
 - Each `open_when` item has `when` and either `skill`, `file`, or both (Part 4, choice 1), and each target exists.
 
 The other checks of section 10 (files listed and present, `requires` and `replaces` targets, the intent search and the wording of `description` and `when_to_use`) and the fixed values of section 7.1 (`placement` is `full` or `open-when`; a file's `role` is `topic`, `language` or `code`) do not read these files.
+
+---
+
+## Part 6. Where each row went in WP2
+
+WP2 wrote the `metadata` map into the header of each skill in `plugin/library/`. This part says where each row of `plugin/assign/table.json`, each of its 33 criteria (C01 to C33 of Part 1.1) and each of its 7 `files` items (F1 to F7 of Part 1.3) went in those headers. `table.json` itself is unchanged: the mod still reads it until WP7, and section 9.6 decides which rows it keeps after that. Each skill's claims are the union of the terms of all its rows, as Part 1.2 says.
+
+### 6.1 Rows
+
+"wc" below means `scope: { writes_code: [true] }` with `not_when: "The task writes no code."`. "Rulebooks" means `rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics` and `rex-code-error-writing`. Every `priority` is dropped (Q13).
+
+| Row | Criteria | Header of | Claims | `placement` | `scope` and `not_when` | `files` and `open_when` |
+| --- | --- | --- | --- | --- | --- | --- |
+| `code-rulebooks` | C01 | the four rulebooks; also the new `rex-code-essentials` | `facts: { writes_code: true }` | `full` | none: the claim holds the fact | the rulebooks: none from the table. `rex-code-essentials` names the four rulebooks as `open_when` items |
+| `gap-skill` | C02 | `rex-gap-ts` | `facts: { writes_code: true, languages: [ts] }` | `full` | none: the claim holds the facts | none from the table |
+| `tdd` | C03, C04 | `rex-code-tdd` | `activity: [build, fix]` | `full` | wc | none from the table |
+| `unit-tests` | C05 | `rex-code-tests-unit-testing` | `artefact: [unit-test]` | `full` | wc | `open_when` item for `rex-code-tdd/mocking.md` (F2) |
+| `contract-tests` | C06 | `rex-code-tests-contract-seams` | `artefact: [contract-test]` | `full` | wc | `open_when` item for `rex-code-tdd/mocking.md` (F2) |
+| `fitness-tests` | C07, C08 | `rex-code-tests-fitness-functions` | `artefact: [fitness-test]` | `full` | wc | `open_when` item for `rex-code-tdd/mocking.md` (F2) |
+| `integration-tests` | C09 | `rex-code-tests-integration-testing` | `artefact: [integration-test]` | `full` | wc | `files` item `real-funds.md` (F1); `open_when` item for `rex-code-tdd/mocking.md` (F2) |
+| `boundary-tests` | C10, C11, C12 | `rex-code-tdd` | `touches: [system-boundary]` | the row's `open-when` stays with the file: `mocking.md` is a topic file, and a topic file is always open-when (Q3). The skill keeps `full` from row `tdd` | wc, the same as row `tdd` | `files` item `mocking.md` with its case (F2) |
+| `folders` | C13, C14 | `rex-code-folder-management` | `touches: [file-layout]` | `full` | wc | `files` item `move.md` (F3) |
+| `dependencies` | C15 | `rex-code-external-libraries` | `touches: [dependencies]` | `full` | wc | none from the table |
+| `failure-policy` | C16, C17, C18, C19 | `rex-code-failure-policy` | `touches: [outside-input, long-running, retry]` | `full` | wc | `files` item `failure-table.md` (F4) |
+| `design` | C20 | `rex-code-design-sketch`, `rex-code-validation-plan` | `activity: [design]` | `full` | none: scope `any` | none from the table |
+| `spike` | C21 | `rex-code-spike` | `touches: [unproven-approach]` | `full` | none: scope `any` | none from the table |
+| `smells` | C22, C23 | `rex-code-smells` | `touches: [legacy-code]`, `activity: [audit]` | `full` | wc | `open_when` items for `rex-code-folder-management/audit.md` (F5) and `rex-code-failure-policy/audit.md` (F6) |
+| `architecture` | C24 | `rex-code-improve-codebase-architecture` | `touches: [architecture]` | `full` | wc | none from the table |
+| `priorities` | C25 | `rex-code-priorities` | `touches: [trade-offs]` | `full` | none: scope `any` | none from the table |
+| `latency` | C26 | `rex-code-latency` | `quality: [latency]` | `full` | `scope: { writes_code: [true], languages: [rust], latency_scale: [ns_us] }`, `not_when: "A hot path measured in milliseconds, or one on a host you do not control."` | `files` item `measure.md` (F7) |
+| `pr-review` | C27 | not carried in WP2 | none | none | none | none |
+| `diagrams` | C28 | `rex-mermaid-diagrams` | `artefact: [diagram]` | `full` | none: scope `any` | none from the table |
+| `skill-text` | C29 | `rex-skill-language` | `artefact: [instructions]` | `full` | none: scope `any` | none from the table |
+| `briefs` | C30, C31 | `rex-agent-prompting` | `touches: [sub-agent]`, `artefact: [brief]` | `full` | none: scope `any` | none from the table |
+| `plan-review` | C32 | `rex-codex-adversarial-review` | `facts: { role: plan-reviewer }` | `full` | none: scope `any` | none from the table |
+| `plan-writing` | C33 | `rex-code-design-sketch`, `rex-code-validation-plan` | `artefact: [plan]` | `full` | none: scope `any` | none from the table |
+
+The row `pr-review` is an open item. Its only skill, `rex-pr-review`, is a listed skill in `plugin/skills/`, and WP2 writes no header outside `plugin/library/`. Q7 lets a listed skill opt in to search with a `metadata` map. When it does, its map gets kind `method`, category `review`, `claims.activity: [review]` and `placement: full`, with no scope (Part 4, choice 11). Until then, the table row is its only record.
+
+### 6.2 Criteria
+
+| ID | Criterion | Header field and value | Skill |
+| --- | --- | --- | --- |
+| C01 | `writes-code` | `claims.facts.writes_code: true` | the four rulebooks and `rex-code-essentials` |
+| C02 | `language-not-rust` | `claims.facts: { writes_code: true, languages: [ts] }` | `rex-gap-ts` |
+| C03 | `builds-feature` | `claims.activity: build` | `rex-code-tdd` |
+| C04 | `fixes-bug` | `claims.activity: fix` | `rex-code-tdd` |
+| C05 | `unit-test` | `claims.artefact: unit-test` | `rex-code-tests-unit-testing` |
+| C06 | `contract-test` | `claims.artefact: contract-test` | `rex-code-tests-contract-seams` |
+| C07 | `invariant` | `claims.artefact: fitness-test` | `rex-code-tests-fitness-functions` |
+| C08 | `property-test` | `claims.artefact: fitness-test` | `rex-code-tests-fitness-functions` |
+| C09 | `real-world` | `claims.artefact: integration-test` | `rex-code-tests-integration-testing` |
+| C10 | `outside-system` | `claims.touches: system-boundary` | `rex-code-tdd` |
+| C11 | `time-or-randomness` | `claims.touches: system-boundary` | `rex-code-tdd` |
+| C12 | `file-system` | `claims.touches: system-boundary` | `rex-code-tdd` |
+| C13 | `creates-or-splits` | `claims.touches: file-layout` | `rex-code-folder-management` |
+| C14 | `moves` | `claims.touches: file-layout`, and the case of `files` item `move.md` | `rex-code-folder-management` |
+| C15 | `adds-or-upgrades` | `claims.touches: dependencies` | `rex-code-external-libraries` |
+| C16 | `outside-input` | `claims.touches: outside-input` | `rex-code-failure-policy` |
+| C17 | `long-running-state` | `claims.touches: long-running` | `rex-code-failure-policy` |
+| C18 | `retry-or-reconnect` | `claims.touches: retry` | `rex-code-failure-policy` |
+| C19 | `main-loop` | `claims.touches: long-running` | `rex-code-failure-policy` |
+| C20 | `design-first` | `claims.activity: design` | `rex-code-design-sketch`, `rex-code-validation-plan` |
+| C21 | `unproven` | `claims.touches: unproven-approach` | `rex-code-spike` |
+| C22 | `refactor-unfamiliar` | `claims.touches: legacy-code` | `rex-code-smells` |
+| C23 | `audit` | `claims.activity: audit` | `rex-code-smells` |
+| C24 | `architecture-friction` | `claims.touches: architecture` | `rex-code-improve-codebase-architecture` |
+| C25 | `ranked-decision` | `claims.touches: trade-offs` | `rex-code-priorities` |
+| C26 | `hot-path` | `claims.quality: latency`, with the scope and `not_when` of row `latency` | `rex-code-latency` |
+| C27 | `reviews-others` | not carried in WP2: open item for Q7 (section 6.1) | `rex-pr-review`, in `plugin/skills/` |
+| C28 | `draws-diagram` | `claims.artefact: diagram` | `rex-mermaid-diagrams` |
+| C29 | `writes-instructions` | `claims.artefact: instructions` | `rex-skill-language` |
+| C30 | `starts-agent` | `claims.touches: sub-agent` | `rex-agent-prompting` |
+| C31 | `writes-brief` | `claims.artefact: brief` | `rex-agent-prompting` |
+| C32 | `plan-reviewer` | `claims.facts.role: plan-reviewer` | `rex-codex-adversarial-review` |
+| C33 | `writes-code-plan` | `claims.artefact: plan` | `rex-code-design-sketch`, `rex-code-validation-plan` |
+
+### 6.3 Files items
+
+Each case is reworded from the "it ..." form of the table into the "you ..." form of section 7.1. The meaning is unchanged.
+
+| ID | File | `files` item, in the header of its own skill | `open_when` items in other headers |
+| --- | --- | --- | --- |
+| F1 | `rex-code-tests-integration-testing/real-funds.md` | `{ path: real-funds.md, role: topic, when: "a test moves real funds" }` | none |
+| F2 | `rex-code-tdd/mocking.md` | `{ path: mocking.md, role: topic, when: "a test crosses to an outside API or database, depends on time or randomness, or crosses the file system" }`. The table's case is `null`, so the case joins the three criteria texts of row `boundary-tests` | `{ skill: rex-code-tdd, file: mocking.md, when: <the same case> }` in each of the four test-rule skills, so that a test task reaches the file without the TDD method |
+| F3 | `rex-code-folder-management/move.md` | `{ path: move.md, role: topic, when: "you move a file, module or folder" }` | none |
+| F4 | `rex-code-failure-policy/failure-table.md` | `{ path: failure-table.md, role: topic, when: "you plan a feature with outside input or long-running state and write its failure table" }`. The table's "such a feature" is named from the row's `work` | none |
+| F5 | `rex-code-folder-management/audit.md` | `{ path: audit.md, role: topic, when: "you audit code" }` | `{ skill: rex-code-folder-management, file: audit.md, when: "you audit code" }` in `rex-code-smells` |
+| F6 | `rex-code-failure-policy/audit.md` | `{ path: audit.md, role: topic, when: "you audit code" }` | `{ skill: rex-code-failure-policy, file: audit.md, when: "you audit code" }` in `rex-code-smells` |
+| F7 | `rex-code-latency/measure.md` | `{ path: measure.md, role: topic, when: "you measure the hot path" }` | none |
+
+### 6.4 Sibling files that the table does not name
+
+The library holds 75 sibling files: the 7 above and 68 more. Rule M9 makes each header list every file of its folder, so each one has a `files` item. Their roles:
+
+- **Code, `rust` (14 files).** Each `-code.md` file of `rex-code-latency`, the code twin of the topic file beside it.
+- **Topic (61 files, the 7 above among them).** Every other file. No file of the library has role `language`.
+  - The `examples.md` of `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-tests-contract-seams`, `rex-code-tests-fitness-functions` and `rex-code-tests-integration-testing` hold the Rust code of their skills' rules. They are topic files, not language files. Each of these skills is a Rust rulebook with one page of examples, not a general skill with one file for each language, as the `rust.md` and `go.md` of section 7.1 are. Each `when` is the read case that its skill's body gives the file, so the file stays open-when, as it is today. By D17, a language file would go in full with its skill on each Rust task. Gate B can show whether that helps. Change the role only after that.
+  - `rex-code-commenting/examples.md` and `rex-code-validation-plan/examples.md` hold some Rust, but their subject is the wording of a comment and the shape of a trace in a plan.
+  - `rex-gap-ts/setup.md`: its skill reads it only when a task changes `tsconfig.json`, lint settings or a package.
+
+A topic file outside the table carries the case that its skill's router text gives it, in the "you ..." form, except in `rex-code-latency`. Its 18 topic files and 14 code twins take 46 words of rule M13 with no case, and the whole map takes 94 of the 120 words with one case. So only `measure.md` carries a case (F7), and the router table of its `SKILL.md` keeps the cases of the others, as section 8.5 expects. Its header also gives `max_topics: 2`, from the rule "Max 2 topic files" of that `SKILL.md`.
+
+### 6.5 Choices WP2 made
+
+1. **The rulebooks keep their row.** The four rulebooks claim `writes_code: true` with `placement: full`, as row `code-rulebooks` gives today. The digest `rex-code-essentials` makes the same claim and names the four as `open_when` items. Search will return all five for a code task until the switch to the digest alone, which is gate B and WP7. The digest is not in `table.json`, so no task gets it yet.
+2. **No language scope on general rules.** No rulebook and not the digest has `scope.languages` (section 7.1). `rex-gap-ts` claims `languages: [ts]` under `claims.facts`, so lookup A finds it, and it has no scope.
+3. **`rex-code-latency` claims only `quality: latency`.** Part 3 names the touches `threads` and `allocation` as a coarse filter for its topic files. A skill-level claim of them would return the skill to any task that touches threads, which no row of the table does. Section 7.1 gives a `files` item no `touches` field, so WP4 must say where that filter is declared.
+4. **The scope `writes_code` of a row is kept even where it is narrow.** Row `smells` has scope `code`, so an audit that writes no code does not reach `rex-code-smells`, today or now.
+5. **Cross-references in the text of a skill are not `open_when` items.** For example, the step table of `rex-code-improve-codebase-architecture` names `rex-code-folder-management/audit.md`. The table does not, so WP2 did not declare it. The metadata rules that WP8 adds to `rex-skill-language` can decide whether such references must be declared.
+
+### 6.6 Open items
+
+- **Q7:** row `pr-review` (C27), section 6.1.
+- **Text that says the library holds 24 skills.** The library holds 25 now. `plugin/skills/orchestration-builder/SKILL.md`, `plugin/skills/orchestration-builder/stages/1-skills/stage.md`, `plugin/skills/rex-rules/SKILL.md` and `README.md` still say 24. They are outside WP2 and belong to the skill text of WP8 (section 9.9).
+- **No map is not a finding.** `rex skills check` gives no finding for a library skill whose header has no `metadata` map. A fitness test that each skill of `plugin/library/` has one would keep the 25 maps from being lost.
+- **No term was missing.** Every claim, scope key, kind and category of the 25 headers is a term of `plugin/vocab/terms.json` version 1.

@@ -7,6 +7,18 @@ when_to_use: >
   Use when an orchestrator starts work on a repo, a plan or architecture decision has
   a tie, the priority block is missing, or the user says "repo priorities",
   "what matters most here", "rank the priorities", "constitution".
+metadata:
+  kind: rule
+  category: design
+  claims:
+    touches: [trade-offs]
+  placement: full
+  intents:
+    - break a tie between design options
+    - rank the qualities of a repo
+    - write the priority block of a repo
+  files:
+    - { path: write.md, role: topic, when: "the repo has no priority block and you are the orchestrator" }
 ---
 
 # Repo Priorities — Hard Rules

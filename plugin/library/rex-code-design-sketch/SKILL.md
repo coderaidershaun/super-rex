@@ -7,6 +7,17 @@ when_to_use: >
   Use when a lead plans a new system, feature, or module change, or user says
   "draw the architecture", "design this first", "boxes and arrows", "what is
   the design pattern", "how should this fit in".
+metadata:
+  kind: method
+  category: design
+  claims:
+    activity: [design]
+    artefact: [plan]
+  placement: full
+  intents:
+    - design a new system before its code
+    - draw the architecture as boxes and arrows
+    - fit a new module to existing code
 ---
 
 # Design Sketch — Hard Rules

@@ -8,6 +8,19 @@ when_to_use: >
   Use when you write, review, or tidy comments, JSDoc, docstrings, or TODO
   markers, or commit AI-generated code, or the user asks "should I add a
   comment", "document this", "explain this code".
+metadata:
+  kind: rule
+  category: coding-standards
+  claims:
+    facts: { writes_code: true }
+  placement: full
+  intents:
+    - decide whether to add a comment
+    - write the comment at the top of a file
+    - flag a code smell
+  files:
+    - { path: examples.md, role: topic, when: "you want bad and good comments" }
+    - { path: module-comments.md, role: topic, when: "you write or check the comment at the top of a file" }
 ---
 
 # Code Commenting — Hard Rules

@@ -9,6 +9,16 @@ when_to_use: >
   agent instructions, or user says "skill language", "STE", "STE100",
   "ASD-STE100", "simplified technical English", "controlled language",
   "caveman the skill", "make this skill shorter".
+metadata:
+  kind: rule
+  category: agent-instructions
+  claims:
+    artefact: [instructions]
+  placement: full
+  intents:
+    - write a skill
+    - shorten a prompt
+    - write agent instructions in controlled English
 ---
 
 # Skill Language

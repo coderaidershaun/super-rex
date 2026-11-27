@@ -8,6 +8,18 @@ when_to_use: >
   Use when you write error types, design Result<T,E> APIs, wrap errors, or
   write error messages, or the user asks "what error type", "how should I
   handle this error", "thiserror or anyhow", "error variants".
+metadata:
+  kind: rule
+  category: coding-standards
+  claims:
+    facts: { writes_code: true }
+  placement: full
+  intents:
+    - design an error type
+    - write an error message
+    - choose between panic and Result
+  files:
+    - { path: examples.md, role: topic, when: "you write an error enum, a main function, an error message or an error mapping" }
 ---
 
 # Rust Error Writing — Hard Rules

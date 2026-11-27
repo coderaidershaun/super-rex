@@ -7,6 +7,22 @@ when_to_use: >
   Use when you test module-to-module interactions, refactor a seam, or define a
   new module interface, or user asks "test the boundary", "this seam keeps
   breaking", "interaction between modules".
+metadata:
+  kind: rule
+  category: testing
+  claims:
+    artefact: [contract-test]
+  placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code."
+  intents:
+    - test the interface between two modules
+    - test a module boundary that keeps breaking
+    - define a new module interface
+  files:
+    - { path: examples.md, role: topic, when: "you write a contract test and want its shape" }
+  open_when:
+    - { skill: rex-code-tdd, file: mocking.md, when: "a test crosses to an outside API or database, depends on time or randomness, or crosses the file system" }
 ---
 
 # Rust Contract Seam Tests — Hard Rules

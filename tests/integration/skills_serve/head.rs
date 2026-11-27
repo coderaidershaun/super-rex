@@ -72,7 +72,7 @@ fn with_no_library_the_embedded_one_is_served() {
     let head = server.head();
 
     assert_eq!(head["library"], "super-rex");
-    assert_eq!(head["skills"], 24);
+    assert_eq!(head["skills"], 25);
     assert_eq!(head["vocabulary"], json!(null));
 }
 

@@ -8,6 +8,18 @@ when_to_use: >
   choose String vs &str, Result vs panic, generic vs dyn, or builder vs struct
   literal, or the user asks "is this idiomatic Rust", "ergonomic API", "make
   this nicer".
+metadata:
+  kind: rule
+  category: coding-standards
+  claims:
+    facts: { writes_code: true }
+  placement: full
+  intents:
+    - name a function or a type
+    - choose a function signature
+    - design a public API
+  files:
+    - { path: examples.md, role: topic, when: "you want bad and good code for a section" }
 ---
 
 # Rust Ergonomics — Hard Rules

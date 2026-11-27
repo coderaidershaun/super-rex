@@ -8,6 +8,18 @@ when_to_use: >
   Use when you write, change, or review TypeScript code, a tsconfig, or lint
   settings, or when a Rust code rulebook tells you to obey the gap skill of
   TypeScript.
+metadata:
+  kind: rule
+  category: coding-standards
+  claims:
+    facts: { writes_code: true, languages: [ts] }
+  placement: full
+  intents:
+    - write strict TypeScript
+    - set up tsconfig and lint settings
+    - close a gap that Rust covers by default
+  files:
+    - { path: setup.md, role: topic, when: "you create or change tsconfig.json, lint settings or a TypeScript package" }
 ---
 
 # TypeScript Gap — Hard Rules

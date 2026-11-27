@@ -8,6 +8,27 @@ when_to_use: >
   Use when user wants refactor candidates, module grouping, or code easier to
   test and navigate, or says "improve architecture", "refactor opportunities",
   "deepen modules", "tidy up modules", "get ready for the next feature".
+metadata:
+  kind: method
+  category: code-health
+  claims:
+    touches: [architecture]
+  placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code."
+  intents:
+    - find refactor candidates
+    - group modules
+    - make code easier to test and navigate
+    - find architecture friction
+  files:
+    - { path: brief.md, role: topic, when: "you write the design brief of step 4, on direct invocation only" }
+    - { path: DEEPENING.md, role: topic, when: "you weigh the dependencies of a candidate in step 3" }
+    - { path: explore.md, role: topic, when: "you explore the code in step 1" }
+    - { path: grill-self.md, role: topic, when: "you test the chosen candidate in step 3, on direct invocation only" }
+    - { path: INTERFACE-DESIGN.md, role: topic, when: "the candidate changes an interface" }
+    - { path: LANGUAGE.md, role: topic, when: "you need the full definition of a term" }
+    - { path: rank.md, role: topic, when: "you rank candidates in step 2" }
 ---
 
 # Improve Codebase Architecture

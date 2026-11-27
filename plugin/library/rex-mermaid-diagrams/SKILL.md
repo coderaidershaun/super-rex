@@ -8,6 +8,24 @@ when_to_use: >
   explain architecture, database design, code structure, or user or
   application flows, or for "diagram", "visualize", "model", "map out", "show
   the flow".
+metadata:
+  kind: tool
+  category: diagrams
+  claims:
+    artefact: [diagram]
+  placement: full
+  intents:
+    - draw a diagram in a plan or document
+    - show a flow as a diagram
+    - model a database or a class design
+  files:
+    - { path: references/advanced-features.md, role: topic, when: "you need themes, styling or layout options" }
+    - { path: references/architecture-diagrams.md, role: topic, when: "you draw cloud services or infrastructure" }
+    - { path: references/c4-diagrams.md, role: topic, when: "you draw a C4 diagram" }
+    - { path: references/class-diagrams.md, role: topic, when: "you draw a class diagram or a domain model" }
+    - { path: references/erd-diagrams.md, role: topic, when: "you draw an entity relationship diagram" }
+    - { path: references/flowcharts.md, role: topic, when: "you draw a flowchart" }
+    - { path: references/sequence-diagrams.md, role: topic, when: "you draw a sequence diagram" }
 ---
 
 # Mermaid Diagramming

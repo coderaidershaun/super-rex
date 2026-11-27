@@ -7,6 +7,22 @@ when_to_use: >
   Use when you test critical invariants (orderbook reconstruction, money
   conservation, schema backward-compat), or user asks "make sure X never
   breaks", "invariant must always hold", "property test", "promote to fitness".
+metadata:
+  kind: rule
+  category: testing
+  claims:
+    artefact: [fitness-test]
+  placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code."
+  intents:
+    - test an invariant that must always hold
+    - write a property test
+    - promote a test to a fitness function
+  files:
+    - { path: examples.md, role: topic, when: "you write a proptest fitness test, or are not sure that a test belongs in fitness" }
+  open_when:
+    - { skill: rex-code-tdd, file: mocking.md, when: "a test crosses to an outside API or database, depends on time or randomness, or crosses the file system" }
 ---
 
 # Rust Fitness Function Tests — Hard Rules

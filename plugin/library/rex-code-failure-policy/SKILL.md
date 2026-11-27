@@ -8,6 +8,22 @@ when_to_use: >
   a main loop, or the user says "what happens when this fails", "should this
   stop the system", "retry or fail", "fatal error", "kill switch", "halt",
   "make error handling consistent".
+metadata:
+  kind: rule
+  category: coding-standards
+  claims:
+    touches: [outside-input, long-running, retry]
+  placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code."
+  intents:
+    - decide what happens when this fails
+    - handle outside input
+    - retry or reconnect to a service
+    - write a main loop
+  files:
+    - { path: audit.md, role: topic, when: "you audit code" }
+    - { path: failure-table.md, role: topic, when: "you plan a feature with outside input or long-running state and write its failure table" }
 ---
 
 # Failure Policy — Hard Rules

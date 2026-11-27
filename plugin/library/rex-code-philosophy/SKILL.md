@@ -7,6 +7,16 @@ when_to_use: >
   Use when you write, review, refactor, or design code, or the user asks "how
   should I write this", "what's right approach", "is this over-engineered",
   "should I abstract this", "ship simple or do it right", "MVP vs proper".
+metadata:
+  kind: rule
+  category: coding-standards
+  claims:
+    facts: { writes_code: true }
+  placement: full
+  intents:
+    - keep code simple
+    - decide whether to abstract
+    - judge if a design is over-engineered
 ---
 
 # Code Philosophy — Grug + Gabriel

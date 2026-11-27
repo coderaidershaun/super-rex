@@ -8,6 +8,23 @@ when_to_use: >
   Use when you test real APIs or exchanges, websocket reconnect, or
   deserialization edge cases, or user asks "test the Coinbase API", "real
   exchange test", "end-to-end", "run with real funds".
+metadata:
+  kind: rule
+  category: testing
+  claims:
+    artefact: [integration-test]
+  placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code."
+  intents:
+    - test against a real API or exchange
+    - test a websocket reconnect
+    - run a test with real funds
+  files:
+    - { path: examples.md, role: topic, when: "you write an integration test and want its shape" }
+    - { path: real-funds.md, role: topic, when: "a test moves real funds" }
+  open_when:
+    - { skill: rex-code-tdd, file: mocking.md, when: "a test crosses to an outside API or database, depends on time or randomness, or crosses the file system" }
 ---
 
 # Rust Integration Tests — Hard Rules

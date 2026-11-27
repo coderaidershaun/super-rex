@@ -8,6 +8,18 @@ when_to_use: >
   Use when you add or upgrade a crate, choose features, or pick a version, or
   the user asks "add crate X", "what version", "which features", "is this crate
   idiomatic".
+metadata:
+  kind: rule
+  category: coding-standards
+  claims:
+    touches: [dependencies]
+  placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code."
+  intents:
+    - add a crate
+    - upgrade a dependency
+    - choose the features of a crate
 ---
 
 # Rust External Libraries — Hard Rules

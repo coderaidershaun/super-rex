@@ -7,6 +7,20 @@ when_to_use: >
   Use when you write unit tests, do TDD, or decide to keep or delete a unit
   test, or user asks "should I unit test this", "TDD this fn", "should I delete
   this test", "promote to fitness".
+metadata:
+  kind: rule
+  category: testing
+  claims:
+    artefact: [unit-test]
+  placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code."
+  intents:
+    - write a unit test of a pure function
+    - decide whether to keep or delete a unit test
+    - promote a unit test to a fitness function
+  open_when:
+    - { skill: rex-code-tdd, file: mocking.md, when: "a test crosses to an outside API or database, depends on time or randomness, or crosses the file system" }
 ---
 
 # Rust Unit Tests — Hard Rules

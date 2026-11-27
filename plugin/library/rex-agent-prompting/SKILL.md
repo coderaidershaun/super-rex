@@ -7,6 +7,22 @@ description: >
 when_to_use: >
   Use when you start sub-agent, write or review brief or prompt for other
   agent, or send message to running agent.
+metadata:
+  kind: method
+  category: agent-instructions
+  claims:
+    touches: [sub-agent]
+    artefact: [brief]
+  placement: full
+  intents:
+    - start a sub-agent
+    - write a brief for another agent
+    - choose brief text for a model tier
+  files:
+    - { path: fable.md, role: topic, when: "you start an agent of tier xhigh" }
+    - { path: haiku.md, role: topic, when: "you start an agent of tier low" }
+    - { path: opus.md, role: topic, when: "you start an agent of tier high" }
+    - { path: sonnet.md, role: topic, when: "you start an agent of tier medium" }
 ---
 
 # Agent Prompting

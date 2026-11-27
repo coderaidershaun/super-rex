@@ -7,6 +7,16 @@ when_to_use: >
   Use when plan or sketch lists an unknown, an engineer doubts an approach,
   crate, or outside service, or user says "spike this", "prove it works first",
   "quick experiment", "scratch test", "will this even work".
+metadata:
+  kind: method
+  category: design
+  claims:
+    touches: [unproven-approach]
+  placement: full
+  intents:
+    - prove an approach works first
+    - try an unproven crate or service
+    - run a quick throwaway experiment
 ---
 
 # Spike — Hard Rules

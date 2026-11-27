@@ -8,6 +8,16 @@ when_to_use: >
   says "adversarial review", "codex review", "second opinion on this plan",
   "second opinion on this code", "challenge this design", "challenge this
   implementation".
+metadata:
+  kind: method
+  category: review
+  claims:
+    facts: { role: plan-reviewer }
+  placement: full
+  intents:
+    - review the plan of a plan job
+    - get a second opinion on a plan
+    - challenge a code change
 ---
 
 # Adversarial Review
