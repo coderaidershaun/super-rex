@@ -10,3 +10,4 @@ mod oms_skills;
 mod store_jobs;
 mod watch;
 mod worktree;
+mod wp0;

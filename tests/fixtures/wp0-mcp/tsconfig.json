@@ -1,0 +1,4 @@
+{
+  "extends": "../../../plugin/tsconfig.json",
+  "include": ["run.ts", "node-builtins.d.ts", "probe-plugin/server"]
+}

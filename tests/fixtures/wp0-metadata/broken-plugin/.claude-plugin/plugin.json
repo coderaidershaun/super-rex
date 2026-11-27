@@ -1,0 +1,6 @@
+{
+  "name": "wp0-broken",
+  "version": "0.0.1",
+  "description": "Throwaway plugin that loads test skills, so a headless session shows how Claude Code reads their headers",
+  "author": { "name": "SuperRex tests" }
+}

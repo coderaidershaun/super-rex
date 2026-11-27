@@ -1,0 +1,12 @@
+{
+  "name": "wp0-mcp-probe",
+  "version": "0.0.1",
+  "description": "Throwaway plugin that proves a mod can call an MCP server its own manifest lists",
+  "author": { "name": "super-rex tests" },
+  "mcpServers": {
+    "stub": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/stub.ts"]
+    }
+  }
+}
