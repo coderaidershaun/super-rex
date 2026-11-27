@@ -7,6 +7,7 @@ mod commands;
 mod experience;
 mod init;
 mod oms_skills;
+mod skills_serve;
 mod store_jobs;
 mod watch;
 mod worktree;

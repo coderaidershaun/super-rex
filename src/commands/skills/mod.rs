@@ -6,6 +6,7 @@ mod header;
 mod list;
 mod references;
 mod rules;
+mod serve;
 
 pub use references::KnownSkills;
 pub use rules::{Finding, Rule, Skill, SkillFile, check_skill};
@@ -61,6 +62,16 @@ pub enum SkillsCommand {
         #[arg(required = true)]
         paths: Vec<PathBuf>,
     },
+
+    /// Serve a skill library to an MCP client over stdin and stdout.
+    #[command(
+        after_help = "Answers the tools head, search and get, one JSON-RPC message per line. Give --library more than once for several folders, first one wins when a skill name repeats. With no --library, serves the library embedded in this binary."
+    )]
+    Serve {
+        /// A folder of skill folders.
+        #[arg(long = "library")]
+        libraries: Vec<PathBuf>,
+    },
 }
 
 /// Failure of `rex skills`.
@@ -97,6 +108,9 @@ pub enum SkillsError {
 
     #[error(transparent)]
     Rex(#[from] RexError),
+
+    #[error(transparent)]
+    Serve(#[from] serve::ServeError),
 }
 
 impl SkillsError {
@@ -116,6 +130,7 @@ impl CommandError for SkillsError {
             | SkillsError::Findings { .. }
             | SkillsError::Json { .. } => FailureClass::Reject,
             SkillsError::Rex(error) => error.failure_class(),
+            SkillsError::Serve(_) => FailureClass::Reject,
         }
     }
 
@@ -138,5 +153,6 @@ pub fn run(cwd: &Path, options: SkillsOptions) -> Result<(), SkillsError> {
     match options.command {
         SkillsCommand::List { json } => list::run(cwd, json),
         SkillsCommand::Check { paths } => check::run(cwd, &paths),
+        SkillsCommand::Serve { libraries } => Ok(serve::run(&libraries)?),
     }
 }
