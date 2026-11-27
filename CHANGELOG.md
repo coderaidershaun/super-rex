@@ -4,6 +4,37 @@ This file lists the changes to SuperRex that a user can see, newest first. The f
 
 ## Unreleased
 
+What changes for you:
+
+- **The skill library describes itself and answers as an MCP server.** Each of the 25 library skills declares what it is for in a `metadata` map of its header, the plugin starts a server that answers `head`, `search` and `get` over that library, and `rex skills check` checks the map. Another repo can make its own folder of skills searchable the same way: [docs/skill-library.md](docs/skill-library.md) walks through it.
+
+### Added
+
+- **A shared vocabulary, version 1.** `plugin/vocab/terms.json` lists the terms that a `metadata` map may use: 4 kinds, 8 categories, 6 facts, 3 scope keys, 8 activities, 13 touches, 2 qualities and 8 artefacts. `plugin/vocab/aliases.json` maps free words onto those terms, such as `p99` onto `latency`. The binary embeds both. `docs/skill-library-vocabulary.md` maps each criterion, row and file of the assignment table onto a term.
+- **`rex skills check` reads the `metadata` map**, with rules M1 to M13: `kind` and `category` are terms, each claim and scope key is a term, `not_when` is there when a scope is, `intents` holds 3 to 5 phrases, `files` lists every file of the folder, each `open_when`, `requires` and `replaces` target exists, `max_topics` is a positive number, and the map holds at most 120 words. A wrong term is a finding that lists the allowed terms.
+- **`rex skills check --pool <folder>` runs rule M14, the intent check.** Each intent phrase must find its own skill in the top five of a keyword search among the checked skills and the pool. Without `--pool`, a warning line says that the check was skipped. With fewer than 1,000 skills to search, a warning line says that the check is not a real test.
+- **Every library skill has a `metadata` map**, with its kind, category, claims, placement, scope, `not_when`, intents, files and open-when items. They carry what the assignment table knew about each skill. Each instruction in a library file to open another skill, or a file of one, is declared as an `open_when` item of its skill, and a fitness test fails on one that is not.
+- **The skill `rex-code-essentials`.** One page of the rules of `rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics` and `rex-code-error-writing` that every code task obeys, in any language, with the four rulebooks as its open-when items. The library now holds 25 skills.
+- **The rules of the `metadata` map are written for skill writers.** `rex-skill-language` has a section `## METADATA`. A skill that a job's skill writer writes must carry the map, and a fork that `rex-feedback` makes keeps the map of the skill it forks.
+- **`rex skills serve [--name <name>] [--library <folder>]...`.** An MCP server over stdin and stdout with three tools: `head` gives the library's name, version, number of skills and vocabulary version; `search` gives cards for request forms, never skill text; `get` gives one file and its SHA-256. A failed call answers with `isError` and a code, such as `not_found`, `bad_cursor` or `stale_cursor`. With several folders the first one wins for a skill name. With none, it serves the library built into the binary.
+- **The plugin starts its library server.** `plugin.json` declares `mcpServers.library`, which runs `rex skills serve --name super-rex --library ${CLAUDE_PLUGIN_ROOT}/library`, so the server serves the installed plugin's own library.
+- **Agents of a job cannot call the server's raw tools.** While a job is open, the mod refuses `mcp__plugin_super-rex_library__head`, `__search` and `__get` to the builder and to each sub-agent, with a refusal that starts `rex library guard:`. An agent reads a skill with `rex_skill`, as before. Outside a job, the tools work.
+- **`rex skills search [--library <folder>]...`.** It reads the arguments of the `search` tool as JSON on stdin and prints the answer that the server gives. A search runs three lookups for each request form: A, the facts that a skill claims; B, the terms that a skill claims, with a check of its scope; C, a keyword search with SQLite FTS5 for free text and for words that are not terms. Each result gives the items with their tier, slot and reason, then `more` and a `cursor` for the rest, the `gaps`, the `unrecognised` words and the `dropped` skills. An answer is kept within a size limit.
+- **`rex skills index [--library <folder>]...`** prints a static index of a library as one JSON document, with each skill's name, description, URL, SHA-256 digest and the fields that a search reads.
+- **`rex doctor` checks the library server.** It prints a `library=` line with the name and version that the server answers to `head`, or `library=unreachable` and a `problem=library server: <cause>` line. `rex doctor --plugin <dir>` starts the server as the manifest of that plugin folder declares it, as Claude Code does, and also compares the manifest's version with the binary's in the `problem=version skew: …` line.
+- **Guides.** `docs/skill-library.md` shows how to make a folder of skills searchable, with SuperRex's library as the worked example. `docs/skill-library-wp0.md` records the tests that this work rests on: FTS5 in the bundled SQLite, a nested `metadata` map that Claude Code loads with no warning, and a call from the mod to a server that the plugin declares.
+
+### Unchanged
+
+- Inside a job, the mod still assigns skills with the assignment table, the questions to the decision agent, and the cap of six read-first skills.
+- `rex-code-essentials` is not yet assigned to any task.
+
+### Known limits
+
+- The plugin's server runs the first `rex` on your `PATH`. If that `rex` has no `skills serve`, the server does not start, and Claude Code shows only `status: failed` for it, with no message. `rex doctor --plugin <plugin folder>` reports it. `/rex doctor` does not pass `--plugin`, so it does not.
+- `rex skills check` gives no finding for a library skill that has no `metadata` map.
+- `head` ignores its `include` argument, so its answer never holds the vocabulary terms.
+
 ## 0.14.0 - 2026-11-25
 
 Install the binary and the plugin of this version together, then start a new session.

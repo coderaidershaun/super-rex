@@ -32,6 +32,8 @@ cargo install --path .
 
 The binary is `rex`. rex-skills installs a binary named `rex` too: if it is installed, run `cargo uninstall rex-skills` first, and make sure that the `rex` first on your `PATH` is this one (`rex --version` prints `rex 0.11.0`). The plugin and the binary must have the same version: the mod reads the binary's output and sends it batches of events in the form of one release. `rex doctor` and `/rex doctor` report a difference.
 
+The plugin also starts a skill library server with the command `rex skills serve` (see "Skills and the agent grid"). Claude Code runs the first `rex` on your `PATH` for it. If that `rex` has no `skills serve`, the server does not start, and Claude Code shows only `status: failed` for it, with no message. Run `rex doctor --plugin <plugin folder>` at a shell to check it: it starts the server as the plugin's manifest declares it and prints a `problem=library server: …` line when it fails. `/rex doctor` does not run this check.
+
 You do not install the plugin by hand. `rex init` installs it in each repo (see below).
 
 | Need | Why |
@@ -265,7 +267,7 @@ In every mode the mod reads a merge answer (`merge: yes`, `merge to main: no`) a
 
 **The spend gate.** Each job has a spend limit in US dollars at list prices. Once the job's sub-agents and main session have spent it, the mod refuses each new sub-agent, at the Agent call and again when the agent would start: `rex gate: job <id> has spent $X of its $Y limit; a person raises it with /rex limit <id> <usd>`. Agents already running keep spending, so a job can end a little over its limit. Before it refuses, the gate reads a limit that you set at a shell with `rex limit <job> --set <dollars>`. The default limit is $100,000 for every job: it is high on purpose, so a limit stops a job only when you, the policy or the master set a lower one.
 
-**Other guards.** A sub-agent at depth 4 starts only below a builder that a master started. A fork inside a job is refused, because a fork cannot change its model: the agent is told to start a grid agent instead. Inside a job, an Agent call starts its agent with `subagent_type`, `description` and `prompt` only: a call that also gives `name` or `team_name` (which would start a teammate that the mod does not record, gate or brief), `model`, `effort`, `mode`, `isolation` or `cwd` is refused before anything starts, with the argument it saw and what to do instead. A teammate or a workflow's agent that starts inside a job some other way is refused at its spawn. Agents outside any job are not touched. A shell command that would merge around `rex_merge` is refused, and so is a command that the guard stops (see "The guard"), for every agent and the main session, in a job or not.
+**Other guards.** A sub-agent at depth 4 starts only below a builder that a master started. A fork inside a job is refused, because a fork cannot change its model: the agent is told to start a grid agent instead. Inside a job, an Agent call starts its agent with `subagent_type`, `description` and `prompt` only: a call that also gives `name` or `team_name` (which would start a teammate that the mod does not record, gate or brief), `model`, `effort`, `mode`, `isolation` or `cwd` is refused before anything starts, with the argument it saw and what to do instead. A teammate or a workflow's agent that starts inside a job some other way is refused at its spawn. Agents outside any job are not touched. A shell command that would merge around `rex_merge` is refused, and so is a command that the guard stops (see "The guard"), for every agent and the main session, in a job or not. While a job is open, the raw tools of the plugin's library server (`mcp__plugin_super-rex_library__head`, `mcp__plugin_super-rex_library__search` and `mcp__plugin_super-rex_library__get`) are refused to the builder and to each sub-agent of the job, with a refusal that starts `rex library guard:` and tells the agent to read a skill with `rex_skill`. If the mod cannot tell whether the caller is an agent of an open job, it refuses the call. Outside a job, these tools work.
 
 **Test output.** When an agent runs a plain test command, such as `cargo test` or `pytest`, through the Bash tool, the mod cuts the lines that a runner prints for a passing test from the result before the agent reads it, and keeps every summary line. A failed run reaches the agent whole. A note at the end says how many lines were left out and to run the command again with `| cat` at its end to see them all.
 
@@ -487,7 +489,10 @@ A store of any other version is refused with exit 2, and nothing is written. Age
 
 **`rex ingest`**: the mod's write path, not for people. It reads one batch of events as JSON on stdin and prints `last_sequence=<n>`. A refused batch changes nothing: exit 2 for a batch that does not fit (its form, a gap in the sequence, a conflict), 3 for a wrong secret, 4 when storage is off or there is no store. Agents may not run it.
 
-**`rex doctor`**: check that the binary, the store, the config, the plugin and Claude Code fit. It prints `doctor=ok` or `doctor=problems`, then `binary=`, `store=`, `storage=`, `claude=` and `plugin=` (the versions that the newest session reported), and one `problem=` line for each thing to fix, such as a plugin and a binary of different versions, a Claude Code older than `min_claude_code`, or an open job of a session that is gone, which it tells you to close or to resume with `/super-rex:orchestration-master resume`. It runs no `claude` command, and exits 0 either way.
+**`rex doctor [--plugin <dir>]`**: check that the binary, the store, the config, the plugin, the library server and Claude Code fit. It prints `doctor=ok` or `doctor=problems`, then `binary=`, `store=`, `storage=`, `claude=` and `plugin=` (the versions that the newest session reported), `library=`, and one `problem=` line for each thing to fix, such as a Claude Code older than `min_claude_code`, or an open job of a session that is gone, which it tells you to close or to resume with `/super-rex:orchestration-master resume`. It runs no `claude` command, and exits 0 either way. It must run inside a Git repo, with or without `--plugin`: outside one, it prints `error: no Git repository found at or above <folder>; run rex inside the repository where SuperRex is set up, or a worktree of it` and exits 1.
+
+- **The library line.** `rex doctor` starts a library server and asks it `head`. `library=` gives the name and the `version` that the server answers, or `unreachable`, with a `problem=library server: <cause>` line. With no `--plugin`, it starts its own binary over the library built into it. With `--plugin <dir>`, it reads `mcpServers.library` of `<dir>/.claude-plugin/plugin.json`, puts `<dir>` in place of `${CLAUDE_PLUGIN_ROOT}`, and starts that command, as Claude Code does. So `--plugin` shows whether the `rex` on your `PATH` can serve the library. It waits at most 10 seconds for the answer.
+- **The version line.** A plugin and a binary of different versions give `problem=version skew: plugin <version>, binary <version>; install the same version of both`. The plugin version comes from the newest session in the store and, with `--plugin`, from the manifest's `version`. A version that both give is named once.
 
 ```console
 $ rex doctor
@@ -497,6 +502,17 @@ store=v2
 storage=on
 claude=2.1.323
 plugin=0.14.0
+library=super-rex sha256:450355ca8e877be1ab2f13df9b2cdbe78a4546742dd0a00eca7f756f0be87e5a
+```
+
+With a `rex` on `PATH` that has no `skills serve`:
+
+```console
+$ rex doctor --plugin /home/ana/plugins/super-rex
+doctor=problems
+...
+library=unreachable
+problem=library server: it ended with no answer to head: error: unrecognized subcommand 'serve'
 ```
 
 **`rex job show [<job>] [--json]`**: print one job's record: origin, builder, tree, classification, preferences, merge answer and its source, places, limit, degraded marks, plan, roles with their model selection and skills, deliveries, sub-agent runs with the skills each opened and their tokens and cost, the main session's tokens and cost, the request, the breakdown and the recalled experience. With no job, it shows the open job of the main session of `$CLAUDE_CODE_SESSION_ID`. `status` is the shown status (`running` for a planned job with a sub-agent open), `stored_status` the status as stored. `--json` adds the transitions, each run's brief and final message, the questions, the decisions, the skill manifest and the feedback.
@@ -571,11 +587,11 @@ version=2
 
 The function is version 2. A role gets the `xhigh` tier only when its consequence is `high`: with a lower consequence, the tier stops at `high` and rule `T3` shows in `rules`.
 
-**`rex skills`**: the group of `list` and `check`. On its own it prints its help on stderr and exits 2.
+**`rex skills`**: the group of `list`, `check`, `serve`, `search` and `index`. On its own it prints its help on stderr and exits 2.
 
 **`rex skills list [--json]`**: print each skill of the repo's `.claude/skills/`, of the repo's `.rex/skills/` and of `~/.claude/skills/` as a block of six lines (`name`, `description`, `when_to_use`, `source`, `shadowed`, `path`). `source` is `repo`, `library` or `user`. It does not list the plugin's skills: the binary knows no plugin. `/` in a session lists those.
 
-**`rex skills check <path>...`**: check skill files, skill folders, or a folder of skill folders against the rules in "Reference". It prints `ok <path>` or one line per finding, and exits 1 on any finding.
+**`rex skills check <path>... [--pool <folder>]...`**: check skill files, skill folders, or a folder of skill folders against the rules in "Reference". It prints `ok <path>` or one line per finding, and exits 1 on any finding. With `--pool`, it also runs rule M14: each intent phrase of a checked skill must find that skill in the top five of a keyword search among the checked skills and the skills of each pool folder. It warns on stderr when that search holds fewer than 1,000 skills. With no `--pool`, it prints `warning: intent check skipped; give --pool <folder> of other skills to check that each intent finds its skill` on stderr when a checked skill has intents.
 
 ```console
 $ rex skills check .rex/skills
@@ -585,6 +601,22 @@ $ rex skills check .rex/skills
 ok .rex/skills/shop-style
 error: 3 findings in 1 of 2 skills
 ```
+
+**`rex skills serve [--name <name>] [--library <folder>]...`**: serve a skill library to an MCP client over stdin and stdout, one JSON-RPC message per line. Its three tools are `head` (the library's name, version and number of skills), `search` (cards for request forms, never skill text) and `get` (one skill file and its SHA-256). `--library` is a folder of skill folders; give it more than once for several folders, and the first one wins when a skill name repeats. With no `--library`, it serves the library built into the binary. `--name` is the name that `head` reports; left out, it is the base name of the first folder, or `super-rex` for the built-in library. The plugin starts it as `rex skills serve --name super-rex --library ${CLAUDE_PLUGIN_ROOT}/library`. [docs/skill-library.md](docs/skill-library.md) gives each tool's arguments, answers and error codes, and shows how another repo serves its own folder.
+
+```console
+$ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"head","arguments":{}}}' | rex skills serve --name team --library skills
+{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\"protocol\":\"skills/1\",\"library\":\"team\",\"version\":\"sha256:610a6762965d5c019a91573d4b1e9d06ddef6aded98198cb046a36cbbb1d6c6b\",\"skills\":3,\"vocabulary\":\"1\"}"}],"isError":false}}
+```
+
+**`rex skills search [--library <folder>]...`**: read the arguments of the `search` tool as one JSON object on stdin (`requests`, `limit`, `cursor`, `kinds`, `categories`), and print the answer as one JSON line, the same text that the `search` tool of `rex skills serve` gives. Use it to test the headers of a library. It finds skills in three lookups: A, the facts a skill claims; B, the terms a skill claims, with a check of its scope; C, a keyword search for free text. It has no `--name`: each item names the base name of the first folder as its library.
+
+```console
+$ echo '{"requests":[{"id":"T2","facts":{"writes_code":true,"languages":["go"],"latency_scale":"ms"},"must_have":["latency"]}],"kinds":["reference"]}' | rex skills search --library plugin/library
+{"index_version":"sha256:450355ca8e877be1ab2f13df9b2cdbe78a4546742dd0a00eca7f756f0be87e5a","results":[{"request":"T2","items":[],"more":0,"cursor":null,"gaps":[{"need":"must_have:latency","reason":"scope: languages go not in rust; latency_scale ms not in ns_us","skill":"rex-code-latency","library":"library","not_when":"A hot path measured in milliseconds, or one on a host you do not control."},{"need":"languages:go","reason":"no skill claims the language go"}],"unrecognised":[],"dropped":[]}]}
+```
+
+**`rex skills index [--library <folder>]...`**: print the static index of a library as one JSON document, to publish beside it: `protocol`, `library`, `vocabulary`, and each skill with its `name`, `type`, `description`, `url`, `digest` (`sha256:` and the SHA-256 of `SKILL.md`), the fields that a search reads, and its other files with their digests. Write it to a file with `rex skills index --library skills > index.json`.
 
 **`rex recall <job> [--json]`**: print up to 5 lessons from similar jobs, up to 3 orchestrators those jobs used with how they turned out and what they cost, and every orchestrator in the library whose newest version never ran. A job is similar when at least 2 of work type, size, consequence and languages are equal. While the job is `created`, the result is also stored on the job (`recorded=yes`). The builder gets it through `rex_recall`.
 
@@ -776,6 +808,8 @@ when_to_use: Use when you write release notes, or when the user says "release no
 ---
 ```
 
+A skill of the library also has a `metadata` map in its header: its `kind`, its `category`, what it is for in terms of the shared vocabulary (`plugin/vocab/terms.json`, version 1), its scope, its intent phrases, its files and its open-when items. `rex skills search` and the library server read that map. [docs/skill-library.md](docs/skill-library.md) gives the format, with a header of the library as the example.
+
 An agent reads all of `SKILL.md`, so it holds only the rules an agent needs every time and a table that says when to read each sibling file. A sibling file sits in the skill's folder and holds the text for one step or one case. `SKILL.md` names it as `<skill>/<file>.md`, such as `rex-deliver/clean-up.md`, and an agent reads it with `rex_skill` only when it reaches that step or case. A skill can sit below its folder in subfolders too, as the builder's stage files do.
 
 `rex skills check` applies these rules. The IDs never change meaning.
@@ -796,10 +830,28 @@ An agent reads all of `SKILL.md`, so it holds only the rules an agent needs ever
 | B3 | Each relative link to a `.md` file points to a file of the same skill: `rex_skill` reads only inside one skill. |
 | B4 | Each code span `<skill>/<file>.md` names a Markdown file of a skill in `plugin/skills` or `plugin/library` of the plugin, in the repo's `.rex/skills`, or beside a checked skill. A span that names a skill file by its folder (`.claude/skills/`, `.rex/skills/`, `plugin/skills/`, `plugin/library/`) is a finding. A span with a placeholder is a template. A span whose first folder is no skill and does not start with `rex-` is a path in the repo and is not checked. |
 | B5 | The text after the header of `SKILL.md` has at most 1,500 words, counted as `wc -w` counts them. |
+| M1 | `metadata.kind` is a term of `kinds` in the vocabulary. |
+| M2 | `metadata.category` is a term of `categories` in the vocabulary. |
+| M3 | `metadata.claims` holds only `facts`, `activity`, `touches`, `quality` and `artefact`, and each claim is a vocabulary term that a skill may claim, with a value of the fact's type. |
+| M4 | `metadata.placement` is `full` or `open-when`. |
+| M5 | Each key of `metadata.scope` is a scope key of the vocabulary, and holds a list of at least one allowed value. |
+| M6 | `metadata.not_when` is one line, and is there when `scope` has a key. |
+| M7 | `metadata.intents` holds three to five pieces of text, none empty. |
+| M8 | Each item of `metadata.files` has a `path` other than `SKILL.md`, a `role` of `topic`, `language` or `code`, and a vocabulary `language` when its role is `language` or `code`. Its own `intents`, when there, are one to five pieces of text. |
+| M9 | `metadata.files` lists every file of the skill folder but `SKILL.md`, and every file it lists is in the folder. |
+| M10 | Each item of `metadata.open_when` has its case in `when`, and names a skill, a file of this skill, or a file of another skill that exists. |
+| M11 | Each skill that `metadata.requires` or `metadata.replaces` names exists. |
+| M12 | `metadata.max_topics` is a positive whole number. |
+| M13 | The fields of `metadata` that a search reads hold at most 120 words, not counting keys or file paths. |
+| M14 | Each phrase of `metadata.intents` finds its own skill in the top five of a keyword search among the checked skills and the skills of each `--pool` folder. It runs only with `--pool`. |
+
+Rules M1 to M13 run only on a `metadata` map that holds a key that a search reads, such as `kind`. A skill with no such map gets no M finding: a search finds it by its name and text alone.
 
 ## Skills and the agent grid
 
 The plugin holds 33 skills in two folders. Claude Code lists the 8 in `plugin/skills/` as commands of the plugin; it does not list the 25 of the library, `plugin/library/`, so they cost no context in a session. Each brief gets its read-first skills from the mod, and an agent opens the others with `rex_skill`.
+
+**The library server.** Each skill of the library declares a `metadata` map in its header, and the plugin serves the library as an MCP server: its manifest starts `rex skills serve --name super-rex --library ${CLAUDE_PLUGIN_ROOT}/library` with the server key `library`, so the server serves the installed plugin's own `library/` folder. Any MCP client can call its tools `head`, `search` and `get`, and another repo can serve its own folder of skills the same way: see [docs/skill-library.md](docs/skill-library.md). Inside a job, agents do not call the server: the mod refuses its raw tools to them (see "Other guards"), and the mod still gives each task its skills from the assignment table.
 
 The skills that you start:
 
@@ -812,7 +864,7 @@ The skills that you start:
 
 The skill library:
 
-- **Rulebooks:** 19 `rex-code-*` skills for writing code. Most are written for Rust, and they apply to every language: an agent applies the intent of each rule in that language's idiom, and a gap skill covers what the language lacks. A gap skill is named `rex-gap-<language>`, with the `--only` name of `rex codebase`. The library ships `rex-gap-ts` for TypeScript, and a job that needs another and finds none can have it written in `.rex/skills/`. The rulebooks cover philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four kinds of test, design sketch, spike, validation plan, priorities and latency.
+- **Rulebooks:** 20 `rex-code-*` skills for writing code. Most are written for Rust, and they apply to every language: an agent applies the intent of each rule in that language's idiom, and a gap skill covers what the language lacks. A gap skill is named `rex-gap-<language>`, with the `--only` name of `rex codebase`. The library ships `rex-gap-ts` for TypeScript, and a job that needs another and finds none can have it written in `.rex/skills/`. The rulebooks cover philosophy, ergonomics, comments, errors and failure policy, crates, folders, architecture, smells, TDD and the four kinds of test, design sketch, spike, validation plan, priorities and latency. `rex-code-essentials` is one page of the rules of four of them (philosophy, comments, ergonomics and errors), with the four as its open-when items. No row of the assignment table gives it to a task yet.
 - **Plan review:** `rex-codex-adversarial-review`, which every plan job runs before its plan is final.
 - **`rex-mermaid-diagrams`:** how to draw diagrams in Mermaid.
 - **`rex-skill-language`:** the language every skill and agent instruction is written in.
