@@ -148,6 +148,10 @@ pub enum Rule {
     /// The fields of `metadata` that a search reads hold at most 120 words,
     /// not counting keys or file paths.
     M13,
+    /// Each phrase of `metadata.intents` finds its own skill in the top five
+    /// of a keyword search among the checked skills and a pool of other
+    /// skills. Runs only when `rex skills check` is given `--pool`.
+    M14,
 }
 
 impl Rule {
@@ -182,6 +186,7 @@ impl Rule {
             Rule::M11 => "M11",
             Rule::M12 => "M12",
             Rule::M13 => "M13",
+            Rule::M14 => "M14",
         }
     }
 }

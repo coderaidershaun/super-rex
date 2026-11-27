@@ -6,3 +6,4 @@ mod library_metadata;
 mod master_procedure;
 mod oms_skills;
 mod plugin;
+mod skills_search;

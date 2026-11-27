@@ -1,4 +1,4 @@
-//! The handshake, the tool list, the stubbed search and the JSON-RPC error answers.
+//! The handshake, the tool list, a first search and the JSON-RPC error answers.
 
 use serde_json::json;
 
@@ -46,13 +46,17 @@ fn tools_list_names_head_search_and_get_with_their_arguments() {
 }
 
 #[test]
-fn search_answers_not_implemented() {
+fn search_answers_each_request_with_the_version_of_head() {
     let mut server = Server::start(&[&fixture("lib-a")]);
     server.initialize();
-    let (is_error, value) = server.call("search", &json!({ "requests": [] }));
+    let arguments = json!({ "requests": [{ "id": "T1", "needs": ["anything at all"] }] });
+    let (is_error, value) = server.call("search", &arguments);
+    let head = server.head();
 
-    assert!(is_error);
-    assert_eq!(value["code"], "not_implemented");
+    assert!(!is_error, "search failed: {value}");
+    assert_eq!(value["index_version"], head["version"]);
+    assert_eq!(value["results"][0]["request"], "T1");
+    assert!(value["results"][0]["items"].is_array());
 }
 
 #[test]

@@ -1,6 +1,6 @@
 //! `rex skills serve`: a skill library server that speaks JSON-RPC over stdin and stdout, so any MCP client can ask what a library holds.
 
-mod library;
+pub(super) mod library;
 mod rpc;
 mod tools;
 mod vocabulary;

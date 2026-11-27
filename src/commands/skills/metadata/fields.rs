@@ -28,10 +28,9 @@ pub(super) fn findings(map: &Metadata) -> Vec<(Rule, String)> {
         findings.extend(placement_problem(placement).map(|message| (Rule::M4, message)));
     }
     findings.extend(not_when_problem(map).map(|message| (Rule::M6, message)));
-    // Known limitation: the skill library specification also asks that each
-    // intent phrase finds its own skill in the top five results of a search.
-    // That check needs the search that work package WP4 builds, so it is not
-    // here yet; add it beside this rule.
+    // The check that each intent phrase finds its own skill in the top five
+    // results of a search is not here: it needs every checked skill and the
+    // pool, so `rex skills check` runs it after the rules of each skill.
     if let Some(intents) = map.get("intents") {
         findings.extend(
             intents_problem("intents", intents, &INTENT_COUNT).map(|message| (Rule::M7, message)),

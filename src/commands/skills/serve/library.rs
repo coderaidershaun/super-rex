@@ -1,4 +1,4 @@
-//! The folders (or the embedded copy) that the server reads skills from, with shadowing, hashing and safe file reads.
+//! The folders (or the embedded copy) that the server and the search read skills from, with shadowing, hashing and safe file reads.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -14,23 +14,32 @@ use crate::bundle;
 /// The name `head` reports for the library embedded in the binary.
 const EMBEDDED_NAME: &str = "super-rex";
 
-pub(super) enum Library {
+pub(crate) enum Library {
     Folder(PathBuf),
     Embedded,
 }
 
 /// Why `get` could not give a file.
-pub(super) enum ReadError {
+pub(crate) enum ReadError {
     NotFound,
     Unreadable(String),
 }
 
 /// The libraries in priority order. A skill name in an earlier one hides the
 /// whole skill of that name in every later one.
-pub(super) struct Libraries {
+pub(crate) struct Libraries {
     list: Vec<Library>,
     name: String,
     vocabulary: Vocabulary,
+}
+
+/// One skill folder of one library. `library` and `shadowed_by` are positions
+/// in the priority order.
+pub(crate) struct SkillPlace {
+    pub(crate) skill: String,
+    pub(crate) library: usize,
+    /// The earlier library whose skill of the same name hides this one.
+    pub(crate) shadowed_by: Option<usize>,
 }
 
 pub(super) fn sha256_hex(bytes: &[u8]) -> String {
@@ -38,6 +47,24 @@ pub(super) fn sha256_hex(bytes: &[u8]) -> String {
         .iter()
         .map(|byte| format!("{byte:02x}"))
         .collect()
+}
+
+/// The `version` that `head` reports and every search answer carries:
+/// `sha256:` and the SHA-256 of this text, in UTF-8. One line `<skill>/<file>`,
+/// a tab, the file's lower-case hex SHA-256 and a newline for each served
+/// file, sorted by that path as bytes; then the line `vocabulary`, a tab, the
+/// vocabulary version (empty when there is none) and a newline.
+pub(crate) fn library_version(
+    mut files: Vec<(String, String)>,
+    vocabulary: Option<&str>,
+) -> String {
+    files.sort();
+    let mut preimage = String::new();
+    for (path, sha) in &files {
+        preimage.push_str(&format!("{path}\t{sha}\n"));
+    }
+    preimage.push_str(&format!("vocabulary\t{}\n", vocabulary.unwrap_or("")));
+    format!("sha256:{}", sha256_hex(preimage.as_bytes()))
 }
 
 /// A skill folder name: lower-case letters, digits and hyphens.
@@ -51,7 +78,7 @@ pub(super) fn is_skill_name(name: &str) -> bool {
 impl Libraries {
     /// The libraries of `folders`, or the embedded one when there are none.
     /// `head` reports `name`, or else the first folder's base name.
-    pub(super) fn open(name: Option<String>, folders: &[PathBuf]) -> Result<Libraries, ServeError> {
+    pub(crate) fn open(name: Option<String>, folders: &[PathBuf]) -> Result<Libraries, ServeError> {
         if folders.is_empty() {
             return Ok(Libraries {
                 list: vec![Library::Embedded],
@@ -79,28 +106,49 @@ impl Libraries {
         })
     }
 
-    pub(super) fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &str {
         &self.name
+    }
+
+    /// The library at `position` in the priority order.
+    pub(crate) fn library(&self, position: usize) -> &Library {
+        &self.list[position]
     }
 
     /// The vocabulary version, or `None` for a folder with no
     /// `vocab/terms.json` beside it.
-    pub(super) fn vocabulary_version(&self) -> Result<Option<String>, ServeError> {
+    pub(crate) fn vocabulary_version(&self) -> Result<Option<String>, ServeError> {
         self.vocabulary.version()
+    }
+
+    /// Every skill folder of every library, in priority order and then name
+    /// order, each marked with the earlier library that hides it, if any.
+    pub(crate) fn skill_places(&self) -> io::Result<Vec<SkillPlace>> {
+        let mut owners: BTreeMap<String, usize> = BTreeMap::new();
+        let mut places = Vec::new();
+        for (position, library) in self.list.iter().enumerate() {
+            for skill in library.skill_names()? {
+                let owner = *owners.entry(skill.clone()).or_insert(position);
+                places.push(SkillPlace {
+                    skill,
+                    library: position,
+                    shadowed_by: (owner != position).then_some(owner),
+                });
+            }
+        }
+        Ok(places)
     }
 
     /// Every served file as `(<skill>/<file>, file sha256)`, sorted by path:
     /// the files of the first library that has each skill.
     pub(super) fn served_files(&self) -> io::Result<Vec<(String, String)>> {
-        let mut owners: BTreeMap<String, &Library> = BTreeMap::new();
-        for library in &self.list {
-            for skill in library.skill_names()? {
-                owners.entry(skill).or_insert(library);
-            }
-        }
         let mut files = Vec::new();
-        for (skill, library) in owners {
-            for (file, sha) in library.files(&skill)? {
+        for place in self.skill_places()? {
+            if place.shadowed_by.is_some() {
+                continue;
+            }
+            let skill = &place.skill;
+            for (file, sha) in self.library(place.library).files(skill)? {
                 files.push((format!("{skill}/{file}"), sha));
             }
         }
@@ -141,6 +189,15 @@ fn is_plain_relative(file: &str) -> bool {
 }
 
 impl Library {
+    /// The name a search gives this library: its folder name, or the name of
+    /// the embedded library.
+    pub(crate) fn name(&self) -> String {
+        match self {
+            Library::Folder(path) => folder_name(path),
+            Library::Embedded => EMBEDDED_NAME.to_string(),
+        }
+    }
+
     fn skill_names(&self) -> io::Result<Vec<String>> {
         match self {
             Library::Embedded => {
@@ -172,8 +229,9 @@ impl Library {
         }
     }
 
-    /// The files of one skill as `(path inside the skill, sha256)`.
-    fn files(&self, skill: &str) -> io::Result<Vec<(String, String)>> {
+    /// The files of one skill as `(path inside the skill, sha256)`: its
+    /// served set.
+    pub(crate) fn files(&self, skill: &str) -> io::Result<Vec<(String, String)>> {
         match self {
             Library::Embedded => Ok(embedded_files()
                 .filter(|(s, _, _)| s == skill)
@@ -194,7 +252,7 @@ impl Library {
 
     /// One file of the served set of `skill`, so `get` gives exactly the
     /// files that `head` hashes.
-    fn read(&self, skill: &str, file: &str) -> Result<Vec<u8>, ReadError> {
+    pub(crate) fn read(&self, skill: &str, file: &str) -> Result<Vec<u8>, ReadError> {
         match self {
             Library::Embedded => embedded_files()
                 .find(|(s, f, _)| s == skill && f == file)

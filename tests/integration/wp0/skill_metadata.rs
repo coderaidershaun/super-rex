@@ -50,6 +50,11 @@ fn skills_check(cwd: &Path, paths: &[&str]) -> Output {
         .expect("run rex skills check")
 }
 
+/// The line `rex skills check` prints on stderr when a checked skill has
+/// intents and no `--pool` was given.
+const INTENT_SKIP_LINE: &str = "warning: intent check skipped; give --pool <folder> of other \
+    skills to check that each intent finds its skill\n";
+
 fn text_of(bytes: &[u8]) -> String {
     String::from_utf8(bytes.to_vec()).expect("utf8 output")
 }
@@ -75,7 +80,7 @@ fn skills_check_passes_the_metadata_fixture_and_its_baseline_in_a_plugin() {
         ],
     );
 
-    assert_eq!(text_of(&output.stderr), "");
+    assert_eq!(text_of(&output.stderr), INTENT_SKIP_LINE);
     assert_eq!(
         text_of(&output.stdout),
         "ok metadata-plugin/skills/wp0-metadata\nok baseline-plugin/skills/wp0-metadata\n"
@@ -97,7 +102,7 @@ fn skills_check_passes_the_metadata_fixture_in_a_project_claude_skills_folder() 
 
     let output = skills_check(repo, &[".claude/skills/wp0-metadata"]);
 
-    assert_eq!(text_of(&output.stderr), "");
+    assert_eq!(text_of(&output.stderr), INTENT_SKIP_LINE);
     assert_eq!(text_of(&output.stdout), "ok .claude/skills/wp0-metadata\n");
     assert_eq!(output.status.code(), Some(0));
 }

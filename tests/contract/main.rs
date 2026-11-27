@@ -4,5 +4,6 @@
 mod calls;
 mod capture;
 mod oms_skills;
+mod skills_search;
 mod store_jobs;
 mod watch_live;

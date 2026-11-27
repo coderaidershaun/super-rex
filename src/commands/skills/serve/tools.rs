@@ -1,8 +1,9 @@
-//! The three library tools: `head`, `search` (stubbed) and `get`, behind one dispatch.
+//! The three library tools: `head`, `search` and `get`, behind one dispatch.
 
 use serde_json::{Value, json};
 
-use super::library::{Libraries, ReadError, sha256_hex};
+use super::library::{Libraries, ReadError, library_version, sha256_hex};
+use crate::commands::skills::search::{self, Index, IndexVersion, SearchError, SearchRequest};
 
 const PROTOCOL: &str = "skills/1";
 
@@ -58,7 +59,7 @@ pub(super) fn call(libraries: &Libraries, params: &Value) -> Value {
     let arguments = params.get("arguments").unwrap_or(&Value::Null);
     let outcome = match name {
         "head" => head(libraries),
-        "search" => search(arguments),
+        "search" => search(libraries, arguments),
         "get" => get(libraries, arguments),
         other => Err(ToolError::new("unknown_tool", format!("no tool {other}"))),
     };
@@ -75,18 +76,25 @@ fn result(value: &Value, is_error: bool) -> Value {
     json!({ "content": [{ "type": "text", "text": value.to_string() }], "isError": is_error })
 }
 
-/// The one function that the search job replaces.
-fn search(_arguments: &Value) -> Result<Value, ToolError> {
-    Err(ToolError::new(
-        "not_implemented",
-        "search is not implemented yet",
-    ))
+/// The same answer as `rex skills search`: the index and its version come
+/// from one scan of the disk on each call, as `head` scans on each call.
+fn search(libraries: &Libraries, arguments: &Value) -> Result<Value, ToolError> {
+    let answer = || -> Result<Value, SearchError> {
+        let request: SearchRequest =
+            serde_json::from_value(arguments.clone()).map_err(|error| {
+                SearchError::BadArguments {
+                    message: error.to_string(),
+                }
+            })?;
+        let index = Index::load(libraries)?;
+        let vocabulary = libraries.vocabulary_version()?;
+        let version = IndexVersion::of(&index, vocabulary.as_deref());
+        let response = search::search(&index, &version, &request)?;
+        Ok(serde_json::to_value(&response).expect("an answer of strings and numbers is JSON"))
+    };
+    answer().map_err(|error| ToolError::new(error.code(), error.to_string()))
 }
 
-/// `version` is `sha256:` and the SHA-256 of this text, in UTF-8: one line
-/// `<skill>/<file>`, a tab, the file's lower-case hex SHA-256 and a newline for
-/// each served file, sorted by that path as bytes; then the line `vocabulary`,
-/// a tab, the vocabulary version (empty when there is none) and a newline.
 fn head(libraries: &Libraries) -> Result<Value, ToolError> {
     let unreadable =
         |error: &dyn std::fmt::Display| ToolError::new("unreadable", error.to_string());
@@ -97,25 +105,20 @@ fn head(libraries: &Libraries) -> Result<Value, ToolError> {
         .vocabulary_version()
         .map_err(|error| unreadable(&error))?;
 
-    let mut preimage = String::new();
     let mut skills: Vec<&str> = Vec::new();
-    for (path, sha) in &files {
-        preimage.push_str(&format!("{path}\t{sha}\n"));
+    for (path, _) in &files {
         let skill = path.split('/').next().unwrap_or("");
         if skills.last() != Some(&skill) {
             skills.push(skill);
         }
     }
-    preimage.push_str(&format!(
-        "vocabulary\t{}\n",
-        vocabulary.as_deref().unwrap_or("")
-    ));
+    let skill_count = skills.len();
 
     Ok(json!({
         "protocol": PROTOCOL,
         "library": libraries.name(),
-        "version": format!("sha256:{}", sha256_hex(preimage.as_bytes())),
-        "skills": skills.len(),
+        "version": library_version(files, vocabulary.as_deref()),
+        "skills": skill_count,
         "vocabulary": vocabulary,
     }))
 }

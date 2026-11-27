@@ -8,6 +8,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+use super::intents;
 use super::list::{self, Source};
 use super::references::KnownSkills;
 use super::rules::{Skill, SkillFile, check_skill};
@@ -207,15 +208,19 @@ fn skill_paths_outside(cwd: &Path) -> Result<BTreeSet<PathBuf>, SkillsError> {
 }
 
 /// Check each skill in `paths` and print one `ok` line for each skill that
-/// passes, and one line for each finding.
+/// passes, and one line for each finding. With `pools`, each intent phrase
+/// of each skill must also find that skill among the checked skills and
+/// the skills of the pool folders.
 ///
 /// # Errors
 /// - [`SkillsError::Missing`], [`SkillsError::NoSkillFile`],
 ///   [`SkillsError::NotSkillFile`] or [`SkillsError::Read`] for the first
-///   path that is not a readable skill. Nothing is printed then.
+///   path that is not a readable skill, or a pool folder that is missing or
+///   cannot be listed. Nothing is printed then.
+/// - [`SkillsError::Search`] if the keyword search of the intent check fails.
 /// - [`SkillsError::Findings`] with the counts when any rule is broken.
 /// - [`SkillsError::Rex`] if standard output cannot be written.
-pub(super) fn run(cwd: &Path, paths: &[PathBuf]) -> Result<(), SkillsError> {
+pub(super) fn run(cwd: &Path, paths: &[PathBuf], pools: &[PathBuf]) -> Result<(), SkillsError> {
     let mut skills = Vec::new();
     for path in paths {
         for skill in skills_of(cwd, path)? {
@@ -231,11 +236,14 @@ pub(super) fn run(cwd: &Path, paths: &[PathBuf]) -> Result<(), SkillsError> {
             known.insert(file.clone());
         }
     }
+    let checked: Vec<&Skill> = skills.iter().map(|loaded| &loaded.skill).collect();
+    let intent_found = intents::findings(cwd, &checked, pools)?;
 
     let mut findings = 0;
     let mut skills_with_findings = 0;
-    for loaded in &skills {
-        let found = check_skill(&loaded.skill, &known);
+    for (loaded, intent_found) in skills.iter().zip(intent_found) {
+        let mut found = check_skill(&loaded.skill, &known);
+        found.extend(intent_found);
         if found.is_empty() {
             print_line_to_stdout(&format!("ok {}", loaded.written.display()))?;
             continue;
@@ -252,6 +260,9 @@ pub(super) fn run(cwd: &Path, paths: &[PathBuf]) -> Result<(), SkillsError> {
             );
             print_line_to_stdout(&line)?;
         }
+    }
+    if pools.is_empty() && checked.iter().any(|skill| intents::has_intents(skill)) {
+        intents::print_skip_line();
     }
 
     if findings > 0 {

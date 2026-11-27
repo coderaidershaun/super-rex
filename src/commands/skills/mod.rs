@@ -1,12 +1,14 @@
-//! `rex skills`: lists the skills an agent can choose from, and checks skills
-//! against the rules for their header and text.
+//! `rex skills`: lists the skills an agent can choose from, checks skills against the rules for
+//! their header and text, and serves and searches a skill library.
 
 mod check;
 mod header;
+mod intents;
 mod list;
 mod metadata;
 mod references;
 mod rules;
+pub mod search;
 mod serve;
 
 pub use references::KnownSkills;
@@ -68,6 +70,11 @@ pub enum SkillsCommand {
         /// A `SKILL.md` file, a skill folder, or a folder of skill folders.
         #[arg(required = true)]
         paths: Vec<PathBuf>,
+
+        /// A folder of other skills to search among when each intent phrase
+        /// must find its own skill. Give it more than once for several.
+        #[arg(long = "pool")]
+        pools: Vec<PathBuf>,
     },
 
     /// Serve a skill library to an MCP client over stdin and stdout.
@@ -78,6 +85,26 @@ pub enum SkillsCommand {
         /// The name `head` reports; the first folder's base name, or super-rex, when left out.
         #[arg(long)]
         name: Option<String>,
+        /// A folder of skill folders.
+        #[arg(long = "library")]
+        libraries: Vec<PathBuf>,
+    },
+
+    /// Search a skill library with request forms, as the search tool of `rex skills serve` does.
+    #[command(
+        after_help = "Reads the arguments of the search tool as one JSON object on stdin: requests, limit, cursor, kinds and categories. Prints the answer as one JSON line. Give --library more than once for several folders, first one wins when a skill name repeats. With no --library, searches the library embedded in this binary."
+    )]
+    Search {
+        /// A folder of skill folders.
+        #[arg(long = "library")]
+        libraries: Vec<PathBuf>,
+    },
+
+    /// Print the static index of a skill library as JSON, to publish beside it.
+    #[command(
+        after_help = "Prints one JSON document: each served skill with its name, type, description, url and sha256 digest, and the fields a search reads. Give --library more than once for several folders, first one wins when a skill name repeats. With no --library, indexes the library embedded in this binary."
+    )]
+    Index {
         /// A folder of skill folders.
         #[arg(long = "library")]
         libraries: Vec<PathBuf>,
@@ -121,6 +148,9 @@ pub enum SkillsError {
 
     #[error(transparent)]
     Serve(#[from] serve::ServeError),
+
+    #[error(transparent)]
+    Search(#[from] search::SearchError),
 }
 
 impl SkillsError {
@@ -141,6 +171,7 @@ impl CommandError for SkillsError {
             | SkillsError::Json { .. } => FailureClass::Reject,
             SkillsError::Rex(error) => error.failure_class(),
             SkillsError::Serve(_) => FailureClass::Reject,
+            SkillsError::Search(error) => error.failure_class(),
         }
     }
 
@@ -149,7 +180,7 @@ impl CommandError for SkillsError {
     }
 }
 
-/// Run `rex skills list` or `rex skills check`.
+/// Run `rex skills list`, `check`, `serve`, `search` or `index`.
 ///
 /// # Errors
 /// - [`SkillsError::Read`] if a skills folder or a skill file exists but
@@ -159,10 +190,14 @@ impl CommandError for SkillsError {
 /// - [`SkillsError::Findings`] if `check` finds a broken rule.
 /// - [`SkillsError::Json`] or [`SkillsError::Rex`] if the output cannot be
 ///   written.
+/// - [`SkillsError::Serve`] or [`SkillsError::Search`] if a library cannot
+///   be served, searched or indexed.
 pub fn run(cwd: &Path, options: SkillsOptions) -> Result<(), SkillsError> {
     match options.command {
         SkillsCommand::List { json } => list::run(cwd, json),
-        SkillsCommand::Check { paths } => check::run(cwd, &paths),
+        SkillsCommand::Check { paths, pools } => check::run(cwd, &paths, &pools),
         SkillsCommand::Serve { name, libraries } => Ok(serve::run(name, &libraries)?),
+        SkillsCommand::Search { libraries } => search::run_search(&libraries),
+        SkillsCommand::Index { libraries } => search::run_index(&libraries),
     }
 }

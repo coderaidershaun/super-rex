@@ -71,6 +71,18 @@ impl Draft {
         fs::write(&path, text.replacen(old, new, 1)).expect("write SKILL.md");
     }
 
+    /// What `rex skills check` prints on stderr before its `error:` line: the
+    /// skip line of the intent check when the map holds `intents`.
+    fn intent_skip_line(&self) -> &'static str {
+        let text = fs::read_to_string(self.folder().join("SKILL.md")).expect("read SKILL.md");
+        if text.contains("\n  intents:") {
+            "warning: intent check skipped; give --pool <folder> of other skills to check that \
+             each intent finds its skill\n"
+        } else {
+            ""
+        }
+    }
+
     fn check(&self) -> Output {
         let path = format!("drafts/{}", self.name);
         rex_skills(
@@ -87,7 +99,7 @@ fn assert_passes(draft: &Draft) {
         text_of(&output.stdout),
         format!("ok drafts/{}\n", draft.name)
     );
-    assert_eq!(text_of(&output.stderr), "");
+    assert_eq!(text_of(&output.stderr), draft.intent_skip_line());
     assert_eq!(output.status.code(), Some(0));
 }
 
@@ -103,7 +115,10 @@ fn assert_one_finding(draft: &Draft, case: &str, rule: &str, words: &str) {
     );
     assert_eq!(
         text_of(&output.stderr),
-        "error: 1 findings in 1 of 1 skills\n",
+        format!(
+            "{}error: 1 findings in 1 of 1 skills\n",
+            draft.intent_skip_line()
+        ),
         "{case}"
     );
     assert_eq!(output.status.code(), Some(1), "{case}");
