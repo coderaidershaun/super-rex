@@ -6,7 +6,7 @@ mod tools;
 mod vocabulary;
 
 use std::io::{self, BufRead, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use library::Libraries;
 
@@ -34,14 +34,15 @@ pub enum ServeError {
 }
 
 /// Serve `folders` (the embedded library when there are none) until stdin ends.
+/// `head` reports `name`, or the first folder's base name when it is `None`.
 ///
 /// # Errors
 /// - [`ServeError::NoLibrary`] if a folder is missing or is not a folder.
 /// - [`ServeError::VocabularyRead`] or [`ServeError::VocabularyInvalid`] if
 ///   `vocab/terms.json` beside the first folder exists but gives no version.
 /// - [`ServeError::Stdin`] or [`ServeError::Stdout`] if the pipes break.
-pub fn run(folders: &[PathBuf]) -> Result<(), ServeError> {
-    let libraries = Libraries::open(folders)?;
+pub fn run(name: Option<String>, folders: &[PathBuf]) -> Result<(), ServeError> {
+    let libraries = Libraries::open(name, folders)?;
     // A broken vocabulary file would otherwise show only on the first `head`.
     libraries.vocabulary_version()?;
     serve(&libraries, io::stdin().lock(), io::stdout().lock())
@@ -61,11 +62,4 @@ fn serve(
         }
     }
     Ok(())
-}
-
-fn folder_name(path: &Path) -> String {
-    path.file_name().map_or_else(
-        || "library".to_string(),
-        |name| name.to_string_lossy().into_owned(),
-    )
 }

@@ -1,6 +1,7 @@
 // The hooks module of the super-rex plugin: it builds the shared tables and lets each module register its hooks, in an order that decides which hook sees a call first.
 //
 // Priorities, in order: correctness (authority fails closed), visible state (an observer that fails marks the job degraded), simplicity.
+// The library guard fails closed: when it cannot tell whether a job is open, it refuses the raw library tool, because rex_skill reads the same files and records the read.
 // Never: merge without a merge answer from the person or the pinned policy.
 // Never: open a master tree from anything but the person's own prompt of the master skill, or start a builder from anything but the master's own tool.
 // Never: let a failed observer block a prompt, a tool call or a spawn.
@@ -12,6 +13,7 @@ import { register as registerCommands } from './commands/index'
 import { register as registerGate } from './gate/index'
 import { register as registerGuard } from './guard/index'
 import { register as registerIngest } from './ingest/index'
+import { register as registerLibraryGuard } from './library-guard'
 import { register as registerLive } from './live/index'
 import { register as registerMaster } from './master/index'
 import { register as registerMerge } from './merge/index'
@@ -34,6 +36,7 @@ export const register: Register = on => {
   registerLive(on, parts)
   registerGate(on, parts)
   registerGuard(on, parts)
+  registerLibraryGuard(on, parts)
   registerPipeline(on, parts)
   registerTrim(on, parts)
   // The master's own tool registrations must stand above the tools dispatcher:

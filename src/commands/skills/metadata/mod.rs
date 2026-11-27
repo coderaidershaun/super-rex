@@ -6,6 +6,8 @@ mod files;
 mod terms;
 mod vocabulary;
 
+pub(super) use vocabulary::embedded_version;
+
 use std::path::PathBuf;
 
 use yaml_rust2::Yaml;

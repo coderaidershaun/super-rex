@@ -3,6 +3,7 @@
 
 use serde_json::json;
 
+use super::doctor_library::served_version;
 use super::harness::World;
 
 // A plugin of another version reads keys the binary does not print, and a job
@@ -37,10 +38,12 @@ fn doctor_reports_version_skew_and_an_open_orphan() {
 
     assert_eq!(output.status.code(), Some(0));
     let stdout = String::from_utf8(output.stdout).unwrap();
+    let library = served_version(&[]);
     assert_eq!(
         stdout,
         format!(
             "doctor=problems\nbinary={binary}\nstore=v2\nstorage=on\nclaude=2.1.400\nplugin={binary}\n\
+             library=super-rex {library}\n\
              problem=open orphan: job 0gaq820001 is created, but its session 00000000-0000-4000-8000-000000000001 is not the newest; close it, or resume its tree with /super-rex:orchestration-master resume\n"
         )
     );
@@ -56,7 +59,7 @@ fn doctor_reports_version_skew_and_an_open_orphan() {
     let stdout = String::from_utf8(first.rex(&["doctor"]).output().unwrap().stdout).unwrap();
     assert!(
         stdout.ends_with(&format!(
-            "plugin=0.8.0\nproblem=version skew: plugin 0.8.0, binary {binary}; install the same version of both\n"
+            "plugin=0.8.0\nlibrary=super-rex {library}\nproblem=version skew: plugin 0.8.0, binary {binary}; install the same version of both\n"
         )) || binary == "0.8.0",
         "{stdout}"
     );

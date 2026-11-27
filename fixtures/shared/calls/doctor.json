@@ -11,6 +11,6 @@
   "stdin_file": null,
   "expect": {
     "exit": 0,
-    "stdout_pattern": "^doctor=(ok|problems)\\nbinary=\\d+\\.\\d+\\.\\d+\\nstore=v2\\nstorage=on\\nclaude=[^\\n]+\\nplugin=[^\\n]+\\n(problem=[^\\n]+\\n)*$"
+    "stdout_pattern": "^doctor=(ok|problems)\\nbinary=\\d+\\.\\d+\\.\\d+\\nstore=v2\\nstorage=on\\nclaude=[^\\n]+\\nplugin=[^\\n]+\\n(library=[^\\n]+\\n)?(problem=[^\\n]+\\n)*$"
   }
 }

@@ -2,6 +2,7 @@
 //! whatever the code inside looks like.
 
 mod init;
+mod library_metadata;
 mod master_procedure;
 mod oms_skills;
 mod plugin;

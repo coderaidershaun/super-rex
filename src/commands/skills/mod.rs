@@ -34,6 +34,12 @@ pub fn describe(skill_file: &Path) -> Option<String> {
     Header::of_skill_path(skill_file)?.text("description")
 }
 
+/// True when the `SKILL.md` at `skill_file` has a `metadata` map that holds a
+/// key a skill library search reads.
+pub fn has_metadata(skill_file: &Path) -> bool {
+    Header::of_skill_path(skill_file).is_some_and(|header| header.metadata().is_some())
+}
+
 /// List the skills, or check a skill file.
 #[derive(clap::Args)]
 pub struct SkillsOptions {
@@ -69,6 +75,9 @@ pub enum SkillsCommand {
         after_help = "Answers the tools head, search and get, one JSON-RPC message per line. Give --library more than once for several folders, first one wins when a skill name repeats. With no --library, serves the library embedded in this binary."
     )]
     Serve {
+        /// The name `head` reports; the first folder's base name, or super-rex, when left out.
+        #[arg(long)]
+        name: Option<String>,
         /// A folder of skill folders.
         #[arg(long = "library")]
         libraries: Vec<PathBuf>,
@@ -154,6 +163,6 @@ pub fn run(cwd: &Path, options: SkillsOptions) -> Result<(), SkillsError> {
     match options.command {
         SkillsCommand::List { json } => list::run(cwd, json),
         SkillsCommand::Check { paths } => check::run(cwd, &paths),
-        SkillsCommand::Serve { libraries } => Ok(serve::run(&libraries)?),
+        SkillsCommand::Serve { name, libraries } => Ok(serve::run(name, &libraries)?),
     }
 }

@@ -3,6 +3,7 @@
 //! names, so the plugin's tests of the same file meet the same promise.
 
 mod doctor;
+mod doctor_library;
 pub(crate) mod harness;
 mod ingest;
 mod shared;

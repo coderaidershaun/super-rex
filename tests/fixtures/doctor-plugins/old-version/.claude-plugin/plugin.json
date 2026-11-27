@@ -1,0 +1,7 @@
+{
+  "name": "super-rex",
+  "version": "0.8.0",
+  "mcpServers": {
+    "library": { "command": "rex", "args": ["skills", "serve", "--name", "old-plugin"] }
+  }
+}

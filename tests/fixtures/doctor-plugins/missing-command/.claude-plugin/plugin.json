@@ -1,0 +1,7 @@
+{
+  "name": "super-rex",
+  "version": "0.8.0",
+  "mcpServers": {
+    "library": { "command": "rex-no-such-command", "args": ["skills", "serve", "--library", "${CLAUDE_PLUGIN_ROOT}/library"] }
+  }
+}

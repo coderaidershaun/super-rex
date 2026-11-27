@@ -73,17 +73,16 @@ fn with_no_library_the_embedded_one_is_served() {
 
     assert_eq!(head["library"], "super-rex");
     assert_eq!(head["skills"], 25);
-    assert_eq!(head["vocabulary"], json!(null));
+    assert_eq!(head["vocabulary"], "1");
 }
 
 #[test]
 fn a_folder_copy_of_the_plugin_library_has_the_embedded_version() {
     let temp = tempfile::tempdir().unwrap();
     let library = temp.path().join("library");
-    copy_tree(
-        &Path::new(env!("CARGO_MANIFEST_DIR")).join("plugin/library"),
-        &library,
-    );
+    let plugin = Path::new(env!("CARGO_MANIFEST_DIR")).join("plugin");
+    copy_tree(&plugin.join("library"), &library);
+    copy_tree(&plugin.join("vocab"), &temp.path().join("vocab"));
     fs::write(library.join("rex-code-tdd/.DS_Store"), "junk").unwrap();
     fs::create_dir_all(library.join(".hidden-skill")).unwrap();
     fs::write(library.join(".hidden-skill/SKILL.md"), "hidden").unwrap();

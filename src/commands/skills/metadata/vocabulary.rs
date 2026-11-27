@@ -199,3 +199,15 @@ fn is_id(value: &str) -> bool {
     starts_well
         && bytes.all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
 }
+
+/// The top-level `version` of the embedded `terms.json`, which a library
+/// server reports as the vocabulary of the library embedded in the binary.
+pub(crate) fn embedded_version() -> String {
+    let terms: Value = serde_json::from_str(TERMS_JSON)
+        .expect("the embedded plugin/vocab/terms.json must be JSON");
+    terms
+        .get("version")
+        .and_then(Value::as_str)
+        .expect("the embedded plugin/vocab/terms.json must have a top-level string \"version\"")
+        .to_owned()
+}

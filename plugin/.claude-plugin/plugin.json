@@ -7,5 +7,11 @@
   "repository": "https://github.com/coderaidershaun/super-rex",
   "license": "MIT",
   "keywords": ["agent", "claude", "orchestration", "skills"],
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "mcpServers": {
+    "library": {
+      "command": "rex",
+      "args": ["skills", "serve", "--name", "super-rex", "--library", "${CLAUDE_PLUGIN_ROOT}/library"]
+    }
+  }
 }

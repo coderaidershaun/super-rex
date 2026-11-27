@@ -7,7 +7,8 @@ use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
-use super::{ServeError, folder_name, vocabulary};
+use super::ServeError;
+use super::vocabulary::Vocabulary;
 use crate::bundle;
 
 /// The name `head` reports for the library embedded in the binary.
@@ -29,7 +30,7 @@ pub(super) enum ReadError {
 pub(super) struct Libraries {
     list: Vec<Library>,
     name: String,
-    vocabulary_file: Option<PathBuf>,
+    vocabulary: Vocabulary,
 }
 
 pub(super) fn sha256_hex(bytes: &[u8]) -> String {
@@ -48,12 +49,14 @@ pub(super) fn is_skill_name(name: &str) -> bool {
 }
 
 impl Libraries {
-    pub(super) fn open(folders: &[PathBuf]) -> Result<Libraries, ServeError> {
+    /// The libraries of `folders`, or the embedded one when there are none.
+    /// `head` reports `name`, or else the first folder's base name.
+    pub(super) fn open(name: Option<String>, folders: &[PathBuf]) -> Result<Libraries, ServeError> {
         if folders.is_empty() {
             return Ok(Libraries {
                 list: vec![Library::Embedded],
-                name: EMBEDDED_NAME.to_string(),
-                vocabulary_file: None,
+                name: name.unwrap_or_else(|| EMBEDDED_NAME.to_string()),
+                vocabulary: Vocabulary::Embedded,
             });
         }
         let mut list = Vec::new();
@@ -70,8 +73,8 @@ impl Libraries {
             unreachable!("a non-empty folder list gives folder libraries");
         };
         Ok(Libraries {
-            name: folder_name(first),
-            vocabulary_file: first.parent().map(|beside| beside.join("vocab/terms.json")),
+            name: name.unwrap_or_else(|| folder_name(first)),
+            vocabulary: Vocabulary::beside(first),
             list,
         })
     }
@@ -80,13 +83,10 @@ impl Libraries {
         &self.name
     }
 
-    /// The vocabulary version, or `None` for the embedded library and for a
-    /// folder with no `vocab/terms.json` beside it.
+    /// The vocabulary version, or `None` for a folder with no
+    /// `vocab/terms.json` beside it.
     pub(super) fn vocabulary_version(&self) -> Result<Option<String>, ServeError> {
-        match &self.vocabulary_file {
-            Some(path) => vocabulary::version_of(path),
-            None => Ok(None),
-        }
+        self.vocabulary.version()
     }
 
     /// Every served file as `(<skill>/<file>, file sha256)`, sorted by path:
@@ -122,6 +122,13 @@ impl Libraries {
     }
 }
 
+fn folder_name(path: &Path) -> String {
+    path.file_name().map_or_else(
+        || "library".to_string(),
+        |name| name.to_string_lossy().into_owned(),
+    )
+}
+
 /// A relative file path with no `.`, `..` or hidden component, so `..` never
 /// reaches the file system and `.DS_Store` is never given out.
 fn is_plain_relative(file: &str) -> bool {
@@ -147,12 +154,8 @@ impl Library {
             Library::Folder(root) => {
                 let mut names = Vec::new();
                 for entry in fs::read_dir(root)? {
-                    let entry = entry?;
-                    let name = entry.file_name().to_string_lossy().into_owned();
-                    if entry.file_type()?.is_dir()
-                        && is_skill_name(&name)
-                        && entry.path().join("SKILL.md").is_file()
-                    {
+                    let name = entry?.file_name().to_string_lossy().into_owned();
+                    if is_skill_name(&name) && is_skill_folder(&root.join(&name)) {
                         names.push(name);
                     }
                 }
@@ -165,15 +168,11 @@ impl Library {
     fn has_skill(&self, skill: &str) -> bool {
         match self {
             Library::Embedded => embedded_files().any(|(s, f, _)| s == skill && f == "SKILL.md"),
-            Library::Folder(root) => {
-                let folder = root.join(skill);
-                folder.is_dir() && !folder.is_symlink() && folder.join("SKILL.md").is_file()
-            }
+            Library::Folder(root) => is_skill_folder(&root.join(skill)),
         }
     }
 
-    /// The files of one skill as `(path inside the skill, sha256)`. Hidden names
-    /// and symbolic links are left out, at any depth.
+    /// The files of one skill as `(path inside the skill, sha256)`.
     fn files(&self, skill: &str) -> io::Result<Vec<(String, String)>> {
         match self {
             Library::Embedded => Ok(embedded_files()
@@ -181,13 +180,20 @@ impl Library {
                 .map(|(_, file, bytes)| (file, sha256_hex(bytes)))
                 .collect()),
             Library::Folder(root) => {
-                let mut files = Vec::new();
-                folder_files(&root.join(skill), "", &mut files)?;
-                Ok(files)
+                let folder = root.join(skill);
+                served_paths(&folder)?
+                    .into_iter()
+                    .map(|file| {
+                        let bytes = fs::read(folder.join(&file))?;
+                        Ok((file, sha256_hex(&bytes)))
+                    })
+                    .collect()
             }
         }
     }
 
+    /// One file of the served set of `skill`, so `get` gives exactly the
+    /// files that `head` hashes.
     fn read(&self, skill: &str, file: &str) -> Result<Vec<u8>, ReadError> {
         match self {
             Library::Embedded => embedded_files()
@@ -195,26 +201,38 @@ impl Library {
                 .map(|(_, _, bytes)| bytes.to_vec())
                 .ok_or(ReadError::NotFound),
             Library::Folder(root) => {
-                let skill_folder = root
-                    .join(skill)
-                    .canonicalize()
-                    .map_err(|_| ReadError::NotFound)?;
-                let path = skill_folder
-                    .join(file)
-                    .canonicalize()
-                    .map_err(|_| ReadError::NotFound)?;
-                if !path.starts_with(&skill_folder) || !path.is_file() {
+                let folder = root.join(skill);
+                let unreadable = |error: io::Error| {
+                    ReadError::Unreadable(format!("cannot read {skill}/{file}: {error}"))
+                };
+                let served = served_paths(&folder).map_err(unreadable)?;
+                if !served.iter().any(|path| path == file) {
                     return Err(ReadError::NotFound);
                 }
-                fs::read(&path).map_err(|error| {
-                    ReadError::Unreadable(format!("cannot read {skill}/{file}: {error}"))
-                })
+                fs::read(folder.join(file)).map_err(unreadable)
             }
         }
     }
 }
 
-fn folder_files(folder: &Path, prefix: &str, files: &mut Vec<(String, String)>) -> io::Result<()> {
+/// A real folder (not a symbolic link) that holds a real `SKILL.md`.
+fn is_skill_folder(folder: &Path) -> bool {
+    let is_real_folder = fs::symlink_metadata(folder).is_ok_and(|meta| meta.is_dir());
+    let has_real_skill_file =
+        fs::symlink_metadata(folder.join("SKILL.md")).is_ok_and(|meta| meta.is_file());
+    is_real_folder && has_real_skill_file
+}
+
+/// The served set of one skill folder: every real file below it, as a path
+/// with `/` between its parts. Hidden names and symbolic links are left out at
+/// any depth, so nothing outside the folder and nothing unhashed is served.
+fn served_paths(folder: &Path) -> io::Result<Vec<String>> {
+    let mut paths = Vec::new();
+    walk(folder, "", &mut paths)?;
+    Ok(paths)
+}
+
+fn walk(folder: &Path, prefix: &str, paths: &mut Vec<String>) -> io::Result<()> {
     for entry in fs::read_dir(folder)? {
         let entry = entry?;
         let name = entry.file_name().to_string_lossy().into_owned();
@@ -224,9 +242,9 @@ fn folder_files(folder: &Path, prefix: &str, files: &mut Vec<(String, String)>) 
         let kind = entry.file_type()?;
         let relative = format!("{prefix}{name}");
         if kind.is_dir() {
-            folder_files(&entry.path(), &format!("{relative}/"), files)?;
+            walk(&entry.path(), &format!("{relative}/"), paths)?;
         } else if kind.is_file() {
-            files.push((relative, sha256_hex(&fs::read(entry.path())?)));
+            paths.push(relative);
         }
     }
     Ok(())

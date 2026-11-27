@@ -1,0 +1,6 @@
+{
+  "name": "wp5-live-probe",
+  "version": "0.0.1",
+  "description": "Throwaway plugin that proves a mod reaches the super-rex library server with $.mcp.call in a live session",
+  "author": { "name": "super-rex tests" }
+}

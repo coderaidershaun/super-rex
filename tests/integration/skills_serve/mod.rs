@@ -3,9 +3,12 @@
 
 mod errors;
 mod head;
+mod plugin_library;
 mod protocol;
+mod served_set;
 mod shadowing;
 
+use std::ffi::OsStr;
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -50,12 +53,19 @@ pub(super) struct Server {
 
 impl Server {
     pub(super) fn start(libraries: &[&Path]) -> Server {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_rex"));
-        command.args(["skills", "serve"]);
+        let mut args: Vec<&OsStr> = Vec::new();
         for library in libraries {
-            command.arg("--library").arg(library);
+            args.push(OsStr::new("--library"));
+            args.push(library.as_os_str());
         }
-        let mut child = command
+        Server::start_with(&args)
+    }
+
+    /// Starts `rex skills serve` followed by `args`.
+    pub(super) fn start_with(args: &[&OsStr]) -> Server {
+        let mut child = Command::new(env!("CARGO_BIN_EXE_rex"))
+            .args(["skills", "serve"])
+            .args(args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
