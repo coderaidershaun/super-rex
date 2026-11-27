@@ -29,8 +29,12 @@ Context: The <skills> block of this brief holds the rex-skill-language skill. Ob
      <What the skill is for, in one to three full sentences. No "use when" text here.>
    when_to_use: >
      Use when <the situations in which an agent must read it>.
+   metadata:
+     kind: <one kind of plugin/vocab/terms.json>
+     category: <one category of plugin/vocab/terms.json>
+     <More keys of the metadata map, as far as the skill needs them.>
    ---
-Keep description and when_to_use at 60 words or fewer together, and the text after the header at 1,500 words or fewer. Put the text for one step or one case in a sibling .md file in the same folder, and say in SKILL.md when to read it. <Gap skill only: The skill covers what <language> does not give by default and Rust does. Write each such protection as a rule. Give each code example in Rust, beside the same example in <language>.>
+The skill is a repo skill in the format of a library skill, so the header must hold the metadata map. Obey the section METADATA of rex-skill-language: the map must pass rules M1 to M13 of `rex skills check`. Write each sibling file in the folder as an item of `files`. Keep description and when_to_use at 60 words or fewer together, and the text after the header at 1,500 words or fewer. Put the text for one step or one case in a sibling .md file in the same folder, and say in SKILL.md when to read it. <Gap skill only: The map claims `facts: { writes_code: true, languages: [<language>] }`. The skill covers what <language> does not give by default and Rust does. Write each such protection as a rule. Give each code example in Rust, beside the same example in <language>.>
 Acceptance: `rex skills check <root>/.rex/skills/<name>` prints `ok` for the folder. Your report gives the path of the file and the output of the check.
 Limits: Start no agent. Change no other skill. <Only if Git ignores the new skill: Do not add the file to Git.>
 If no <skills> block is at the top of this brief, call rex_skill with no name first.
@@ -41,6 +45,7 @@ If no <skills> block is at the top of this brief, call rex_skill with no name fi
 After skill writer reports, run `rex skills check <root>/.rex/skills/<name>` on each new skill. Path = skill folder, or its `SKILL.md`.
 
 - [ ] Pass: exit code 0 and line `ok <path>`.
+- [ ] Make sure the header holds `metadata` with `kind` and `category`: read the first lines of `SKILL.md`. No rule finds a missing map, so `ok` does not prove it. IF it is missing, THEN correct the skill, as for a finding.
 - [ ] Finding: line `<path>: <rule>: <what is wrong>`. Exit code 1.
 - [ ] DO correct skill with Edit tool UNTIL check passes OR 3 rounds done.
 - [ ] IF check passes, THEN skill goes in skill list, with mark `new`.

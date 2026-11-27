@@ -41,8 +41,14 @@ rex skills check .rex/orchestrators/<name>    # orchestrator or its lead skill
 Feedback never edits a shipped skill: plugin files are replaced on each update. First edit of a shipped skill makes its fork.
 
 1. Call `rex_skill` with `name` = skill. IF `source` = `plugin`, THEN skill is shipped: do steps 2 to 4. ELSE skill is repo skill or fork already: edit it in `.rex/skills/<name>/`.
-2. Read `SKILL.md` and each sibling file that it names, each with `rex_skill`. Keep `hash` of each file.
+2. Read `SKILL.md` and each sibling file that it names or that `files` of its `metadata` lists, each with `rex_skill`. Keep `hash` of each file.
 3. Write each file, unchanged, to `.rex/skills/<name>/<file>` with Write tool. Then make edit in the fork only.
 4. Report gives origin of fork: skill name and `hash` of each file of step 2.
+
+Fork keeps the `metadata` map of its origin (header of `SKILL.md`). Rules of the map: section METADATA of `rex-skill-language`.
+
+- [ ] Never drop or empty `metadata` in an edit. Change a key of it only when the lesson needs it.
+- [ ] IF an edit adds, removes, or renames a file of the fork, THEN the same edit changes `files` (rule M9) + `open_when` (rule M10).
+- [ ] Fork passes `rex skills check .rex/skills/<name>`, as step 8 above says. Pass = `ok` line, exit 0. No rule finds a missing map: read the header, make sure `metadata` is there.
 
 - [ ] IF Git tracks `.rex/skills/<name>/` (`git check-ignore -q .rex/skills/<name>/SKILL.md` fails), THEN commit changed skill files only, on the branch that is checked out. IF that branch is main, THEN do not commit: tell user which files to commit.

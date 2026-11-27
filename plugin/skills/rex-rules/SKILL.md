@@ -20,7 +20,7 @@ IF brief of builder job has a `<skills>` block, THEN read those skills. Do not u
 
 ## Words
 
-- Skill library: 24 skills of plugin `super-rex`. Read with `rex_skill`.
+- Skill library: 25 skills of plugin `super-rex`. Read with `rex_skill`.
 - Skill file: file of a skill. Text names it `<skill>/<file>.md`, or `<skill>` for its `SKILL.md`. `rex_skill`: `name` = `<skill>`, `file` = `<file>.md` (default `SKILL.md`).
 - Repo skill: skill in `.rex/skills/<name>/` of repo. `rex_skill` finds it before a skill of same name in plugin.
 - `HOME_DIR`: absolute path of main checkout root of repo. IF your shell is in linked Git worktree, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.

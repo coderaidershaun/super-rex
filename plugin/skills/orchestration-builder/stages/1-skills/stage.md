@@ -31,7 +31,7 @@ Settle which skills this job uses. Mod applies assignment table: `rex_assign`. Y
 - Assignment table: `orchestration-builder/stages/1-skills/assign.md`. One home of which skills each kind of work gets. Data of plugin. `rex_assign` applies it.
 - Answer: `yes` or `no` of decision agent to one question of `rex_assign`, with one-line reason. Mod records it.
 - Override: skill that table does not give, OR correction of answer, with reason. Row of `OVERRIDES` of decision block.
-- Skill library: 24 skills of plugin `super-rex`. Claude Code does not list them. Skill tool cannot load them. Agents read them with `rex_skill`.
+- Skill library: 25 skills of plugin `super-rex`. Claude Code does not list them. Skill tool cannot load them. Agents read them with `rex_skill`.
 - Repo skill: skill in `.rex/skills/<name>/` of `HOME_DIR`: job-written, gap skill, or fork that feedback made. `rex_skill` finds it before a skill of same name in plugin.
 - Skill file: file of a skill. Text names it `<skill>/<file>.md`, or `<skill>` for its `SKILL.md`. Read it with `rex_skill`: `name` = `<skill>`, `file` = `<file>.md`.
 - `HOME_DIR`: Absolute path of main checkout root of home repo. Home repo = repo that holds store (`.rex/`) and repo skills (`.rex/skills/`) of job. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.

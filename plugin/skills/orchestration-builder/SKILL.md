@@ -61,7 +61,7 @@ Person starts builder: `/super-rex:orchestration-builder <request>`, or `/super-
 - Work breakdown: Tasks of job, their dependencies, and groups that run in parallel. Output of stage 2.
 - Role: Named part in orchestrator skill. Example: `engineer`.
 - Grid agent: One of 20 agent types of plugin `super-rex`. Name: `super-rex:model-<tier>-effort-<level>`. It has no Skill tool. `rex oms` prints it with no `super-rex:` prefix.
-- Skill library: 24 skills of plugin `super-rex` that Claude Code does not list.
+- Skill library: 25 skills of plugin `super-rex` that Claude Code does not list.
 - Repo skill: skill in `.rex/skills/<name>/` of repo: job-written, gap skill, or fork that feedback made.
 - Skill file: file of a skill. Text names it `<skill>/<file>.md`, or `<skill>` for its `SKILL.md`. Read it with `rex_skill`: `name` = `<skill>`, `file` = `<file>.md`.
 - `HOME_DIR`: Absolute path of main checkout root of home repo = `repo` of `rex_job_open`. Home repo holds store (`.rex/`) of job. IF your shell is in Git worktree of home repo, THEN `HOME_DIR` = parent folder of `git rev-parse --path-format=absolute --git-common-dir`.

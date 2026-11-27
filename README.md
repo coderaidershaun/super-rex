@@ -799,7 +799,7 @@ An agent reads all of `SKILL.md`, so it holds only the rules an agent needs ever
 
 ## Skills and the agent grid
 
-The plugin holds 32 skills in two folders. Claude Code lists the 8 in `plugin/skills/` as commands of the plugin; it does not list the 24 of the library, `plugin/library/`, so they cost no context in a session. Each brief gets its read-first skills from the mod, and an agent opens the others with `rex_skill`.
+The plugin holds 33 skills in two folders. Claude Code lists the 8 in `plugin/skills/` as commands of the plugin; it does not list the 25 of the library, `plugin/library/`, so they cost no context in a session. Each brief gets its read-first skills from the mod, and an agent opens the others with `rex_skill`.
 
 The skills that you start:
 

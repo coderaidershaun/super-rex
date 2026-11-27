@@ -32,7 +32,7 @@ Stages: 1 Input, 2 Find job, 3 Read, 4 Cause, 5 Lesson, 6 Change, 7 Record. Then
 - Home: the one file a rule is written in.
 - Mapping: OMS (optimal model selection) function, compiled into `rex`. It picks grid agent for each role.
 - Shipped skill: skill of plugin `super-rex`. Plugin files are replaced on each update, so feedback never edits them.
-- Fork: copy of a shipped skill in `.rex/skills/<name>/` of repo, with its origin hash. `rex_skill` finds fork before shipped skill of same name.
+- Fork: copy of a shipped skill in `.rex/skills/<name>/` of repo, with its origin hash. It keeps the `metadata` map of its origin (`rex-feedback/change.md`, `## Fork`). `rex_skill` finds fork before shipped skill of same name.
 
 ## Rules
 
