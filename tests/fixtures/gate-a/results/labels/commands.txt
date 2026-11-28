@@ -1,0 +1,14 @@
+The label files of this folder are made from tests/fixtures/gate-a/labels.json, run from the repo root.
+score-hits.ts reads the need labels of every run in a labels file, so each run is scored with a file that keeps only its own needs.
+
+labels-run1.json: the 68 skill labels and the 56 need labels of run 1.
+  jq --arg r run1 '.items |= map(.needs |= map(select(.run == $r)))' tests/fixtures/gate-a/labels.json
+
+labels-run2.json: the 68 skill labels and the 50 need labels of run 2.
+  jq --arg r run2 '.items |= map(.needs |= map(select(.run == $r)))' tests/fixtures/gate-a/labels.json
+
+labels-skills-only.json: the 68 skill labels and no need label, for the reference forms, whose needs were not labelled.
+  jq '.items |= map(.needs = [])' tests/fixtures/gate-a/labels.json
+
+labels-run1-with-rulebooks.json: labels-run1.json with the four rulebooks added at lookup A to each item that has the label rex-code-essentials; a check of the label rule that counts the digest only.
+  jq '.items |= map(if ((.skills | map(.skill) | index("rex-code-essentials")) != null) then .skills += [{"skill":"rex-code-philosophy","lookup":"A"},{"skill":"rex-code-commenting","lookup":"A"},{"skill":"rex-code-ergonomics","lookup":"A"},{"skill":"rex-code-error-writing","lookup":"A"}] else . end)' tests/fixtures/gate-a/results/labels/labels-run1.json

@@ -1,0 +1,227 @@
+[k0] 124 labels from tests/fixtures/gate-a/results/labels/labels-run1.json; 23 result files; top 5
+[k1.1] 23 items, 89 labels with a right skill (35 needs labelled with no right skill), 0 labels with no result file
+[k1.2] top-5 hit rate, all labels: 55 of 89 (61.8%)
+[k1.2] top-5 hit rate, library skill labels: 44 of 68 (64.7%)
+[k1.2] top-5 hit rate, free-text need labels: 11 of 21 (52.4%)
+[k1.3] expected lookup A: 5 of 20 (25.0%)
+[k1.3] expected lookup B: 37 of 41 (90.2%)
+[k1.3] expected lookup C: 13 of 28 (46.4%)
+[k1.4] found by tier A: 6 of 89 (6.7%) of all labels; 5 of them expected at A, 1 expected at another lookup
+[k1.4] found by tier B: 48 of 89 (53.9%) of all labels; 37 of them expected at B, 11 expected at another lookup
+[k1.4] found by tier C: 1 of 89 (1.1%) of all labels; 1 of them expected at C, 0 expected at another lookup
+[k1.5] expected A -> found A 5, B 0, C 0, below top 15, absent 0
+[k1.5] expected B -> found A 0, B 37, C 0, below top 4, absent 0
+[k1.5] expected C -> found A 1, B 11, C 1, below top 1, absent 14
+[k1.6] no hit: 0h0962klnd-T1 skill "rex-code-essentials" (expected A): rank 11, tier A
+[k1.6] no hit: 0h0962klnd-T1 need "SQLite FTS5 and bm25 ranking in bundled rusqlite" (expected C): not on the first page
+[k1.6] no hit: 0h0962klnd-T2 skill "rex-code-essentials" (expected A): rank 13, tier A
+[k1.6] no hit: 0h0962klnd-T2 need "stub stdio MCP server" (expected C): not on the first page
+[k1.6] no hit: 0h0962klnd-T2 need "plugin manifest key for MCP servers" (expected C): not on the first page
+[k1.6] no hit: 0h0962klnd-T2 need "headless claude session with allowed and disallowed tools" (expected C): not on the first page
+[k1.6] no hit: 0h096dyeq9-T2 skill "rex-code-essentials" (expected A): rank 12, tier A
+[k1.6] no hit: 0h096dyeq9-T2 skill "rex-code-folder-management" (expected B): rank 6, tier B
+[k1.6] no hit: 0h0b8x725g-T1 skill "rex-code-essentials" (expected A): rank 13, tier A
+[k1.6] no hit: 0h0b8x725g-T1 need "hand-written MCP JSON-RPC server over stdio" (expected C): not on the first page
+[k1.6] no hit: 0h0d1109wo-T1 skill "rex-code-philosophy" (expected A): rank 9, tier A
+[k1.6] no hit: 0h0d1109wo-T1 skill "rex-code-error-writing" (expected A): rank 6, tier A
+[k1.6] no hit: 0h0d1109wo-reviewer skill "rex-code-philosophy" (expected C): not on the first page
+[k1.6] no hit: 0h0d1109wo-reviewer skill "rex-code-commenting" (expected C): not on the first page
+[k1.6] no hit: 0h0d1109wo-reviewer skill "rex-code-ergonomics" (expected C): not on the first page
+[k1.6] no hit: 0h0d1109wo-reviewer skill "rex-code-error-writing" (expected C): not on the first page
+[k1.6] no hit: 0h0dnqm24i-T1 skill "rex-code-essentials" (expected A): rank 12, tier A
+[k1.6] no hit: 0h0dnqm24i-T1 skill "rex-code-validation-plan" (expected B): rank 9, tier B
+[k1.6] no hit: 0h0dnqm24i-T2 skill "rex-code-essentials" (expected A): rank 11, tier A
+[k1.6] no hit: 0h0dnqm24i-T3 skill "rex-code-essentials" (expected A): rank 12, tier A
+[k1.6] no hit: 0h0dnqm24i-T4 skill "rex-code-essentials" (expected A): rank 14, tier A
+[k1.6] no hit: 0h0dnqm24i-T4 need "SQLite FTS5 query with weighted bm25" (expected C): not on the first page
+[k1.6] no hit: 0h0dnqm24i-T4 need "escape caller text in FTS5 queries" (expected C): not on the first page
+[k1.6] no hit: 0h0dnqm24i-T5 skill "rex-code-essentials" (expected A): rank 11, tier A
+[k1.6] no hit: 0h0dnqm24i-T6 skill "rex-code-essentials" (expected A): rank 11, tier A
+[k1.6] no hit: 0h0f8vnww4-T1 skill "rex-code-essentials" (expected A): rank 13, tier A
+[k1.6] no hit: 0h0f8vnww4-T1 skill "rex-code-folder-management" (expected B): rank 7, tier B
+[k1.6] no hit: 0h0f8vnww4-T1 skill "rex-code-failure-policy" (expected B): rank 6, tier B
+[k1.6] no hit: 0h0f8vnww4-T2 skill "rex-code-essentials" (expected A): rank 12, tier A
+[k1.6] no hit: 0h0f8vnww4-T2 need "refusal text that names the tool to use" (expected C): rank 10, tier A
+[k1.6] no hit: 0h0f8vnww4-T3 skill "rex-code-essentials" (expected A): rank 12, tier A
+[k1.6] no hit: 0h0f8vnww4-T3 need "drive a headless claude session and quote its init line" (expected C): not on the first page
+[k1.6] no hit: 0h0fitv57s-reviewer skill "rex-skill-language" (expected C): not on the first page
+[k1.6] no hit: 0h0fitv57s-reviewer need "check each rule against the code" (expected C): not on the first page
+[k1.6] 34 labels with no hit in the top 5
+[k1.7] tier A item not in the labels (for the judge): 0h0962klnd-T1 library/rex-code-commenting rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h0962klnd-T1 library/rex-code-tdd rank 4
+[k1.7] tier A item not in the labels (for the judge): 0h0962klnd-T1 library/rex-code-ergonomics rank 7
+[k1.7] tier A item not in the labels (for the judge): 0h0962klnd-T1 library/rex-code-error-writing rank 9
+[k1.7] tier A item not in the labels (for the judge): 0h0962klnd-T1 library/rex-code-philosophy rank 13
+[k1.7] tier A item not in the labels (for the judge): 0h0962klnd-T2 library/rex-code-commenting rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h0962klnd-T2 library/rex-agent-prompting rank 5
+[k1.7] tier B item not in the labels (for the judge): 0h0962klnd-T2 library/rex-code-tdd rank 6
+[k1.7] tier B item not in the labels (for the judge): 0h0962klnd-T2 library/rex-code-folder-management rank 7
+[k1.7] tier A item not in the labels (for the judge): 0h0962klnd-T2 library/rex-code-ergonomics rank 8
+[k1.7] tier A item not in the labels (for the judge): 0h0962klnd-T2 library/rex-code-error-writing rank 10
+[k1.7] tier A item not in the labels (for the judge): 0h0962klnd-T2 library/rex-code-philosophy rank 16
+[k1.7] tier B item not in the labels (for the judge): 0h0962klnd-T3 library/rex-code-spike rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h096dyeq9-T1 library/rex-code-design-sketch rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h096dyeq9-T1 library/rex-code-validation-plan rank 4
+[k1.7] tier A item not in the labels (for the judge): 0h096dyeq9-T2 library/rex-code-commenting rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h096dyeq9-T2 library/rex-code-tests-unit-testing rank 3
+[k1.7] tier A item not in the labels (for the judge): 0h096dyeq9-T2 library/rex-code-ergonomics rank 8
+[k1.7] tier A item not in the labels (for the judge): 0h096dyeq9-T2 library/rex-code-error-writing rank 10
+[k1.7] tier A item not in the labels (for the judge): 0h096dyeq9-T2 library/rex-code-philosophy rank 13
+[k1.7] tier A item not in the labels (for the judge): 0h0b8x725g-T1 library/rex-code-commenting rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h0b8x725g-T1 library/rex-code-tests-integration-testing rank 2
+[k1.7] tier A item not in the labels (for the judge): 0h0b8x725g-T1 library/rex-code-ergonomics rank 8
+[k1.7] tier A item not in the labels (for the judge): 0h0b8x725g-T1 library/rex-code-error-writing rank 11
+[k1.7] tier A item not in the labels (for the judge): 0h0b8x725g-T1 library/rex-code-philosophy rank 14
+[k1.7] tier B item not in the labels (for the judge): 0h0d1109wo-T1 library/rex-code-folder-management rank 3
+[k1.7] tier A item not in the labels (for the judge): 0h0d1109wo-T1 library/rex-code-essentials rank 8
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T1 library/rex-code-commenting rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h0dnqm24i-T1 library/rex-code-improve-codebase-architecture rank 3
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T1 library/rex-code-error-writing rank 10
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T1 library/rex-code-philosophy rank 14
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T2 library/rex-code-commenting rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h0dnqm24i-T2 library/rex-code-folder-management rank 6
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T2 library/rex-code-ergonomics rank 7
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T2 library/rex-code-error-writing rank 9
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T2 library/rex-code-philosophy rank 13
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T3 library/rex-code-commenting rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h0dnqm24i-T3 library/rex-code-failure-policy rank 5
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T3 library/rex-code-ergonomics rank 8
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T3 library/rex-code-error-writing rank 10
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T3 library/rex-code-philosophy rank 13
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T4 library/rex-code-commenting rank 1
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T4 library/rex-code-ergonomics rank 7
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T4 library/rex-code-error-writing rank 11
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T4 library/rex-code-philosophy rank 17
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T5 library/rex-code-commenting rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h0dnqm24i-T5 library/rex-code-tests-integration-testing rank 2
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T5 library/rex-code-ergonomics rank 9
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T5 library/rex-code-error-writing rank 10
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T5 library/rex-code-philosophy rank 12
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T6 library/rex-code-commenting rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h0dnqm24i-T6 library/rex-code-tests-integration-testing rank 2
+[k1.7] tier B item not in the labels (for the judge): 0h0dnqm24i-T6 library/rex-code-folder-management rank 5
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T6 library/rex-code-ergonomics rank 8
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T6 library/rex-code-error-writing rank 10
+[k1.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T6 library/rex-code-philosophy rank 12
+[k1.7] tier B item not in the labels (for the judge): 0h0dnqm24i-reviewer library/rex-code-spike rank 2
+[k1.7] tier B item not in the labels (for the judge): 0h0dnqm24i-reviewer library/rex-code-validation-plan rank 4
+[k1.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T1 library/rex-code-commenting rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h0f8vnww4-T1 library/rex-code-tests-integration-testing rank 4
+[k1.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T1 library/rex-code-ergonomics rank 8
+[k1.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T1 library/rex-code-error-writing rank 11
+[k1.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T1 library/rex-code-philosophy rank 16
+[k1.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T2 library/rex-code-commenting rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h0f8vnww4-T2 library/rex-code-tests-unit-testing rank 3
+[k1.7] tier B item not in the labels (for the judge): 0h0f8vnww4-T2 library/rex-agent-prompting rank 5
+[k1.7] tier B item not in the labels (for the judge): 0h0f8vnww4-T2 library/rex-code-folder-management rank 6
+[k1.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T2 library/rex-code-ergonomics rank 8
+[k1.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T2 library/rex-code-philosophy rank 13
+[k1.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T3 library/rex-code-commenting rank 1
+[k1.7] tier B item not in the labels (for the judge): 0h0f8vnww4-T3 library/rex-code-tdd rank 4
+[k1.7] tier B item not in the labels (for the judge): 0h0f8vnww4-T3 library/rex-code-folder-management rank 5
+[k1.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T3 library/rex-code-ergonomics rank 6
+[k1.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T3 library/rex-code-error-writing rank 9
+[k1.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T3 library/rex-code-philosophy rank 13
+[k1.7] 75 tier A or B items that no label names
+[k2] without the 3 items of header-quotes.json: 104 labels left
+[k2.1] 20 items, 71 labels with a right skill (33 needs labelled with no right skill), 0 labels with no result file
+[k2.2] top-5 hit rate, all labels: 45 of 71 (63.4%)
+[k2.2] top-5 hit rate, library skill labels: 36 of 56 (64.3%)
+[k2.2] top-5 hit rate, free-text need labels: 9 of 15 (60.0%)
+[k2.3] expected lookup A: 1 of 12 (8.3%)
+[k2.3] expected lookup B: 33 of 37 (89.2%)
+[k2.3] expected lookup C: 11 of 22 (50.0%)
+[k2.4] found by tier A: 1 of 71 (1.4%) of all labels; 1 of them expected at A, 0 expected at another lookup
+[k2.4] found by tier B: 43 of 71 (60.6%) of all labels; 33 of them expected at B, 10 expected at another lookup
+[k2.4] found by tier C: 1 of 71 (1.4%) of all labels; 1 of them expected at C, 0 expected at another lookup
+[k2.5] expected A -> found A 1, B 0, C 0, below top 11, absent 0
+[k2.5] expected B -> found A 0, B 33, C 0, below top 4, absent 0
+[k2.5] expected C -> found A 0, B 10, C 1, below top 0, absent 11
+[k2.6] no hit: 0h0962klnd-T1 skill "rex-code-essentials" (expected A): rank 11, tier A
+[k2.6] no hit: 0h0962klnd-T1 need "SQLite FTS5 and bm25 ranking in bundled rusqlite" (expected C): not on the first page
+[k2.6] no hit: 0h096dyeq9-T2 skill "rex-code-essentials" (expected A): rank 12, tier A
+[k2.6] no hit: 0h096dyeq9-T2 skill "rex-code-folder-management" (expected B): rank 6, tier B
+[k2.6] no hit: 0h0b8x725g-T1 skill "rex-code-essentials" (expected A): rank 13, tier A
+[k2.6] no hit: 0h0b8x725g-T1 need "hand-written MCP JSON-RPC server over stdio" (expected C): not on the first page
+[k2.6] no hit: 0h0d1109wo-reviewer skill "rex-code-philosophy" (expected C): not on the first page
+[k2.6] no hit: 0h0d1109wo-reviewer skill "rex-code-commenting" (expected C): not on the first page
+[k2.6] no hit: 0h0d1109wo-reviewer skill "rex-code-ergonomics" (expected C): not on the first page
+[k2.6] no hit: 0h0d1109wo-reviewer skill "rex-code-error-writing" (expected C): not on the first page
+[k2.6] no hit: 0h0dnqm24i-T1 skill "rex-code-essentials" (expected A): rank 12, tier A
+[k2.6] no hit: 0h0dnqm24i-T1 skill "rex-code-validation-plan" (expected B): rank 9, tier B
+[k2.6] no hit: 0h0dnqm24i-T2 skill "rex-code-essentials" (expected A): rank 11, tier A
+[k2.6] no hit: 0h0dnqm24i-T3 skill "rex-code-essentials" (expected A): rank 12, tier A
+[k2.6] no hit: 0h0dnqm24i-T4 skill "rex-code-essentials" (expected A): rank 14, tier A
+[k2.6] no hit: 0h0dnqm24i-T4 need "SQLite FTS5 query with weighted bm25" (expected C): not on the first page
+[k2.6] no hit: 0h0dnqm24i-T4 need "escape caller text in FTS5 queries" (expected C): not on the first page
+[k2.6] no hit: 0h0dnqm24i-T5 skill "rex-code-essentials" (expected A): rank 11, tier A
+[k2.6] no hit: 0h0dnqm24i-T6 skill "rex-code-essentials" (expected A): rank 11, tier A
+[k2.6] no hit: 0h0f8vnww4-T1 skill "rex-code-essentials" (expected A): rank 13, tier A
+[k2.6] no hit: 0h0f8vnww4-T1 skill "rex-code-folder-management" (expected B): rank 7, tier B
+[k2.6] no hit: 0h0f8vnww4-T1 skill "rex-code-failure-policy" (expected B): rank 6, tier B
+[k2.6] no hit: 0h0f8vnww4-T3 skill "rex-code-essentials" (expected A): rank 12, tier A
+[k2.6] no hit: 0h0f8vnww4-T3 need "drive a headless claude session and quote its init line" (expected C): not on the first page
+[k2.6] no hit: 0h0fitv57s-reviewer skill "rex-skill-language" (expected C): not on the first page
+[k2.6] no hit: 0h0fitv57s-reviewer need "check each rule against the code" (expected C): not on the first page
+[k2.6] 26 labels with no hit in the top 5
+[k2.7] tier A item not in the labels (for the judge): 0h0962klnd-T1 library/rex-code-commenting rank 1
+[k2.7] tier B item not in the labels (for the judge): 0h0962klnd-T1 library/rex-code-tdd rank 4
+[k2.7] tier A item not in the labels (for the judge): 0h0962klnd-T1 library/rex-code-ergonomics rank 7
+[k2.7] tier A item not in the labels (for the judge): 0h0962klnd-T1 library/rex-code-error-writing rank 9
+[k2.7] tier A item not in the labels (for the judge): 0h0962klnd-T1 library/rex-code-philosophy rank 13
+[k2.7] tier B item not in the labels (for the judge): 0h0962klnd-T3 library/rex-code-spike rank 1
+[k2.7] tier B item not in the labels (for the judge): 0h096dyeq9-T1 library/rex-code-design-sketch rank 1
+[k2.7] tier B item not in the labels (for the judge): 0h096dyeq9-T1 library/rex-code-validation-plan rank 4
+[k2.7] tier A item not in the labels (for the judge): 0h096dyeq9-T2 library/rex-code-commenting rank 1
+[k2.7] tier B item not in the labels (for the judge): 0h096dyeq9-T2 library/rex-code-tests-unit-testing rank 3
+[k2.7] tier A item not in the labels (for the judge): 0h096dyeq9-T2 library/rex-code-ergonomics rank 8
+[k2.7] tier A item not in the labels (for the judge): 0h096dyeq9-T2 library/rex-code-error-writing rank 10
+[k2.7] tier A item not in the labels (for the judge): 0h096dyeq9-T2 library/rex-code-philosophy rank 13
+[k2.7] tier A item not in the labels (for the judge): 0h0b8x725g-T1 library/rex-code-commenting rank 1
+[k2.7] tier B item not in the labels (for the judge): 0h0b8x725g-T1 library/rex-code-tests-integration-testing rank 2
+[k2.7] tier A item not in the labels (for the judge): 0h0b8x725g-T1 library/rex-code-ergonomics rank 8
+[k2.7] tier A item not in the labels (for the judge): 0h0b8x725g-T1 library/rex-code-error-writing rank 11
+[k2.7] tier A item not in the labels (for the judge): 0h0b8x725g-T1 library/rex-code-philosophy rank 14
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T1 library/rex-code-commenting rank 1
+[k2.7] tier B item not in the labels (for the judge): 0h0dnqm24i-T1 library/rex-code-improve-codebase-architecture rank 3
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T1 library/rex-code-error-writing rank 10
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T1 library/rex-code-philosophy rank 14
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T2 library/rex-code-commenting rank 1
+[k2.7] tier B item not in the labels (for the judge): 0h0dnqm24i-T2 library/rex-code-folder-management rank 6
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T2 library/rex-code-ergonomics rank 7
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T2 library/rex-code-error-writing rank 9
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T2 library/rex-code-philosophy rank 13
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T3 library/rex-code-commenting rank 1
+[k2.7] tier B item not in the labels (for the judge): 0h0dnqm24i-T3 library/rex-code-failure-policy rank 5
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T3 library/rex-code-ergonomics rank 8
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T3 library/rex-code-error-writing rank 10
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T3 library/rex-code-philosophy rank 13
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T4 library/rex-code-commenting rank 1
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T4 library/rex-code-ergonomics rank 7
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T4 library/rex-code-error-writing rank 11
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T4 library/rex-code-philosophy rank 17
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T5 library/rex-code-commenting rank 1
+[k2.7] tier B item not in the labels (for the judge): 0h0dnqm24i-T5 library/rex-code-tests-integration-testing rank 2
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T5 library/rex-code-ergonomics rank 9
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T5 library/rex-code-error-writing rank 10
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T5 library/rex-code-philosophy rank 12
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T6 library/rex-code-commenting rank 1
+[k2.7] tier B item not in the labels (for the judge): 0h0dnqm24i-T6 library/rex-code-tests-integration-testing rank 2
+[k2.7] tier B item not in the labels (for the judge): 0h0dnqm24i-T6 library/rex-code-folder-management rank 5
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T6 library/rex-code-ergonomics rank 8
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T6 library/rex-code-error-writing rank 10
+[k2.7] tier A item not in the labels (for the judge): 0h0dnqm24i-T6 library/rex-code-philosophy rank 12
+[k2.7] tier B item not in the labels (for the judge): 0h0dnqm24i-reviewer library/rex-code-spike rank 2
+[k2.7] tier B item not in the labels (for the judge): 0h0dnqm24i-reviewer library/rex-code-validation-plan rank 4
+[k2.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T1 library/rex-code-commenting rank 1
+[k2.7] tier B item not in the labels (for the judge): 0h0f8vnww4-T1 library/rex-code-tests-integration-testing rank 4
+[k2.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T1 library/rex-code-ergonomics rank 8
+[k2.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T1 library/rex-code-error-writing rank 11
+[k2.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T1 library/rex-code-philosophy rank 16
+[k2.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T3 library/rex-code-commenting rank 1
+[k2.7] tier B item not in the labels (for the judge): 0h0f8vnww4-T3 library/rex-code-tdd rank 4
+[k2.7] tier B item not in the labels (for the judge): 0h0f8vnww4-T3 library/rex-code-folder-management rank 5
+[k2.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T3 library/rex-code-ergonomics rank 6
+[k2.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T3 library/rex-code-error-writing rank 9
+[k2.7] tier A item not in the labels (for the judge): 0h0f8vnww4-T3 library/rex-code-philosophy rank 13
+[k2.7] 60 tier A or B items that no label names

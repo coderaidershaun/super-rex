@@ -1,0 +1,27 @@
+{
+  "id": "0h0fitv57s-T1",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "document",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [
+    "instructions"
+  ],
+  "needs": [
+    "map each written rule to its check ID",
+    "keep skill text within size limits"
+  ],
+  "evidence": [
+    {
+      "term": "document",
+      "quote": "The non-tool part of WP8 is in the skill text"
+    },
+    {
+      "term": "instructions",
+      "quote": "`rex-skill-language` gains the rules of the `metadata` map"
+    }
+  ]
+}

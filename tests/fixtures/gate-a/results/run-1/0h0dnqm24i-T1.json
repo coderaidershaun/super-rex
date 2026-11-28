@@ -1,0 +1,144 @@
+{
+  "id": "0h0dnqm24i-T1",
+  "index_version": "sha256:2a06b957e9467fddf488f6cd0e816e7f345909b49017ec8a8f21a2066bc7a13c",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-commenting",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-design-sketch",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:plan"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-code-improve-codebase-architecture",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-folder-management",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-code-spike",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 6,
+      "skill": "rex-code-tests-contract-seams",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 7,
+      "skill": "rex-gap-ts",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 8,
+      "skill": "rex-code-ergonomics",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    }
+  ],
+  "more": 12,
+  "later_items": [
+    {
+      "rank": 9,
+      "skill": "rex-code-validation-plan",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:plan"
+    },
+    {
+      "rank": 10,
+      "skill": "image-analysis",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 11,
+      "skill": "rex-code-error-writing",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 12,
+      "skill": "design-an-interface",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 13,
+      "skill": "blog-article-design",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 14,
+      "skill": "john-the-ripper",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 15,
+      "skill": "rex-code-essentials",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 16,
+      "skill": "fast-check",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 17,
+      "skill": "aider",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 18,
+      "skill": "rex-code-philosophy",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 19,
+      "skill": "caddy",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 20,
+      "skill": "braintrust",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [],
+  "unrecognised": [],
+  "dropped": []
+}

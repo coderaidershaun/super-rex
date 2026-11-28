@@ -1,0 +1,28 @@
+{
+  "id": "0h096dyeq9-T1",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "design",
+  "touches": [
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "design a controlled vocabulary with synonyms and broader terms",
+    "map criteria to terms with checked counts",
+    "write a mapping document for the owner"
+  ],
+  "evidence": [
+    {
+      "term": "design",
+      "quote": "Shared vocabulary stable"
+    },
+    {
+      "term": "file-layout",
+      "quote": "`plugin/vocab/terms.json`, `plugin/vocab/aliases.json`, `docs/skill-library-vocabulary.md`"
+    }
+  ]
+}

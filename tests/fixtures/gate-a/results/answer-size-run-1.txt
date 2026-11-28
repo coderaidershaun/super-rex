@@ -1,0 +1,48 @@
+[z0] sizes measured on base 75566e35d9aa83c2ae166ae1906a83a3b33b8dae, before a parallel job adds open_when items to up to 12 library headers; libraries /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/plugin/library then /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills; limit 10
+[z1] 0h0962klnd-T1: 10 items (11 files, 1 open_when); full 2954 tokens; without files and open_when 1989; budget 1200
+[z1] 0h0962klnd-T1: after each step: cut why 2941, leave out hashes 2000, leave out words 1950, leave out placement 1897, leave out open_when 1828, leave out files 1425; binary returned 8 items, 1194 tokens, 13 more
+[z1] 0h0962klnd-T2: 10 items (7 files, 8 open_when); full 2849 tokens; without files and open_when 1995; budget 1200
+[z1] 0h0962klnd-T2: after each step: cut why 2836, leave out hashes 2074, leave out words 2025, leave out placement 1964, leave out open_when 1696, leave out files 1423; binary returned 8 items, 1174 tokens, 16 more
+[z1] 0h0962klnd-T3: 10 items (0 files, 0 open_when); full 1990 tokens; without files and open_when 1990; budget 1200
+[z1] 0h0962klnd-T3: after each step: cut why 1990, leave out hashes 1542, leave out words 1491, leave out placement 1483, leave out open_when 1483, leave out files 1483; binary returned 8 items, 1187 tokens, 3 more
+[z1] 0h096dyeq9-T1: 10 items (1 files, 4 open_when); full 2305 tokens; without files and open_when 2016; budget 1200
+[z1] 0h096dyeq9-T1: after each step: cut why 2305, leave out hashes 1812, leave out words 1761, leave out placement 1738, leave out open_when 1540, leave out files 1495; binary returned 7 items, 1049 tokens, 5 more
+[z1] 0h096dyeq9-T2: 10 items (6 files, 2 open_when); full 2708 tokens; without files and open_when 2002; budget 1200
+[z1] 0h096dyeq9-T2: after each step: cut why 2686, leave out hashes 1970, leave out words 1920, leave out placement 1866, leave out open_when 1729, leave out files 1429; binary returned 8 items, 1182 tokens, 12 more
+[z1] 0h096dyeq9-reviewer: 7 items (0 files, 0 open_when); full 1378 tokens; without files and open_when 1378; budget 1200
+[z1] 0h096dyeq9-reviewer: after each step: cut why 1378, leave out hashes 1064, leave out words 1028, leave out placement 1028, leave out open_when 1028, leave out files 1028; binary returned 7 items, 1064 tokens, 0 more
+[z1] 0h0b8x725g-T1: 10 items (12 files, 1 open_when); full 3148 tokens; without files and open_when 2061; budget 1200
+[z1] 0h0b8x725g-T1: after each step: cut why 3131, leave out hashes 2145, leave out words 2095, leave out placement 2042, leave out open_when 1973, leave out files 1492; binary returned 7 items, 1112 tokens, 17 more
+[z1] 0h0b8x725g-reviewer: 10 items (1 files, 0 open_when); full 2066 tokens; without files and open_when 1986; budget 1200
+[z1] 0h0b8x725g-reviewer: after each step: cut why 2066, leave out hashes 1573, leave out words 1522, leave out placement 1515, leave out open_when 1515, leave out files 1480; binary returned 7 items, 1061 tokens, 3 more
+[z1] 0h0d1109wo-T1: 10 items (3 files, 2 open_when); full 2288 tokens; without files and open_when 1966; budget 1200
+[z1] 0h0d1109wo-T1: after each step: cut why 2284, leave out hashes 1702, leave out words 1651, leave out placement 1613, leave out open_when 1565, leave out files 1425; binary returned 8 items, 1158 tokens, 9 more
+[z1] 0h0d1109wo-reviewer: 7 items (0 files, 0 open_when); full 1400 tokens; without files and open_when 1400; budget 1200
+[z1] 0h0d1109wo-reviewer: after each step: cut why 1400, leave out hashes 1086, leave out words 1051, leave out placement 1043, leave out open_when 1043, leave out files 1043; binary returned 7 items, 1086 tokens, 0 more
+[z1] 0h0dnqm24i-T1: 10 items (8 files, 1 open_when); full 2732 tokens; without files and open_when 1975; budget 1200
+[z1] 0h0dnqm24i-T1: after each step: cut why 2723, leave out hashes 1916, leave out words 1866, leave out placement 1798, leave out open_when 1729, leave out files 1400; binary returned 8 items, 1162 tokens, 12 more
+[z1] 0h0dnqm24i-T2: 10 items (5 files, 7 open_when); full 2778 tokens; without files and open_when 2008; budget 1200
+[z1] 0h0dnqm24i-T2: after each step: cut why 2756, leave out hashes 2084, leave out words 2034, leave out placement 1980, leave out open_when 1687, leave out files 1435; binary returned 8 items, 1146 tokens, 15 more
+[z1] 0h0dnqm24i-T3: 10 items (7 files, 3 open_when); full 2751 tokens; without files and open_when 1955; budget 1200
+[z1] 0h0dnqm24i-T3: after each step: cut why 2733, leave out hashes 1972, leave out words 1922, leave out placement 1877, leave out open_when 1694, leave out files 1394; binary returned 8 items, 1150 tokens, 16 more
+[z1] 0h0dnqm24i-T4: 10 items (2 files, 11 open_when); full 2633 tokens; without files and open_when 1970; budget 1200
+[z1] 0h0dnqm24i-T4: after each step: cut why 2616, leave out hashes 2078, leave out words 2028, leave out placement 1982, leave out open_when 1524, leave out files 1408; binary returned 8 items, 1162 tokens, 16 more
+[z1] 0h0dnqm24i-T5: 10 items (10 files, 4 open_when); full 3038 tokens; without files and open_when 1956; budget 1200
+[z1] 0h0dnqm24i-T5: after each step: cut why 3020, leave out hashes 2124, leave out words 2074, leave out placement 2014, leave out open_when 1807, leave out files 1380; binary returned 8 items, 1130 tokens, 9 more
+[z1] 0h0dnqm24i-T6: 10 items (5 files, 6 open_when); full 2826 tokens; without files and open_when 2072; budget 1200
+[z1] 0h0dnqm24i-T6: after each step: cut why 2809, leave out hashes 2137, leave out words 2087, leave out placement 2018, leave out open_when 1729, leave out files 1488; binary returned 8 items, 1169 tokens, 9 more
+[z1] 0h0dnqm24i-reviewer: 9 items (2 files, 1 open_when); full 2034 tokens; without files and open_when 1790; budget 1200
+[z1] 0h0dnqm24i-reviewer: after each step: cut why 2034, leave out hashes 1542, leave out words 1496, leave out placement 1458, leave out open_when 1390, leave out files 1303; binary returned 8 items, 1180 tokens, 1 more
+[z1] 0h0f8vnww4-T1: 10 items (10 files, 3 open_when); full 3084 tokens; without files and open_when 2001; budget 1200
+[z1] 0h0f8vnww4-T1: after each step: cut why 3058, leave out hashes 2162, leave out words 2112, leave out placement 2051, leave out open_when 1845, leave out files 1416; binary returned 8 items, 1184 tokens, 13 more
+[z1] 0h0f8vnww4-T2: 10 items (6 files, 5 open_when); full 2637 tokens; without files and open_when 1915; budget 1200
+[z1] 0h0f8vnww4-T2: after each step: cut why 2624, leave out hashes 1907, leave out words 1856, leave out placement 1803, leave out open_when 1630, leave out files 1350; binary returned 8 items, 1121 tokens, 11 more
+[z1] 0h0f8vnww4-T3: 10 items (10 files, 1 open_when); full 2918 tokens; without files and open_when 1990; budget 1200
+[z1] 0h0f8vnww4-T3: after each step: cut why 2904, leave out hashes 2008, leave out words 1958, leave out placement 1905, leave out open_when 1836, leave out files 1426; binary returned 8 items, 1143 tokens, 10 more
+[z1] 0h0f8vnww4-reviewer: 10 items (3 files, 4 open_when); full 2630 tokens; without files and open_when 2081; budget 1200
+[z1] 0h0f8vnww4-reviewer: after each step: cut why 2630, leave out hashes 2047, leave out words 1998, leave out placement 1968, leave out open_when 1692, leave out files 1554; binary returned 7 items, 1154 tokens, 3 more
+[z1] 0h0fitv57s-T1: 2 items (0 files, 0 open_when); full 490 tokens; without files and open_when 490; budget 1200
+[z1] 0h0fitv57s-T1: after each step: cut why 490, leave out hashes 400, leave out words 390, leave out placement 382, leave out open_when 382, leave out files 382; binary returned 2 items, 490 tokens, 0 more
+[z1] 0h0fitv57s-reviewer: 9 items (0 files, 1 open_when); full 1789 tokens; without files and open_when 1742; budget 1200
+[z1] 0h0fitv57s-reviewer: after each step: cut why 1789, leave out hashes 1386, leave out words 1339, leave out placement 1332, leave out open_when 1285, leave out files 1285; binary returned 8 items, 1168 tokens, 1 more
+[z2] 23 answers sized; 22 full pages over their budget

@@ -1,0 +1,46 @@
+{
+  "id": "0h0962klnd-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "design",
+  "touches": [
+    "unproven-approach",
+    "system-boundary",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "SQLite FTS5 bm25 column-weighted ranking",
+    "prove Claude Code skill loading with a positive control",
+    "verdict per assumption without false passes"
+  ],
+  "evidence": [
+    {
+      "term": "design",
+      "quote": "Assumptions 1 and 2 proved or disproved."
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "(1) FTS5 is compiled into the bundled SQLite that `rusqlite` builds."
+    },
+    {
+      "term": "system-boundary",
+      "quote": "creates an FTS5 virtual table (columns name, card, intents)"
+    },
+    {
+      "term": "file-layout",
+      "quote": "new fixture folder `tests/fixtures/wp0-metadata/`"
+    },
+    {
+      "term": "integration-test",
+      "quote": "including a new Rust test in `tests/integration/`"
+    }
+  ]
+}

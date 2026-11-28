@@ -1,0 +1,85 @@
+{
+  "id": "0h0962klnd-T3",
+  "index_version": "sha256:2a06b957e9467fddf488f6cd0e816e7f345909b49017ec8a8f21a2066bc7a13c",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-spike",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 2,
+      "skill": "improve-codebase-architecture",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 3,
+      "skill": "understand-diff",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 4,
+      "skill": "mvp",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-codex-adversarial-review",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 6,
+      "skill": "onboarding-cro",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 7,
+      "skill": "table-extractor",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "code-simplification",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 3,
+  "later_items": [
+    {
+      "rank": 9,
+      "skill": "lighthouse-ci",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 10,
+      "skill": "swiftui-performance-audit",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 11,
+      "skill": "prd-to-plan",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [
+    {
+      "need": "activity:document",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

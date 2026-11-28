@@ -1,0 +1,84 @@
+{
+  "id": "0h0962klnd-T3",
+  "index_version": "sha256:2a06b957e9467fddf488f6cd0e816e7f345909b49017ec8a8f21a2066bc7a13c",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-spike",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 2,
+      "skill": "expense-report",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 3,
+      "skill": "test-generator",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 4,
+      "skill": "minimalist-review",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 5,
+      "skill": "promptfoo",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 6,
+      "skill": "report-generator",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 7,
+      "skill": "ai-eval-ci",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "seo-audit",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 3,
+  "later_items": [
+    {
+      "rank": 9,
+      "skill": "testing-library",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 10,
+      "skill": "user-research",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 11,
+      "skill": "prompt-tester",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [
+    {
+      "need": "activity:document",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

@@ -1,0 +1,108 @@
+{
+  "id": "0h0f8vnww4-T3",
+  "index_version": "sha256:dc3be932fd3d7f6ffbd2065b83a4b570bbfa4693f11c4e2d9ae7af39d9713d4a",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-commenting",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-gap-ts",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-code-tests-integration-testing",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:integration-test"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-tdd",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-code-folder-management",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 6,
+      "skill": "rex-code-ergonomics",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 7,
+      "skill": "rex-code-design-sketch",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 8,
+      "skill": "rex-code-external-libraries",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    }
+  ],
+  "more": 5,
+  "later_items": [
+    {
+      "rank": 9,
+      "skill": "rex-code-error-writing",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 10,
+      "skill": "rex-agent-prompting",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 11,
+      "skill": "rex-code-spike",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 12,
+      "skill": "rex-code-essentials",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 13,
+      "skill": "rex-code-philosophy",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    }
+  ],
+  "gaps": [
+    {
+      "need": "activity:test",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

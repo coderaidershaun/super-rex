@@ -1,0 +1,28 @@
+{
+  "id": "0h096dyeq9-T1",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "design",
+  "touches": [
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "design a controlled vocabulary with an alias table",
+    "map criteria rows to terms or drop them with a reason",
+    "write for the owner in full sentences"
+  ],
+  "evidence": [
+    {
+      "term": "design",
+      "quote": "the JSON form of both files, so T2 reads them without guesses"
+    },
+    {
+      "term": "file-layout",
+      "quote": "`plugin/vocab/terms.json`, `plugin/vocab/aliases.json`, `docs/skill-library-vocabulary.md`"
+    }
+  ]
+}

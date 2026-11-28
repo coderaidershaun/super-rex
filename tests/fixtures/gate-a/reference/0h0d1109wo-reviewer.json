@@ -1,0 +1,31 @@
+{
+  "id": "0h0d1109wo-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [
+    "instructions"
+  ],
+  "needs": [
+    "rerun the author's seven checks independently",
+    "check skill headers against spec 7.1 to 7.5"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "No repo file. Its own output file."
+    },
+    {
+      "term": "review",
+      "quote": "Independent verdict on the stable job branch of T1"
+    },
+    {
+      "term": "instructions",
+      "quote": "the per-skill header script"
+    }
+  ]
+}

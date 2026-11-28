@@ -1,0 +1,27 @@
+{
+  "id": "latency-go-ms",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "go"
+    ],
+    "latency_scale": "ms"
+  },
+  "activity": "build",
+  "must_have": [
+    "latency"
+  ],
+  "needs": [
+    "service handler must answer within 50 milliseconds"
+  ],
+  "evidence": [
+    {
+      "term": "build",
+      "quote": "Build the request handler of the Go service."
+    },
+    {
+      "term": "latency",
+      "quote": "Each request must be answered within 50 milliseconds."
+    }
+  ]
+}

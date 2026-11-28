@@ -1,0 +1,40 @@
+{
+  "id": "0h0f8vnww4-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "ts"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "sub-agent",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "unit-test"
+  ],
+  "needs": [
+    "hook that refuses raw MCP tools inside a job",
+    "refusal text that names the tool to use"
+  ],
+  "evidence": [
+    {
+      "term": "build",
+      "quote": "a hook on `tool.call` only (never on `mcp.call`)"
+    },
+    {
+      "term": "sub-agent",
+      "quote": "the builder's main loop and each sub-agent"
+    },
+    {
+      "term": "file-layout",
+      "quote": "One new mod file under `plugin/hooks/` (+ its `.test.ts`)"
+    },
+    {
+      "term": "unit-test",
+      "quote": "New mod tests under `plugin/hooks/`"
+    }
+  ]
+}

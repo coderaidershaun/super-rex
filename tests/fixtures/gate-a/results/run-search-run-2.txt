@@ -1,0 +1,2 @@
+[s0] libraries: /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/plugin/library then /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills; limit 10; every page; raw answers to /Users/shaun/Code/DEVELOPMENT/gate-a-pool/raw/run-2; results to /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/tests/fixtures/gate-a/results/run-2
+[s1] 23 forms searched; items on first pages: tier A 27, tier B 68, tier C 70; index sha256:2a06b957e9467fddf488f6cd0e816e7f345909b49017ec8a8f21a2066bc7a13c

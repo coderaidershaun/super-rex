@@ -1,0 +1,51 @@
+{
+  "id": "0h0962klnd-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "ts"
+    ]
+  },
+  "activity": "test",
+  "touches": [
+    "unproven-approach",
+    "sub-agent",
+    "system-boundary",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "stub stdio MCP server",
+    "plugin manifest key for MCP servers",
+    "headless claude session with allowed and disallowed tools"
+  ],
+  "evidence": [
+    {
+      "term": "test",
+      "quote": "a runner in TypeScript run by `node`"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "Assumption 3 proved or disproved"
+    },
+    {
+      "term": "sub-agent",
+      "quote": "(b) from a sub-agent's tool call"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "appends each call it gets to a log file in the temp folder"
+    },
+    {
+      "term": "file-layout",
+      "quote": "new fixture folder `tests/fixtures/wp0-mcp/` only"
+    },
+    {
+      "term": "integration-test",
+      "quote": "IF `claude plugin validate` accepts the fixture manifest with that key AND the stub run connects"
+    }
+  ]
+}

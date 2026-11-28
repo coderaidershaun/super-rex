@@ -1,0 +1,21 @@
+{
+  "id": "0h0d1109wo-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "run the acceptance checks again independently",
+    "check skill bodies are unchanged byte for byte"
+  ],
+  "evidence": [
+    {
+      "term": "review",
+      "quote": "Independent verdict on the stable job branch of T1"
+    }
+  ]
+}

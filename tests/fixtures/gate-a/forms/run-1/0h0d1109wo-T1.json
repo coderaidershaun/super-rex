@@ -1,0 +1,40 @@
+{
+  "id": "0h0d1109wo-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "document",
+  "touches": [
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "instructions"
+  ],
+  "needs": [
+    "write YAML metadata headers for skills",
+    "condense four rulebooks into one short page",
+    "read-only script to verify every header"
+  ],
+  "evidence": [
+    {
+      "term": "document",
+      "quote": "Each of the 24 skills in `plugin/library/` has the `metadata` map of spec 7.1 in its header"
+    },
+    {
+      "term": "file-layout",
+      "quote": "new folder `plugin/library/rex-code-essentials/`"
+    },
+    {
+      "term": "instructions",
+      "quote": "New skill `plugin/library/rex-code-essentials/SKILL.md`"
+    },
+    {
+      "term": "writes_code",
+      "quote": "the lines that count the library's skills in tests and fixtures"
+    }
+  ]
+}

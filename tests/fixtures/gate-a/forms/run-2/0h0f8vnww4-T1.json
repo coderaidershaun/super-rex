@@ -1,0 +1,55 @@
+{
+  "id": "0h0f8vnww4-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "system-boundary",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "fitness-test",
+    "contract-test",
+    "integration-test"
+  ],
+  "needs": [
+    "doctor health check of a plugin MCP server",
+    "version skew between plugin manifest and binary"
+  ],
+  "evidence": [
+    {
+      "term": "build",
+      "quote": "Rust half of WP5 part 2"
+    },
+    {
+      "term": "outside-input",
+      "quote": "`get` answers `not_found` for each file that `head` does not list and hash, symlink included"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "when it cannot start (fixture plugin)"
+    },
+    {
+      "term": "file-layout",
+      "quote": "one new file under `tests/fitness/` + its line in `tests/fitness/main.rs`"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "fitness test that each skill folder in `plugin/library/` has a `metadata` map"
+    },
+    {
+      "term": "contract-test",
+      "quote": "new cases in `tests/contract/calls/doctor.rs`"
+    },
+    {
+      "term": "integration-test",
+      "quote": "new tests under `tests/integration/skills_serve/`"
+    }
+  ]
+}

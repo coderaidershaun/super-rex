@@ -1,0 +1,56 @@
+{
+  "id": "0h096dyeq9-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "file-layout",
+    "legacy-code"
+  ],
+  "must_have": [
+    "readability"
+  ],
+  "artefacts": [
+    "unit-test",
+    "fitness-test"
+  ],
+  "needs": [
+    "validate a YAML header map against a vocabulary",
+    "embed a data file in the binary"
+  ],
+  "evidence": [
+    {
+      "term": "build",
+      "quote": "`rex skills check` reads the `metadata` map of spec 7.1"
+    },
+    {
+      "term": "outside-input",
+      "quote": "each as a finding, never a panic"
+    },
+    {
+      "term": "file-layout",
+      "quote": "new module(s) in `src/commands/skills/`"
+    },
+    {
+      "term": "legacy-code",
+      "quote": "`src/commands/skills/check.rs` (to give the rules every file of the folder, not only Markdown)"
+    },
+    {
+      "term": "readability",
+      "quote": "Every changed or new source file is at most 500 lines and opens with its one or two line comment."
+    },
+    {
+      "term": "unit-test",
+      "quote": "A new test file under `tests/` fails a skill with a missing `kind`"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "The new `M*` rules are added to the `rules` list of `every_skill_and_agent_of_the_bundle_obeys_its_rules`"
+    }
+  ]
+}

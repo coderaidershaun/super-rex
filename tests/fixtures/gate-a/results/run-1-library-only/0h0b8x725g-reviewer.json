@@ -1,0 +1,37 @@
+{
+  "id": "0h0b8x725g-reviewer",
+  "index_version": "sha256:dc3be932fd3d7f6ffbd2065b83a4b570bbfa4693f11c4e2d9ae7af39d9713d4a",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-folder-management",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-agent-prompting",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-gap-ts",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    }
+  ],
+  "more": 0,
+  "later_items": [],
+  "gaps": [
+    {
+      "need": "activity:review",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

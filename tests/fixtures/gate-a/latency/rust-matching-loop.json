@@ -1,0 +1,46 @@
+{
+  "id": "latency-rust-ns",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ],
+    "latency_scale": "ns_us"
+  },
+  "activity": "build",
+  "touches": [
+    "threads",
+    "allocation"
+  ],
+  "must_have": [
+    "latency"
+  ],
+  "artefacts": [
+    "diagram"
+  ],
+  "needs": [
+    "order matching loop must not block"
+  ],
+  "evidence": [
+    {
+      "term": "build",
+      "quote": "Build the order matching loop in Rust."
+    },
+    {
+      "term": "threads",
+      "quote": "The loop runs on its own pinned core."
+    },
+    {
+      "term": "allocation",
+      "quote": "It must not allocate on the hot path."
+    },
+    {
+      "term": "latency",
+      "quote": "It must not slow the matching loop."
+    },
+    {
+      "term": "diagram",
+      "quote": "Draw the flow of an order through the loop."
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "0h096dyeq9-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "verdict table: PASS or BLOCK per acceptance line with quoted evidence",
+    "compare check output on BASE and HEAD"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "its output file only"
+    },
+    {
+      "term": "review",
+      "quote": "Review verdict of the whole change on the stable job branch."
+    }
+  ]
+}

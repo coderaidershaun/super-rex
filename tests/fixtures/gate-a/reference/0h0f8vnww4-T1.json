@@ -1,0 +1,69 @@
+{
+  "id": "0h0f8vnww4-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "system-boundary",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "unit-test",
+    "contract-test",
+    "fitness-test",
+    "integration-test"
+  ],
+  "needs": [
+    "rex doctor check that starts the library server and reports version skew",
+    "MCP server entry in plugin.json",
+    "refuse files that head does not list and hash, symlinks included"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "`src/commands/skills/serve.rs`, `serve/library.rs`, `serve/vocabulary.rs`"
+    },
+    {
+      "term": "rust",
+      "quote": "Rust half of WP5 part 2"
+    },
+    {
+      "term": "build",
+      "quote": "(d) `rex doctor` check of S4"
+    },
+    {
+      "term": "outside-input",
+      "quote": "(g) `get` answers `not_found` for each file that `head` does not list and hash, symlink included"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "`library=unreachable` + `problem=library server: <cause>` when it cannot start (fixture plugin)"
+    },
+    {
+      "term": "file-layout",
+      "quote": "one new doctor module file IF it passes 500 lines"
+    },
+    {
+      "term": "unit-test",
+      "quote": "inline `#[cfg(test)]` tests in the files it owns"
+    },
+    {
+      "term": "contract-test",
+      "quote": "new cases in `tests/contract/calls/doctor.rs`"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "(f) fitness test that each skill folder in `plugin/library/` has a `metadata` map that `Header::metadata()` reads"
+    },
+    {
+      "term": "integration-test",
+      "quote": "new tests under `tests/integration/skills_serve/`"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+Tool calls of each blind party, listed by the orchestrator from the agent transcripts (tool name and its path or command, cut at 300 characters). Grid agents: run-1 and run-2 super-rex:model-high-effort-high (role form-writer); reference super-rex:model-high-effort-xhigh (role reference-writer).
+
+== run-1
+Bash {"command": "ls -la /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/ /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/out/ 2>&1"}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/terms.json"}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/aliases.json"}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/tasks.json"}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/terms.json"}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/aliases.json"}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/tasks.json"}
+Write {"file_path": "/private/tmp/claude-501/-Users-shaun-Code-scratch-skilled/90965a73-8bf5-4eb6-aef9-e8b37390eb29/scratchpad/forms.py"}
+Bash {"command": "cd /private/tmp/claude-501/-Users-shaun-Code-scratch-skilled/90965a73-8bf5-4eb6-aef9-e8b37390eb29/scratchpad && python3 -I forms.py && ls /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/out/ | wc -l"}
+Bash {"command": "mkdir -p /Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg && ls /Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg/"}
+Write {"file_path": "/Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg/form-writer.md"}
+
+== run-2
+mcp__super-rex__rex_skill {}
+Bash {"command": "cat /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/input/terms.json; echo; echo ====; cat /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/input/aliases.json; echo; ls /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/"}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/input/tasks.json"}
+Bash {"command": "mkdir -p /private/tmp/claude-501/-Users-shaun-Code-scratch-skilled/90965a73-8bf5-4eb6-aef9-e8b37390eb29/scratchpad/fw && cat > /private/tmp/claude-501/-Users-shaun-Code-scratch-skilled/90965a73-8bf5-4eb6-aef9-e8b37390eb29/scratchpad/fw/build.py <<'PYEOF'\nimport json, sys, os\nbase
+Bash {"command": "cd /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/out && for f in *.json; do python3 -I -m json.tool \"$f\" >/dev/null || echo \"BAD $f\"; done; ls; mkdir -p /Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg"}
+Write {"file_path": "/Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg/form-writer-2.md"}
+
+== reference
+mcp__super-rex__rex_skill {}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/reference/input/tasks.json"}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/reference/input/terms.json"}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/reference/input/aliases.json"}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/reference/input/tasks.json"}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/reference/input/terms.json"}
+Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/reference/input/aliases.json"}
+Bash {"command": "mkdir -p /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/reference/out && ls -la /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/reference/out && ls -d /Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg 2>&1"}
+Bash {"command": "python3 -I - <<'PYEOF'\nimport json, os, sys\nBASE = \"/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/reference\"\ntasks = json.load(open(f\"{BASE}/input/tasks.json\"))\nterms = json.load(open(f\"{BASE}/input/terms.json\"))\nitems = {i[\"id\"]: i for i in tasks[\"items\"]}\n\nG = {g:
+Bash {"command": "cd /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/reference/out && ls | wc -l && for f in *.json; do python3 -I -m json.tool \"$f\" >/dev/null || echo \"BAD $f\"; done; echo parsed; python3 -I -c \"\nimport json,glob\nfor p in sorted(glob.glob('*.json')):\n    f=json.load(open(p)); pr
+Write {"file_path": "/Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg/reference-writer.md"}
+
+Ruling of the orchestrator: all three runs blind. Each read only the three files of its own input folder (terms.json, aliases.json, tasks.json, sha256 e27586c2...0424b). run-1 ran one ls of the job's plan folder (file names only, no content read) before writing its output file. run-2 and reference made one rex_skill call with no name, the fallback that returns the brief assembly (tier text, Return part) and no skill text, because their task has no skills. No run opened a skill, read the spec, or ran a search. Helper scripts that run-1 (scratchpad/forms.py) and run-2 (scratchpad/fw/build.py) wrote were in the session scratchpad; neither run read the other's script.

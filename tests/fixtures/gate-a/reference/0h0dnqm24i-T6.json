@@ -1,0 +1,54 @@
+{
+  "id": "0h0dnqm24i-T6",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "legacy-code",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "check that each skill is found by its own intent phrases",
+    "keep exact-output tests unchanged",
+    "test first"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "pool plumbing in `src/commands/skills/check.rs`"
+    },
+    {
+      "term": "rust",
+      "quote": "the changed comment at the marked place of `metadata/fields.rs`"
+    },
+    {
+      "term": "build",
+      "quote": "Intent-phrase check of spec section 10 in `rex skills check`"
+    },
+    {
+      "term": "outside-input",
+      "quote": "an unreadable pool skill does not stop the check"
+    },
+    {
+      "term": "legacy-code",
+      "quote": "The exact-output tests `tests/integration/oms_skills/skills/check.rs`, `tests/integration/oms_skills/skills/metadata.rs` and `tests/integration/wp0/skill_metadata.rs` pass unchanged"
+    },
+    {
+      "term": "file-layout",
+      "quote": "the intent check file and its call where the contract places it"
+    },
+    {
+      "term": "integration-test",
+      "quote": "Tests through the binary, test first, on a fixture of its own"
+    }
+  ]
+}

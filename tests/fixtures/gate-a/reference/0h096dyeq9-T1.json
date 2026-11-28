@@ -1,0 +1,26 @@
+{
+  "id": "0h096dyeq9-T1",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "design",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "controlled vocabulary with synonyms and broader and narrower terms",
+    "map each assign-table criterion to a term or drop it with a reason",
+    "value type and closed or open domain for each fact and scope key"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "`plugin/vocab/terms.json`, `plugin/vocab/aliases.json`, `docs/skill-library-vocabulary.md`"
+    },
+    {
+      "term": "design",
+      "quote": "(f) the JSON form of both files, so T2 reads them without guesses"
+    }
+  ]
+}

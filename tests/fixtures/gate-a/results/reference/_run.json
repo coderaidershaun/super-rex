@@ -1,0 +1,10 @@
+{
+  "libraries": [
+    "library",
+    "skills"
+  ],
+  "limit": 10,
+  "all_pages": true,
+  "forms": 23,
+  "index_version": "sha256:2a06b957e9467fddf488f6cd0e816e7f345909b49017ec8a8f21a2066bc7a13c"
+}

@@ -1,0 +1,51 @@
+{
+  "id": "0h0dnqm24i-reviewer",
+  "index_version": "sha256:dc3be932fd3d7f6ffbd2065b83a4b570bbfa4693f11c4e2d9ae7af39d9713d4a",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-design-sketch",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:plan"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-spike",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-codex-adversarial-review",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-validation-plan",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:plan"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-code-tests-contract-seams",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    }
+  ],
+  "more": 0,
+  "later_items": [],
+  "gaps": [
+    {
+      "need": "activity:review",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

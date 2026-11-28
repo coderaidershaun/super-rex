@@ -1,0 +1,25 @@
+{
+  "id": "0h0fitv57s-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "check each skill rule against the check code",
+    "run the check with the worktree binary, never the rex on PATH"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "No file of repo. Its output file only."
+    },
+    {
+      "term": "review",
+      "quote": "Independent review of the stable branch of T1."
+    }
+  ]
+}

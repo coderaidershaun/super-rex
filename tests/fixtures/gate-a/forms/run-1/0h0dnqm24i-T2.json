@@ -1,0 +1,51 @@
+{
+  "id": "0h0dnqm24i-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "system-boundary",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "fitness-test",
+    "contract-test"
+  ],
+  "needs": [
+    "test first",
+    "deterministic index output",
+    "card summary of at most 30 words"
+  ],
+  "evidence": [
+    {
+      "term": "build",
+      "quote": "Index built from skill folders and `rex skills index`"
+    },
+    {
+      "term": "outside-input",
+      "quote": "a malformed header does not stop the index"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "`rex skills index` writes `index.json`"
+    },
+    {
+      "term": "file-layout",
+      "quote": "index files under `src/commands/skills/search/` that the contract names"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "`index.json` is byte-identical on two runs"
+    },
+    {
+      "term": "contract-test",
+      "quote": "`tests/contract/skills_search/loader_lookups.rs` runs lookups A, B and C over an index that the loader built from the fixture library"
+    }
+  ]
+}

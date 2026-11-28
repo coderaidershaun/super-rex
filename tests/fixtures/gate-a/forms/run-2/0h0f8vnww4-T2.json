@@ -1,0 +1,35 @@
+{
+  "id": "0h0f8vnww4-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "ts"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "unit-test"
+  ],
+  "needs": [
+    "Claude Code plugin hook that refuses tool calls inside a job",
+    "refusal text that names the tool to use instead"
+  ],
+  "evidence": [
+    {
+      "term": "build",
+      "quote": "(e) Mod refusal"
+    },
+    {
+      "term": "file-layout",
+      "quote": "One new mod file under `plugin/hooks/` (+ its `.test.ts`)"
+    },
+    {
+      "term": "unit-test",
+      "quote": "New mod tests under `plugin/hooks/`"
+    }
+  ]
+}

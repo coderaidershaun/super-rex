@@ -1,0 +1,46 @@
+{
+  "id": "0h0962klnd-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "test",
+  "touches": [
+    "unproven-approach",
+    "system-boundary",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "SQLite FTS5 and bm25 ranking in bundled rusqlite",
+    "check Claude Code loads a skill header with no warning",
+    "positive and negative controls for a live load"
+  ],
+  "evidence": [
+    {
+      "term": "test",
+      "quote": "a new Rust test in `tests/integration/`"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "Assumptions 1 and 2 proved or disproved."
+    },
+    {
+      "term": "system-boundary",
+      "quote": "creates an FTS5 virtual table"
+    },
+    {
+      "term": "file-layout",
+      "quote": "new fixture folder `tests/fixtures/wp0-metadata/`"
+    },
+    {
+      "term": "integration-test",
+      "quote": "a new Rust test in `tests/integration/` that creates an FTS5 virtual table"
+    }
+  ]
+}

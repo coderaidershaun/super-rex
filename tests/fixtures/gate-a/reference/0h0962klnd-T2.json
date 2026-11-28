@@ -1,0 +1,59 @@
+{
+  "id": "0h0962klnd-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "ts"
+    ]
+  },
+  "activity": "test",
+  "touches": [
+    "unproven-approach",
+    "system-boundary",
+    "sub-agent",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "call a plugin's own MCP server from its mod with $.mcp.call",
+    "stub stdio MCP server in TypeScript with node built-ins only",
+    "confirm the plugin manifest key for MCP servers from the docs"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "a mod that registers one probe tool whose handler calls `$.mcp.call` on the stub"
+    },
+    {
+      "term": "ts",
+      "quote": "TypeScript run by `node` 24 with type stripping"
+    },
+    {
+      "term": "test",
+      "quote": "a runner in TypeScript run by `node`"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "Assumption 3 proved or disproved"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "The runner makes a new random nonce for each run; the stub returns the nonce and appends each call it gets to a log file in the temp folder."
+    },
+    {
+      "term": "sub-agent",
+      "quote": "(b) from a sub-agent's tool call"
+    },
+    {
+      "term": "file-layout",
+      "quote": "new fixture folder `tests/fixtures/wp0-mcp/` only"
+    },
+    {
+      "term": "integration-test",
+      "quote": "Nested sessions allow only the probe tool"
+    }
+  ]
+}

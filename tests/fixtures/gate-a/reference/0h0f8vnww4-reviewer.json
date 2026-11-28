@@ -1,0 +1,25 @@
+{
+  "id": "0h0f8vnww4-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "check seams S1 to S4 across the Rust and TypeScript halves",
+    "run the tests and quote their output"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "No file."
+    },
+    {
+      "term": "review",
+      "quote": "Review of whole job branch against request items (a) to (g), acceptance, scope list, seams S1 to S4."
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "id": "0h0dnqm24i-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "design",
+  "touches": [
+    "architecture",
+    "file-layout",
+    "unproven-approach"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "plan"
+  ],
+  "needs": [
+    "interface contract of types and signatures",
+    "fixture library that covers each case",
+    "prove each unknown with a quoted run"
+  ],
+  "evidence": [
+    {
+      "term": "design",
+      "quote": "Contract and skeleton stable"
+    },
+    {
+      "term": "architecture",
+      "quote": "one contract file gives the module layout under `src/commands/skills/search/`"
+    },
+    {
+      "term": "file-layout",
+      "quote": "Skeleton commit: stub files that compile"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "the answer to each unknown"
+    },
+    {
+      "term": "plan",
+      "quote": "Contract maps each acceptance line of the request to one trace, one test file and one owning task"
+    }
+  ]
+}

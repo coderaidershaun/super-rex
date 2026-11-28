@@ -1,0 +1,27 @@
+{
+  "id": "0h0962klnd-T3",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "document",
+  "touches": [
+    "unproven-approach"
+  ],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "findings report with a verdict per assumption",
+    "rerun and quote build and test output on the merged branch"
+  ],
+  "evidence": [
+    {
+      "term": "document",
+      "quote": "Findings file `docs/skill-library-wp0.md` written from the merged job branch"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "what later work packages must do differently if it failed"
+    }
+  ]
+}

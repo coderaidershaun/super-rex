@@ -1,0 +1,20 @@
+{
+  "id": "0h0fitv57s-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "check each rule against the code that enforces it"
+  ],
+  "evidence": [
+    {
+      "term": "review",
+      "quote": "Independent review of the stable branch of T1."
+    }
+  ]
+}

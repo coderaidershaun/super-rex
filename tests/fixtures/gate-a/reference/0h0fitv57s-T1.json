@@ -1,0 +1,38 @@
+{
+  "id": "0h0fitv57s-T1",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "document",
+  "touches": [
+    "sub-agent"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "instructions"
+  ],
+  "needs": [
+    "map each metadata rule to its check ID M1 to M13",
+    "a skill fork keeps its metadata and updates files and open_when",
+    "update the skill counts in every text"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "Body of `plugin/library/rex-skill-language/SKILL.md`"
+    },
+    {
+      "term": "document",
+      "quote": "The non-tool part of WP8 is in the skill text"
+    },
+    {
+      "term": "instructions",
+      "quote": "`rex-skill-language` gains the rules of the `metadata` map"
+    },
+    {
+      "term": "sub-agent",
+      "quote": "the builder step after the skill writer reports confirms the header has `metadata`"
+    }
+  ]
+}

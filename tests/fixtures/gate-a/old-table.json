@@ -1,0 +1,416 @@
+{
+  "about": "The skills that the old table gave each item: names in code spans of its Skills and Open when cells, and both cells verbatim.",
+  "items": [
+    {
+      "id": "0h0962klnd-T1",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-code-tests-integration-testing"
+      ],
+      "open_when": [
+        "rex-code-spike",
+        "rex-skill-language",
+        "rex-code-tests-integration-testing/real-funds.md",
+        "rex-code-tdd/mocking.md",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-tests-integration-testing`",
+      "open_when_cell": "`rex-code-spike` (you run a throwaway probe in a temp folder outside the repo that does not stay as a proof), `rex-skill-language` (writes a skill, a prompt or agent instructions), `rex-code-tests-integration-testing/real-funds.md` (a test moves real funds), `rex-code-tdd/mocking.md` (writes a test that crosses the file system), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder)"
+    },
+    {
+      "id": "0h0962klnd-T2",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-gap-ts",
+        "rex-code-tests-integration-testing"
+      ],
+      "open_when": [
+        "rex-code-spike",
+        "rex-agent-prompting",
+        "find-docs",
+        "rex-code-failure-policy",
+        "rex-code-failure-policy/failure-table.md",
+        "rex-code-tests-contract-seams",
+        "rex-code-tests-integration-testing/real-funds.md",
+        "rex-code-tdd/mocking.md",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-gap-ts`, `rex-code-tests-integration-testing`",
+      "open_when_cell": "`rex-code-spike` (you run a throwaway probe in a temp folder outside the repo that does not stay as a proof), `rex-agent-prompting` (you write the prompt of a nested headless run that must spawn a sub-agent), `find-docs` (WebFetch of https://code.claude.com/docs/en/plugins-reference fails), `rex-code-failure-policy` (handles outside input), `rex-code-failure-policy/failure-table.md` (it plans such a feature: writes its failure table), `rex-code-tests-contract-seams` (tests the interface between two modules), `rex-code-tests-integration-testing/real-funds.md` (a test moves real funds), `rex-code-tdd/mocking.md` (writes a test that crosses to an outside API or database), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder)"
+    },
+    {
+      "id": "0h0962klnd-T3",
+      "skills": [
+        "rex-simplify"
+      ],
+      "open_when": [],
+      "skills_cell": "`rex-simplify`",
+      "open_when_cell": "—"
+    },
+    {
+      "id": "0h096dyeq9-T1",
+      "skills": [],
+      "open_when": [],
+      "skills_cell": "—",
+      "open_when_cell": "—"
+    },
+    {
+      "id": "0h096dyeq9-T2",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-code-tdd"
+      ],
+      "open_when": [
+        "rex-code-failure-policy",
+        "rex-code-failure-policy/failure-table.md",
+        "rex-code-tests-fitness-functions",
+        "rex-code-tdd/mocking.md",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md",
+        "rex-code-tests-unit-testing"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-tdd`",
+      "open_when_cell": "`rex-code-failure-policy` (handles outside input), `rex-code-failure-policy/failure-table.md` (it plans such a feature: writes its failure table), `rex-code-tests-fitness-functions` (tests an invariant that must always hold), `rex-code-tdd/mocking.md` (writes a test that crosses the file system), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder), `rex-code-tests-unit-testing` (writes an inline `#[cfg(test)]` scaffold while it builds the parser test first, or decides to keep or delete one)"
+    },
+    {
+      "id": "0h096dyeq9-reviewer",
+      "skills": [
+        "rex-pr-review"
+      ],
+      "open_when": [
+        "rex-code-commenting",
+        "rex-code-error-writing"
+      ],
+      "skills_cell": "`rex-pr-review`",
+      "open_when_cell": "`rex-code-commenting` (a finding is about the module comment or other comments of a file), `rex-code-error-writing` (a finding is about how a malformed header or vocabulary is reported)"
+    },
+    {
+      "id": "0h0b8x725g-T1",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-code-tdd",
+        "rex-code-tests-integration-testing"
+      ],
+      "open_when": [
+        "rex-code-tests-contract-seams",
+        "rex-code-failure-policy",
+        "rex-code-failure-policy/failure-table.md",
+        "rex-code-tests-unit-testing",
+        "rex-code-tests-fitness-functions",
+        "rex-code-tdd/mocking.md",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-tdd`, `rex-code-tests-integration-testing`",
+      "open_when_cell": "`rex-code-tests-contract-seams` (a test pins a message shape that the WP6 mod will rely on), `rex-code-failure-policy` (handles outside input), `rex-code-failure-policy/failure-table.md` (it plans such a feature: writes its failure table), `rex-code-tests-unit-testing` (writes a unit test of a pure function), `rex-code-tests-fitness-functions` (tests an invariant that must always hold), `rex-code-tdd/mocking.md` (writes a test that crosses the file system), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder)"
+    },
+    {
+      "id": "0h0b8x725g-reviewer",
+      "skills": [
+        "rex-pr-review"
+      ],
+      "open_when": [
+        "rex-code-failure-policy",
+        "rex-code-error-writing",
+        "rex-code-folder-management",
+        "rex-code-tests-integration-testing"
+      ],
+      "skills_cell": "`rex-pr-review`",
+      "open_when_cell": "`rex-code-failure-policy` (a finding is about stdin input validation, skill-name check or path containment of `get`), `rex-code-error-writing` (a finding is about an error type or an isError code), `rex-code-folder-management` (a finding is about module layout or the 500-line limit), `rex-code-tests-integration-testing` (a finding is about where or how a test drives the binary)"
+    },
+    {
+      "id": "0h0d1109wo-T1",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-skill-language"
+      ],
+      "open_when": [
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md",
+        "rex-code-tdd"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-skill-language`",
+      "open_when_cell": "`rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder), `rex-code-tdd` (a Rust test that counts the library's skills must be written new, not only changed)"
+    },
+    {
+      "id": "0h0d1109wo-reviewer",
+      "skills": [
+        "rex-pr-review"
+      ],
+      "open_when": [
+        "rex-skill-language",
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing"
+      ],
+      "skills_cell": "`rex-pr-review`",
+      "open_when_cell": "`rex-skill-language` (a finding is about the controlled style of the digest, or of a `not_when`, `when` or intent line), `rex-code-philosophy` (a finding is about whether the digest carries a rule of rex-code-philosophy), `rex-code-commenting` (a finding is about whether the digest carries a rule of rex-code-commenting), `rex-code-ergonomics` (a finding is about whether the digest carries a rule of rex-code-ergonomics), `rex-code-error-writing` (a finding is about whether the digest carries a rule of rex-code-error-writing)"
+    },
+    {
+      "id": "0h0dnqm24i-T1",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-code-design-sketch",
+        "rex-code-validation-plan"
+      ],
+      "open_when": [
+        "rex-code-spike",
+        "rex-skill-language",
+        "rex-code-failure-policy",
+        "rex-code-failure-policy/failure-table.md",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md",
+        "rex-code-priorities",
+        "rex-mermaid-diagrams",
+        "rex-code-tdd",
+        "rex-code-tests-unit-testing",
+        "rex-code-improve-codebase-architecture"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-design-sketch`, `rex-code-validation-plan`",
+      "open_when_cell": "`rex-code-spike` (rests on an approach, crate or outside service that is not proven), `rex-skill-language` (writes a skill, a prompt or agent instructions), `rex-code-failure-policy` (handles outside input), `rex-code-failure-policy/failure-table.md` (it plans such a feature: writes its failure table), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder), `rex-code-priorities` (reads the priority block or decides a trade-off), `rex-mermaid-diagrams` (writes the diagram of the sketch or a trace), `rex-code-tdd` (writes the aliases accessor and its test), `rex-code-tests-unit-testing` (writes the unit test of the aliases accessor), `rex-code-improve-codebase-architecture` (runs the deletion test of the sketch gate)"
+    },
+    {
+      "id": "0h0dnqm24i-T2",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-code-tdd"
+      ],
+      "open_when": [
+        "rex-code-failure-policy",
+        "rex-code-failure-policy/failure-table.md",
+        "rex-code-tests-fitness-functions",
+        "rex-code-tdd/mocking.md",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md",
+        "rex-code-tests-contract-seams"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-tdd`",
+      "open_when_cell": "`rex-code-failure-policy` (handles outside input), `rex-code-failure-policy/failure-table.md` (it plans such a feature: writes its failure table), `rex-code-tests-fitness-functions` (tests an invariant that must always hold), `rex-code-tdd/mocking.md` (writes a test that crosses the file system), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder), `rex-code-tests-contract-seams` (tests the index its loader builds against lookups A, B and C)"
+    },
+    {
+      "id": "0h0dnqm24i-T3",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-code-tdd",
+        "rex-code-tests-contract-seams"
+      ],
+      "open_when": [
+        "rex-code-failure-policy",
+        "rex-code-failure-policy/failure-table.md",
+        "rex-code-tests-unit-testing",
+        "rex-code-tests-fitness-functions",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-tdd`, `rex-code-tests-contract-seams`",
+      "open_when_cell": "`rex-code-failure-policy` (handles outside input), `rex-code-failure-policy/failure-table.md` (it plans such a feature: writes its failure table), `rex-code-tests-unit-testing` (writes a unit test of a pure function), `rex-code-tests-fitness-functions` (tests an invariant that must always hold), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder)"
+    },
+    {
+      "id": "0h0dnqm24i-T4",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-code-tdd",
+        "rex-code-tests-contract-seams"
+      ],
+      "open_when": [
+        "rex-code-failure-policy",
+        "rex-code-failure-policy/failure-table.md",
+        "rex-code-tests-unit-testing",
+        "rex-code-tests-fitness-functions",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md",
+        "find-docs"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-tdd`, `rex-code-tests-contract-seams`",
+      "open_when_cell": "`rex-code-failure-policy` (handles outside input), `rex-code-failure-policy/failure-table.md` (it plans such a feature: writes its failure table), `rex-code-tests-unit-testing` (writes a unit test of a pure function), `rex-code-tests-fitness-functions` (tests an invariant that must always hold), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder), `find-docs` (the WP0 proof does not answer a question on FTS5 query syntax or the rusqlite API)"
+    },
+    {
+      "id": "0h0dnqm24i-T5",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-code-tdd",
+        "rex-code-tests-fitness-functions"
+      ],
+      "open_when": [
+        "rex-code-failure-policy",
+        "rex-code-failure-policy/failure-table.md",
+        "rex-code-tests-unit-testing",
+        "rex-code-tests-contract-seams",
+        "rex-code-tdd/mocking.md",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-tdd`, `rex-code-tests-fitness-functions`",
+      "open_when_cell": "`rex-code-failure-policy` (handles outside input), `rex-code-failure-policy/failure-table.md` (it plans such a feature: writes its failure table), `rex-code-tests-unit-testing` (writes a unit test of a pure function), `rex-code-tests-contract-seams` (tests the interface between two modules), `rex-code-tdd/mocking.md` (writes a test that crosses the file system), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder)"
+    },
+    {
+      "id": "0h0dnqm24i-T6",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-code-tdd"
+      ],
+      "open_when": [
+        "rex-skill-language",
+        "rex-code-failure-policy",
+        "rex-code-failure-policy/failure-table.md",
+        "rex-code-tdd/mocking.md",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-tdd`",
+      "open_when_cell": "`rex-skill-language` (writes a skill, a prompt or agent instructions), `rex-code-failure-policy` (handles outside input), `rex-code-failure-policy/failure-table.md` (it plans such a feature: writes its failure table), `rex-code-tdd/mocking.md` (writes a test that crosses the file system), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder)"
+    },
+    {
+      "id": "0h0dnqm24i-reviewer",
+      "skills": [
+        "rex-pr-review"
+      ],
+      "open_when": [
+        "rex-code-design-sketch",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-code-commenting",
+        "rex-code-tests-fitness-functions"
+      ],
+      "skills_cell": "`rex-pr-review`",
+      "open_when_cell": "`rex-code-design-sketch` (reviews the contract before group 2), `rex-code-ergonomics` (a finding is about names, types or signatures), `rex-code-error-writing` (a finding is about an error type or error code), `rex-code-commenting` (a finding is about comments or a file's opening comment), `rex-code-tests-fitness-functions` (a finding is about a determinism or size invariant test)"
+    },
+    {
+      "id": "0h0f8vnww4-T1",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-code-tdd"
+      ],
+      "open_when": [
+        "rex-code-failure-policy",
+        "rex-code-failure-policy/failure-table.md",
+        "rex-code-tests-contract-seams",
+        "rex-code-tests-fitness-functions",
+        "rex-code-tests-unit-testing",
+        "rex-code-tdd/mocking.md",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-code-tdd`",
+      "open_when_cell": "`rex-code-failure-policy` (handles outside input), `rex-code-failure-policy/failure-table.md` (it plans such a feature: writes its failure table), `rex-code-tests-contract-seams` (tests the interface between two modules), `rex-code-tests-fitness-functions` (tests an invariant that must always hold), `rex-code-tests-unit-testing` (you write a unit test of a pure function (default name, hashed-set check, version compare)), `rex-code-tdd/mocking.md` (writes a test that crosses the file system), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder)"
+    },
+    {
+      "id": "0h0f8vnww4-T2",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-gap-ts",
+        "rex-code-tdd"
+      ],
+      "open_when": [
+        "rex-code-spike",
+        "rex-code-failure-policy",
+        "rex-code-failure-policy/failure-table.md",
+        "rex-code-tests-unit-testing",
+        "rex-code-tests-contract-seams",
+        "rex-skill-language",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-gap-ts`, `rex-code-tdd`",
+      "open_when_cell": "`rex-code-spike` (rests on an approach, crate or outside service that is not proven), `rex-code-failure-policy` (handles outside input), `rex-code-failure-policy/failure-table.md` (it plans such a feature: writes its failure table), `rex-code-tests-unit-testing` (writes a unit test of a pure function), `rex-code-tests-contract-seams` (tests the interface between two modules), `rex-skill-language` (you write the refusal text that an agent reads), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder)"
+    },
+    {
+      "id": "0h0f8vnww4-T3",
+      "skills": [
+        "rex-code-philosophy",
+        "rex-code-commenting",
+        "rex-code-ergonomics",
+        "rex-code-error-writing",
+        "rex-gap-ts",
+        "rex-code-tests-integration-testing"
+      ],
+      "open_when": [
+        "rex-code-spike",
+        "rex-gap-ts/setup.md",
+        "rex-code-tests-integration-testing/real-funds.md",
+        "rex-code-tdd/mocking.md",
+        "rex-code-folder-management",
+        "rex-code-folder-management/move.md"
+      ],
+      "skills_cell": "`rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, `rex-gap-ts`, `rex-code-tests-integration-testing`",
+      "open_when_cell": "`rex-code-spike` (rests on an approach, crate or outside service that is not proven), `rex-gap-ts/setup.md` (you create or change tsconfig.json), `rex-code-tests-integration-testing/real-funds.md` (a test moves real funds), `rex-code-tdd/mocking.md` (writes a test that crosses to an outside API or database), `rex-code-folder-management` (creates or splits a file, module or folder), `rex-code-folder-management/move.md` (it moves a file, module or folder)"
+    },
+    {
+      "id": "0h0f8vnww4-reviewer",
+      "skills": [
+        "rex-pr-review"
+      ],
+      "open_when": [
+        "rex-gap-ts",
+        "rex-code-error-writing",
+        "rex-code-commenting",
+        "rex-code-tests-fitness-functions"
+      ],
+      "skills_cell": "`rex-pr-review`",
+      "open_when_cell": "`rex-gap-ts` (a finding is about TypeScript code of the mod or the live runner), `rex-code-error-writing` (a finding is about an error, a doctor failing line, or the refusal text), `rex-code-commenting` (a finding is about a module comment or the opening comment of a file), `rex-code-tests-fitness-functions` (a finding is about the fitness test or its fixture)"
+    },
+    {
+      "id": "0h0fitv57s-T1",
+      "skills": [
+        "rex-skill-language"
+      ],
+      "open_when": [
+        "rex-agent-prompting"
+      ],
+      "skills_cell": "`rex-skill-language`",
+      "open_when_cell": "`rex-agent-prompting` (you change the brief template of the skill writer in `write-skill.md`)"
+    },
+    {
+      "id": "0h0fitv57s-reviewer",
+      "skills": [
+        "rex-pr-review",
+        "rex-skill-language"
+      ],
+      "open_when": [],
+      "skills_cell": "`rex-pr-review`, `rex-skill-language`",
+      "open_when_cell": "—"
+    }
+  ]
+}

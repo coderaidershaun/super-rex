@@ -1,0 +1,201 @@
+== node intent-check.ts  (exit 0)
+[e0] rex skills check --pool /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/plugin/library: exit 0, 25 lines, 25 ok, 0 intent findings (M14), 0 other lines
+[e1] 78 intent phrases in 25 skills; each searched as one need over the library then the pool
+[e2] rex-agent-prompting: "start a sub-agent": rank 1 of 2 tier C items
+[e2] rex-agent-prompting: "write a brief for another agent": rank 1 of 2 tier C items
+[e2] rex-agent-prompting: "choose brief text for a model tier": rank 1 of 1 tier C items
+[e2] rex-code-commenting: "decide whether to add a comment": rank 1 of 2 tier C items
+[e2] rex-code-commenting: "write the comment at the top of a file": rank 1 of 2 tier C items
+[e2] rex-code-commenting: "flag a code smell": rank 1 of 1 tier C items
+[e2] rex-code-design-sketch: "design a new system before its code": rank 1 of 1 tier C items
+[e2] rex-code-design-sketch: "draw the architecture as boxes and arrows": rank 1 of 1 tier C items
+[e2] rex-code-design-sketch: "fit a new module to existing code": rank 1 of 1 tier C items
+[e2] rex-code-ergonomics: "name a function or a type": rank 1 of 1 tier C items
+[e2] rex-code-ergonomics: "choose a function signature": rank 1 of 1 tier C items
+[e2] rex-code-ergonomics: "design a public API": rank 2 of 2 tier C items
+[e2] rex-code-error-writing: "design an error type": rank 2 of 2 tier C items
+[e2] rex-code-error-writing: "write an error message": rank 1 of 4 tier C items
+[e2] rex-code-error-writing: "choose between panic and Result": rank 1 of 1 tier C items
+[e2] rex-code-essentials: "obey the coding rules of every task": rank 1 of 1 tier C items
+[e2] rex-code-essentials: "write simple, readable code in any language": rank 1 of 1 tier C items
+[e2] rex-code-essentials: "name things and handle errors well": rank 1 of 1 tier C items
+[e2] rex-code-external-libraries: "add a crate": rank 1 of 3 tier C items
+[e2] rex-code-external-libraries: "upgrade a dependency": rank 1 of 3 tier C items
+[e2] rex-code-external-libraries: "choose the features of a crate": rank 1 of 1 tier C items
+[e2] rex-code-failure-policy: "decide what happens when this fails": rank 1 of 1 tier C items
+[e2] rex-code-failure-policy: "handle outside input": rank 1 of 2 tier C items
+[e2] rex-code-failure-policy: "retry or reconnect to a service": rank 1 of 1 tier C items
+[e2] rex-code-failure-policy: "write a main loop": rank 1 of 1 tier C items
+[e2] rex-code-folder-management: "create or split a module": rank 1 of 3 tier C items
+[e2] rex-code-folder-management: "move a file, module or folder": rank 1 of 1 tier C items
+[e2] rex-code-folder-management: "decide where a file goes": rank 1 of 1 tier C items
+[e2] rex-code-improve-codebase-architecture: "find refactor candidates": rank 1 of 1 tier C items
+[e2] rex-code-improve-codebase-architecture: "group modules": rank 1 of 1 tier C items
+[e2] rex-code-improve-codebase-architecture: "make code easier to test and navigate": rank 1 of 2 tier C items
+[e2] rex-code-improve-codebase-architecture: "find architecture friction": rank 1 of 1 tier C items
+[e2] rex-code-latency: "fix tail latency of a Rust hot path": rank 1 of 1 tier C items
+[e2] rex-code-latency: "find the cause of jitter": rank 1 of 1 tier C items
+[e2] rex-code-latency: "time a function of a few nanoseconds": rank 1 of 1 tier C items
+[e2] rex-code-philosophy: "keep code simple": rank 1 of 3 tier C items
+[e2] rex-code-philosophy: "decide whether to abstract": rank 1 of 3 tier C items
+[e2] rex-code-philosophy: "judge if a design is over-engineered": rank 1 of 2 tier C items
+[e2] rex-code-priorities: "break a tie between design options": rank 1 of 2 tier C items
+[e2] rex-code-priorities: "rank the qualities of a repo": rank 1 of 1 tier C items
+[e2] rex-code-priorities: "write the priority block of a repo": rank 1 of 1 tier C items
+[e2] rex-code-smells: "find code smells": rank 1 of 1 tier C items
+[e2] rex-code-smells: "audit names in a module": rank 1 of 1 tier C items
+[e2] rex-code-smells: "find stale code and old TODOs": rank 1 of 1 tier C items
+[e2] rex-code-smells: "refactor unfamiliar code": rank 1 of 1 tier C items
+[e2] rex-code-spike: "prove an approach works first": rank 1 of 1 tier C items
+[e2] rex-code-spike: "try an unproven crate or service": rank 1 of 2 tier C items
+[e2] rex-code-spike: "run a quick throwaway experiment": rank 1 of 1 tier C items
+[e2] rex-code-tdd: "build a feature test first": rank 1 of 5 tier C items
+[e2] rex-code-tdd: "fix a bug with a failing test first": rank 1 of 2 tier C items
+[e2] rex-code-tdd: "red-green-refactor loop": rank 1 of 2 tier C items
+[e2] rex-code-tests-contract-seams: "test the interface between two modules": rank 1 of 1 tier C items
+[e2] rex-code-tests-contract-seams: "test a module boundary that keeps breaking": rank 1 of 1 tier C items
+[e2] rex-code-tests-contract-seams: "define a new module interface": rank 2 of 3 tier C items
+[e2] rex-code-tests-fitness-functions: "test an invariant that must always hold": rank 1 of 1 tier C items
+[e2] rex-code-tests-fitness-functions: "write a property test": rank 1 of 2 tier C items
+[e2] rex-code-tests-fitness-functions: "promote a test to a fitness function": rank 1 of 2 tier C items
+[e2] rex-code-tests-integration-testing: "test against a real API or exchange": rank 1 of 1 tier C items
+[e2] rex-code-tests-integration-testing: "test a websocket reconnect": rank 1 of 4 tier C items
+[e2] rex-code-tests-integration-testing: "run a test with real funds": rank 1 of 1 tier C items
+[e2] rex-code-tests-unit-testing: "write a unit test of a pure function": rank 1 of 2 tier C items
+[e2] rex-code-tests-unit-testing: "decide whether to keep or delete a unit test": rank 1 of 1 tier C items
+[e2] rex-code-tests-unit-testing: "promote a unit test to a fitness function": rank 1 of 2 tier C items
+[e2] rex-code-validation-plan: "write expected traces before code": rank 1 of 1 tier C items
+[e2] rex-code-validation-plan: "list the failure scenarios of a plan": rank 1 of 3 tier C items
+[e2] rex-code-validation-plan: "prove the order of a flow": rank 1 of 1 tier C items
+[e2] rex-codex-adversarial-review: "review the plan of a plan job": rank 1 of 5 tier C items
+[e2] rex-codex-adversarial-review: "get a second opinion on a plan": rank 1 of 1 tier C items
+[e2] rex-codex-adversarial-review: "challenge a code change": rank 1 of 1 tier C items
+[e2] rex-gap-ts: "write strict TypeScript": rank 1 of 1 tier C items
+[e2] rex-gap-ts: "set up tsconfig and lint settings": rank 1 of 2 tier C items
+[e2] rex-gap-ts: "close a gap that Rust covers by default": rank 1 of 1 tier C items
+[e2] rex-mermaid-diagrams: "draw a diagram in a plan or document": rank 1 of 2 tier C items
+[e2] rex-mermaid-diagrams: "show a flow as a diagram": rank 1 of 1 tier C items
+[e2] rex-mermaid-diagrams: "model a database or a class design": rank 2 of 5 tier C items
+[e2] rex-skill-language: "write a skill": rank 1 of 2 tier C items
+[e2] rex-skill-language: "shorten a prompt": rank 1 of 2 tier C items
+[e2] rex-skill-language: "write agent instructions in controlled English": rank 1 of 1 tier C items
+[e3] 78 of 78 intent phrases find their own skill in the top 5 tier C items of the search answer
+== node latency-check.ts  (exit 0)
+[l0] libraries /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/plugin/library then /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills; limit 10; header not_when of rex-code-latency: "A hot path measured in milliseconds, or one on a host you do not control."
+[l1] latency-go-ms: rex-code-latency on any page: no; gap: need "must_have:latency", reason "scope: languages go not in rust; latency_scale ms not in ns_us", not_when "A hot path measured in milliseconds, or one on a host you do not control."; not_when equals the header: yes; pass
+[l1] latency-rust-ns: rex-code-latency at rank 2, tier B, slot quality:latency, why "declared: quality latency"; in gaps: no; pass
+[l2] 2 of 2 latency forms behave as spec 8.3 says
+== node repeat-check.ts --forms /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/tests/fixtures/gate-a/latency (exit 0)
+[r0] libraries: /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/plugin/library then /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills; limit 10; each form searched twice
+[r1] latency-go-ms: byte-identical, 3103 bytes, sha256 d4d5359931ef363b82a78c7eb4749a8ab3e1d55b526f3164578c53684bfef58d
+[r1] latency-rust-ns: byte-identical, 3067 bytes, sha256 5db04c110ee47ed05cbd134b22ed3749a2e49cce3386cba6de071a22f4328b8a
+[r2] 2 of 2 forms gave byte-identical answers on two runs
+== node repeat-check.ts --forms /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/tests/fixtures/gate-a/latency --library-only yes (exit 0)
+[r0] libraries: /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/plugin/library; limit 10; each form searched twice
+[r1] latency-go-ms: byte-identical, 2835 bytes, sha256 5580b1ba94e59e3c9be153a03fcec26f62ceae04e822a4666bcbe1906737e843
+[r1] latency-rust-ns: byte-identical, 2946 bytes, sha256 5eaa3007365a1d39d75ab398a4ae9116b3b08246c58608a40110739b41a55081
+[r2] 2 of 2 forms gave byte-identical answers on two runs
+== node pool-invariance.ts --forms /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/tests/fixtures/gate-a/latency (exit 0)
+[p0] library /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/plugin/library alone, then with pool /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills; limit 10; all pages followed
+[p1] latency-go-ms: tier A and B same (6 alone, 6 with pool; 5 tier C with pool); first page differs
+[p1] latency-go-ms: first page alone [A:library/rex-code-commenting B:library/rex-code-tdd A:library/rex-code-ergonomics A:library/rex-code-error-writing] with pool [A:library/rex-code-commenting B:library/rex-code-tdd A:library/rex-code-ergonomics A:library/rex-code-error-writing A:library/rex-code-essentials]
+[p1] latency-rust-ns: tier A and B same (8 alone, 8 with pool; 4 tier C with pool); first page same
+[p2] 2 of 2 forms keep the same tier A and B items in the same order over all pages; 1 of 2 also on the first page
+== node ratio-check.ts  (exit 0)
+[g0] source: src/commands/skills/search/files.rs:7:use super::keyword::{KEYWORD_SCORE_RATIO, keyword_error, match_query, ranked_rows};
+[g0] source: src/commands/skills/search/files.rs:125:        .take_while(|(_, relevance)| *relevance >= KEYWORD_SCORE_RATIO * best)
+[g0] source: src/commands/skills/search/keyword.rs:23:pub const KEYWORD_SCORE_RATIO: f64 = 0.5;
+[g0] source: src/commands/skills/search/keyword.rs:154:        if entry.relevance < KEYWORD_SCORE_RATIO * best || served == MAX_KEYWORD_CANDIDATES {
+[g0] source: src/commands/skills/search/mod.rs:26:    CARD_WEIGHT, INTENTS_WEIGHT, KEYWORD_SCORE_RATIO, KeywordTable, MAX_KEYWORD_CANDIDATES,
+[g0] 5 source lines name KEYWORD_SCORE_RATIO
+[g1] environment read in skills code: src/commands/skills/list.rs:57:    let home = std::env::var_os("HOME").filter(|home| !home.is_empty());
+[g1] 1 environment reads in src/commands/skills; 0 of them name a ratio or score
+[g2] rex skills search --help: 0 lines name a ratio, score or relevance
+[g2] rex skills serve --help: 0 lines name a ratio, score or relevance
+[g2] rex skills check --help: 0 lines name a ratio, score or relevance
+[g2] rex skills index --help: 0 lines name a ratio, score or relevance
+[g3] answer fields of the two latency answers: card category confirm cursor dropped gaps index_version items kind library more need not_when reason request results skill slot tier unrecognised why; fields that carry a score: 0
+[g4] ratio settable from outside the code: no; score of a tier C item in the output: no
+[g4] part 5a: not run for the binary. It lacks a --keyword-score-ratio option or environment setting for KEYWORD_SCORE_RATIO, and it lacks the relevance of each tier C item in the answer (the candidate holds it; the item does not)
+== node answer-size.ts --forms /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/tests/fixtures/gate-a/latency (exit 0)
+[z0] sizes measured on base 75566e35d9aa83c2ae166ae1906a83a3b33b8dae, before a parallel job adds open_when items to up to 12 library headers; libraries /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/plugin/library then /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills; limit 10
+[z1] latency-go-ms: 10 items (0 files, 13 open_when); full 2532 tokens; without files and open_when 1994; budget 1200
+[z1] latency-go-ms: after each step: cut why 2528, leave out hashes 2080, leave out words 2030, leave out placement 1984, leave out open_when 1446, leave out files 1446; binary returned 8 items, 1200 tokens, 3 more
+[z1] latency-rust-ns: 10 items (4 files, 48 open_when); full 3851 tokens; without files and open_when 2017; budget 1200
+[z1] latency-rust-ns: after each step: cut why 3842, leave out hashes 3215, leave out words 3166, leave out placement 3090, leave out open_when 1631, leave out files 1436; binary returned 8 items, 1186 tokens, 4 more
+[z2] 2 answers sized; 2 full pages over their budget
+== node size-proof.ts  (exit 0)
+[h0] sizes measured on base 75566e35d9aa83c2ae166ae1906a83a3b33b8dae, before a parallel job adds open_when items to up to 12 library headers; budget 1200 tokens for a page of up to 10 items
+[h1] latency-go-ms [library]: full page 9 items, 2576 tokens, budget 1200; binary shortened it (7 items, 1093 tokens); estimate agrees; copy of fit: 6 steps, 2 items moved on, same page as binary
+[h1] latency-go-ms [library+skills]: full page 10 items, 2532 tokens, budget 1200; binary shortened it (8 items, 1200 tokens); estimate agrees; copy of fit: 6 steps, 2 items moved on, same page as binary
+[h1] latency-rust-ns [library]: full page 10 items, 3851 tokens, budget 1200; binary shortened it (8 items, 1137 tokens); estimate agrees; copy of fit: 6 steps, 2 items moved on, same page as binary
+[h1] latency-rust-ns [library+skills]: full page 10 items, 3851 tokens, budget 1200; binary shortened it (8 items, 1186 tokens); estimate agrees; copy of fit: 6 steps, 2 items moved on, same page as binary
+[h1] probe-rust-activity-build [library]: full page 6 items, 1658 tokens, budget 1200; binary shortened it (6 items, 772 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-activity-fix [library]: full page 6 items, 1657 tokens, budget 1200; binary shortened it (6 items, 770 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-activity-refactor [library]: full page 5 items, 1328 tokens, budget 1200; binary shortened it (5 items, 1104 tokens); estimate agrees; copy of fit: 2 steps, 0 items moved on, same page as binary
+[h1] probe-rust-activity-design [library]: full page 7 items, 1682 tokens, budget 1200; binary shortened it (7 items, 889 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-activity-review [library]: full page 5 items, 1327 tokens, budget 1200; binary shortened it (5 items, 1103 tokens); estimate agrees; copy of fit: 2 steps, 0 items moved on, same page as binary
+[h1] probe-rust-activity-audit [library]: full page 6 items, 1668 tokens, budget 1200; binary shortened it (6 items, 772 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-activity-test [library]: full page 5 items, 1325 tokens, budget 1200; binary shortened it (5 items, 1101 tokens); estimate agrees; copy of fit: 2 steps, 0 items moved on, same page as binary
+[h1] probe-rust-activity-document [library]: full page 5 items, 1328 tokens, budget 1200; binary shortened it (5 items, 1104 tokens); estimate agrees; copy of fit: 2 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-system-boundary [library]: full page 6 items, 1666 tokens, budget 1200; binary shortened it (6 items, 779 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-file-layout [library]: full page 6 items, 1568 tokens, budget 1200; binary shortened it (6 items, 821 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-dependencies [library]: full page 6 items, 1521 tokens, budget 1200; binary shortened it (6 items, 1173 tokens); estimate agrees; copy of fit: 4 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-outside-input [library]: full page 6 items, 1573 tokens, budget 1200; binary shortened it (6 items, 801 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-long-running [library]: full page 6 items, 1572 tokens, budget 1200; binary shortened it (6 items, 800 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-retry [library]: full page 6 items, 1567 tokens, budget 1200; binary shortened it (6 items, 795 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-unproven-approach [library]: full page 6 items, 1483 tokens, budget 1200; binary shortened it (6 items, 1184 tokens); estimate agrees; copy of fit: 3 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-legacy-code [library]: full page 6 items, 1672 tokens, budget 1200; binary shortened it (6 items, 776 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-architecture [library]: full page 6 items, 1750 tokens, budget 1200; binary shortened it (6 items, 827 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-trade-offs [library]: full page 6 items, 1522 tokens, budget 1200; binary shortened it (6 items, 1178 tokens); estimate agrees; copy of fit: 4 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-sub-agent [library]: full page 6 items, 1595 tokens, budget 1200; binary shortened it (6 items, 797 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-threads [library]: full page 5 items, 1327 tokens, budget 1200; binary shortened it (5 items, 1103 tokens); estimate agrees; copy of fit: 2 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-allocation [library]: full page 5 items, 1329 tokens, budget 1200; binary shortened it (5 items, 1105 tokens); estimate agrees; copy of fit: 2 steps, 0 items moved on, same page as binary
+[h1] probe-rust-must_have-latency [library]: full page 6 items, 2378 tokens, budget 1200; binary shortened it (6 items, 872 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-must_have-readability [library]: full page 5 items, 1332 tokens, budget 1200; binary shortened it (5 items, 1108 tokens); estimate agrees; copy of fit: 2 steps, 0 items moved on, same page as binary
+[h1] probe-rust-artefacts-unit-test [library]: full page 6 items, 1580 tokens, budget 1200; binary shortened it (6 items, 812 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-artefacts-contract-test [library]: full page 6 items, 1623 tokens, budget 1200; binary shortened it (6 items, 825 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-artefacts-fitness-test [library]: full page 6 items, 1636 tokens, budget 1200; binary shortened it (6 items, 823 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-artefacts-integration-test [library]: full page 6 items, 1664 tokens, budget 1200; binary shortened it (6 items, 841 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-artefacts-diagram [library]: full page 6 items, 1729 tokens, budget 1200; binary shortened it (6 items, 795 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-artefacts-plan [library]: full page 7 items, 1686 tokens, budget 1200; binary shortened it (7 items, 893 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-artefacts-instructions [library]: full page 6 items, 1516 tokens, budget 1200; binary shortened it (6 items, 1171 tokens); estimate agrees; copy of fit: 4 steps, 0 items moved on, same page as binary
+[h1] probe-rust-artefacts-brief [library]: full page 6 items, 1596 tokens, budget 1200; binary shortened it (6 items, 798 tokens); estimate agrees; copy of fit: 5 steps, 0 items moved on, same page as binary
+[h1] probe-rust-all [library]: full page 10 items, 3847 tokens, budget 1200; binary shortened it (6 items, 1085 tokens); estimate agrees; copy of fit: 6 steps, 4 items moved on, same page as binary
+[h1] probe-nocode-activity-build [library]: full page 0 items, 108 tokens, budget 1200; binary kept it (0 items, 108 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-activity-fix [library]: full page 0 items, 107 tokens, budget 1200; binary kept it (0 items, 107 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-activity-refactor [library]: full page 0 items, 71 tokens, budget 1200; binary kept it (0 items, 71 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-activity-design [library]: full page 2 items, 424 tokens, budget 1200; binary kept it (2 items, 424 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-activity-review [library]: full page 0 items, 70 tokens, budget 1200; binary kept it (0 items, 70 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-activity-audit [library]: full page 0 items, 110 tokens, budget 1200; binary kept it (0 items, 110 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-activity-test [library]: full page 0 items, 68 tokens, budget 1200; binary kept it (0 items, 68 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-activity-document [library]: full page 0 items, 71 tokens, budget 1200; binary kept it (0 items, 71 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-system-boundary [library]: full page 0 items, 116 tokens, budget 1200; binary kept it (0 items, 116 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-file-layout [library]: full page 0 items, 118 tokens, budget 1200; binary kept it (0 items, 118 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-dependencies [library]: full page 0 items, 119 tokens, budget 1200; binary kept it (0 items, 119 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-outside-input [library]: full page 0 items, 118 tokens, budget 1200; binary kept it (0 items, 118 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-long-running [library]: full page 0 items, 118 tokens, budget 1200; binary kept it (0 items, 118 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-retry [library]: full page 0 items, 112 tokens, budget 1200; binary kept it (0 items, 112 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-unproven-approach [library]: full page 1 items, 225 tokens, budget 1200; binary kept it (1 items, 225 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-legacy-code [library]: full page 0 items, 114 tokens, budget 1200; binary kept it (0 items, 114 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-architecture [library]: full page 0 items, 124 tokens, budget 1200; binary kept it (0 items, 124 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-trade-offs [library]: full page 1 items, 264 tokens, budget 1200; binary kept it (1 items, 264 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-sub-agent [library]: full page 1 items, 337 tokens, budget 1200; binary kept it (1 items, 337 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-threads [library]: full page 0 items, 70 tokens, budget 1200; binary kept it (0 items, 70 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-touches-allocation [library]: full page 0 items, 72 tokens, budget 1200; binary kept it (0 items, 72 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-must_have-latency [library]: full page 0 items, 132 tokens, budget 1200; binary kept it (0 items, 132 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-must_have-readability [library]: full page 0 items, 74 tokens, budget 1200; binary kept it (0 items, 74 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-artefacts-unit-test [library]: full page 0 items, 118 tokens, budget 1200; binary kept it (0 items, 118 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-artefacts-contract-test [library]: full page 0 items, 122 tokens, budget 1200; binary kept it (0 items, 122 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-artefacts-fitness-test [library]: full page 0 items, 123 tokens, budget 1200; binary kept it (0 items, 123 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-artefacts-integration-test [library]: full page 0 items, 127 tokens, budget 1200; binary kept it (0 items, 127 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-artefacts-diagram [library]: full page 1 items, 471 tokens, budget 1200; binary kept it (1 items, 471 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-artefacts-plan [library]: full page 2 items, 428 tokens, budget 1200; binary kept it (2 items, 428 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-artefacts-instructions [library]: full page 1 items, 258 tokens, budget 1200; binary kept it (1 items, 258 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-artefacts-brief [library]: full page 1 items, 338 tokens, budget 1200; binary kept it (1 items, 338 tokens); estimate agrees; copy of fit: 0 steps, 0 items moved on, same page as binary
+[h1] probe-nocode-all [library]: full page 7 items, 1977 tokens, budget 1200; binary shortened it (1 items, 1242 tokens); estimate agrees; copy of fit: 6 steps, 6 items moved on, same page as binary; inexact: the one-item page of rex-mermaid-diagrams was itself shortened; the one-item page of rex-code-design-sketch was itself shortened; the one-item page of rex-skill-language was itself shortened; the one-item page of rex-agent-prompting was itself shortened; the one-item page of rex-code-spike was itself shortened; the one-item page of rex-code-priorities was itself shortened; the one-item page of rex-code-validation-plan was itself shortened
+[h1] probe-rust-touches-kafka [library+skills]: full page 6 items, 1502 tokens, budget 1200; binary shortened it (6 items, 1166 tokens); estimate agrees; copy of fit: 4 steps, 0 items moved on, same page as binary
+[h1] probe-rust-touches-terraform [library+skills]: full page 10 items, 2333 tokens, budget 1200; binary shortened it (8 items, 1195 tokens); estimate agrees; copy of fit: 6 steps, 2 items moved on, same page as binary
+[h1] probe-rust-touches-postgres [library+skills]: full page 10 items, 2307 tokens, budget 1200; binary shortened it (8 items, 1175 tokens); estimate agrees; copy of fit: 6 steps, 2 items moved on, same page as binary
+[h2] 71 answers: 40 shortened by the binary, 31 kept whole; the full estimate agrees with the binary's decision on 71 of 71; the copied fit gives the binary's page byte for byte on 71 of 71; 1 rebuilt pages marked inexact
+[x] 8 steps run, 0 failed

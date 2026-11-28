@@ -1,0 +1,256 @@
+{
+  "about": "One item per task row of the WORK BREAKDOWN table of each measured job: Outcome, Evidence and Owns, verbatim. The Skills and Open when columns are not here.",
+  "jobs": [
+    {
+      "job": "0h0962klnd",
+      "file": "decision-maker-2.md",
+      "note": "corrected block",
+      "sha256": "5c3070f7e2f9d0394f89dbbe9c11c7b012e295f881b80e02468bf22b5cf3a887"
+    },
+    {
+      "job": "0h096dyeq9",
+      "file": "decision-maker-2.md",
+      "note": "corrected block",
+      "sha256": "232ff863b487b8f900d4fec9893bf4f3b1dc4b0b7ddfc619f66717e7765d5126"
+    },
+    {
+      "job": "0h0b8x725g",
+      "file": "decision-maker-2.md",
+      "note": "corrected block",
+      "sha256": "385757b1ca948037662561a3ade032b5b7d58aa07be4b27c1fc512e36a81fe57"
+    },
+    {
+      "job": "0h0d1109wo",
+      "file": "decision-maker-2.md",
+      "note": "corrected block",
+      "sha256": "2cc57104aa2823d3818b3cad1d7855ce296bb546456fb354ccb64e0decc902bd"
+    },
+    {
+      "job": "0h0dnqm24i",
+      "file": "decision-maker-2.md",
+      "note": "corrected block",
+      "sha256": "06953f648baddd73a4c346007ec885c5feb02ee87183359d068a01f47d202b20"
+    },
+    {
+      "job": "0h0f8vnww4",
+      "file": "decision-maker-2.md",
+      "note": "corrected block",
+      "sha256": "f92b074f70390ed45989042631699227f51635c6b34a927b8ed1327ef3ac9b62"
+    },
+    {
+      "job": "0h0fitv57s",
+      "file": "decision-maker-2.md",
+      "note": "corrected block",
+      "sha256": "34f91802ffe96e7663228d624a4d3f6c4bc0a9ab24e9bebe8298e85291e0fd7a"
+    }
+  ],
+  "items": [
+    {
+      "id": "0h0962klnd-T1",
+      "job": "0h0962klnd",
+      "task": "T1",
+      "row": "task",
+      "outcome": "Assumptions 1 and 2 proved or disproved. (1) FTS5 is compiled into the bundled SQLite that `rusqlite` builds. (2) A skill whose header has nested maps under `metadata` (shape of spec section 7.1) passes `rex skills check`, and Claude Code loads it with no warning.",
+      "evidence": "`cargo test` passes, including a new Rust test in `tests/integration/` that creates an FTS5 virtual table (columns name, card, intents), runs a query ranked by `bm25(t, 4.0, 2.0, 3.0)`, and asserts an order that the column weights decide. A test that runs the built `rex skills check` on the metadata fixture and asserts exit 0. Live load, with a positive control: the same commands (`claude plugin validate <dir>`, `claude plugin details <dir>`, and one headless run with `--debug` or `--output-format stream-json`, quoting the init event and each debug line about the skill) on three fixtures: (1) the metadata fixture, (2) the same skill with no `metadata` as a baseline, (3) a skill with a broken header (for example YAML indented with tabs), which must show a warning. The metadata fixture is loaded from a plugin's `skills/` folder and also from a project `.claude/skills/` folder. Output file: one block per assumption with verdict `PASSED`, `FAILED`, `NOT EXERCISED` or `READ ONLY`.",
+      "owns": "`tests/integration/main.rs` (one `mod` line only), one new test module below `tests/integration/`, new fixture folder `tests/fixtures/wp0-metadata/` (fixture skills, throwaway plugin and project folder for the live load, runner)"
+    },
+    {
+      "id": "0h0962klnd-T2",
+      "job": "0h0962klnd",
+      "task": "T2",
+      "row": "task",
+      "outcome": "Assumption 3 proved or disproved: an MCP server that a plugin's own manifest lists can be called from that plugin's mod with `$.mcp.call` (a) from the main session, (b) from a sub-agent's tool call, (c) from a builder that a master started. The exact manifest key that declares an MCP server confirmed.",
+      "evidence": "Throwaway plugin in the fixture folder: manifest that lists a stub stdio MCP server (TypeScript run by `node` 24 with type stripping, built-ins only, no new dependency), a mod that registers one probe tool whose handler calls `$.mcp.call` on the stub and wraps its answer in a fixed marker, and a runner in TypeScript run by `node`. The runner makes a new random nonce for each run; the stub returns the nonce and appends each call it gets to a log file in the temp folder. Nested sessions allow only the probe tool (`mcp__<fixture plugin>__<probe>`) plus `Agent` for (b) and (c), and disallow each stub tool (`--disallowedTools 'mcp__<stub>__*'`). Quote the marker, the nonce and the log line for each of (a), (b), (c), or verdict `NOT EXERCISED` with cause. `tsc -p tests/fixtures/wp0-mcp/<plugin>/tsconfig.json` passes (that tsconfig extends `plugin/tsconfig.json` and includes `typings/claude-code`). Manifest key: URL and quoted text of the MCP servers section of https://code.claude.com/docs/en/plugins-reference (read with WebFetch), plus file and line of `typings/claude-code/index.d.ts`. IF `claude plugin validate` accepts the fixture manifest with that key AND the stub run connects, THEN the key verdict is `PASSED`; ELSE `READ ONLY`. Output file: one block per assumption and one for the key.",
+      "owns": "new fixture folder `tests/fixtures/wp0-mcp/` only"
+    },
+    {
+      "id": "0h0962klnd-T3",
+      "job": "0h0962klnd",
+      "task": "T3",
+      "row": "task",
+      "outcome": "Findings file `docs/skill-library-wp0.md` written from the merged job branch, and acceptance checks pass on that branch.",
+      "evidence": "The findings file states, for each of the three assumptions and for the manifest key: what was run, the result, the verdict, whether it was run or only read, and what later work packages must do differently if it failed. Each assumption that did not run is `NOT EXERCISED` with its cause, never passed. For case (c) it lists what the proxy does not do. Quoted output on the merged job branch of: `cargo build`, `cargo test`, `tsc -p plugin`, the fixture `tsc` of T2, `claude plugin test plugin`, and each proof of T1 and T2 run again by the integrator within its limit.",
+      "owns": "`docs/skill-library-wp0.md`"
+    },
+    {
+      "id": "0h096dyeq9-T1",
+      "job": "0h096dyeq9",
+      "task": "T1",
+      "row": "task",
+      "outcome": "Shared vocabulary stable: `plugin/vocab/terms.json` and `plugin/vocab/aliases.json`, each with a `version`, about 50 terms in the groups facts, activities, touches, qualities, artefacts, scope keys, kinds (the 4 of spec 7.2) and categories (the 8 of spec 7.3); alias table with synonyms and broader/narrower terms. Mapping file `docs/skill-library-vocabulary.md`, written in full sentences for the owner: (a) one row for each of the 33 criteria of the 23 rows of `plugin/assign/table.json`, mapped to a term or dropped with a reason; (b) each row's `priority` (Q13 default), `placement` and `scope` (`code` or `any`, with the fact it maps to, for example `code` = `writes_code`); (c) one line for each of the 7 `files` items of the table, with its case or `null`; (d) for each fact and scope key: its value type, and whether its values are a closed list (with the list, for example `languages` = the `--only` names of `rex codebase`, `latency_scale` = `ns_us`, `ms`) or open and not checked (for example `repo_has` = file names); (e) the source of each term that does not come from `table.json`; (f) the JSON form of both files, so T2 reads them without guesses.",
+      "evidence": "Both JSON files parse (`python3 -I -m json.tool` or `jq`); term count stated and near 50; criterion rows = 33, `files` lines = 7, each matched by a count of `table.json`; each kind and category of spec 7.2 and 7.3 present; the value-domain table covers each fact and scope key; report lists each choice the spec did not fix.",
+      "owns": "`plugin/vocab/terms.json`, `plugin/vocab/aliases.json`, `docs/skill-library-vocabulary.md`"
+    },
+    {
+      "id": "0h096dyeq9-T2",
+      "job": "0h096dyeq9",
+      "task": "T2",
+      "row": "task",
+      "outcome": "`rex skills check` reads the `metadata` map of spec 7.1 (`src/commands/skills/header.rs`) and applies new rules with permanent IDs (for example `M1`, `M2`, ...): (1) the section 10 checks: `kind` and `category` present and vocabulary terms; every claim term, and every scope key and closed-list value, in the vocabulary; every file in the skill folder (not only Markdown) listed in `files`, and every listed file exists; every `open_when`, `requires`, `replaces` target exists; `not_when` present when `scope` is present; (2) the field rules of the 7.1 table, each as a finding, never a panic: a key under `claims` or `scope` that 7.1 or the vocabulary does not name; a value of the wrong YAML type; `kind` not exactly one of the four; `placement` not `full` or `open-when`; a `files` item with no `path`, a `role` not `topic`, `language` or `code`, or a `language` or `code` file with no `language`; `SKILL.md` listed in `files`; `intents` not 3 to 5 strings; `not_when` not one line; `max_topics` not a positive whole number. A skill with no `metadata`, or whose `metadata` holds no key of 7.1 (for example only `author`), is valid and gets no new finding. Other keys under `metadata` are ignored, because Claude Code treats `metadata` as free-form. The vocabulary of T1 is embedded in the binary. A clear, marked place is left for the intent-phrase check (WP4); no `metadata` size limit (Q9). H1 to H9 and B1 to B5 stay unchanged.",
+      "evidence": "`cargo build` and `cargo test` pass in the job worktree. A new test file under `tests/` fails a skill with a missing `kind`, a term not in the vocabulary, an unlisted file in its folder, and a missing `open_when` target, with one failing fixture for each field rule of (2), and passes a correct skill with the full metadata map of 7.1. The new `M*` rules are added to the `rules` list of `every_skill_and_agent_of_the_bundle_obeys_its_rules` in `tests/fitness/oms_skills/skill_bundle.rs`, and it passes. The built `rex skills check plugin/library plugin/skills` gives the same output and exit code on the job branch as on `BASE` (`e03e640`), both quoted. After current `main` is merged into `rex/0h096dyeq9`, `cargo test` still passes: IF WP0 has merged AND its fixture `tests/fixtures/wp0-metadata/` fails an `M*` rule, THEN T2 makes that fixture a valid 7.1 skill, OR reports `awaiting decision`. Every changed or new source file is at most 500 lines and opens with its one or two line comment.",
+      "owns": "`src/commands/skills/header.rs`, `src/commands/skills/rules.rs`, new module(s) in `src/commands/skills/` and their `mod.rs` line, `src/commands/skills/check.rs` (to give the rules every file of the folder, not only Markdown), `src/bundle.rs` or an `include_str!` for the vocabulary, new tests and fixtures under `tests/` (for example `tests/integration/oms_skills/skills/metadata.rs` and `tests/fixtures/skills-metadata/`), `tests/fitness/oms_skills/skill_bundle.rs` (rule list, and signature if `check_skill` changes), `tests/fixtures/wp0-metadata/` (only on the WP0 condition of Evidence)"
+    },
+    {
+      "id": "0h096dyeq9-reviewer",
+      "job": "0h096dyeq9",
+      "task": "reviewer",
+      "row": "role",
+      "outcome": "Review verdict of the whole change on the stable job branch.",
+      "evidence": "Verdict table: each acceptance line of the request with PASS or BLOCK and quoted evidence; `git diff --stat BASE HEAD` shows no change under `plugin/library/`, `plugin/skills/`, `plugin/hooks/`, nor to `plugin/assign/table.json`; mapping rows = 33 criteria and 7 `files` items; `rex skills check plugin/library plugin/skills` output on `BASE` and `HEAD`, quoted and the same.",
+      "owns": "its output file only"
+    },
+    {
+      "id": "0h0b8x725g-T1",
+      "job": "0h0b8x725g",
+      "task": "T1",
+      "row": "task",
+      "outcome": "`rex skills serve [--library <path>]...` runs a hand-written stdio JSON-RPC MCP server (no new crate). Answers `initialize`, `tools/list` (three tools `head`, `search`, `get` with spec 8.2 input schemas), `tools/call`. `head` = `protocol` \"skills/1\", `library`, `version`, `skills`, `vocabulary`; `version` = SHA-256 of sorted (relative path, file SHA-256) pairs of every served skill file + vocabulary version. `get` = `skill`, `file`, `sha256`, `text`; `isError` code `not_found` for missing skill/file or path that leaves skill folder; skill name `^[a-z0-9-]+$`. `search` = `isError` code `not_implemented` from one replaceable function. Several `--library` in priority order, first wins on same skill name (whole skill). No `--library` = embedded library of `src/bundle.rs` (`plugin/library`, 24 skills). Vocabulary version read by one small function from `vocab/terms.json` beside the served library folder; absent = `\"vocabulary\": null` + empty vocabulary version in hash.",
+      "evidence": "`cargo build`, `cargo test`, `cargo fmt --all -- --check` and `cargo clippy --locked --workspace --all-targets -- -D warnings` exit 0, output quoted. New tests in `tests/integration/skills_serve/` start `rex skills serve --library <fixture>` as child process, speak JSON-RPC over stdin/stdout, and show: (1) initialize + tools/list answer and list three tools; (2) head answers five fields; (3) same `version` on two runs, different after one byte of one file changes; (4) `get` text SHA-256 = its `sha256`; (5) `get` missing skill, missing file, `..` path, absolute `file` (`/etc/hosts`), `file` = `sub/../../other-skill/SKILL.md`, and skill names `../x` and `A` each = `not_found`; (6) a fixture symlink inside a skill folder to a sentinel file outside the library = `not_found`, and the sentinel text is in no answer; (7) `search` = `not_implemented`; (8) two `--library` folders with same skill name: `get` gives first, and a file that only the second folder's copy holds = `not_found`; (9) `--library <missing>` exits non-zero, one `error:` line on stderr, nothing on stdout; (10) no `--library`: head reports embedded library with 24 skills; (11) copy of `plugin/library` in a temp folder with no `vocab/` beside it, plus a `.DS_Store` in one skill: `head.version` = the version that no `--library` gives; (12) `<tmp>/vocab/terms.json` `{\"version\":\"1\"}` beside `<tmp>/lib`: head answers `\"vocabulary\": \"1\"` and a `version` that differs from the same `lib` with no vocab file; (13) an invalid terms.json gives the answer that T1's failure table fixes, tested. Report quotes test output + names the vocabulary field read.",
+      "owns": "New files under `src/commands/skills/` (`serve.rs` + siblings); in `src/commands/skills/mod.rs` only: one `mod` line, one `SkillsCommand` variant, its dispatch arm, one `SkillsError` variant (for example `Serve(#[from] ServeError)`) and its `failure_class` arm; new folder `tests/integration/skills_serve/` + one `mod` line in `tests/integration/main.rs`; new fixtures under `tests/fixtures/skills-serve/`. Leave unchanged: `src/commands/skills/header.rs`, `src/commands/skills/rules.rs`, `src/commands/skills/metadata/` and any new rules module, `src/commands/skills/check.rs`, `src/commands/skills/references.rs`, `src/bundle.rs`, `tests/integration/oms_skills/`, `tests/fitness/`, all of `plugin/`, `rex doctor`, `Cargo.toml`."
+    },
+    {
+      "id": "0h0b8x725g-reviewer",
+      "job": "0h0b8x725g",
+      "task": "reviewer",
+      "row": "role",
+      "outcome": "Independent review of job branch against request, spec 8.1/8.2 and scope list.",
+      "evidence": "Verdict of `rex-pr-review` (PASS/FIX) with table: one row per acceptance line + per spec 8.2 `head`/`get` requirement, met, or finding BLOCK/MAJOR/MINOR with file + line; `git diff --stat BASE HEAD` shows no change outside scope.",
+      "owns": "Its output file only."
+    },
+    {
+      "id": "0h0d1109wo-T1",
+      "job": "0h0d1109wo",
+      "task": "T1",
+      "row": "task",
+      "outcome": "(WP2) Each of the 24 skills in `plugin/library/` has the `metadata` map of spec 7.1 in its header: kind + category of table 7.4, claims in vocabulary terms (union of the terms of all its rows of `table.json`, per `docs/skill-library-vocabulary.md` Part 1), placement, scope + `not_when` for the 11 skills of scope `code`, 3 to 5 intents, every sibling file in `files` with a role (language/code files name their language), the table's file cases as `when`, and `open_when` items F2/F5/F6 (`{ skill, file, when }`). No general rulebook has `scope.languages`; `rex-gap-ts` claims `languages: [ts]` under `claims.facts`. (WP3) New skill `plugin/library/rex-code-essentials/SKILL.md`: one short page, the rules of the four rulebooks that matter on every code task in any language; kind rule, category coding-standards, `claims.facts: { writes_code: true }`, placement full, no `scope`; the four rulebooks as `open_when` items, each with a case. A new part of `docs/skill-library-vocabulary.md` (for example \"Part 6. Where each row went in WP2\") shows for each of the 23 rows of `table.json` where its criteria, placement, scope and files went; the report only points to it. Every test and fixture that counts the library's skills expects 25.",
+      "evidence": "(1) `cargo build` and `cargo test` pass (quoted summary lines). (2) `rex skills check plugin/library plugin/skills` prints 33 `ok` lines (25 library + 8 listed) and exits 0. (3) A read-only script over the 25 library headers prints one line per skill: `kind`, `category`, `placement`, scope keys, `not_when` yes/no, count of `files` items against `find <skill> -type f ! -name SKILL.md \\| wc -l`, map word count (M13, at most 120); it shows 25 of 25 maps, kind + category equal to table 7.4, 11 of 11 scoped skills with `not_when`, every file count equal. `rex skills check` alone does not prove this: it gives no finding for a header with no map (`src/commands/skills/metadata/mod.rs:25-29`). (4) For each of the 24 existing `SKILL.md`, the text after the closing `---` of the header is byte-equal at BASE and HEAD (for example `diff <(git show BASE:$f \\| awk 'c>=2;/^---$/{c++}') <(awk 'c>=2;/^---$/{c++}' $f)` empty for each `$f`). (5) `wc -w` of the digest body after its header is at most 500 words, and H9 passes for its `description` + `when_to_use`. (6) `git diff --stat BASE HEAD -- plugin/assign plugin/hooks plugin/skills plugin/vocab src` is empty. (7) The row table in the mapping doc covers 23 of 23 rows, 33 of 33 criteria, 7 of 7 file items.",
+      "owns": "Header block of each `plugin/library/*/SKILL.md`; new folder `plugin/library/rex-code-essentials/`; `docs/skill-library-vocabulary.md` (mapping note, new part only); the lines that count the library's skills in tests and fixtures (`tests/integration/skills_serve/head.rs:75`, the bundle tests, the `rex init` tests, and any other count found by search, including one that a merge of main brings in)"
+    },
+    {
+      "id": "0h0d1109wo-reviewer",
+      "job": "0h0d1109wo",
+      "task": "reviewer",
+      "row": "role",
+      "outcome": "Independent verdict on the stable job branch of T1: each acceptance line, each scope rule, and the requirements of spec sections 7.1 to 7.5, 9.5 and 12 (WP2, WP3) met or not, with file + line.",
+      "evidence": "Verdict table in the reviewer's output file; BLOCK/MAJOR/MINOR findings with evidence; the reviewer runs checks (1) to (7) of T1 itself, including the per-skill header script and the body byte-equal check, and checks the row table in `docs/skill-library-vocabulary.md`.",
+      "owns": "No repo file. Its own output file."
+    },
+    {
+      "id": "0h0dnqm24i-T1",
+      "job": "0h0dnqm24i",
+      "task": "T1",
+      "row": "task",
+      "outcome": "Contract and skeleton stable: one contract file gives the module layout under `src/commands/skills/search/`, the types (index entry for a skill and for a sibling file, request, candidate, item, response, cursor, error codes), the signature of each lookup and of the one `search` function that CLI and serve both call, the owner of each file (test files included), the traces, the named constants (keyword: at most 5 per need; ratio of top score; token estimate and the 1,200 limit; 30-word card), and the answer to each unknown. Skeleton commit: stub files that compile; registration of `rex skills search` and `rex skills index` and of the pool option of `rex skills check` (all answering a clear \"not built\" until filled); the embedding of `plugin/vocab/aliases.json` with a typed accessor and its test, and `plugin/vocab/aliases.json` added to the `include` list of `Cargo.toml`; the visibility change in `serve/library.rs` that lets search reuse folder order, shadowing and the `head` version as `index_version`; the fixture library `tests/fixtures/skills-search/` (main library plus a second library that is unrelated except for one skill whose name repeats a main-library skill, for the shadowing case of `dropped`); empty test files registered for each unit in `tests/integration/skills_search/`, `tests/contract/skills_search/` (including `loader_lookups.rs` for the group 2 seam test) and `tests/fitness/skills_search/` (one file for each invariant: index determinism T2; A/B use no corpus statistics T3; `not_when` never searched and `confirm` on every C item T4; byte-identical answer, card words, size limit T5).",
+      "evidence": "CHECKS 1 to 7 pass on the skeleton (quoted). `\"plugin/vocab/aliases.json\"` is in `include` of `Cargo.toml`, and `bash scripts/check-package.sh` passes (quoted). CHECK 6 prints `ok` for each fixture skill (quoted). The fixture holds every skill the request lists: a rule skill found by `writes_code`, a method skill, a tool skill, a reference skill with `scope` of `languages` and `latency_scale` plus topic files, a code twin, a language file and `max_topics`, a skill with `requires`, a skill with `replaces`, a skill with no `metadata`. Contract maps each acceptance line of the request to one trace, one test file and one owning task, and gives each unknown `YES`, `NO`, `YES-IF` (with quoted run) or `ASSUMED` (with source). Unknowns: FTS5 in memory per call gives byte-identical bm25 order; cursor form with no new crate; token estimate; Cloudflare index fields (ASSUMED from spec 8.6); tool-skill evidence rule of lookup A; `not_found` stays a `get` error and `search` does not use it (or the contract names the `search` case and T5 tests it); where the intent check runs (proposed: in `check.rs` after the per-skill rules, with the marked comment of `metadata/fields.rs` changed to point there, and the signature of the public `check_skill` unchanged); the pool option name, and when and on which stream the skip line prints (proposed: once, only when a checked skill has `metadata.intents`, so the output of plain skills stays as existing tests expect). The contract also passes the GATE of `rex-code-design-sketch`, which the reviewer checks before group 2.",
+      "owns": "contract file; `src/commands/skills/search/` (stubs, `aliases` accessor); registration lines in `src/commands/skills/mod.rs`; visibility lines in `src/commands/skills/serve/library.rs` and `serve.rs`; the `include` line of `Cargo.toml`; `tests/fixtures/skills-search/`; empty test files in `tests/integration/skills_search/`, `tests/contract/skills_search/`, `tests/fitness/skills_search/` and their lines in each `main.rs`"
+    },
+    {
+      "id": "0h0dnqm24i-T2",
+      "job": "0h0dnqm24i",
+      "task": "T2",
+      "row": "task",
+      "outcome": "Index built from skill folders and `rex skills index`: one entry per skill and one per sibling file, read through `Header::metadata()`; a skill with no `metadata` indexed for lookup C only on name, `description`, `when_to_use`; the card line of at most 30 words; library name and priority on each entry; shadowing between `--library` folders and the `replaces` data that search reports under `dropped`; `rex skills index` writes `index.json` with name, description, type, URL and SHA-256 per skill plus the fields of the spec. After the group 2 merge, the same agent is resumed to write the seam test.",
+      "evidence": "Tests in its files of `tests/integration/skills_search/` on the fixture library, test first: one entry per sibling file; the no-metadata skill has no claims; every card has at most 30 words; `index.json` holds the named fields; a malformed header does not stop the index. In `tests/fitness/skills_search/`: `index.json` is byte-identical on two runs. Seam step (resumed, on the job branch): `tests/contract/skills_search/loader_lookups.rs` runs lookups A, B and C over an index that the loader built from the fixture library. CHECKS 1 to 5 and 7 pass (quoted).",
+      "owns": "index files under `src/commands/skills/search/` that the contract names; the `index` CLI file; its test files; `tests/contract/skills_search/loader_lookups.rs` (seam step)"
+    },
+    {
+      "id": "0h0dnqm24i-T3",
+      "job": "0h0dnqm24i",
+      "task": "T3",
+      "row": "task",
+      "outcome": "Lookups A and B: A matches `facts` claims (writes code, language, role, `repo_has`), a tool skill only on evidence (repo, dependencies, or its name in the task's words); B matches activity, touches, quality (`must_have`) and artefact claims, with aliases mapping a caller's free words onto terms; the scope check answers yes, no or unknown; no excludes the skill and puts it under `gaps` with its `not_when` only when scope or language alone failed; unknown returns it with its `confirm`, one question per scope fact; a language with no gap skill goes under `gaps`; `requires` brings its skills; an unknown term goes under `unrecognised`, never an error. No corpus statistics.",
+      "evidence": "Contract tests in its files of `tests/contract/skills_search/` on hand-built index values, test first: the latency example of spec 8.3 for both tasks (Rust with `must_have: latency` and scope met returns the reference skill; Go in milliseconds excludes it and lists it under `gaps` with its `not_when`); a request with no `latency_scale` returns it with `confirm`; the rule skill found by `writes_code`; a tool skill comes back only with repo, dependency or task-word evidence and not without; a language with no gap skill is under `gaps`; `requires`; unknown term under `unrecognised`. In `tests/fitness/skills_search/`: adding unrelated entries changes no A or B candidate. CHECKS 1 to 3 and 7 pass (quoted).",
+      "owns": "lookup A, lookup B and scope files under `src/commands/skills/search/` that the contract names; its test files"
+    },
+    {
+      "id": "0h0dnqm24i-T4",
+      "job": "0h0dnqm24i",
+      "task": "T4",
+      "row": "task",
+      "outcome": "Lookup C and the choice of files inside a skill: SQLite FTS5 with `bm25(…, 4.0, 2.0, 3.0)` over name, card, intents; one query per need, expanded through the aliases; at most five candidates per need within the named ratio of the top score; caller text escaped so it cannot change query syntax; `not_when` never in the searched text; every tier C item carries `confirm`; topic files ranked by the skill's router cases (`when`) against the need, at most `max_topics`; with no symptom, the skill alone with its topic files as open-when items; language files and code twins only on a language match.",
+      "evidence": "Contract tests in its files of `tests/contract/skills_search/` on hand-built index values, test first: weights rank a name hit above a card hit; two needs give two queries; `max_topics` holds; a request with no symptom gives the topic files as open-when items; a Go task gets no Rust language file or code twin and a Rust task gets them; FTS5 syntax characters in a need do not error. In `tests/fitness/skills_search/`: a need that matches only `not_when` text finds nothing; every C candidate has `confirm`. CHECKS 1 to 3 and 7 pass (quoted).",
+      "owns": "keyword and file-choice files under `src/commands/skills/search/` that the contract names; its test files"
+    },
+    {
+      "id": "0h0dnqm24i-T5",
+      "job": "0h0dnqm24i",
+      "task": "T5",
+      "row": "task",
+      "outcome": "The answer of `search` and its two callers: runs A, then B, then C on `needs` and unrecognised words; slots and the order that covers every need once before a slot repeats; the ranking of spec 8.3 with ties by name; `kinds` and `categories` filters; `dropped` (through `replaces` and shadowing between `--library` folders); `limit`, `more`, `cursor`; `bad_cursor` and `stale_cursor`; the size limit (shorten `why` first, then leave out optional fields); `index_version` = the `head` version; `rex skills search` takes the request JSON and one or more `--library` and prints the response JSON; `tools::search` of `rex skills serve` answers the same result with tool errors as `{\"code\",\"message\"}` and `isError`.",
+      "evidence": "End-to-end tests in its files of `tests/integration/skills_search/` through the binary on the fixture library, test first: adding the second library changes no tier A or B item; the latency example for both tasks end to end; unknown scope gives `confirm`; every tier C item has `confirm`; unknown term in `unrecognised`, exit 0; a replaced skill and a shadowed same-name skill are under `dropped` with their reasons; `kinds` and `categories` each drop the items that do not match; with two needs, the first page covers each need once before a slot repeats; equal ranks come out in name order; `limit` holds items back, `more` counts them, `cursor` returns exactly the rest; a cursor from before a change to a copied library answers `stale_cursor`; a garbled cursor answers `bad_cursor`; `rex skills search` and the serve `search` tool give the same response for the same request. In `tests/fitness/skills_search/`: same input gives byte-identical output on repeated runs; 10 items within about 1,200 tokens with `why` shortened first; each `card` at most 30 words. CHECKS 1 to 7 pass (quoted).",
+      "owns": "answer, paging, size and CLI files under `src/commands/skills/search/` that the contract names; `tools::search` in `src/commands/skills/serve/tools.rs` (and the `include` argument of `head` only if needed); its test files"
+    },
+    {
+      "id": "0h0dnqm24i-T6",
+      "job": "0h0dnqm24i",
+      "task": "T6",
+      "row": "task",
+      "outcome": "Intent-phrase check of spec section 10 in `rex skills check`, where the contract places it (proposed: `check.rs` after the per-skill rules, with the marked comment of `metadata/fields.rs` pointing there; `check_skill` keeps its signature): each skill must be found in the top five by each of its own intent phrases, searched with lookup C among the library plus a reference pool given by the pool option; with no pool, the check is skipped with one clear line, printed as the contract says; pool skills are indexed only, never followed; an unreadable pool skill does not stop the check.",
+      "evidence": "Tests through the binary, test first, on a fixture of its own (`tests/fixtures/skills-intent/`: a small library and a small pool): a skill whose intent phrase does not find it fails with a finding that names the phrase; a skill whose phrases find it passes; no pool option prints the skip line and checks the rest. The exact-output tests `tests/integration/oms_skills/skills/check.rs`, `tests/integration/oms_skills/skills/metadata.rs` and `tests/integration/wp0/skill_metadata.rs` pass unchanged, or each one changed is named with its reason; `tests/fitness/oms_skills/skill_bundle.rs` still passes. CHECKS 1 to 3 and 7 pass (quoted).",
+      "owns": "the intent check file and its call where the contract places it; the changed comment at the marked place of `metadata/fields.rs`; pool plumbing in `src/commands/skills/check.rs`; `tests/fixtures/skills-intent/`; its test file; and, only if the contract's skip-line rule changes their output, the lines that change in `tests/integration/oms_skills/skills/check.rs`, `tests/integration/oms_skills/skills/metadata.rs` and `tests/integration/wp0/skill_metadata.rs`"
+    },
+    {
+      "id": "0h0dnqm24i-reviewer",
+      "job": "0h0dnqm24i",
+      "task": "reviewer",
+      "row": "role",
+      "outcome": "(role with no task) Two passes by one agent: (1) after T1, before group 2: reads the contract and runs the GATE of `rex-code-design-sketch` on it (simplicity, deletion test, one owner of each piece of state, each unknown proven by a quoted run); findings go to the architect; (2) stage 7: resumed on the whole job branch against the request and the contract, earlier findings included.",
+      "evidence": "Pass 1: findings file on the contract, each finding marked `BLOCK` or not; group 2 starts only after each `BLOCK` is closed. Pass 2: findings file against `BASE`..`HEAD`.",
+      "owns": "none (read only)"
+    },
+    {
+      "id": "0h0f8vnww4-T1",
+      "job": "0h0f8vnww4",
+      "task": "T1",
+      "row": "task",
+      "outcome": "Rust half of WP5 part 2: (a) server entry S2 in plugin.json; (b) `--name` (S1), folder name stays default; (c) embedded library reports vocabulary version from the `terms.json` already embedded in `src/commands/skills/metadata/vocabulary.rs`, and the same `version` as `--library plugin/library`; (d) `rex doctor` check of S4; (f) fitness test that each skill folder in `plugin/library/` has a `metadata` map that `Header::metadata()` reads; (g) `get` answers `not_found` for each file that `head` does not list and hash, symlink included.",
+      "evidence": "`cargo build` + `cargo test` pass. New tests: `rex skills serve --name super-rex --library plugin/library` answers `head` with `\"library\": \"super-rex\"`, 25 skills, `\"vocabulary\": \"1\"`; embedded `version` = folder `version`; `get` of a symlinked file answers `not_found`; doctor prints `library=super-rex <version>` when the server answers, `library=unreachable` + `problem=library server: <cause>` when it cannot start (fixture plugin), and the version-skew line naming both versions when `plugin.json` and binary differ; fitness test fails on a fixture skill with no `metadata` and passes for the 25. `claude plugin validate plugin` lists the server under `mcpServers`.",
+      "owns": "`plugin/.claude-plugin/plugin.json` (server entry only); `src/commands/skills/serve.rs`, `serve/library.rs`, `serve/vocabulary.rs`; `src/commands/skills/metadata/vocabulary.rs`: one `pub(crate)` function that answers the `terms.json` version, appended at the end of the file, no other change; `src/commands/doctor.rs` (with `DoctorOptions`) + one new doctor module file IF it passes 500 lines; new tests under `tests/integration/skills_serve/`; new cases in `tests/contract/calls/doctor.rs` and new files under `tests/contract/` with their line in `tests/contract/main.rs` or `calls/mod.rs`; one new file under `tests/fitness/` + its line in `tests/fitness/main.rs`; new fixtures under `tests/fixtures/`; inline `#[cfg(test)]` tests in the files it owns. Leave unchanged: `serve/tools.rs`, `src/commands/skills/search/`, index, `rex skills search|index`, `metadata/fields.rs`, aliases embed, `plugin/library|skills|assign|vocab/`."
+    },
+    {
+      "id": "0h0f8vnww4-T2",
+      "job": "0h0f8vnww4",
+      "task": "T2",
+      "row": "task",
+      "outcome": "(e) Mod refusal: a hook on `tool.call` only (never on `mcp.call`) refuses `mcp__plugin_super-rex_library__head`, `__search`, `__get` (S3) for any agent of a job (the builder's main loop and each sub-agent), with refusal text that names the mod tool to use instead (`rex_skill` to read a skill file; `rex_skill_search` only as the tool that will replace the raw `search`). Lets the call through in a session with no job. Never refuses the mod's own `$.mcp.call(\"plugin:super-rex:library\", ...)`.",
+      "evidence": "`tsc -p plugin` + `claude plugin test plugin` pass. New mod tests under `plugin/hooks/`: each raw tool by an agent of an open job is refused with the refusal text; same call in a session with no job is let through; a `$.mcp.call` to `plugin:super-rex:library`, sent through the loaded hook chain while a job is open and by an agent of that job, is not refused; the hook registers on `tool.call` only.",
+      "owns": "One new mod file under `plugin/hooks/` (+ its `.test.ts`), the import + register line in `plugin/hooks/register.ts`. Leave unchanged: mod tools `rex_skill_search`, `rex_assign`, `rex_job_open`, `rex_job_plan`, `rex_skill`."
+    },
+    {
+      "id": "0h0f8vnww4-T3",
+      "job": "0h0f8vnww4",
+      "task": "T3",
+      "row": "task",
+      "outcome": "Live proof on merged job branch, in the manner of `tests/fixtures/wp0-mcp/run.ts`: a real `claude -p` session that loads this repo's `plugin/` (with `rex` of `target/debug` first on PATH) starts the server (init message lists it as connected), and a mod `$.mcp.call` of `head` returns the five fields with `\"library\": \"super-rex\"`.",
+      "evidence": "Runner + fixture in repo; type check of its tsconfig exits 0; quoted init line + quoted `head` answer with a fresh marker in `RESULTS.md`. Verdict `PASSED`, `FAILED`, or `not exercised` with cause; never `PASSED` without a run. The clause \"mod's own call is not refused inside a job\" gets `not exercised` here: the nested session has no job, so the hook lets each call through (T2 tests prove that clause).",
+      "owns": "New folder `tests/fixtures/wp5-live/` (runner, probe plugin, tsconfig, `RESULTS.md`). Changes no file of T1 or T2."
+    },
+    {
+      "id": "0h0f8vnww4-reviewer",
+      "job": "0h0f8vnww4",
+      "task": "reviewer",
+      "row": "role",
+      "outcome": "Review of whole job branch against request items (a) to (g), acceptance, scope list, seams S1 to S4.",
+      "evidence": "Findings table with `rex-pr-review` severities; tests run by reviewer quoted.",
+      "owns": "No file."
+    },
+    {
+      "id": "0h0fitv57s-T1",
+      "job": "0h0fitv57s",
+      "task": "T1",
+      "row": "task",
+      "outcome": "The non-tool part of WP8 is in the skill text: (1) `rex-skill-language` gains the rules of the `metadata` map (kind, category, claims, placement, scope, `not_when`, intents, files, `open_when`, `requires`, `replaces`, `max_topics`) as M1 to M13 of `src/commands/skills/metadata/` and the 25 headers of `plugin/library/` define it; each rule names its check, or the report marks it \"no check\"; where spec section 7.1 and merged code differ, the code wins and the report says so; the rule settles F6 by D14 (see facts), and the report lists each library skill that the rule would fail, unchanged; (2) `write-skill.md`: a skill that the skill writer writes carries `metadata` and passes M1 to M13, and the builder step after the skill writer reports confirms the header has `metadata` with `kind` + `category` (F5: `ok` does not prove it); (3) `rex-feedback`: a fork it writes into `.rex/skills/` keeps the `metadata` map of the skill it forks; an edit that adds, removes or renames a file of the fork changes `files` (M9) and `open_when` (M10) in the same edit; the fork then passes `rex skills check`; (4) each text in `plugin/` and `README.md` that says the library holds 24 skills says 25, and `README.md:802` \"32 skills\" says 33.",
+      "evidence": "In the worktree, with the binary of the worktree (never the `rex` on PATH): `cargo run --locked -q -- skills check plugin/library plugin/skills` prints `ok` for 25 library skills + 8 listed skills, exit 0 (quoted). `cargo test` and `claude plugin test plugin` pass (quoted). `grep -rnEi '(\\b24\\b\\|twenty-four)[^.]*skills\\|holds 24\\|the 24 of' plugin README.md` prints nothing; `grep -n '33 skills' README.md` prints line 802. Table in report: each added rule -> check ID (M1..M13, B2, B5, ...) or \"no check\". `git diff --stat BASE HEAD` shows only owned files.",
+      "owns": "Body of `plugin/library/rex-skill-language/SKILL.md` (+ new sibling file and its `files` entry only IF B2 500 lines / B5 1,500 words do not fit; `metadata` then stays within M13 120 words); `plugin/skills/orchestration-builder/stages/1-skills/write-skill.md`; files of `plugin/skills/rex-feedback/`; count lines `plugin/skills/orchestration-builder/SKILL.md:64`, `plugin/skills/orchestration-builder/stages/1-skills/stage.md:34`, `plugin/skills/rex-rules/SKILL.md:23`, `README.md:802`; a fixture or golden file under `tests/` only IF one of these text changes breaks it; build output `target/` of the worktree (ignored by Git)."
+    },
+    {
+      "id": "0h0fitv57s-reviewer",
+      "job": "0h0fitv57s",
+      "task": "reviewer",
+      "row": "role",
+      "outcome": "Independent review of the stable branch of T1.",
+      "evidence": "Verdict table of `rex-pr-review` (PASS or FIX), each finding with severity, file + line + evidence; one row for each acceptance line and each of the four changes: met, OR not met with file + line; each rule checked against code in `src/commands/skills/metadata/`; the check run with the binary of the worktree (`cargo run --locked -q -- skills check plugin/library plugin/skills`), never the `rex` on PATH.",
+      "owns": "No file of repo. Its output file only."
+    }
+  ]
+}

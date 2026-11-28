@@ -1,0 +1,705 @@
+{
+  "about": "Items whose Outcome, Evidence or Owns text holds, whole and in any case, an intent phrase of a library skill or a claim term, kind or category of two or more words. One-word terms are listed under single_word and do not put an item in `items`.",
+  "items": [
+    {
+      "id": "0h0962klnd-T2",
+      "quotes": [
+        {
+          "words": "sub-agent",
+          "source": "claim",
+          "skills": [
+            "rex-agent-prompting"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        }
+      ],
+      "single_word": [
+        {
+          "words": "ts",
+          "source": "claim",
+          "skills": [
+            "rex-gap-ts"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "tool",
+          "source": "kind",
+          "skills": [
+            "rex-mermaid-diagrams"
+          ],
+          "fields": [
+            "outcome",
+            "evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0d1109wo-T1",
+      "quotes": [
+        {
+          "words": "coding-standards",
+          "source": "category",
+          "skills": [
+            "rex-code-commenting",
+            "rex-code-ergonomics",
+            "rex-code-error-writing",
+            "rex-code-essentials",
+            "rex-code-external-libraries",
+            "rex-code-failure-policy",
+            "rex-code-folder-management",
+            "rex-code-philosophy",
+            "rex-gap-ts"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        }
+      ],
+      "single_word": [
+        {
+          "words": "build",
+          "source": "claim",
+          "skills": [
+            "rex-code-tdd"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "ts",
+          "source": "claim",
+          "skills": [
+            "rex-gap-ts"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        },
+        {
+          "words": "rule",
+          "source": "kind",
+          "skills": [
+            "rex-code-commenting",
+            "rex-code-ergonomics",
+            "rex-code-error-writing",
+            "rex-code-essentials",
+            "rex-code-external-libraries",
+            "rex-code-failure-policy",
+            "rex-code-folder-management",
+            "rex-code-philosophy",
+            "rex-code-priorities",
+            "rex-code-tests-contract-seams",
+            "rex-code-tests-fitness-functions",
+            "rex-code-tests-integration-testing",
+            "rex-code-tests-unit-testing",
+            "rex-code-validation-plan",
+            "rex-gap-ts",
+            "rex-skill-language"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-T2",
+      "quotes": [
+        {
+          "words": "sub-agent",
+          "source": "claim",
+          "skills": [
+            "rex-agent-prompting"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        }
+      ],
+      "single_word": [
+        {
+          "words": "plan",
+          "source": "claim",
+          "skills": [
+            "rex-code-design-sketch",
+            "rex-code-validation-plan"
+          ],
+          "fields": [
+            "owns"
+          ]
+        },
+        {
+          "words": "ts",
+          "source": "claim",
+          "skills": [
+            "rex-gap-ts"
+          ],
+          "fields": [
+            "owns"
+          ]
+        },
+        {
+          "words": "tool",
+          "source": "kind",
+          "skills": [
+            "rex-mermaid-diagrams"
+          ],
+          "fields": [
+            "outcome",
+            "evidence"
+          ]
+        }
+      ]
+    }
+  ],
+  "single_word_only": [
+    {
+      "id": "0h0962klnd-T3",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "build",
+          "source": "claim",
+          "skills": [
+            "rex-code-tdd"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h096dyeq9-T1",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "fix",
+          "source": "claim",
+          "skills": [
+            "rex-code-tdd"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "latency",
+          "source": "claim",
+          "skills": [
+            "rex-code-latency"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        },
+        {
+          "words": "tool",
+          "source": "kind",
+          "skills": [
+            "rex-mermaid-diagrams"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h096dyeq9-T2",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "build",
+          "source": "claim",
+          "skills": [
+            "rex-code-tdd"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "rule",
+          "source": "kind",
+          "skills": [
+            "rex-code-commenting",
+            "rex-code-ergonomics",
+            "rex-code-error-writing",
+            "rex-code-essentials",
+            "rex-code-external-libraries",
+            "rex-code-failure-policy",
+            "rex-code-folder-management",
+            "rex-code-philosophy",
+            "rex-code-priorities",
+            "rex-code-tests-contract-seams",
+            "rex-code-tests-fitness-functions",
+            "rex-code-tests-integration-testing",
+            "rex-code-tests-unit-testing",
+            "rex-code-validation-plan",
+            "rex-gap-ts",
+            "rex-skill-language"
+          ],
+          "fields": [
+            "evidence",
+            "owns"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h096dyeq9-reviewer",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "review",
+          "source": "category",
+          "skills": [
+            "rex-codex-adversarial-review"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0b8x725g-T1",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "build",
+          "source": "claim",
+          "skills": [
+            "rex-code-tdd"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0b8x725g-reviewer",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "review",
+          "source": "category",
+          "skills": [
+            "rex-codex-adversarial-review"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        },
+        {
+          "words": "fix",
+          "source": "claim",
+          "skills": [
+            "rex-code-tdd"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0d1109wo-reviewer",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "rule",
+          "source": "kind",
+          "skills": [
+            "rex-code-commenting",
+            "rex-code-ergonomics",
+            "rex-code-error-writing",
+            "rex-code-essentials",
+            "rex-code-external-libraries",
+            "rex-code-failure-policy",
+            "rex-code-folder-management",
+            "rex-code-philosophy",
+            "rex-code-priorities",
+            "rex-code-tests-contract-seams",
+            "rex-code-tests-fitness-functions",
+            "rex-code-tests-integration-testing",
+            "rex-code-tests-unit-testing",
+            "rex-code-validation-plan",
+            "rex-gap-ts",
+            "rex-skill-language"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T1",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "latency",
+          "source": "claim",
+          "skills": [
+            "rex-code-latency"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "method",
+          "source": "kind",
+          "skills": [
+            "rex-agent-prompting",
+            "rex-code-design-sketch",
+            "rex-code-improve-codebase-architecture",
+            "rex-code-smells",
+            "rex-code-spike",
+            "rex-code-tdd",
+            "rex-codex-adversarial-review"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "reference",
+          "source": "kind",
+          "skills": [
+            "rex-code-latency"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "rule",
+          "source": "kind",
+          "skills": [
+            "rex-code-commenting",
+            "rex-code-ergonomics",
+            "rex-code-error-writing",
+            "rex-code-essentials",
+            "rex-code-external-libraries",
+            "rex-code-failure-policy",
+            "rex-code-folder-management",
+            "rex-code-philosophy",
+            "rex-code-priorities",
+            "rex-code-tests-contract-seams",
+            "rex-code-tests-fitness-functions",
+            "rex-code-tests-integration-testing",
+            "rex-code-tests-unit-testing",
+            "rex-code-validation-plan",
+            "rex-gap-ts",
+            "rex-skill-language"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "tool",
+          "source": "kind",
+          "skills": [
+            "rex-mermaid-diagrams"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T3",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "dependencies",
+          "source": "claim",
+          "skills": [
+            "rex-code-external-libraries"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        },
+        {
+          "words": "latency",
+          "source": "claim",
+          "skills": [
+            "rex-code-latency"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "reference",
+          "source": "kind",
+          "skills": [
+            "rex-code-latency"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "rule",
+          "source": "kind",
+          "skills": [
+            "rex-code-commenting",
+            "rex-code-ergonomics",
+            "rex-code-error-writing",
+            "rex-code-essentials",
+            "rex-code-external-libraries",
+            "rex-code-failure-policy",
+            "rex-code-folder-management",
+            "rex-code-philosophy",
+            "rex-code-priorities",
+            "rex-code-tests-contract-seams",
+            "rex-code-tests-fitness-functions",
+            "rex-code-tests-integration-testing",
+            "rex-code-tests-unit-testing",
+            "rex-code-validation-plan",
+            "rex-gap-ts",
+            "rex-skill-language"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "tool",
+          "source": "kind",
+          "skills": [
+            "rex-mermaid-diagrams"
+          ],
+          "fields": [
+            "outcome",
+            "evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T5",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "latency",
+          "source": "claim",
+          "skills": [
+            "rex-code-latency"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "tool",
+          "source": "kind",
+          "skills": [
+            "rex-mermaid-diagrams"
+          ],
+          "fields": [
+            "outcome",
+            "evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T6",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "reference",
+          "source": "kind",
+          "skills": [
+            "rex-code-latency"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        },
+        {
+          "words": "rule",
+          "source": "kind",
+          "skills": [
+            "rex-code-commenting",
+            "rex-code-ergonomics",
+            "rex-code-error-writing",
+            "rex-code-essentials",
+            "rex-code-external-libraries",
+            "rex-code-failure-policy",
+            "rex-code-folder-management",
+            "rex-code-philosophy",
+            "rex-code-priorities",
+            "rex-code-tests-contract-seams",
+            "rex-code-tests-fitness-functions",
+            "rex-code-tests-integration-testing",
+            "rex-code-tests-unit-testing",
+            "rex-code-validation-plan",
+            "rex-gap-ts",
+            "rex-skill-language"
+          ],
+          "fields": [
+            "owns"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-T1",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "build",
+          "source": "claim",
+          "skills": [
+            "rex-code-tdd"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-T3",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "ts",
+          "source": "claim",
+          "skills": [
+            "rex-gap-ts"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-reviewer",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "review",
+          "source": "category",
+          "skills": [
+            "rex-codex-adversarial-review"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0fitv57s-T1",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "build",
+          "source": "claim",
+          "skills": [
+            "rex-code-tdd"
+          ],
+          "fields": [
+            "owns"
+          ]
+        },
+        {
+          "words": "rule",
+          "source": "kind",
+          "skills": [
+            "rex-code-commenting",
+            "rex-code-ergonomics",
+            "rex-code-error-writing",
+            "rex-code-essentials",
+            "rex-code-external-libraries",
+            "rex-code-failure-policy",
+            "rex-code-folder-management",
+            "rex-code-philosophy",
+            "rex-code-priorities",
+            "rex-code-tests-contract-seams",
+            "rex-code-tests-fitness-functions",
+            "rex-code-tests-integration-testing",
+            "rex-code-tests-unit-testing",
+            "rex-code-validation-plan",
+            "rex-gap-ts",
+            "rex-skill-language"
+          ],
+          "fields": [
+            "outcome",
+            "evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0fitv57s-reviewer",
+      "quotes": [],
+      "single_word": [
+        {
+          "words": "review",
+          "source": "category",
+          "skills": [
+            "rex-codex-adversarial-review"
+          ],
+          "fields": [
+            "outcome"
+          ]
+        },
+        {
+          "words": "fix",
+          "source": "claim",
+          "skills": [
+            "rex-code-tdd"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        },
+        {
+          "words": "rule",
+          "source": "kind",
+          "skills": [
+            "rex-code-commenting",
+            "rex-code-ergonomics",
+            "rex-code-error-writing",
+            "rex-code-essentials",
+            "rex-code-external-libraries",
+            "rex-code-failure-policy",
+            "rex-code-folder-management",
+            "rex-code-philosophy",
+            "rex-code-priorities",
+            "rex-code-tests-contract-seams",
+            "rex-code-tests-fitness-functions",
+            "rex-code-tests-integration-testing",
+            "rex-code-tests-unit-testing",
+            "rex-code-validation-plan",
+            "rex-gap-ts",
+            "rex-skill-language"
+          ],
+          "fields": [
+            "evidence"
+          ]
+        }
+      ]
+    }
+  ]
+}

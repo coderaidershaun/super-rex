@@ -1,0 +1,40 @@
+{
+  "id": "0h0f8vnww4-T3",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "ts"
+    ]
+  },
+  "activity": "test",
+  "touches": [
+    "system-boundary",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "drive a headless claude session and quote its init line",
+    "record a verdict only from a real run"
+  ],
+  "evidence": [
+    {
+      "term": "test",
+      "quote": "Runner + fixture in repo"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "a real `claude -p` session that loads this repo's `plugin/`"
+    },
+    {
+      "term": "file-layout",
+      "quote": "New folder `tests/fixtures/wp5-live/`"
+    },
+    {
+      "term": "integration-test",
+      "quote": "Live proof on merged job branch"
+    }
+  ]
+}

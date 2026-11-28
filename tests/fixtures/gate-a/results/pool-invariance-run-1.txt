@@ -1,0 +1,33 @@
+[p0] library /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/plugin/library alone, then with pool /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills; limit 10; all pages followed
+[p1] 0h0962klnd-T1: tier A and B same (9 alone, 9 with pool; 12 tier C with pool); first page differs
+[p1] 0h0962klnd-T1: first page alone [A:library/rex-code-commenting B:library/rex-code-tests-integration-testing B:library/rex-code-spike B:library/rex-code-tdd B:library/rex-code-folder-management A:library/rex-code-ergonomics] with pool [A:library/rex-code-commenting B:library/rex-code-tests-integration-testing B:library/rex-code-spike B:library/rex-code-tdd B:library/rex-code-folder-management]
+[p1] 0h0962klnd-T2: tier A and B same (11 alone, 11 with pool; 13 tier C with pool); first page differs
+[p1] 0h0962klnd-T2: first page alone [A:library/rex-code-commenting A:library/rex-gap-ts B:library/rex-code-tests-integration-testing B:library/rex-code-spike B:library/rex-agent-prompting B:library/rex-code-tdd B:library/rex-code-folder-management A:library/rex-code-ergonomics] with pool [A:library/rex-code-commenting A:library/rex-gap-ts B:library/rex-code-tests-integration-testing B:library/rex-code-spike B:library/rex-agent-prompting B:library/rex-code-tdd B:library/rex-code-folder-management]
+[p1] 0h0962klnd-T3: tier A and B same (1 alone, 1 with pool; 10 tier C with pool); first page same
+[p1] 0h096dyeq9-T1: tier A and B same (2 alone, 2 with pool; 10 tier C with pool); first page same
+[p1] 0h096dyeq9-T2: tier A and B same (10 alone, 10 with pool; 10 tier C with pool); first page differs
+[p1] 0h096dyeq9-T2: first page alone [A:library/rex-code-commenting B:library/rex-code-tests-fitness-functions B:library/rex-code-tests-unit-testing B:library/rex-code-tdd B:library/rex-code-failure-policy B:library/rex-code-folder-management A:library/rex-code-ergonomics] with pool [A:library/rex-code-commenting B:library/rex-code-tests-fitness-functions B:library/rex-code-tests-unit-testing B:library/rex-code-tdd B:library/rex-code-failure-policy B:library/rex-code-folder-management]
+[p1] 0h096dyeq9-reviewer: tier A and B same (0 alone, 0 with pool; 7 tier C with pool); first page same
+[p1] 0h0b8x725g-T1: tier A and B same (9 alone, 9 with pool; 15 tier C with pool); first page differs
+[p1] 0h0b8x725g-T1: first page alone [A:library/rex-code-commenting B:library/rex-code-tests-integration-testing B:library/rex-code-tdd B:library/rex-code-failure-policy B:library/rex-code-folder-management A:library/rex-code-ergonomics] with pool [A:library/rex-code-commenting B:library/rex-code-tests-integration-testing B:library/rex-code-tdd B:library/rex-code-failure-policy B:library/rex-code-folder-management]
+[p1] 0h0b8x725g-reviewer: tier A and B same (0 alone, 0 with pool; 10 tier C with pool); first page same
+[p1] 0h0d1109wo-T1: tier A and B same (7 alone, 7 with pool; 10 tier C with pool); first page differs
+[p1] 0h0d1109wo-T1: first page alone [A:library/rex-code-commenting B:library/rex-skill-language B:library/rex-code-folder-management A:library/rex-code-ergonomics A:library/rex-code-error-writing] with pool [A:library/rex-code-commenting B:library/rex-skill-language B:library/rex-code-folder-management A:library/rex-code-ergonomics]
+[p1] 0h0d1109wo-reviewer: tier A and B same (0 alone, 0 with pool; 7 tier C with pool); first page same
+[p1] 0h0dnqm24i-T1: tier A and B same (10 alone, 10 with pool; 10 tier C with pool); first page same
+[p1] 0h0dnqm24i-T2: tier A and B same (10 alone, 10 with pool; 13 tier C with pool); first page same
+[p1] 0h0dnqm24i-T3: tier A and B same (9 alone, 9 with pool; 15 tier C with pool); first page same
+[p1] 0h0dnqm24i-T4: tier A and B same (9 alone, 9 with pool; 15 tier C with pool); first page differs
+[p1] 0h0dnqm24i-T4: first page alone [A:library/rex-code-commenting B:library/rex-code-tests-contract-seams B:library/rex-code-tests-fitness-functions B:library/rex-code-tdd B:library/rex-code-failure-policy A:library/rex-code-ergonomics] with pool [A:library/rex-code-commenting B:library/rex-code-tests-contract-seams B:library/rex-code-tests-fitness-functions B:library/rex-code-tdd B:library/rex-code-failure-policy]
+[p1] 0h0dnqm24i-T5: tier A and B same (9 alone, 9 with pool; 8 tier C with pool); first page same
+[p1] 0h0dnqm24i-T6: tier A and B same (9 alone, 9 with pool; 8 tier C with pool); first page same
+[p1] 0h0dnqm24i-reviewer: tier A and B same (3 alone, 3 with pool; 6 tier C with pool); first page same
+[p1] 0h0f8vnww4-T1: tier A and B same (11 alone, 11 with pool; 10 tier C with pool); first page differs
+[p1] 0h0f8vnww4-T1: first page alone [A:library/rex-code-commenting B:library/rex-code-tests-fitness-functions B:library/rex-code-tests-contract-seams B:library/rex-code-tests-integration-testing B:library/rex-code-tdd B:library/rex-code-failure-policy B:library/rex-code-folder-management A:library/rex-code-ergonomics] with pool [A:library/rex-code-commenting B:library/rex-code-tests-fitness-functions B:library/rex-code-tests-contract-seams B:library/rex-code-tests-integration-testing B:library/rex-code-tdd B:library/rex-code-failure-policy B:library/rex-code-folder-management]
+[p1] 0h0f8vnww4-T2: tier A and B same (10 alone, 10 with pool; 9 tier C with pool); first page differs
+[p1] 0h0f8vnww4-T2: first page alone [A:library/rex-code-commenting A:library/rex-gap-ts B:library/rex-code-tests-unit-testing B:library/rex-code-tdd B:library/rex-agent-prompting B:library/rex-code-folder-management A:library/rex-code-ergonomics] with pool [A:library/rex-code-commenting A:library/rex-gap-ts B:library/rex-code-tests-unit-testing B:library/rex-code-tdd B:library/rex-agent-prompting B:library/rex-code-folder-management]
+[p1] 0h0f8vnww4-T3: tier A and B same (9 alone, 9 with pool; 9 tier C with pool); first page same
+[p1] 0h0f8vnww4-reviewer: tier A and B same (0 alone, 0 with pool; 10 tier C with pool); first page same
+[p1] 0h0fitv57s-T1: tier A and B same (1 alone, 1 with pool; 1 tier C with pool); first page same
+[p1] 0h0fitv57s-reviewer: tier A and B same (0 alone, 0 with pool; 9 tier C with pool); first page same
+[p2] 23 of 23 forms keep the same tier A and B items in the same order over all pages; 15 of 23 also on the first page

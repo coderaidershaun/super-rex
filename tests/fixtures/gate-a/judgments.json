@@ -1,0 +1,2214 @@
+{
+  "judge": "judge of job 0h0vht64cg (task T4), Claude Opus 5.5 (claude-opus-5-5)",
+  "written": "Step 5, after the searches of step 4 and before any score was run. One verdict per distinct (item, skill) at tier A or B over every page of the answers of run 1, run 2 and the reference; in names the answers that hold it. Verdicts: right = the skill covers work that the item asks for; doubtful = it covers that work only in part, or comes in the wrong form (a duplicate, or placement full where D18 says open-when); wrong = its own header and body cover no work that the item asks for. Form rulings cover each field of run 1 or run 2 that compare-forms.ts lists as different from the reference.",
+  "items": [
+    {
+      "id": "0h0962klnd-T1",
+      "assignments": [
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-design-sketch",
+          "library": "library",
+          "tier": "B",
+          "verdict": "wrong",
+          "reason": "Run 2 ticked activity design; the item proves two assumptions and sketches no module, box or flow.",
+          "in": [
+            "run-2"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Adds a test module below tests/integration/ with its mod line.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-spike",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "The item proves two unknowns with a yes or no answer each; the house method for an unknown.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tdd",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "Found by the system-boundary tick; the item proves assumptions and builds no feature, so the red-green loop does not fit, though its mocking topic might.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "The FTS5 test crosses to the bundled SQLite and the live load runs the real claude CLI.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-validation-plan",
+          "library": "library",
+          "tier": "B",
+          "verdict": "wrong",
+          "reason": "Run 2 ticked activity design; the item has no flow or failure to trace in a plan.",
+          "in": [
+            "run-2"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run2",
+          "field": "activity",
+          "verdict": "reference right",
+          "reason": "The item writes tests, fixtures and a runner that prove two assumptions; it designs no system (term design)."
+        }
+      ]
+    },
+    {
+      "id": "0h0962klnd-T2",
+      "assignments": [
+        {
+          "skill": "rex-agent-prompting",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "The runner writes prompts for nested sessions that start a sub-agent, but they are probe prompts, not briefs for a grid agent of a job.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-design-sketch",
+          "library": "library",
+          "tier": "B",
+          "verdict": "wrong",
+          "reason": "Run 2 ticked activity design; a proof harness has no module design to sketch.",
+          "in": [
+            "run-2"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "A new TypeScript fixture folder; the layout rules apply by intent to a throwaway harness only in part.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-spike",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Proves one unknown ($.mcp.call was read, never run) with a verdict per case.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tdd",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "Found by the system-boundary tick; the item proves an assumption and builds no feature.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "The runner drives real nested claude sessions against a real stdio server.",
+          "in": [
+            "run-1",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-validation-plan",
+          "library": "library",
+          "tier": "B",
+          "verdict": "wrong",
+          "reason": "Run 2 ticked activity design; the item has no flow or failure to trace in a plan.",
+          "in": [
+            "run-2"
+          ]
+        },
+        {
+          "skill": "rex-gap-ts",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The item writes TypeScript, and rex-gap-ts is the gap skill of that language.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run2",
+          "field": "activity",
+          "verdict": "reference right",
+          "reason": "A proof harness of tests and stubs, not a design before code."
+        },
+        {
+          "run": "run2",
+          "field": "artefacts",
+          "verdict": "reference right",
+          "reason": "The runner drives real nested claude sessions: a test against the real outside world (integration-test)."
+        }
+      ]
+    },
+    {
+      "id": "0h0962klnd-T3",
+      "assignments": [
+        {
+          "skill": "rex-code-spike",
+          "library": "library",
+          "tier": "B",
+          "verdict": "wrong",
+          "reason": "The item writes the findings file and runs the proofs of T1 and T2 again; it has no unknown left to prove, and the spike says no spike when nothing is unknown.",
+          "in": [
+            "run-1",
+            "reference"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run2",
+          "field": "touches",
+          "verdict": "run right",
+          "reason": "The findings file reports answers that T1 and T2 proved; it rests on no unproven approach, and the tick brings the spike."
+        }
+      ]
+    },
+    {
+      "id": "0h096dyeq9-T1",
+      "assignments": [
+        {
+          "skill": "rex-code-design-sketch",
+          "library": "library",
+          "tier": "B",
+          "verdict": "wrong",
+          "reason": "All three forms ticked activity design for a vocabulary and a mapping document; the sketch is a module table and flow diagram of code, and the item has no module.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-validation-plan",
+          "library": "library",
+          "tier": "B",
+          "verdict": "wrong",
+          "reason": "Expected traces of flows and failures in plan.md; a vocabulary has no flow to trace.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run1",
+          "field": "touches",
+          "verdict": "both defensible",
+          "reason": "The item creates a new folder of data files, which the words of file-layout cover; it writes no code, so the tick changes no answer."
+        },
+        {
+          "run": "run2",
+          "field": "touches",
+          "verdict": "both defensible",
+          "reason": "Same as run 1."
+        }
+      ]
+    },
+    {
+      "id": "0h096dyeq9-T2",
+      "assignments": [
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Bad header values from any folder must be findings, never a panic.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "New modules in src/commands/skills/ and their mod.rs line.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-smells",
+          "library": "library",
+          "tier": "B",
+          "verdict": "wrong",
+          "reason": "Found by the legacy-code tick; the skill only finds problems and writes a findings report, and this item builds new rules with no audit or refactor.",
+          "in": [
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tdd",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Builds the M rules with one failing fixture per rule.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Adds the M rules to the bundle fitness test.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Its tests run the built rex skills check on fixture folders; the skill body counts the binary against the real file system as an integration test.",
+          "in": [
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-unit-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "The rule parsers are pure functions that inline scaffolds could drive, but the item asks for test files under tests/.",
+          "in": [
+            "run-1",
+            "run-2"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run1",
+          "field": "touches",
+          "verdict": "both defensible",
+          "reason": "The reference ticked legacy-code for changes to check.rs; the term says code the agent does not know, which is true of any existing code, but the item builds and refactors nothing."
+        },
+        {
+          "run": "run1",
+          "field": "must_have",
+          "verdict": "both defensible",
+          "reason": "The quote (500 lines, one or two line comment) is about readability, but no skill claims readability, so the tick changes no answer."
+        },
+        {
+          "run": "run1",
+          "field": "artefacts",
+          "verdict": "reference right",
+          "reason": "The new tests run the built binary on fixture folders (integration-test); the item asks for no inline unit test."
+        },
+        {
+          "run": "run1",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "The third need of the reference (check output identical to BASE) is real but no skill serves it."
+        },
+        {
+          "run": "run2",
+          "field": "must_have",
+          "verdict": "both defensible",
+          "reason": "Same as run 1."
+        },
+        {
+          "run": "run2",
+          "field": "artefacts",
+          "verdict": "reference right",
+          "reason": "Same as run 1."
+        },
+        {
+          "run": "run2",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "Same as run 1."
+        }
+      ]
+    },
+    {
+      "id": "0h096dyeq9-reviewer",
+      "assignments": [],
+      "forms": []
+    },
+    {
+      "id": "0h0b8x725g-T1",
+      "assignments": [
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "A stdio loop that reads outside JSON-RPC, answers not_found for hostile paths, and adds a SkillsError variant with its failure_class arm.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "serve.rs and its siblings, a test folder and their mod lines.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tdd",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Builds the server with a test for each named case.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "The tests start the binary as a child process over real stdio and the real file system; the skill body counts that as an integration test.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": []
+    },
+    {
+      "id": "0h0b8x725g-reviewer",
+      "assignments": [],
+      "forms": [
+        {
+          "run": "run2",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "One need or two; no library skill serves either."
+        }
+      ]
+    },
+    {
+      "id": "0h0d1109wo-T1",
+      "assignments": [
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "One of the four rulebooks that the item digests into rex-code-essentials.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "One of the four rulebooks that the item digests into rex-code-essentials.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "One of the four rulebooks that the item digests into rex-code-essentials.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Found by writes_code; it is the item's own output, which did not exist when the job ran.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "library": "library",
+          "tier": "B",
+          "verdict": "wrong",
+          "reason": "Found by the file-layout tick for the new skill folder; the folder holds skill text, not code, and the skill covers the module tree of code.",
+          "in": [
+            "run-1",
+            "run-2"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "One of the four rulebooks that the item digests into rex-code-essentials.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-skill-language",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Writes 24 metadata headers and a new skill.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run1",
+          "field": "touches",
+          "verdict": "reference right",
+          "reason": "The new folder holds skill text, not code; file-layout sits under coding-standards and brings the code layout rules."
+        },
+        {
+          "run": "run2",
+          "field": "touches",
+          "verdict": "reference right",
+          "reason": "Same as run 1."
+        }
+      ]
+    },
+    {
+      "id": "0h0d1109wo-reviewer",
+      "assignments": [
+        {
+          "skill": "rex-skill-language",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "The review checks 25 headers and the digest against the format and style of library skills.",
+          "in": [
+            "reference"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run1",
+          "field": "artefacts",
+          "verdict": "both defensible",
+          "reason": "A reviewer writes a verdict, not instructions, but the change it checks is skill text; only the reference tick finds rex-skill-language, which the review needs."
+        },
+        {
+          "run": "run2",
+          "field": "artefacts",
+          "verdict": "both defensible",
+          "reason": "Same as run 1."
+        },
+        {
+          "run": "run2",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "One need or two; neither has a library skill."
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T1",
+      "assignments": [
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-design-sketch",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "The contract must pass the GATE of rex-code-design-sketch.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Sets the module layout of src/commands/skills/search/ and the test folders.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-improve-codebase-architecture",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "Its words for depth and seams help a module contract, but its method finds friction in existing code, which the item does not ask for.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-spike",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Each unknown gets YES or NO with a quoted run.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-contract-seams",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "The item registers the empty seam test file and names its owner; T2 writes the test.",
+          "in": [
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "The item names one empty fitness file per invariant; T2 to T5 write the tests.",
+          "in": [
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "The item registers empty files in tests/integration/; it writes no integration test.",
+          "in": [
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-validation-plan",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "The contract maps each acceptance line to one trace before code.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run1",
+          "field": "artefacts",
+          "verdict": "run right",
+          "reason": "The item creates empty test files and writes no test; T2 to T6 write them."
+        },
+        {
+          "run": "run2",
+          "field": "artefacts",
+          "verdict": "run right",
+          "reason": "On the one difference, integration-test: the item writes no integration test."
+        },
+        {
+          "run": "run2",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "The third need of the reference (stub skeleton) has no library skill."
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T2",
+      "assignments": [
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "A malformed header must not stop the index.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "The contract names the files and T1 stubs them; the item fills them, so the layout rules apply only in part.",
+          "in": [
+            "run-1"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tdd",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Test first.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-contract-seams",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "The seam test loader_lookups.rs.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "index.json byte-identical on two runs.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Its tests in tests/integration/skills_search/ run the binary on the fixture library and the real file system.",
+          "in": [
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run1",
+          "field": "touches",
+          "verdict": "both defensible",
+          "reason": "The tests read fixture folders (system-boundary) and the item creates index files (file-layout); the reference left both out."
+        },
+        {
+          "run": "run1",
+          "field": "artefacts",
+          "verdict": "reference right",
+          "reason": "Its tests in tests/integration/skills_search/ run the binary on the fixture library (integration-test)."
+        },
+        {
+          "run": "run2",
+          "field": "touches",
+          "verdict": "both defensible",
+          "reason": "Same as run 1 on system-boundary."
+        },
+        {
+          "run": "run2",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "Two needs or three; the third (card of 30 words) has no skill."
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T3",
+      "assignments": [
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "An unknown term must go under unrecognised and never be an error: what code does with bad outside input. The label missed it by the label's own rule.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tdd",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Test first.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-contract-seams",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Contract tests in tests/contract/skills_search/.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Unrelated entries change no A or B candidate.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": []
+    },
+    {
+      "id": "0h0dnqm24i-T4",
+      "assignments": [
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Caller text escaped; FTS5 syntax characters must not error.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tdd",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Test first.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-contract-seams",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Contract tests in tests/contract/skills_search/.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "not_when never searched; confirm on every C item.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": []
+    },
+    {
+      "id": "0h0dnqm24i-T5",
+      "assignments": [
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "bad_cursor and stale_cursor, and tool errors with isError.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tdd",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Test first.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Byte-identical output, size limit, card words.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "End-to-end tests through the binary on the fixture library, with a copied library for stale_cursor.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run1",
+          "field": "touches",
+          "verdict": "both defensible",
+          "reason": "The end-to-end tests cross the file system with a copied library; the tick adds only a topic of rex-code-tdd."
+        },
+        {
+          "run": "run2",
+          "field": "touches",
+          "verdict": "both defensible",
+          "reason": "Same as run 1."
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T6",
+      "assignments": [
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "An unreadable pool skill must not stop the check.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "One new file where the contract places it; the layout is decided elsewhere.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-smells",
+          "library": "library",
+          "tier": "B",
+          "verdict": "wrong",
+          "reason": "Found by the legacy-code tick; the item builds the intent check, and the skill only audits and reports.",
+          "in": [
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tdd",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Test first.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Tests through the binary on its own fixture library and pool.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run1",
+          "field": "touches",
+          "verdict": "both defensible",
+          "reason": "Same as 0h096dyeq9-T2: legacy-code fits the words of the term, not the work."
+        },
+        {
+          "run": "run1",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "The third need of the reference is test first, which activity build finds anyway."
+        },
+        {
+          "run": "run2",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "Same as run 1."
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-reviewer",
+      "assignments": [
+        {
+          "skill": "rex-code-design-sketch",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Pass 1 runs the GATE of rex-code-design-sketch on the contract.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-spike",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "The GATE checks that each unknown was proven by a quoted run; the reviewer runs no spike.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-validation-plan",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "The reviewer could check the traces of the contract with it; its text asks only for the design-sketch GATE.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": []
+    },
+    {
+      "id": "0h0f8vnww4-T1",
+      "assignments": [
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "not_found for unlisted files and symlinks; an unreachable server reported as a problem line.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "A new doctor module if doctor.rs passes 500 lines, and new test files.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tdd",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Builds (a) to (g) with new tests.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-contract-seams",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "New cases in tests/contract/calls/doctor.rs.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "The fitness test of (f).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Tests of the server and of rex doctor through the binary with a fixture plugin.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-unit-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "The item allows inline #[cfg(test)] tests in the files it owns.",
+          "in": [
+            "reference"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run1",
+          "field": "artefacts",
+          "verdict": "both defensible",
+          "reason": "The item allows inline unit tests but does not ask for them."
+        },
+        {
+          "run": "run1",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "The third need of the reference (refuse unlisted files) is real; no skill serves it beyond the failure policy."
+        },
+        {
+          "run": "run2",
+          "field": "artefacts",
+          "verdict": "both defensible",
+          "reason": "Same as run 1."
+        },
+        {
+          "run": "run2",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "Same as run 1."
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-T2",
+      "assignments": [
+        {
+          "skill": "rex-agent-prompting",
+          "library": "library",
+          "tier": "B",
+          "verdict": "wrong",
+          "reason": "Run 1 ticked sub-agent; the hook refuses tools for agents of a job, and the item starts no agent and writes no brief.",
+          "in": [
+            "run-1"
+          ]
+        },
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "A new mod file and its register line; the skill applies by intent to TypeScript.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tdd",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "Builds the hook with a test for each case.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-unit-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "The mod tests stay as the item's evidence, and the skill makes unit tests scaffolds to delete.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-gap-ts",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The item writes TypeScript, and rex-gap-ts is the gap skill of that language.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run1",
+          "field": "touches",
+          "verdict": "reference right",
+          "reason": "The hook refuses tools for sub-agents; the item starts no sub-agent (term: starts a sub-agent)."
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-T3",
+      "assignments": [
+        {
+          "skill": "rex-code-commenting",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-essentials",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The coding digest that every code task gets in full (D18).",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "A new TypeScript fixture folder for a runner; the layout rules apply only in part.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "library": "library",
+          "tier": "A",
+          "verdict": "doubtful",
+          "reason": "Right rules for any code, but spec D18 makes this rulebook an open-when item of rex-code-essentials; as its own tier A item with placement full it repeats the digest, and the name tie-break ranks it above the digest.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tdd",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "Found by the system-boundary tick; a live proof builds no feature.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "A live proof in a real claude -p session.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-gap-ts",
+          "library": "library",
+          "tier": "A",
+          "verdict": "right",
+          "reason": "The item writes TypeScript, and rex-gap-ts is the gap skill of that language.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": []
+    },
+    {
+      "id": "0h0f8vnww4-reviewer",
+      "assignments": [],
+      "forms": [
+        {
+          "run": "run2",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "One need or two; no library skill serves either."
+        }
+      ]
+    },
+    {
+      "id": "0h0fitv57s-T1",
+      "assignments": [
+        {
+          "skill": "rex-agent-prompting",
+          "library": "library",
+          "tier": "B",
+          "verdict": "doubtful",
+          "reason": "The reference ticked sub-agent for the builder step after the skill writer; the item edits that step's text but starts no agent.",
+          "in": [
+            "reference"
+          ]
+        },
+        {
+          "skill": "rex-skill-language",
+          "library": "library",
+          "tier": "B",
+          "verdict": "right",
+          "reason": "The item writes the metadata rules into rex-skill-language and changes two other skill texts.",
+          "in": [
+            "run-1",
+            "run-2",
+            "reference"
+          ]
+        }
+      ],
+      "forms": [
+        {
+          "run": "run1",
+          "field": "touches",
+          "verdict": "run right",
+          "reason": "The item edits the text of a step after a sub-agent reports; it starts no sub-agent."
+        },
+        {
+          "run": "run1",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "The third need of the reference (a fork keeps its metadata) is real and is served by the same skill."
+        },
+        {
+          "run": "run2",
+          "field": "touches",
+          "verdict": "run right",
+          "reason": "Same as run 1."
+        },
+        {
+          "run": "run2",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "Same as run 1."
+        }
+      ]
+    },
+    {
+      "id": "0h0fitv57s-reviewer",
+      "assignments": [],
+      "forms": [
+        {
+          "run": "run2",
+          "field": "needs.count",
+          "verdict": "both defensible",
+          "reason": "One need or two; the first is served by rex-skill-language in both runs."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": "0h096dyeq9-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "file-layout"
+  ],
+  "must_have": [
+    "readability"
+  ],
+  "artefacts": [
+    "fitness-test",
+    "unit-test"
+  ],
+  "needs": [
+    "validate a YAML metadata map against field rules",
+    "embed the vocabulary JSON in the binary"
+  ],
+  "evidence": [
+    {
+      "term": "build",
+      "quote": "applies new rules with permanent IDs"
+    },
+    {
+      "term": "outside-input",
+      "quote": "each as a finding, never a panic"
+    },
+    {
+      "term": "file-layout",
+      "quote": "new module(s) in `src/commands/skills/` and their `mod.rs` line"
+    },
+    {
+      "term": "readability",
+      "quote": "Every changed or new source file is at most 500 lines and opens with its one or two line comment."
+    },
+    {
+      "term": "fitness-test",
+      "quote": "The new `M*` rules are added to the `rules` list of `every_skill_and_agent_of_the_bundle_obeys_its_rules`"
+    },
+    {
+      "term": "unit-test",
+      "quote": "A new test file under `tests/` fails a skill with a missing `kind`"
+    }
+  ]
+}

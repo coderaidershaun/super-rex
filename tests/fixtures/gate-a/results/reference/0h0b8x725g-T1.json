@@ -1,0 +1,167 @@
+{
+  "id": "0h0b8x725g-T1",
+  "index_version": "sha256:2a06b957e9467fddf488f6cd0e816e7f345909b49017ec8a8f21a2066bc7a13c",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-commenting",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-tests-integration-testing",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:integration-test"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-code-tdd",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-failure-policy",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-code-folder-management",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 6,
+      "skill": "tanstack-query",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 7,
+      "skill": "nginx",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 17,
+  "later_items": [
+    {
+      "rank": 8,
+      "skill": "schema-versioning",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 9,
+      "skill": "rex-code-ergonomics",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 10,
+      "skill": "zabbix",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 11,
+      "skill": "context-engineering",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 12,
+      "skill": "context7",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 13,
+      "skill": "rex-code-error-writing",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 14,
+      "skill": "hono-rpc",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 15,
+      "skill": "rex-code-priorities",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 16,
+      "skill": "alembic",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 17,
+      "skill": "rex-code-essentials",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 18,
+      "skill": "openai-agents",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 19,
+      "skill": "fail2ban",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 20,
+      "skill": "rex-code-external-libraries",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 21,
+      "skill": "rex-code-philosophy",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 22,
+      "skill": "dspy",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 23,
+      "skill": "iptables",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 24,
+      "skill": "chalk-advanced",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [],
+  "unrecognised": [],
+  "dropped": []
+}

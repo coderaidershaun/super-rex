@@ -1,0 +1,2 @@
+[t1] latency-go-ms: library alone, median 36 ms over 10 runs (min 35, max 36), wall time of one process from start to exit
+[t1] latency-rust-ns: library alone, median 38 ms over 10 runs (min 38, max 39), wall time of one process from start to exit

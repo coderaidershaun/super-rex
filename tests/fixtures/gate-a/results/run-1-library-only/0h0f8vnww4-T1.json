@@ -1,0 +1,124 @@
+{
+  "id": "0h0f8vnww4-T1",
+  "index_version": "sha256:dc3be932fd3d7f6ffbd2065b83a4b570bbfa4693f11c4e2d9ae7af39d9713d4a",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-commenting",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-tests-fitness-functions",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:fitness-test"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-code-tests-contract-seams",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:contract-test"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-tests-integration-testing",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:integration-test"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-code-tdd",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 6,
+      "skill": "rex-code-failure-policy",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 7,
+      "skill": "rex-code-folder-management",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 8,
+      "skill": "rex-code-ergonomics",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    }
+  ],
+  "more": 8,
+  "later_items": [
+    {
+      "rank": 9,
+      "skill": "rex-gap-ts",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 10,
+      "skill": "rex-code-external-libraries",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 11,
+      "skill": "rex-code-error-writing",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 12,
+      "skill": "rex-code-spike",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 13,
+      "skill": "rex-code-essentials",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 14,
+      "skill": "rex-code-improve-codebase-architecture",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 15,
+      "skill": "rex-code-priorities",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 16,
+      "skill": "rex-code-philosophy",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    }
+  ],
+  "gaps": [],
+  "unrecognised": [],
+  "dropped": []
+}

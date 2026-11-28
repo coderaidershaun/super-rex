@@ -1,0 +1,20 @@
+{
+  "id": "0h0f8vnww4-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "check each seam and request item with severities"
+  ],
+  "evidence": [
+    {
+      "term": "review",
+      "quote": "Review of whole job branch against request items (a) to (g), acceptance, scope list, seams S1 to S4."
+    }
+  ]
+}

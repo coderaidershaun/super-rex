@@ -1,0 +1,54 @@
+{
+  "id": "0h0962klnd-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "test",
+  "touches": [
+    "unproven-approach",
+    "file-layout",
+    "system-boundary"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "prove FTS5 and bm25 column weights in the SQLite that rusqlite bundles",
+    "check that Claude Code loads a skill header with no warning, with a positive control",
+    "one verdict per assumption: PASSED, FAILED, NOT EXERCISED or READ ONLY"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "one new test module below `tests/integration/`"
+    },
+    {
+      "term": "rust",
+      "quote": "a new Rust test"
+    },
+    {
+      "term": "test",
+      "quote": "A test that runs the built `rex skills check` on the metadata fixture and asserts exit 0."
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "Assumptions 1 and 2 proved or disproved."
+    },
+    {
+      "term": "file-layout",
+      "quote": "new fixture folder `tests/fixtures/wp0-metadata/`"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "Live load, with a positive control"
+    },
+    {
+      "term": "integration-test",
+      "quote": "a new Rust test in `tests/integration/` that creates an FTS5 virtual table"
+    }
+  ]
+}

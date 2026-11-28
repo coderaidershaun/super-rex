@@ -1,0 +1,33 @@
+{
+  "id": "0h0dnqm24i-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [
+    "unproven-approach"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "plan"
+  ],
+  "needs": [
+    "design gate review of a contract before build",
+    "second review pass on the whole branch"
+  ],
+  "evidence": [
+    {
+      "term": "review",
+      "quote": "findings go to the architect"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "each unknown proven by a quoted run"
+    },
+    {
+      "term": "plan",
+      "quote": "reads the contract and runs the GATE of `rex-code-design-sketch` on it"
+    }
+  ]
+}

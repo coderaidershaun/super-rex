@@ -1,0 +1,33 @@
+{
+  "id": "0h0dnqm24i-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [
+    "unproven-approach"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "plan"
+  ],
+  "needs": [
+    "design gate review of a contract",
+    "findings marked BLOCK or not"
+  ],
+  "evidence": [
+    {
+      "term": "review",
+      "quote": "Two passes by one agent"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "each unknown proven by a quoted run"
+    },
+    {
+      "term": "plan",
+      "quote": "reads the contract and runs the GATE of `rex-code-design-sketch` on it"
+    }
+  ]
+}

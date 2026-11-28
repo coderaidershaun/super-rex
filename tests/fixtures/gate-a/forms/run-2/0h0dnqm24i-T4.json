@@ -1,0 +1,46 @@
+{
+  "id": "0h0dnqm24i-T4",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "system-boundary"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "contract-test",
+    "fitness-test"
+  ],
+  "needs": [
+    "test-first development",
+    "full-text search ranked by bm25",
+    "escape FTS5 query syntax"
+  ],
+  "evidence": [
+    {
+      "term": "build",
+      "quote": "Lookup C and the choice of files inside a skill"
+    },
+    {
+      "term": "outside-input",
+      "quote": "caller text escaped so it cannot change query syntax"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "SQLite FTS5 with"
+    },
+    {
+      "term": "contract-test",
+      "quote": "Contract tests in its files of `tests/contract/skills_search/` on hand-built index values, test first"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "a need that matches only `not_when` text finds nothing"
+    }
+  ]
+}

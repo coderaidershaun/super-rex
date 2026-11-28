@@ -1,0 +1,25 @@
+[r0] libraries: /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/plugin/library then /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills; limit 10; each form searched twice
+[r1] 0h0962klnd-T1: byte-identical, 2980 bytes, sha256 ea1d05f905a129f45265cf4cebdacc03884a3049f7b567f1280f3211a56050f5
+[r1] 0h0962klnd-T2: byte-identical, 2801 bytes, sha256 cbf7dc09500c137ce9eb5be7559d3225e0c7b81ca01e25dc336e1a9654a2b4e2
+[r1] 0h0962klnd-T3: byte-identical, 2765 bytes, sha256 d344fd430642d50230f031e211afbcde4c0e83535c8e5eebb2a1b396b7685681
+[r1] 0h096dyeq9-T1: byte-identical, 2750 bytes, sha256 96b90d33ee920c1886cdda6879a8fdca6c10812bec4c0364c58b73e230257a85
+[r1] 0h096dyeq9-T2: byte-identical, 2996 bytes, sha256 7665bdc2c78ff8129ea798b1e8e4d204cbcba30e686342eaf63916b20f2fb48f
+[r1] 0h096dyeq9-reviewer: byte-identical, 3077 bytes, sha256 682e3e6838a6deb3c0ed080af62b2fe3e7df60b625caf2ca0a842c7e6dc3f59d
+[r1] 0h0b8x725g-T1: byte-identical, 2882 bytes, sha256 91d84e96a5dc0c44542e41f23469073a1ba4cfa951bbaefdb543eac41070aba0
+[r1] 0h0b8x725g-reviewer: byte-identical, 2431 bytes, sha256 cda7fcca84a55a70bf64ba2138f2f15f61e3183b5fc36223f106b9e89b22629b
+[r1] 0h0d1109wo-T1: byte-identical, 3079 bytes, sha256 9e3a2be3da0aeff5b99a26a3a95aaa3d1779784ea6e532d06ad37ff046933c48
+[r1] 0h0d1109wo-reviewer: byte-identical, 1243 bytes, sha256 0ed5c1e71b32b1b7d3be002346bfc4a2809e81d437681d8d38d5553307ddb180
+[r1] 0h0dnqm24i-T1: byte-identical, 3008 bytes, sha256 593d0deddd49fe6ccae485dcb364539a2eff175782dc3179056dab09baa421f0
+[r1] 0h0dnqm24i-T2: byte-identical, 3019 bytes, sha256 d4e6d066f5b27e0828752b8325fb3b4f258744e8350587d0a93bbed68b6042bc
+[r1] 0h0dnqm24i-T3: byte-identical, 2864 bytes, sha256 d09c47de9009b7a386d286825a48276952458c14588008e54c12e60ecfaecc48
+[r1] 0h0dnqm24i-T4: byte-identical, 2883 bytes, sha256 41edf6e83f90270ad58bb4e01e8032b98455714619ec639888bc38cae7eb0f03
+[r1] 0h0dnqm24i-T5: byte-identical, 2910 bytes, sha256 c491ee2eedcff88f15e77485fc7752d5657462c64f9bdb944f5640f27f9a711f
+[r1] 0h0dnqm24i-T6: byte-identical, 2897 bytes, sha256 26df5de29b75c923e4c3e4d3c153334729110dedceddb70b03eeb780179fecf1
+[r1] 0h0dnqm24i-reviewer: byte-identical, 2901 bytes, sha256 2aee17519126159fe9a2aec7c25568d260188b89e38be18c224f64a2fccf1684
+[r1] 0h0f8vnww4-T1: byte-identical, 3063 bytes, sha256 30763e40c224d4a96089bd763760ab7922d3cb88c1eeb008cd004fc3800c144f
+[r1] 0h0f8vnww4-T2: byte-identical, 2893 bytes, sha256 6d6018baedf55630e9c66b0c518dcdce14fd140537d982b9f5c0947a71225245
+[r1] 0h0f8vnww4-T3: byte-identical, 2974 bytes, sha256 6cdec48644f3f949967024c311223b71a9cffcf69962bf30c47139b8b49ee528
+[r1] 0h0f8vnww4-reviewer: byte-identical, 2443 bytes, sha256 6c46335baba8c0260defdd2ca8d3506de91aadbb4ca37f88ef831bc0c336e096
+[r1] 0h0fitv57s-T1: byte-identical, 2908 bytes, sha256 548069de895fbf1f4b2648f7a8c9da29f386e936a083bb65b3f6d5eb113aa2d6
+[r1] 0h0fitv57s-reviewer: byte-identical, 2542 bytes, sha256 6001e8240ce6e855da738e487c2f54aaf81cc5ef7817c4e562ebfbfb8f0e7949
+[r2] 23 of 23 forms gave byte-identical answers on two runs

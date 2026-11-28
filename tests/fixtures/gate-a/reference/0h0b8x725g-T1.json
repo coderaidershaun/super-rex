@@ -1,0 +1,59 @@
+{
+  "id": "0h0b8x725g-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "long-running",
+    "file-layout",
+    "system-boundary"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "hand-written JSON-RPC MCP server over stdio",
+    "block path traversal and symlink escape when serving files",
+    "deterministic SHA-256 version of a set of files"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "in `src/commands/skills/mod.rs` only: one `mod` line, one `SkillsCommand` variant"
+    },
+    {
+      "term": "rust",
+      "quote": "`cargo fmt --all -- --check`"
+    },
+    {
+      "term": "build",
+      "quote": "runs a hand-written stdio JSON-RPC MCP server (no new crate)"
+    },
+    {
+      "term": "outside-input",
+      "quote": "`isError` code `not_found` for missing skill/file or path that leaves skill folder"
+    },
+    {
+      "term": "long-running",
+      "quote": "speak JSON-RPC over stdin/stdout"
+    },
+    {
+      "term": "file-layout",
+      "quote": "New files under `src/commands/skills/` (`serve.rs` + siblings)"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "a fixture symlink inside a skill folder to a sentinel file outside the library = `not_found`"
+    },
+    {
+      "term": "integration-test",
+      "quote": "New tests in `tests/integration/skills_serve/` start `rex skills serve --library <fixture>` as child process"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": "0h0b8x725g-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "system-boundary",
+    "long-running",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "hand-written MCP JSON-RPC server over stdio",
+    "path traversal and symlink containment",
+    "content hash version of a folder"
+  ],
+  "evidence": [
+    {
+      "term": "build",
+      "quote": "runs a hand-written stdio JSON-RPC MCP server (no new crate)"
+    },
+    {
+      "term": "outside-input",
+      "quote": "`..` path, absolute `file` (`/etc/hosts`)"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "a fixture symlink inside a skill folder to a sentinel file outside the library"
+    },
+    {
+      "term": "long-running",
+      "quote": "runs a hand-written stdio JSON-RPC MCP server"
+    },
+    {
+      "term": "file-layout",
+      "quote": "New files under `src/commands/skills/` (`serve.rs` + siblings)"
+    },
+    {
+      "term": "integration-test",
+      "quote": "start `rex skills serve --library <fixture>` as child process, speak JSON-RPC over stdin/stdout"
+    }
+  ]
+}

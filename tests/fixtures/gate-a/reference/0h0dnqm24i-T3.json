@@ -1,0 +1,45 @@
+{
+  "id": "0h0dnqm24i-T3",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "contract-test",
+    "fitness-test"
+  ],
+  "needs": [
+    "scope check that answers yes, no or unknown",
+    "map a caller's free words to terms through aliases",
+    "test first"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "lookup A, lookup B and scope files under `src/commands/skills/search/` that the contract names"
+    },
+    {
+      "term": "build",
+      "quote": "Lookups A and B"
+    },
+    {
+      "term": "outside-input",
+      "quote": "an unknown term goes under `unrecognised`, never an error"
+    },
+    {
+      "term": "contract-test",
+      "quote": "Contract tests in its files of `tests/contract/skills_search/` on hand-built index values, test first"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "adding unrelated entries changes no A or B candidate"
+    }
+  ]
+}

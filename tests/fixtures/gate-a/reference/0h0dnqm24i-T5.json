@@ -1,0 +1,54 @@
+{
+  "id": "0h0dnqm24i-T5",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "system-boundary"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test",
+    "fitness-test"
+  ],
+  "needs": [
+    "cursor paging with stale and bad cursor errors",
+    "fit the response in a token size limit",
+    "test first"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "answer, paging, size and CLI files under `src/commands/skills/search/`"
+    },
+    {
+      "term": "rust",
+      "quote": "`tools::search` in `src/commands/skills/serve/tools.rs`"
+    },
+    {
+      "term": "build",
+      "quote": "The answer of `search` and its two callers"
+    },
+    {
+      "term": "outside-input",
+      "quote": "a garbled cursor answers `bad_cursor`"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "a cursor from before a change to a copied library answers `stale_cursor`"
+    },
+    {
+      "term": "integration-test",
+      "quote": "End-to-end tests in its files of `tests/integration/skills_search/` through the binary on the fixture library, test first"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "same input gives byte-identical output on repeated runs"
+    }
+  ]
+}

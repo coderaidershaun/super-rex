@@ -1,0 +1,94 @@
+[o0] options of G5 on each answer at limit 10, library then pool; budget = 120 tokens per item, at least 10 items
+[o1] 0h0962klnd-T1: 10 items, 11 files, 1 open_when; budget 1200
+[o2] 0h0962klnd-T1: (a) budget for all 10 items: 2954 tokens with every field (1754 over); 1897 with files and open_when but no hashes, words, placement or long why (697 over); 1425 with every optional field left out (225 over)
+[o3] 0h0962klnd-T1: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 16 with every optional field left out
+[o4] 0h0962klnd-T1: (c) files kept without hashes, items moved before files and open_when: 5 of 10 items stay (5 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0962klnd-T2: 10 items, 7 files, 8 open_when; budget 1200
+[o2] 0h0962klnd-T2: (a) budget for all 10 items: 2849 tokens with every field (1649 over); 1964 with files and open_when but no hashes, words, placement or long why (764 over); 1423 with every optional field left out (223 over)
+[o3] 0h0962klnd-T2: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 16 with every optional field left out
+[o4] 0h0962klnd-T2: (c) files kept without hashes, items moved before files and open_when: 5 of 10 items stay (5 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0962klnd-T3: 10 items, 0 files, 0 open_when; budget 1200
+[o2] 0h0962klnd-T3: (a) budget for all 10 items: 1990 tokens with every field (790 over); 1483 with files and open_when but no hashes, words, placement or long why (283 over); 1483 with every optional field left out (283 over)
+[o3] 0h0962klnd-T3: (b) most card words that fit 1200: 19 with files and open_when kept; 19 with every optional field left out
+[o4] 0h0962klnd-T3: (c) files kept without hashes, items moved before files and open_when: 8 of 10 items stay (2 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h096dyeq9-T1: 10 items, 1 files, 4 open_when; budget 1200
+[o2] 0h096dyeq9-T1: (a) budget for all 10 items: 2305 tokens with every field (1105 over); 1738 with files and open_when but no hashes, words, placement or long why (538 over); 1495 with every optional field left out (295 over)
+[o3] 0h096dyeq9-T1: (b) most card words that fit 1200: 7 with files and open_when kept; 16 with every optional field left out
+[o4] 0h096dyeq9-T1: (c) files kept without hashes, items moved before files and open_when: 6 of 10 items stay (4 to the next page); the binary keeps 7 items with no files or open_when
+[o1] 0h096dyeq9-T2: 10 items, 6 files, 2 open_when; budget 1200
+[o2] 0h096dyeq9-T2: (a) budget for all 10 items: 2708 tokens with every field (1508 over); 1866 with files and open_when but no hashes, words, placement or long why (666 over); 1429 with every optional field left out (229 over)
+[o3] 0h096dyeq9-T2: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 15 with every optional field left out
+[o4] 0h096dyeq9-T2: (c) files kept without hashes, items moved before files and open_when: 5 of 10 items stay (5 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h096dyeq9-reviewer: 7 items, 0 files, 0 open_when; budget 1200
+[o2] 0h096dyeq9-reviewer: (a) budget for all 7 items: 1378 tokens with every field (178 over); 1028 with files and open_when but no hashes, words, placement or long why (172 under); 1028 with every optional field left out (172 under)
+[o3] 0h096dyeq9-reviewer: (b) most card words that fit 1200: 30 with files and open_when kept; 30 with every optional field left out
+[o4] 0h096dyeq9-reviewer: (c) files kept without hashes, items moved before files and open_when: 7 of 7 items stay (0 to the next page); the binary keeps 7 items with no files or open_when
+[o1] 0h0b8x725g-T1: 10 items, 12 files, 1 open_when; budget 1200
+[o2] 0h0b8x725g-T1: (a) budget for all 10 items: 3148 tokens with every field (1948 over); 2042 with files and open_when but no hashes, words, placement or long why (842 over); 1492 with every optional field left out (292 over)
+[o3] 0h0b8x725g-T1: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 13 with every optional field left out
+[o4] 0h0b8x725g-T1: (c) files kept without hashes, items moved before files and open_when: 4 of 10 items stay (6 to the next page); the binary keeps 7 items with no files or open_when
+[o1] 0h0b8x725g-reviewer: 10 items, 1 files, 0 open_when; budget 1200
+[o2] 0h0b8x725g-reviewer: (a) budget for all 10 items: 2066 tokens with every field (866 over); 1515 with files and open_when but no hashes, words, placement or long why (315 over); 1480 with every optional field left out (280 over)
+[o3] 0h0b8x725g-reviewer: (b) most card words that fit 1200: 17 with files and open_when kept; 18 with every optional field left out
+[o4] 0h0b8x725g-reviewer: (c) files kept without hashes, items moved before files and open_when: 7 of 10 items stay (3 to the next page); the binary keeps 7 items with no files or open_when
+[o1] 0h0d1109wo-T1: 10 items, 3 files, 2 open_when; budget 1200
+[o2] 0h0d1109wo-T1: (a) budget for all 10 items: 2288 tokens with every field (1088 over); 1613 with files and open_when but no hashes, words, placement or long why (413 over); 1425 with every optional field left out (225 over)
+[o3] 0h0d1109wo-T1: (b) most card words that fit 1200: 10 with files and open_when kept; 19 with every optional field left out
+[o4] 0h0d1109wo-T1: (c) files kept without hashes, items moved before files and open_when: 7 of 10 items stay (3 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0d1109wo-reviewer: 7 items, 0 files, 0 open_when; budget 1200
+[o2] 0h0d1109wo-reviewer: (a) budget for all 7 items: 1400 tokens with every field (200 over); 1043 with files and open_when but no hashes, words, placement or long why (157 under); 1043 with every optional field left out (157 under)
+[o3] 0h0d1109wo-reviewer: (b) most card words that fit 1200: 30 with files and open_when kept; 30 with every optional field left out
+[o4] 0h0d1109wo-reviewer: (c) files kept without hashes, items moved before files and open_when: 7 of 7 items stay (0 to the next page); the binary keeps 7 items with no files or open_when
+[o1] 0h0dnqm24i-T1: 10 items, 8 files, 1 open_when; budget 1200
+[o2] 0h0dnqm24i-T1: (a) budget for all 10 items: 2732 tokens with every field (1532 over); 1798 with files and open_when but no hashes, words, placement or long why (598 over); 1400 with every optional field left out (200 over)
+[o3] 0h0dnqm24i-T1: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 16 with every optional field left out
+[o4] 0h0dnqm24i-T1: (c) files kept without hashes, items moved before files and open_when: 6 of 10 items stay (4 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0dnqm24i-T2: 10 items, 5 files, 7 open_when; budget 1200
+[o2] 0h0dnqm24i-T2: (a) budget for all 10 items: 2778 tokens with every field (1578 over); 1980 with files and open_when but no hashes, words, placement or long why (780 over); 1435 with every optional field left out (235 over)
+[o3] 0h0dnqm24i-T2: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 16 with every optional field left out
+[o4] 0h0dnqm24i-T2: (c) files kept without hashes, items moved before files and open_when: 4 of 10 items stay (6 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0dnqm24i-T3: 10 items, 7 files, 3 open_when; budget 1200
+[o2] 0h0dnqm24i-T3: (a) budget for all 10 items: 2751 tokens with every field (1551 over); 1877 with files and open_when but no hashes, words, placement or long why (677 over); 1394 with every optional field left out (194 over)
+[o3] 0h0dnqm24i-T3: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 17 with every optional field left out
+[o4] 0h0dnqm24i-T3: (c) files kept without hashes, items moved before files and open_when: 5 of 10 items stay (5 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0dnqm24i-T4: 10 items, 2 files, 11 open_when; budget 1200
+[o2] 0h0dnqm24i-T4: (a) budget for all 10 items: 2633 tokens with every field (1433 over); 1982 with files and open_when but no hashes, words, placement or long why (782 over); 1408 with every optional field left out (208 over)
+[o3] 0h0dnqm24i-T4: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 17 with every optional field left out
+[o4] 0h0dnqm24i-T4: (c) files kept without hashes, items moved before files and open_when: 4 of 10 items stay (6 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0dnqm24i-T5: 10 items, 10 files, 4 open_when; budget 1200
+[o2] 0h0dnqm24i-T5: (a) budget for all 10 items: 3038 tokens with every field (1838 over); 2014 with files and open_when but no hashes, words, placement or long why (814 over); 1380 with every optional field left out (180 over)
+[o3] 0h0dnqm24i-T5: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 16 with every optional field left out
+[o4] 0h0dnqm24i-T5: (c) files kept without hashes, items moved before files and open_when: 5 of 10 items stay (5 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0dnqm24i-T6: 10 items, 5 files, 6 open_when; budget 1200
+[o2] 0h0dnqm24i-T6: (a) budget for all 10 items: 2826 tokens with every field (1626 over); 2018 with files and open_when but no hashes, words, placement or long why (818 over); 1488 with every optional field left out (288 over)
+[o3] 0h0dnqm24i-T6: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 12 with every optional field left out
+[o4] 0h0dnqm24i-T6: (c) files kept without hashes, items moved before files and open_when: 5 of 10 items stay (5 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0dnqm24i-reviewer: 9 items, 2 files, 1 open_when; budget 1200
+[o2] 0h0dnqm24i-reviewer: (a) budget for all 9 items: 2034 tokens with every field (834 over); 1458 with files and open_when but no hashes, words, placement or long why (258 over); 1303 with every optional field left out (103 over)
+[o3] 0h0dnqm24i-reviewer: (b) most card words that fit 1200: 14 with files and open_when kept; 21 with every optional field left out
+[o4] 0h0dnqm24i-reviewer: (c) files kept without hashes, items moved before files and open_when: 7 of 9 items stay (2 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0f8vnww4-T1: 10 items, 10 files, 3 open_when; budget 1200
+[o2] 0h0f8vnww4-T1: (a) budget for all 10 items: 3084 tokens with every field (1884 over); 2051 with files and open_when but no hashes, words, placement or long why (851 over); 1416 with every optional field left out (216 over)
+[o3] 0h0f8vnww4-T1: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 15 with every optional field left out
+[o4] 0h0f8vnww4-T1: (c) files kept without hashes, items moved before files and open_when: 4 of 10 items stay (6 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0f8vnww4-T2: 10 items, 6 files, 5 open_when; budget 1200
+[o2] 0h0f8vnww4-T2: (a) budget for all 10 items: 2637 tokens with every field (1437 over); 1803 with files and open_when but no hashes, words, placement or long why (603 over); 1350 with every optional field left out (150 over)
+[o3] 0h0f8vnww4-T2: (b) most card words that fit 1200: 0 with files and open_when kept; 21 with every optional field left out
+[o4] 0h0f8vnww4-T2: (c) files kept without hashes, items moved before files and open_when: 5 of 10 items stay (5 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0f8vnww4-T3: 10 items, 10 files, 1 open_when; budget 1200
+[o2] 0h0f8vnww4-T3: (a) budget for all 10 items: 2918 tokens with every field (1718 over); 1905 with files and open_when but no hashes, words, placement or long why (705 over); 1426 with every optional field left out (226 over)
+[o3] 0h0f8vnww4-T3: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 17 with every optional field left out
+[o4] 0h0f8vnww4-T3: (c) files kept without hashes, items moved before files and open_when: 5 of 10 items stay (5 to the next page); the binary keeps 8 items with no files or open_when
+[o1] 0h0f8vnww4-reviewer: 10 items, 3 files, 4 open_when; budget 1200
+[o2] 0h0f8vnww4-reviewer: (a) budget for all 10 items: 2630 tokens with every field (1430 over); 1968 with files and open_when but no hashes, words, placement or long why (768 over); 1554 with every optional field left out (354 over)
+[o3] 0h0f8vnww4-reviewer: (b) most card words that fit 1200: none, even empty cards with files and open_when kept; 13 with every optional field left out
+[o4] 0h0f8vnww4-reviewer: (c) files kept without hashes, items moved before files and open_when: 5 of 10 items stay (5 to the next page); the binary keeps 7 items with no files or open_when
+[o1] 0h0fitv57s-T1: 2 items, 0 files, 0 open_when; budget 1200
+[o2] 0h0fitv57s-T1: (a) budget for all 2 items: 490 tokens with every field (710 under); 382 with files and open_when but no hashes, words, placement or long why (818 under); 382 with every optional field left out (818 under)
+[o3] 0h0fitv57s-T1: (b) most card words that fit 1200: 30 with files and open_when kept; 30 with every optional field left out
+[o4] 0h0fitv57s-T1: (c) files kept without hashes, items moved before files and open_when: 2 of 2 items stay (0 to the next page); the binary keeps 2 items with no files or open_when
+[o1] 0h0fitv57s-reviewer: 9 items, 0 files, 1 open_when; budget 1200
+[o2] 0h0fitv57s-reviewer: (a) budget for all 9 items: 1789 tokens with every field (589 over); 1332 with files and open_when but no hashes, words, placement or long why (132 over); 1285 with every optional field left out (85 over)
+[o3] 0h0fitv57s-reviewer: (b) most card words that fit 1200: 23 with files and open_when kept; 25 with every optional field left out
+[o4] 0h0fitv57s-reviewer: (c) files kept without hashes, items moved before files and open_when: 8 of 9 items stay (1 to the next page); the binary keeps 8 items with no files or open_when
+[o5] 18 answers with 10 items on their full first page

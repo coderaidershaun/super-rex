@@ -1,0 +1,41 @@
+{
+  "id": "0h0dnqm24i-T3",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "contract-test",
+    "fitness-test"
+  ],
+  "needs": [
+    "match claims against request facts and terms",
+    "alias expansion of free words",
+    "three-valued scope check"
+  ],
+  "evidence": [
+    {
+      "term": "build",
+      "quote": "Lookups A and B"
+    },
+    {
+      "term": "outside-input",
+      "quote": "an unknown term goes under `unrecognised`, never an error"
+    },
+    {
+      "term": "contract-test",
+      "quote": "Contract tests in its files of `tests/contract/skills_search/` on hand-built index values"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "adding unrelated entries changes no A or B candidate"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+[m0] 2 runs and a reference; fields: facts.writes_code, facts.languages, facts.role, facts.latency_scale, activity, touches, must_have, artefacts, needs.count, needs.text, evidence.terms
+[m1.1] run1 against run2: 23 forms in both, 0 only in run1, 0 only in run2
+[m1.1] facts.writes_code: equal on 23 of 23
+[m1.1] facts.languages: equal on 23 of 23; values in both 14, only run1 0, only run2 0
+[m1.1] facts.role: equal on 23 of 23
+[m1.1] facts.latency_scale: equal on 23 of 23
+[m1.1] activity: equal on 21 of 23
+[m1.1] touches: equal on 18 of 23; values in both 33, only run1 3, only run2 2
+[m1.1] must_have: equal on 23 of 23; values in both 1, only run1 0, only run2 0
+[m1.1] artefacts: equal on 20 of 23; values in both 22, only run1 1, only run2 3
+[m1.1] needs.count: equal on 17 of 23
+[m1.1] needs.text: equal on 0 of 23; values in both 5, only run1 51, only run2 45
+[m1.1] evidence.terms: equal on 14 of 23; values in both 77, only run1 7, only run2 7
+[m1.1] differs: 0h0962klnd-T1 activity: run1 ["test"] run2 ["design"]
+[m1.1] differs: 0h0962klnd-T2 activity: run1 ["test"] run2 ["design"]
+[m1.1] differs: 0h0962klnd-T2 artefacts: run1 ["integration-test"] run2 []
+[m1.1] differs: 0h0962klnd-T3 touches: run1 ["unproven-approach"] run2 []
+[m1.1] differs: 0h096dyeq9-T2 touches: run1 ["file-layout","outside-input"] run2 ["file-layout","legacy-code","outside-input"]
+[m1.1] differs: 0h0b8x725g-reviewer needs.count: run1 ["2"] run2 ["1"]
+[m1.1] differs: 0h0d1109wo-reviewer needs.count: run1 ["2"] run2 ["1"]
+[m1.1] differs: 0h0dnqm24i-T1 artefacts: run1 ["plan"] run2 ["contract-test","fitness-test","plan"]
+[m1.1] differs: 0h0dnqm24i-T1 needs.count: run1 ["3"] run2 ["2"]
+[m1.1] differs: 0h0dnqm24i-T2 touches: run1 ["file-layout","outside-input","system-boundary"] run2 ["outside-input","system-boundary"]
+[m1.1] differs: 0h0dnqm24i-T2 artefacts: run1 ["contract-test","fitness-test"] run2 ["contract-test","fitness-test","integration-test"]
+[m1.1] differs: 0h0dnqm24i-T2 needs.count: run1 ["3"] run2 ["2"]
+[m1.1] differs: 0h0dnqm24i-T6 touches: run1 ["file-layout","outside-input"] run2 ["file-layout","legacy-code","outside-input"]
+[m1.1] differs: 0h0f8vnww4-T2 touches: run1 ["file-layout","sub-agent"] run2 ["file-layout"]
+[m1.1] differs: 0h0f8vnww4-reviewer needs.count: run1 ["2"] run2 ["1"]
+[m1.1] differs: 0h0fitv57s-reviewer needs.count: run1 ["2"] run2 ["1"]
+[m1.1] 11 of 23 forms equal on every field but needs.text and evidence.terms; 16 field differences
+[m2.1] run1 against reference: 23 forms in both, 0 only in run1, 0 only in reference
+[m2.1] facts.writes_code: equal on 23 of 23
+[m2.1] facts.languages: equal on 23 of 23; values in both 14, only run1 0, only reference 0
+[m2.1] facts.role: equal on 23 of 23
+[m2.1] facts.latency_scale: equal on 23 of 23
+[m2.1] activity: equal on 23 of 23
+[m2.1] touches: equal on 15 of 23; values in both 31, only run1 5, only reference 4
+[m2.1] must_have: equal on 22 of 23; values in both 0, only run1 1, only reference 0
+[m2.1] artefacts: equal on 18 of 23; values in both 22, only run1 1, only reference 7
+[m2.1] needs.count: equal on 19 of 23
+[m2.1] needs.text: equal on 0 of 23; values in both 6, only run1 50, only reference 54
+[m2.1] evidence.terms: equal on 0 of 23; values in both 77, only run1 7, only reference 45
+[m2.1] differs: 0h096dyeq9-T1 touches: run1 ["file-layout"] reference []
+[m2.1] differs: 0h096dyeq9-T2 touches: run1 ["file-layout","outside-input"] reference ["file-layout","legacy-code","outside-input"]
+[m2.1] differs: 0h096dyeq9-T2 must_have: run1 ["readability"] reference []
+[m2.1] differs: 0h096dyeq9-T2 artefacts: run1 ["fitness-test","unit-test"] reference ["fitness-test","integration-test"]
+[m2.1] differs: 0h096dyeq9-T2 needs.count: run1 ["2"] reference ["3"]
+[m2.1] differs: 0h0d1109wo-T1 touches: run1 ["file-layout"] reference []
+[m2.1] differs: 0h0d1109wo-reviewer artefacts: run1 [] reference ["instructions"]
+[m2.1] differs: 0h0dnqm24i-T1 artefacts: run1 ["plan"] reference ["contract-test","fitness-test","integration-test","plan"]
+[m2.1] differs: 0h0dnqm24i-T2 touches: run1 ["file-layout","outside-input","system-boundary"] reference ["outside-input"]
+[m2.1] differs: 0h0dnqm24i-T2 artefacts: run1 ["contract-test","fitness-test"] reference ["contract-test","fitness-test","integration-test"]
+[m2.1] differs: 0h0dnqm24i-T5 touches: run1 ["outside-input"] reference ["outside-input","system-boundary"]
+[m2.1] differs: 0h0dnqm24i-T6 touches: run1 ["file-layout","outside-input"] reference ["file-layout","legacy-code","outside-input"]
+[m2.1] differs: 0h0dnqm24i-T6 needs.count: run1 ["2"] reference ["3"]
+[m2.1] differs: 0h0f8vnww4-T1 artefacts: run1 ["contract-test","fitness-test","integration-test"] reference ["contract-test","fitness-test","integration-test","unit-test"]
+[m2.1] differs: 0h0f8vnww4-T1 needs.count: run1 ["2"] reference ["3"]
+[m2.1] differs: 0h0f8vnww4-T2 touches: run1 ["file-layout","sub-agent"] reference ["file-layout"]
+[m2.1] differs: 0h0fitv57s-T1 touches: run1 [] reference ["sub-agent"]
+[m2.1] differs: 0h0fitv57s-T1 needs.count: run1 ["2"] reference ["3"]
+[m2.1] 12 of 23 forms equal on every field but needs.text and evidence.terms; 18 field differences
+[m2.2] run2 against reference: 23 forms in both, 0 only in run2, 0 only in reference
+[m2.2] facts.writes_code: equal on 23 of 23
+[m2.2] facts.languages: equal on 23 of 23; values in both 14, only run2 0, only reference 0
+[m2.2] facts.role: equal on 23 of 23
+[m2.2] facts.latency_scale: equal on 23 of 23
+[m2.2] activity: equal on 21 of 23
+[m2.2] touches: equal on 17 of 23; values in both 32, only run2 3, only reference 3
+[m2.2] must_have: equal on 22 of 23; values in both 0, only run2 1, only reference 0
+[m2.2] artefacts: equal on 18 of 23; values in both 24, only run2 1, only reference 5
+[m2.2] needs.count: equal on 13 of 23
+[m2.2] needs.text: equal on 0 of 23; values in both 2, only run2 48, only reference 58
+[m2.2] evidence.terms: equal on 0 of 23; values in both 77, only run2 7, only reference 45
+[m2.2] differs: 0h0962klnd-T1 activity: run2 ["design"] reference ["test"]
+[m2.2] differs: 0h0962klnd-T2 activity: run2 ["design"] reference ["test"]
+[m2.2] differs: 0h0962klnd-T2 artefacts: run2 [] reference ["integration-test"]
+[m2.2] differs: 0h0962klnd-T3 touches: run2 [] reference ["unproven-approach"]
+[m2.2] differs: 0h096dyeq9-T1 touches: run2 ["file-layout"] reference []
+[m2.2] differs: 0h096dyeq9-T2 must_have: run2 ["readability"] reference []
+[m2.2] differs: 0h096dyeq9-T2 artefacts: run2 ["fitness-test","unit-test"] reference ["fitness-test","integration-test"]
+[m2.2] differs: 0h096dyeq9-T2 needs.count: run2 ["2"] reference ["3"]
+[m2.2] differs: 0h0b8x725g-reviewer needs.count: run2 ["1"] reference ["2"]
+[m2.2] differs: 0h0d1109wo-T1 touches: run2 ["file-layout"] reference []
+[m2.2] differs: 0h0d1109wo-reviewer artefacts: run2 [] reference ["instructions"]
+[m2.2] differs: 0h0d1109wo-reviewer needs.count: run2 ["1"] reference ["2"]
+[m2.2] differs: 0h0dnqm24i-T1 artefacts: run2 ["contract-test","fitness-test","plan"] reference ["contract-test","fitness-test","integration-test","plan"]
+[m2.2] differs: 0h0dnqm24i-T1 needs.count: run2 ["2"] reference ["3"]
+[m2.2] differs: 0h0dnqm24i-T2 touches: run2 ["outside-input","system-boundary"] reference ["outside-input"]
+[m2.2] differs: 0h0dnqm24i-T2 needs.count: run2 ["2"] reference ["3"]
+[m2.2] differs: 0h0dnqm24i-T5 touches: run2 ["outside-input"] reference ["outside-input","system-boundary"]
+[m2.2] differs: 0h0dnqm24i-T6 needs.count: run2 ["2"] reference ["3"]
+[m2.2] differs: 0h0f8vnww4-T1 artefacts: run2 ["contract-test","fitness-test","integration-test"] reference ["contract-test","fitness-test","integration-test","unit-test"]
+[m2.2] differs: 0h0f8vnww4-T1 needs.count: run2 ["2"] reference ["3"]
+[m2.2] differs: 0h0f8vnww4-reviewer needs.count: run2 ["1"] reference ["2"]
+[m2.2] differs: 0h0fitv57s-T1 touches: run2 [] reference ["sub-agent"]
+[m2.2] differs: 0h0fitv57s-T1 needs.count: run2 ["2"] reference ["3"]
+[m2.2] differs: 0h0fitv57s-reviewer needs.count: run2 ["1"] reference ["2"]
+[m2.2] 7 of 23 forms equal on every field but needs.text and evidence.terms; 24 field differences

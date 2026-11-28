@@ -1,0 +1,55 @@
+{
+  "id": "0h0dnqm24i-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "design",
+  "touches": [
+    "architecture",
+    "file-layout",
+    "unproven-approach"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "plan",
+    "contract-test",
+    "fitness-test"
+  ],
+  "needs": [
+    "write a module contract with types, signatures and owners",
+    "prove each unknown with a quoted run"
+  ],
+  "evidence": [
+    {
+      "term": "design",
+      "quote": "Contract and skeleton stable"
+    },
+    {
+      "term": "architecture",
+      "quote": "one contract file gives the module layout under `src/commands/skills/search/`"
+    },
+    {
+      "term": "file-layout",
+      "quote": "Skeleton commit: stub files that compile"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "Unknowns: FTS5 in memory per call gives byte-identical bm25 order"
+    },
+    {
+      "term": "plan",
+      "quote": "Contract maps each acceptance line of the request to one trace, one test file and one owning task"
+    },
+    {
+      "term": "contract-test",
+      "quote": "including `loader_lookups.rs` for the group 2 seam test"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "one file for each invariant"
+    }
+  ]
+}

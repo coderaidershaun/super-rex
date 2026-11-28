@@ -1,0 +1,69 @@
+{
+  "id": "0h0dnqm24i-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "design",
+  "touches": [
+    "file-layout",
+    "unproven-approach",
+    "architecture"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "plan",
+    "contract-test",
+    "fitness-test",
+    "integration-test"
+  ],
+  "needs": [
+    "contract with types, signatures, file owners and traces",
+    "prove each unknown with a quoted run",
+    "compiling stub skeleton with registered empty test files"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "stub files that compile"
+    },
+    {
+      "term": "rust",
+      "quote": "`src/commands/skills/search/` (stubs, `aliases` accessor)"
+    },
+    {
+      "term": "design",
+      "quote": "Contract and skeleton stable"
+    },
+    {
+      "term": "file-layout",
+      "quote": "one contract file gives the module layout under `src/commands/skills/search/`"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "gives each unknown `YES`, `NO`, `YES-IF` (with quoted run) or `ASSUMED` (with source)"
+    },
+    {
+      "term": "architecture",
+      "quote": "the visibility change in `serve/library.rs` that lets search reuse folder order, shadowing and the `head` version as `index_version`"
+    },
+    {
+      "term": "plan",
+      "quote": "Contract maps each acceptance line of the request to one trace, one test file and one owning task"
+    },
+    {
+      "term": "contract-test",
+      "quote": "`tests/contract/skills_search/` (including `loader_lookups.rs` for the group 2 seam test)"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "`tests/fitness/skills_search/` (one file for each invariant"
+    },
+    {
+      "term": "integration-test",
+      "quote": "empty test files registered for each unit in `tests/integration/skills_search/`"
+    }
+  ]
+}

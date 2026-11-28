@@ -1,0 +1,1138 @@
+{
+  "labeller": "judge of job 0h0vht64cg (task T4), Claude Opus 5.5 (claude-opus-5-5); wrote no skill header, task text, request form or reference form",
+  "written": "Step 1, before any form, result, old-table.json, header-quotes.json, runner note or transcript check was read. Sources: tests/fixtures/gate-a/tasks.json, the skill library spec, tests/fixtures/gate-a/README.md, the headers and files lists of plugin/library/*/SKILL.md, and plugin/vocab/terms.json and aliases.json at base commit 75566e3.",
+  "rules": [
+    "A label names a library skill that a careful engineer would want the agent of the item to have, in full or as an open-when item, for the work that the item's own text names. Lookup is the one that should find it by the skill's declared claims: A for a facts claim (writes_code, languages, role), B for an activity, touches, quality or artefact claim, C when no claim fits the item's form and only a free-text need can find it.",
+    "rex-code-essentials is the one label for the coding rules of a code task. The four rulebooks (rex-code-philosophy, rex-code-commenting, rex-code-ergonomics, rex-code-error-writing) are its open-when items (spec D18), so they are not labelled again as separate needs. They are labelled only where the item's work is the rulebooks themselves (0h0d1109wo-T1 and its reviewer).",
+    "rex-code-tests-integration-testing is labelled only when a test crosses to a real outside program, service or database (its header: the real outside world), not for a test that runs this repo's own binary on a fixture folder in tests/integration/.",
+    "rex-code-failure-policy is labelled when the item's text names what code does with bad outside input or adds an error code or variant: a finding and never a panic, not_found, a bad cursor, input that must not stop the run.",
+    "rex-code-folder-management is labelled when the item creates a new module or folder of code with its mod line, or must split a file at the 500-line limit.",
+    "A reviewer writes no code. Its review method is rex-pr-review, a listed skill outside plugin/library, so a reviewer is none in library unless its text names a library skill's check or reviews skill text.",
+    "An item's own output is never its label: rex-code-essentials is not a label of 0h0d1109wo-T1, which writes it."
+  ],
+  "items": [
+    {
+      "id": "0h0962klnd-T1",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes a Rust test, fixtures and a runner: code in any language gets the coding digest."
+        },
+        {
+          "skill": "rex-code-spike",
+          "lookup": "B",
+          "reason": "The task exists to answer two unproven assumptions with a yes or no verdict before later work depends on them (touches unproven-approach)."
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "lookup": "B",
+          "reason": "The new test in tests/integration/ crosses to the bundled SQLite, and the live load runs the real claude CLI (artefact integration-test)."
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "lookup": "B",
+          "reason": "Adds a new test module below tests/integration/ with its mod line, and a new fixture folder (touches file-layout)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "SQLite FTS5 and bm25 ranking in bundled rusqlite",
+          "skills": [
+            {
+              "skill": "sqlite",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "check Claude Code loads a skill header with no warning",
+          "skills": [
+            {
+              "skill": "claude-code",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            },
+            {
+              "skill": "rex-code-spike"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "positive and negative controls for a live load",
+          "skills": [
+            {
+              "skill": "rex-code-spike"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0962klnd-T2",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes a stub server, a mod and a runner: code gets the coding digest."
+        },
+        {
+          "skill": "rex-gap-ts",
+          "lookup": "A",
+          "reason": "The stub server, the probe mod and the runner are TypeScript, with a tsconfig that must pass tsc (languages ts)."
+        },
+        {
+          "skill": "rex-code-spike",
+          "lookup": "B",
+          "reason": "Proves an assumption that was read and never run ($.mcp.call) with a verdict per case (touches unproven-approach)."
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "lookup": "B",
+          "reason": "The runner drives real nested claude sessions against a real stdio server and quotes their output (artefact integration-test)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "stub stdio MCP server",
+          "skills": [
+            {
+              "skill": "mcp-server-builder",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "plugin manifest key for MCP servers",
+          "skills": [
+            {
+              "skill": "claude-code",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "headless claude session with allowed and disallowed tools",
+          "skills": [
+            {
+              "skill": "claude-code",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0962klnd-T3",
+      "skills": [],
+      "none_in_library": "Writes a findings file for the owner and runs the acceptance checks again. No code. Clear writing for a person is rex-simplify, a listed skill outside plugin/library.",
+      "needs": [
+        {
+          "run": "run1",
+          "need": "findings report with a verdict per assumption",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "rerun and quote build and test output on the merged branch",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h096dyeq9-T1",
+      "skills": [],
+      "none_in_library": "Writes the vocabulary JSON files and a mapping document for the owner. No code, no skill text, no test. No library skill covers the design of a vocabulary; prose for the owner is rex-simplify, a listed skill.",
+      "needs": [
+        {
+          "run": "run1",
+          "need": "design a controlled vocabulary with an alias table",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "map criteria rows to terms or drop them with a reason",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "write for the owner in full sentences",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h096dyeq9-T2",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes Rust: the coding digest."
+        },
+        {
+          "skill": "rex-code-tdd",
+          "lookup": "B",
+          "reason": "Builds the M rules with one failing fixture per rule and a passing one (activity build)."
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "lookup": "B",
+          "reason": "Adds the new rules to the bundle fitness test in tests/fitness/ (artefact fitness-test)."
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "lookup": "B",
+          "reason": "Adds new modules in src/commands/skills/ and their mod.rs line (touches file-layout)."
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "lookup": "B",
+          "reason": "Reads skill headers from any folder; each bad value must be a finding, never a panic (touches outside-input)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "validate a YAML metadata map against field rules",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "embed the vocabulary JSON in the binary",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h096dyeq9-reviewer",
+      "skills": [],
+      "none_in_library": "A review verdict of counts, a diff and check output. Writes no code. The review method is rex-pr-review, a listed skill; no library skill claims activity review.",
+      "needs": [
+        {
+          "run": "run1",
+          "need": "check the diff touches no forbidden path",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "compare check output on BASE and HEAD",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0b8x725g-T1",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes Rust: the coding digest."
+        },
+        {
+          "skill": "rex-code-tdd",
+          "lookup": "B",
+          "reason": "Builds the server with tests that drive the binary for each named case (activity build)."
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "lookup": "B",
+          "reason": "Adds serve.rs and its sibling files under src/commands/skills/, a new test folder and their mod lines (touches file-layout)."
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "lookup": "B",
+          "reason": "A stdio server loop reads JSON-RPC from outside, must answer not_found for hostile paths and symlinks, and adds a SkillsError variant with its failure_class arm (touches outside-input, long-running)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "hand-written MCP JSON-RPC server over stdio",
+          "skills": [
+            {
+              "skill": "mcp-server-builder",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "path traversal and symlink containment",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "content hash version of a folder",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0b8x725g-reviewer",
+      "skills": [],
+      "none_in_library": "Its text names rex-pr-review, a listed skill outside plugin/library. Writes no code.",
+      "needs": [
+        {
+          "run": "run1",
+          "need": "check each spec requirement with file and line",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "grade findings by severity",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0d1109wo-T1",
+      "skills": [
+        {
+          "skill": "rex-skill-language",
+          "lookup": "B",
+          "reason": "Writes the metadata headers of 24 skills and a new skill (artefact instructions)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A",
+          "reason": "One of the four rulebooks that the new digest must carry. Found by writes_code: the task also changes the count lines of Rust tests."
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A",
+          "reason": "One of the four rulebooks that the digest must carry; found by writes_code as above."
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A",
+          "reason": "One of the four rulebooks that the digest must carry; found by writes_code as above."
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A",
+          "reason": "One of the four rulebooks that the digest must carry; found by writes_code as above."
+        }
+      ],
+      "note": "rex-code-essentials is this item's own output and is not labelled.",
+      "needs": [
+        {
+          "run": "run1",
+          "need": "write YAML metadata headers for skills",
+          "skills": [
+            {
+              "skill": "rex-skill-language"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "condense four rulebooks into one short page",
+          "skills": [
+            {
+              "skill": "rex-code-philosophy"
+            },
+            {
+              "skill": "rex-code-commenting"
+            },
+            {
+              "skill": "rex-code-ergonomics"
+            },
+            {
+              "skill": "rex-code-error-writing"
+            },
+            {
+              "skill": "rex-skill-language"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "read-only script to verify every header",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0d1109wo-reviewer",
+      "skills": [
+        {
+          "skill": "rex-skill-language",
+          "lookup": "C",
+          "reason": "Checks 25 headers and the new digest against the skill format and style. A reviewer's form claims no instructions artefact, so only a free-text need finds it."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "C",
+          "reason": "To check that the digest carries the rules of the four rulebooks (spec 9.5). The reviewer writes no code, so lookup A does not fire."
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "C",
+          "reason": "Same check of the digest against this rulebook."
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "C",
+          "reason": "Same check of the digest against this rulebook."
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "C",
+          "reason": "Same check of the digest against this rulebook."
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "run the acceptance checks again independently",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "check skill bodies are unchanged byte for byte",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T1",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes stub Rust files, an accessor and its test: the coding digest."
+        },
+        {
+          "skill": "rex-code-design-sketch",
+          "lookup": "B",
+          "reason": "The contract must pass the GATE of rex-code-design-sketch (activity design, artefact plan)."
+        },
+        {
+          "skill": "rex-code-validation-plan",
+          "lookup": "B",
+          "reason": "The contract maps each acceptance line to one trace, written before the code (activity design, artefact plan)."
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "lookup": "B",
+          "reason": "Sets the module layout of src/commands/skills/search/, the stub files and the new test folders (touches file-layout)."
+        },
+        {
+          "skill": "rex-code-spike",
+          "lookup": "B",
+          "reason": "Each unknown gets YES or NO with a quoted run (touches unproven-approach)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "interface contract of types and signatures",
+          "skills": [
+            {
+              "skill": "rex-code-design-sketch"
+            },
+            {
+              "skill": "rex-code-ergonomics"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "fixture library that covers each case",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "prove each unknown with a quoted run",
+          "skills": [
+            {
+              "skill": "rex-code-spike"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T2",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes Rust: the coding digest."
+        },
+        {
+          "skill": "rex-code-tdd",
+          "lookup": "B",
+          "reason": "Builds the index test first (activity build)."
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "lookup": "B",
+          "reason": "index.json byte-identical on two runs, in tests/fitness/ (artefact fitness-test)."
+        },
+        {
+          "skill": "rex-code-tests-contract-seams",
+          "lookup": "B",
+          "reason": "Writes the seam test tests/contract/skills_search/loader_lookups.rs (artefact contract-test)."
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "lookup": "B",
+          "reason": "A malformed header must not stop the index (touches outside-input)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "test first",
+          "skills": [
+            {
+              "skill": "rex-code-tdd"
+            },
+            {
+              "skill": "tdd",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "deterministic index output",
+          "skills": [
+            {
+              "skill": "rex-code-tests-fitness-functions"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "card summary of at most 30 words",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T3",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes Rust: the coding digest."
+        },
+        {
+          "skill": "rex-code-tdd",
+          "lookup": "B",
+          "reason": "Builds lookups A and B test first (activity build)."
+        },
+        {
+          "skill": "rex-code-tests-contract-seams",
+          "lookup": "B",
+          "reason": "Contract tests in tests/contract/skills_search/ on hand-built index values (artefact contract-test)."
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "lookup": "B",
+          "reason": "Fitness test that unrelated entries change no A or B candidate (artefact fitness-test)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "match claims against request facts and terms",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "alias expansion of free words",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "three-valued scope check",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T4",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes Rust: the coding digest."
+        },
+        {
+          "skill": "rex-code-tdd",
+          "lookup": "B",
+          "reason": "Builds lookup C and the file choice test first (activity build)."
+        },
+        {
+          "skill": "rex-code-tests-contract-seams",
+          "lookup": "B",
+          "reason": "Contract tests in tests/contract/skills_search/ (artefact contract-test)."
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "lookup": "B",
+          "reason": "Fitness tests: not_when is never searched; every C candidate has confirm (artefact fitness-test)."
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "lookup": "B",
+          "reason": "Caller text must be escaped, and FTS5 syntax characters in a need must not error (touches outside-input)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "SQLite FTS5 query with weighted bm25",
+          "skills": [
+            {
+              "skill": "sqlite",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "escape caller text in FTS5 queries",
+          "skills": [
+            {
+              "skill": "sqlite",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "rank topic files by router cases",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T5",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes Rust: the coding digest."
+        },
+        {
+          "skill": "rex-code-tdd",
+          "lookup": "B",
+          "reason": "Builds the answer, paging and CLI test first (activity build)."
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "lookup": "B",
+          "reason": "Fitness tests: byte-identical output, the size limit, card words (artefact fitness-test)."
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "lookup": "B",
+          "reason": "Adds the error codes bad_cursor and stale_cursor and tool errors with isError for caller input (touches outside-input)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "cursor paging with stale and bad cursor errors",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "answer size limit in tokens",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "deterministic ranking with name tie-break",
+          "skills": [
+            {
+              "skill": "rex-code-tests-fitness-functions"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T6",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes Rust: the coding digest."
+        },
+        {
+          "skill": "rex-code-tdd",
+          "lookup": "B",
+          "reason": "Builds the intent check test first (activity build)."
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "lookup": "B",
+          "reason": "Pool text is untrusted, and an unreadable pool skill must not stop the check (touches outside-input)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "check each skill is found by its own intent phrases",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "keep existing exact-output tests unchanged",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-reviewer",
+      "skills": [
+        {
+          "skill": "rex-code-design-sketch",
+          "lookup": "C",
+          "reason": "Pass 1 runs the GATE of rex-code-design-sketch on the contract. A reviewer neither designs nor writes a plan, so only a free-text need finds it."
+        }
+      ],
+      "note": "Pass 2 reviews the whole branch; its method, rex-pr-review, is a listed skill.",
+      "needs": [
+        {
+          "run": "run1",
+          "need": "design gate review of a contract before build",
+          "skills": [
+            {
+              "skill": "rex-code-design-sketch"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "second review pass on the whole branch",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-T1",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes Rust: the coding digest."
+        },
+        {
+          "skill": "rex-code-tdd",
+          "lookup": "B",
+          "reason": "Builds (a) to (g) with new tests (activity build)."
+        },
+        {
+          "skill": "rex-code-tests-fitness-functions",
+          "lookup": "B",
+          "reason": "(f) a fitness test that each library skill folder has a metadata map (artefact fitness-test)."
+        },
+        {
+          "skill": "rex-code-tests-contract-seams",
+          "lookup": "B",
+          "reason": "New cases in tests/contract/calls/doctor.rs and new files under tests/contract/ (artefact contract-test)."
+        },
+        {
+          "skill": "rex-code-folder-management",
+          "lookup": "B",
+          "reason": "A new doctor module file if doctor.rs passes 500 lines, and new test files with their mod lines (touches file-layout)."
+        },
+        {
+          "skill": "rex-code-failure-policy",
+          "lookup": "B",
+          "reason": "get must answer not_found for each unlisted file and symlink, and doctor must report an unreachable server as a problem line (touches outside-input)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "health check that starts and probes a server",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "version skew between manifest and binary",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-T2",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes a mod file and its tests: the coding digest."
+        },
+        {
+          "skill": "rex-gap-ts",
+          "lookup": "A",
+          "reason": "The mod hook and its .test.ts are TypeScript (languages ts)."
+        },
+        {
+          "skill": "rex-code-tdd",
+          "lookup": "B",
+          "reason": "Builds the refusal hook with a test for each case (activity build)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "hook that refuses raw MCP tools inside a job",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "refusal text that names the tool to use",
+          "skills": [
+            {
+              "skill": "rex-code-error-writing"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-T3",
+      "skills": [
+        {
+          "skill": "rex-code-essentials",
+          "lookup": "A",
+          "reason": "Writes a runner, a probe plugin and a tsconfig: the coding digest."
+        },
+        {
+          "skill": "rex-gap-ts",
+          "lookup": "A",
+          "reason": "The runner and the probe plugin are TypeScript with their own tsconfig (languages ts)."
+        },
+        {
+          "skill": "rex-code-tests-integration-testing",
+          "lookup": "B",
+          "reason": "A live proof in a real claude -p session against the built server (artefact integration-test)."
+        },
+        {
+          "skill": "rex-code-philosophy",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-commenting",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-ergonomics",
+          "lookup": "A"
+        },
+        {
+          "skill": "rex-code-error-writing",
+          "lookup": "A"
+        }
+      ],
+      "needs": [
+        {
+          "run": "run1",
+          "need": "drive a headless claude session and quote its init line",
+          "skills": [
+            {
+              "skill": "claude-code",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "record a verdict only from a real run",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-reviewer",
+      "skills": [],
+      "none_in_library": "A findings table with rex-pr-review severities; rex-pr-review is a listed skill. Writes no code.",
+      "needs": [
+        {
+          "run": "run1",
+          "need": "check request items, scope list and seams",
+          "skills": []
+        },
+        {
+          "run": "run1",
+          "need": "run tests and quote them",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0fitv57s-T1",
+      "skills": [
+        {
+          "skill": "rex-skill-language",
+          "lookup": "B",
+          "reason": "Adds the metadata rules to rex-skill-language and changes write-skill.md and rex-feedback: all skill text (artefact instructions)."
+        }
+      ],
+      "note": "Writes no code unless a text change breaks a fixture or golden file; the four rulebooks are then open-when items of the digest.",
+      "needs": [
+        {
+          "run": "run1",
+          "need": "write metadata rules into a skill with their check IDs",
+          "skills": [
+            {
+              "skill": "rex-skill-language"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "update skill counts across texts",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "0h0fitv57s-reviewer",
+      "skills": [
+        {
+          "skill": "rex-skill-language",
+          "lookup": "C",
+          "reason": "Reviews skill text and checks each added rule against the code. A reviewer's form claims no instructions artefact, so only a free-text need finds it."
+        }
+      ],
+      "note": "Its review method, rex-pr-review, is a listed skill.",
+      "needs": [
+        {
+          "run": "run1",
+          "need": "check each rule against the code",
+          "skills": [
+            {
+              "skill": "rex-skill-language"
+            }
+          ]
+        },
+        {
+          "run": "run1",
+          "need": "run the check with the worktree binary",
+          "skills": []
+        }
+      ]
+    }
+  ],
+  "needs_rules": [
+    "Step 3, after the forms were read and before any search was run on them. Each free-text need of runs 1 and 2 lists every skill that serves it, library or pool, or none. The run field names the form it came from; score-hits.ts ignores it, so per-run label files are made from this one with a jq filter on run.",
+    "A pool skill is named only when its folder name is the very technology that the need names (sqlite, claude-code, mcp-server-builder, tdd). Its text was not read: the gate A README lets only the scripts read the pool. Each such label carries basis.",
+    "rex-code-essentials and rex-skill-language are not labelled for a need that is the item's own output, except that rex-skill-language counts for the style of text that the item writes into it."
+  ]
+}

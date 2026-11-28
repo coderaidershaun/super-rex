@@ -1,0 +1,21 @@
+{
+  "id": "0h0962klnd-T3",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "document",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "report verdicts from quoted run output",
+    "rerun acceptance checks on the merged branch"
+  ],
+  "evidence": [
+    {
+      "term": "document",
+      "quote": "Findings file `docs/skill-library-wp0.md` written from the merged job branch"
+    }
+  ]
+}

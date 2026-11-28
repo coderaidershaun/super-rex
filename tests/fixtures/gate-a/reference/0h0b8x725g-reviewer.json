@@ -1,0 +1,25 @@
+{
+  "id": "0h0b8x725g-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "check each spec 8.2 head and get requirement",
+    "findings with severity, file and line"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "Its output file only."
+    },
+    {
+      "term": "review",
+      "quote": "Independent review of job branch against request, spec 8.1/8.2 and scope list."
+    }
+  ]
+}

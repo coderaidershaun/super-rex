@@ -1,0 +1,45 @@
+{
+  "id": "0h0962klnd-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "ts"
+    ]
+  },
+  "activity": "design",
+  "touches": [
+    "unproven-approach",
+    "sub-agent",
+    "system-boundary",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "stub stdio MCP server in a Claude Code plugin",
+    "nested headless Claude sessions with allowed and disallowed tools",
+    "read plugin manifest docs to confirm a key"
+  ],
+  "evidence": [
+    {
+      "term": "design",
+      "quote": "Assumption 3 proved or disproved"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "The exact manifest key that declares an MCP server confirmed."
+    },
+    {
+      "term": "sub-agent",
+      "quote": "(b) from a sub-agent's tool call"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "The runner makes a new random nonce for each run"
+    },
+    {
+      "term": "file-layout",
+      "quote": "new fixture folder `tests/fixtures/wp0-mcp/` only"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+start 2026-11-27T23:17:55Z
+ls: tests/fixtures/gate-a/header-quotes.json: No such file or directory
+ls: tests/fixtures/gate-a/old-table.json: No such file or directory
+[c1.1] 0h0962klnd: decision-maker-2.md (corrected block), sha256 5c3070f7e2f9d0394f89dbbe9c11c7b012e295f881b80e02468bf22b5cf3a887, 3 task rows, columns: Task | Outcome | Evidence | Depends on | Owns (files, state) | Group | Skills | Open when
+[c1.1] 0h0962klnd: row IDs T1 T2 T3; 3 task rows, 0 role rows; rows with an empty Outcome, Evidence or Owns cell: 0
+[c1.2] 0h096dyeq9: decision-maker-2.md (corrected block), sha256 232ff863b487b8f900d4fec9893bf4f3b1dc4b0b7ddfc619f66717e7765d5126, 3 task rows, columns: Task | Outcome | Evidence | Depends on | Owns (files, state) | Group | Skills | Open when
+[c1.2] 0h096dyeq9: row IDs T1 T2 reviewer; 2 task rows, 1 role rows; rows with an empty Outcome, Evidence or Owns cell: 0
+[c1.3] 0h0b8x725g: decision-maker-2.md (corrected block), sha256 385757b1ca948037662561a3ade032b5b7d58aa07be4b27c1fc512e36a81fe57, 2 task rows, columns: Task | Outcome | Evidence | Depends on | Owns (files, state) | Group | Skills | Open when
+[c1.3] 0h0b8x725g: row IDs T1 reviewer; 1 task rows, 1 role rows; rows with an empty Outcome, Evidence or Owns cell: 0
+[c1.4] 0h0d1109wo: decision-maker-2.md (corrected block), sha256 2cc57104aa2823d3818b3cad1d7855ce296bb546456fb354ccb64e0decc902bd, 2 task rows, columns: Task | Outcome | Evidence | Depends on | Owns (files, state) | Group | Skills | Open when
+[c1.4] 0h0d1109wo: row IDs T1 reviewer; 1 task rows, 1 role rows; rows with an empty Outcome, Evidence or Owns cell: 0
+[c1.5] 0h0dnqm24i: decision-maker-2.md (corrected block), sha256 06953f648baddd73a4c346007ec885c5feb02ee87183359d068a01f47d202b20, 7 task rows, columns: Task | Outcome | Evidence | Depends on | Owns (files, state) | Group | Skills | Open when
+[c1.5] 0h0dnqm24i: row IDs T1 T2 T3 T4 T5 T6 reviewer; 6 task rows, 1 role rows; rows with an empty Outcome, Evidence or Owns cell: 0
+[c1.6] 0h0f8vnww4: decision-maker-2.md (corrected block), sha256 f92b074f70390ed45989042631699227f51635c6b34a927b8ed1327ef3ac9b62, 4 task rows, columns: Task | Outcome | Evidence | Depends on | Owns (files, state) | Group | Skills | Open when
+[c1.6] 0h0f8vnww4: row IDs T1 T2 T3 reviewer; 3 task rows, 1 role rows; rows with an empty Outcome, Evidence or Owns cell: 0
+[c1.7] 0h0fitv57s: decision-maker-2.md (corrected block), sha256 34f91802ffe96e7663228d624a4d3f6c4bc0a9ab24e9bebe8298e85291e0fd7a, 2 task rows, columns: Task | Outcome | Evidence | Depends on | Owns (files, state) | Group | Skills | Open when
+[c1.7] 0h0fitv57s: row IDs T1 reviewer; 1 task rows, 1 role rows; rows with an empty Outcome, Evidence or Owns cell: 0
+[c1] wrote /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/tests/fixtures/gate-a/tasks.json: 23 items from 7 jobs, sha256 e27586c254393812f587b8bb03fa3755d89b0f6944d9ea35460c76ec5030424b
+tasks.json sha256 e27586c254393812f587b8bb03fa3755d89b0f6944d9ea35460c76ec5030424b at 2026-11-27T23:17:55Z
+ls: tests/fixtures/gate-a/header-quotes.json: No such file or directory
+ls: tests/fixtures/gate-a/old-table.json: No such file or directory
+old-table start 2026-11-27T23:19:12Z
+[c2] tasks.json sha256 e27586c254393812f587b8bb03fa3755d89b0f6944d9ea35460c76ec5030424b (read before this file is written)
+[c2] wrote /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/tests/fixtures/gate-a/old-table.json: 23 items, 22 with at least one skill in the Skills cell, sha256 7735ee83cb3e92c19ba7cb68caaebfc4987e1898d6dc3c40a897b4180929ad4c
+header-quotes start 2026-11-27T23:19:12Z
+[c3] tasks.json sha256 e27586c254393812f587b8bb03fa3755d89b0f6944d9ea35460c76ec5030424b
+[c3] 116 header phrases of the library: 94 intent phrases or terms of two or more words, 22 one-word terms
+[c3] wrote /Users/shaun/Code/DEVELOPMENT/super-rex.worktrees/0h0vht64cg/tests/fixtures/gate-a/header-quotes.json: 3 of 23 items quote a header; 16 more hold only one-word terms; sha256 28e41718061cd41e408619a889ac52d3fb586b1823a464b91bb2ab718ebde727
+end 2026-11-27T23:19:12Z

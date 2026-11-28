@@ -1,0 +1,37 @@
+{
+  "id": "0h0dnqm24i-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [
+    "unproven-approach"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "plan"
+  ],
+  "needs": [
+    "design-sketch gate: simplicity, deletion test, one owner of each piece of state",
+    "two passes: the contract first, then the whole branch"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "none (read only)"
+    },
+    {
+      "term": "review",
+      "quote": "resumed on the whole job branch against the request and the contract"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "each unknown proven by a quoted run"
+    },
+    {
+      "term": "plan",
+      "quote": "reads the contract and runs the GATE of `rex-code-design-sketch` on it"
+    }
+  ]
+}

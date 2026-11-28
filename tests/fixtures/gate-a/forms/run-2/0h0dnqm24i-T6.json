@@ -1,0 +1,45 @@
+{
+  "id": "0h0dnqm24i-T6",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "legacy-code",
+    "outside-input",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "test-first development",
+    "keep existing exact-output tests unchanged"
+  ],
+  "evidence": [
+    {
+      "term": "build",
+      "quote": "Intent-phrase check of spec section 10 in `rex skills check`"
+    },
+    {
+      "term": "legacy-code",
+      "quote": "pool plumbing in `src/commands/skills/check.rs`"
+    },
+    {
+      "term": "outside-input",
+      "quote": "an unreadable pool skill does not stop the check"
+    },
+    {
+      "term": "file-layout",
+      "quote": "`tests/fixtures/skills-intent/`: a small library and a small pool"
+    },
+    {
+      "term": "integration-test",
+      "quote": "Tests through the binary, test first, on a fixture of its own"
+    }
+  ]
+}
