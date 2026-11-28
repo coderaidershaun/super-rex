@@ -1,0 +1,1032 @@
+{
+  "labeller": "judge of job 0h1scfkovx (task T4), Claude Opus 5.5 (claude-opus-5-5), grid agent super-rex:model-high-effort-max as the plan records; wrote no skill header, task text, vocabulary, request form or repair",
+  "written": "Step 2 of T4: after the 46 fresh forms were committed unchanged (commit 21888b5), and before any search of the fresh forms, and before any file under tests/fixtures/gate-a-2/results/, the runner report or tests/fixtures/gate-a-2/README.md was read. Sources of the labels: the forms of forms/fresh-1/ and forms/fresh-2/, tests/fixtures/gate-a/tasks.json, the headers of plugin/library/*/SKILL.md at base commit 54d74f2, and tests/fixtures/gate-a/labels.json. Read before, for the task: the spec, docs/skill-library-gate-a.md (the first report, with its results), tests/fixtures/gate-a/README.md and score-hits.ts, the corrected decision and the request of the job.",
+  "about": "Need labels of the two fresh form runs only. The skill labels of each item are those of tests/fixtures/gate-a/labels.json, unchanged; score-hits.ts gets both through the jq command of the README section \"Scores and fresh sets\". The run field names the form: fresh1 is forms/fresh-1/, fresh2 is forms/fresh-2/.",
+  "rules": [
+    "Each free-text need of fresh-1 and fresh-2 lists every skill that serves it, library or pool, or none, with the rules and needs_rules of tests/fixtures/gate-a/labels.json.",
+    "A fresh need that asks for the same work as a need of the same item in labels.json gets the same skills, so that the fresh runs are scored by the standard of the first runs; follows quotes that need. When the fresh need also names a technology that the old need does not, the library skill of that technology is added, with the reason (only rex-gap-ts, for TypeScript).",
+    "A need with no such twin is labelled from the headers at 54d74f2 by the same rules; follows says new and gives the reason.",
+    "A pool skill is named only by one of the four folder names that labels.json names (sqlite, claude-code, mcp-server-builder, tdd), and only when it is the very technology that the need names. The judge did not list or read the pool: only the runner scripts and rex skills search reach it. So a need that names another technology names no pool skill.",
+    "rex-code-essentials is not labelled on a need: it is the output of 0h0d1109wo-T1, and on the other items it is a skill label of labels.json."
+  ],
+  "items": [
+    {
+      "id": "0h0962klnd-T1",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "check that SQLite FTS5 is compiled into the bundled rusqlite build",
+          "skills": [
+            {
+              "skill": "sqlite",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            },
+            {
+              "skill": "rex-code-spike"
+            }
+          ],
+          "follows": "new: sqlite is the technology that the need names; the need is a yes or no check of an unproven assumption, and labels.json gives rex-code-spike to the Claude Code check of this item"
+        },
+        {
+          "run": "fresh1",
+          "need": "check that Claude Code loads a skill with a nested metadata header without warning",
+          "skills": [
+            {
+              "skill": "claude-code",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            },
+            {
+              "skill": "rex-code-spike"
+            }
+          ],
+          "follows": "same work as the run1 need \"check Claude Code loads a skill header with no warning\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "live plugin load test with positive and negative controls",
+          "skills": [
+            {
+              "skill": "rex-code-spike"
+            }
+          ],
+          "follows": "same work as the run1 need \"positive and negative controls for a live load\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "check whether SQLite FTS5 is in the bundled rusqlite build",
+          "skills": [
+            {
+              "skill": "sqlite",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            },
+            {
+              "skill": "rex-code-spike"
+            }
+          ],
+          "follows": "new: the same check as the first need of fresh1, labelled the same way"
+        },
+        {
+          "run": "fresh2",
+          "need": "prove Claude Code loads a skill header live, with a positive control",
+          "skills": [
+            {
+              "skill": "claude-code",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            },
+            {
+              "skill": "rex-code-spike"
+            }
+          ],
+          "follows": "same work as the run2 need \"prove Claude Code skill loading with a positive control\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0962klnd-T2",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "call a plugin's own MCP server from its mod with $.mcp.call",
+          "skills": [],
+          "follows": "new: a call of the mod API; labels.json labels the mod hook needs of 0h0f8vnww4-T2 none, and names mcp-server-builder only for a need that builds a server; no library skill covers it"
+        },
+        {
+          "run": "fresh1",
+          "need": "stub stdio MCP server in TypeScript with node built-ins only",
+          "skills": [
+            {
+              "skill": "mcp-server-builder",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            },
+            {
+              "skill": "rex-gap-ts"
+            }
+          ],
+          "follows": "same work as the run1 need \"stub stdio MCP server\" of this item in tests/fixtures/gate-a/labels.json, so the same skills; rex-gap-ts added: the need names TypeScript, and rex-gap-ts is the library skill for TypeScript code"
+        },
+        {
+          "run": "fresh1",
+          "need": "confirm the plugin manifest key that declares an MCP server",
+          "skills": [
+            {
+              "skill": "claude-code",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run1 need \"plugin manifest key for MCP servers\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "write a stub stdio MCP server in TypeScript with node built-ins",
+          "skills": [
+            {
+              "skill": "mcp-server-builder",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            },
+            {
+              "skill": "rex-gap-ts"
+            }
+          ],
+          "follows": "same work as the run1 need \"stub stdio MCP server\" of this item in tests/fixtures/gate-a/labels.json, so the same skills; rex-gap-ts added: the need names TypeScript, and rex-gap-ts is the library skill for TypeScript code"
+        },
+        {
+          "run": "fresh2",
+          "need": "find the plugin manifest key that declares an MCP server",
+          "skills": [
+            {
+              "skill": "claude-code",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run1 need \"plugin manifest key for MCP servers\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "run nested headless Claude sessions with allowed and disallowed tools",
+          "skills": [
+            {
+              "skill": "claude-code",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run2 need \"nested headless Claude sessions with allowed and disallowed tools\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0962klnd-T3",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "write a findings file with a verdict per assumption",
+          "skills": [],
+          "follows": "same work as the run1 need \"findings report with a verdict per assumption\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "rerun and quote acceptance checks on the merged branch",
+          "skills": [],
+          "follows": "same work as the run1 need \"rerun and quote build and test output on the merged branch\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "record a verdict per assumption with quoted command output",
+          "skills": [],
+          "follows": "same work as the run2 need \"report verdicts from quoted run output\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h096dyeq9-T1",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "design a controlled vocabulary with synonyms and broader/narrower terms",
+          "skills": [],
+          "follows": "same work as the run2 need \"design a controlled vocabulary with synonyms and broader terms\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "map the criteria of an assignment table to vocabulary terms",
+          "skills": [],
+          "follows": "same work as the run1 need \"map criteria rows to terms or drop them with a reason\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "define the JSON form and value domains of vocabulary files",
+          "skills": [],
+          "follows": "new: the format of two data files that are no code; no library skill covers a data format, as labels.json finds no library skill for this item"
+        },
+        {
+          "run": "fresh2",
+          "need": "build a controlled vocabulary with synonyms and broader or narrower terms",
+          "skills": [],
+          "follows": "same work as the run2 need \"design a controlled vocabulary with synonyms and broader terms\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "map each criterion of an existing table to a term or drop it with a reason",
+          "skills": [],
+          "follows": "same work as the run1 need \"map criteria rows to terms or drop them with a reason\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "define the JSON form of the vocabulary files",
+          "skills": [],
+          "follows": "new: the same need as the third need of fresh1, labelled the same way"
+        }
+      ]
+    },
+    {
+      "id": "0h096dyeq9-T2",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "parse a nested YAML metadata map in a skill header",
+          "skills": [],
+          "follows": "same work as the run1 need \"validate a YAML metadata map against field rules\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "validation rules with permanent IDs reported as findings",
+          "skills": [
+            {
+              "skill": "rex-code-failure-policy"
+            }
+          ],
+          "follows": "new: \"reported as findings\" names what the code does with a bad header; labels.json gives rex-code-failure-policy to a finding that is never a panic"
+        },
+        {
+          "run": "fresh1",
+          "need": "embed a JSON vocabulary in the binary",
+          "skills": [],
+          "follows": "same work as the run1 need \"embed the vocabulary JSON in the binary\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "validate a YAML header map with stable rule IDs",
+          "skills": [],
+          "follows": "same work as the run2 need \"validate a YAML header map against a vocabulary\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "embed a JSON vocabulary file in the binary",
+          "skills": [],
+          "follows": "same work as the run1 need \"embed the vocabulary JSON in the binary\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h096dyeq9-reviewer",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "check the diff touches no out-of-scope paths",
+          "skills": [],
+          "follows": "same work as the run1 need \"check the diff touches no forbidden path\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "compare command output on BASE and HEAD",
+          "skills": [],
+          "follows": "same work as the run2 need \"compare command output on BASE and HEAD\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "check that the diff leaves forbidden paths unchanged",
+          "skills": [],
+          "follows": "same work as the run2 need \"check diff stays out of forbidden paths\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "compare command output on BASE and HEAD",
+          "skills": [],
+          "follows": "same work as the run2 need \"compare command output on BASE and HEAD\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0b8x725g-T1",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "hand-written JSON-RPC MCP server over stdio",
+          "skills": [
+            {
+              "skill": "mcp-server-builder",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run2 need \"hand-written JSON-RPC MCP server over stdio\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "deterministic SHA-256 version hash of a folder of files",
+          "skills": [],
+          "follows": "same work as the run1 need \"content hash version of a folder\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "reject paths and symlinks that leave a folder",
+          "skills": [],
+          "follows": "same work as the run1 need \"path traversal and symlink containment\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "speak MCP JSON-RPC over stdio by hand",
+          "skills": [
+            {
+              "skill": "mcp-server-builder",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run1 need \"hand-written MCP JSON-RPC server over stdio\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "keep file reads inside the skill folder, symlinks included",
+          "skills": [],
+          "follows": "same work as the run2 need \"path traversal and symlink containment\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "hash a file tree into a stable version",
+          "skills": [],
+          "follows": "same work as the run2 need \"content hash version of a folder\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0b8x725g-reviewer",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "check the diff stays within the scope list",
+          "skills": [],
+          "follows": "new: a check of the diff against a scope list, as the need \"check the diff touches no forbidden path\" of 0h096dyeq9-reviewer, which labels.json labels none"
+        },
+        {
+          "run": "fresh2",
+          "need": "check each spec requirement and rate findings by severity",
+          "skills": [],
+          "follows": "same work as the run2 need \"check each spec requirement with severity findings\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0d1109wo-T1",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "write metadata header maps for existing skills",
+          "skills": [
+            {
+              "skill": "rex-skill-language"
+            }
+          ],
+          "follows": "same work as the run1 need \"write YAML metadata headers for skills\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "write a short digest skill of rules for every code task",
+          "skills": [
+            {
+              "skill": "rex-code-philosophy"
+            },
+            {
+              "skill": "rex-code-commenting"
+            },
+            {
+              "skill": "rex-code-ergonomics"
+            },
+            {
+              "skill": "rex-code-error-writing"
+            },
+            {
+              "skill": "rex-skill-language"
+            }
+          ],
+          "follows": "same work as the run1 need \"condense four rulebooks into one short page\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "prove skill bodies stay byte-equal across commits",
+          "skills": [],
+          "follows": "same work as the run2 need \"prove skill bodies stay byte-equal\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "write a metadata map into each skill header",
+          "skills": [
+            {
+              "skill": "rex-skill-language"
+            }
+          ],
+          "follows": "same work as the run2 need \"write skill metadata headers in vocabulary terms\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "prove skill bodies stay byte-equal after a header edit",
+          "skills": [],
+          "follows": "same work as the run2 need \"prove skill bodies stay byte-equal\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0d1109wo-reviewer",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "run the per-skill header script and the body byte-equal check",
+          "skills": [],
+          "follows": "same work as the run2 need \"rerun per-skill header and byte-equal checks\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "rerun the header audit script and the body byte-equal check",
+          "skills": [],
+          "follows": "same work as the run2 need \"rerun per-skill header and byte-equal checks\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T1",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "contract file: types, signatures and owner of each file for a search feature",
+          "skills": [
+            {
+              "skill": "rex-code-design-sketch"
+            },
+            {
+              "skill": "rex-code-ergonomics"
+            }
+          ],
+          "follows": "same work as the run2 need \"write a module contract with types, signatures and owners\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "skeleton of stub files that compiles",
+          "skills": [
+            {
+              "skill": "rex-code-folder-management"
+            }
+          ],
+          "follows": "new: the stub files are the module layout of src/commands/skills/search/; labels.json gives rex-code-folder-management to this item for \"the module layout ..., the stub files\""
+        },
+        {
+          "run": "fresh1",
+          "need": "settle each unknown with a quoted run",
+          "skills": [
+            {
+              "skill": "rex-code-spike"
+            }
+          ],
+          "follows": "same work as the run1 need \"prove each unknown with a quoted run\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "write a contract of types and signatures before the code",
+          "skills": [
+            {
+              "skill": "rex-code-design-sketch"
+            },
+            {
+              "skill": "rex-code-ergonomics"
+            }
+          ],
+          "follows": "same work as the run1 need \"interface contract of types and signatures\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "stub files that compile before the real code",
+          "skills": [
+            {
+              "skill": "rex-code-folder-management"
+            }
+          ],
+          "follows": "new: the same need as the second need of fresh1, labelled the same way"
+        },
+        {
+          "run": "fresh2",
+          "need": "prove unknowns with a quoted run",
+          "skills": [
+            {
+              "skill": "rex-code-spike"
+            }
+          ],
+          "follows": "same work as the run2 need \"prove each unknown with a quoted run\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T2",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "write tests first",
+          "skills": [
+            {
+              "skill": "rex-code-tdd"
+            },
+            {
+              "skill": "tdd",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run1 need \"test first\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "deterministic byte-identical index output",
+          "skills": [
+            {
+              "skill": "rex-code-tests-fitness-functions"
+            }
+          ],
+          "follows": "same work as the run2 need \"deterministic byte-identical output\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "write tests first",
+          "skills": [
+            {
+              "skill": "rex-code-tdd"
+            },
+            {
+              "skill": "tdd",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run1 need \"test first\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "deterministic byte-identical index output",
+          "skills": [
+            {
+              "skill": "rex-code-tests-fitness-functions"
+            }
+          ],
+          "follows": "same work as the run2 need \"deterministic byte-identical output\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T3",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "write tests first",
+          "skills": [
+            {
+              "skill": "rex-code-tdd"
+            },
+            {
+              "skill": "tdd",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run2 need \"test-first development\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "match claims and scope facts with a yes, no or unknown answer",
+          "skills": [],
+          "follows": "same work as the run1 need \"three-valued scope check\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "match requests to claim terms with a yes, no or unknown scope check",
+          "skills": [],
+          "follows": "same work as the run1 need \"match claims against request facts and terms\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "write tests first",
+          "skills": [
+            {
+              "skill": "rex-code-tdd"
+            },
+            {
+              "skill": "tdd",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run2 need \"test-first development\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T4",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "SQLite FTS5 full-text search ranked by weighted bm25",
+          "skills": [
+            {
+              "skill": "sqlite",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run1 need \"SQLite FTS5 query with weighted bm25\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "escape caller text in an FTS5 query",
+          "skills": [
+            {
+              "skill": "sqlite",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run1 need \"escape caller text in FTS5 queries\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "write tests first",
+          "skills": [
+            {
+              "skill": "rex-code-tdd"
+            },
+            {
+              "skill": "tdd",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run2 need \"test-first development\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "SQLite FTS5 full-text search with bm25 column weights",
+          "skills": [
+            {
+              "skill": "sqlite",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run2 need \"full-text search ranked by bm25\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "escape caller text in an FTS5 query",
+          "skills": [
+            {
+              "skill": "sqlite",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run1 need \"escape caller text in FTS5 queries\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "write tests first",
+          "skills": [
+            {
+              "skill": "rex-code-tdd"
+            },
+            {
+              "skill": "tdd",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run2 need \"test-first development\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T5",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "cursor paging with stale and garbled cursor errors",
+          "skills": [],
+          "follows": "same work as the run1 need \"cursor paging with stale and bad cursor errors\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "keep a JSON answer within a token budget",
+          "skills": [],
+          "follows": "same work as the run1 need \"answer size limit in tokens\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "write tests first",
+          "skills": [
+            {
+              "skill": "rex-code-tdd"
+            },
+            {
+              "skill": "tdd",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run2 need \"test-first development\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "cursor paging with stale and garbled cursor errors",
+          "skills": [],
+          "follows": "same work as the run1 need \"cursor paging with stale and bad cursor errors\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "keep a response under a token size limit",
+          "skills": [],
+          "follows": "same work as the run2 need \"response size budget in tokens\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "write tests first",
+          "skills": [
+            {
+              "skill": "rex-code-tdd"
+            },
+            {
+              "skill": "tdd",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run2 need \"test-first development\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-T6",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "check each skill is found by its own intent phrases",
+          "skills": [],
+          "follows": "same work as the run1 need \"check each skill is found by its own intent phrases\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "write tests first",
+          "skills": [
+            {
+              "skill": "rex-code-tdd"
+            },
+            {
+              "skill": "tdd",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run2 need \"test-first development\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "keep existing exact-output tests unchanged",
+          "skills": [],
+          "follows": "same work as the run2 need \"keep existing exact-output tests unchanged\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "write tests first",
+          "skills": [
+            {
+              "skill": "rex-code-tdd"
+            },
+            {
+              "skill": "tdd",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run2 need \"test-first development\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0dnqm24i-reviewer",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "run the rex-code-design-sketch GATE on a contract before code",
+          "skills": [
+            {
+              "skill": "rex-code-design-sketch"
+            }
+          ],
+          "follows": "same work as the run1 need \"design gate review of a contract before build\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "review the whole branch against the request and the contract",
+          "skills": [],
+          "follows": "same work as the run1 need \"second review pass on the whole branch\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "review a design contract against a design gate before code starts",
+          "skills": [
+            {
+              "skill": "rex-code-design-sketch"
+            }
+          ],
+          "follows": "same work as the run1 need \"design gate review of a contract before build\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "resume and review the whole branch with earlier findings",
+          "skills": [],
+          "follows": "same work as the run1 need \"second review pass on the whole branch\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-T1",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "rex doctor check that an MCP server starts and answers",
+          "skills": [],
+          "follows": "same work as the run1 need \"health check that starts and probes a server\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "declare an MCP server in the plugin manifest",
+          "skills": [
+            {
+              "skill": "claude-code",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "new: the plugin manifest is the technology that the need names; labels.json gives claude-code to the plugin manifest needs of 0h0962klnd-T2"
+        },
+        {
+          "run": "fresh2",
+          "need": "doctor check that reports an MCP server's version and version skew",
+          "skills": [],
+          "follows": "same work as the run2 need \"version skew between plugin manifest and binary\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-T2",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "refuse tool calls from a plugin mod hook on tool.call",
+          "skills": [],
+          "follows": "same work as the run1 need \"hook that refuses raw MCP tools inside a job\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "tell a session with an open job from one with none",
+          "skills": [],
+          "follows": "new: the job state of the mod; no library skill covers it, and it names no technology of the four pool folder names"
+        },
+        {
+          "run": "fresh2",
+          "need": "write a Claude Code plugin hook on tool.call that refuses tools inside a job",
+          "skills": [],
+          "follows": "same work as the run2 need \"Claude Code plugin hook that refuses tool calls inside a job\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "refusal text that names the tool to use instead",
+          "skills": [
+            {
+              "skill": "rex-code-error-writing"
+            }
+          ],
+          "follows": "same work as the run2 need \"refusal text that names the tool to use instead\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-T3",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "headless claude -p session that loads a local plugin",
+          "skills": [
+            {
+              "skill": "claude-code",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            }
+          ],
+          "follows": "same work as the run2 need \"runner for a headless Claude session that loads a plugin\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "record a verdict with quoted output, never PASSED without a run",
+          "skills": [],
+          "follows": "same work as the run2 need \"verdict never PASSED without a run\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "drive a headless claude session from a TypeScript runner",
+          "skills": [
+            {
+              "skill": "claude-code",
+              "library": "skills",
+              "basis": "pool skill named by its folder name only; its text was not read"
+            },
+            {
+              "skill": "rex-gap-ts"
+            }
+          ],
+          "follows": "same work as the run1 need \"drive a headless claude session and quote its init line\" of this item in tests/fixtures/gate-a/labels.json, so the same skills; rex-gap-ts added: the need names TypeScript, and rex-gap-ts is the library skill for TypeScript code"
+        },
+        {
+          "run": "fresh2",
+          "need": "report a verdict only from a real run",
+          "skills": [],
+          "follows": "same work as the run1 need \"record a verdict only from a real run\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0f8vnww4-reviewer",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "findings table with severities",
+          "skills": [],
+          "follows": "same work as the run2 need \"check each seam and request item with severities\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "rate findings by severity and quote the tests run",
+          "skills": [],
+          "follows": "same work as the run1 need \"run tests and quote them\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0fitv57s-T1",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "write metadata header rules into a skill-writing guide",
+          "skills": [
+            {
+              "skill": "rex-skill-language"
+            }
+          ],
+          "follows": "same work as the run1 need \"write metadata rules into a skill with their check IDs\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh1",
+          "need": "keep a forked skill's metadata in step with its files",
+          "skills": [
+            {
+              "skill": "rex-skill-language"
+            }
+          ],
+          "follows": "new: the header of a fork is skill text; labels.json gives rex-skill-language to writing skill metadata headers (0h0d1109wo-T1)"
+        },
+        {
+          "run": "fresh2",
+          "need": "map each written rule to the check ID in code that enforces it",
+          "skills": [
+            {
+              "skill": "rex-skill-language"
+            }
+          ],
+          "follows": "same work as the run2 need \"map each written rule to its check ID\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "find and fix stale counts in text",
+          "skills": [],
+          "follows": "same work as the run1 need \"update skill counts across texts\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    },
+    {
+      "id": "0h0fitv57s-reviewer",
+      "needs": [
+        {
+          "run": "fresh1",
+          "need": "check each written rule against the code that enforces it",
+          "skills": [
+            {
+              "skill": "rex-skill-language"
+            }
+          ],
+          "follows": "same work as the run2 need \"check each rule against the code that enforces it\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        },
+        {
+          "run": "fresh2",
+          "need": "check each rule of skill text against the code that checks it",
+          "skills": [
+            {
+              "skill": "rex-skill-language"
+            }
+          ],
+          "follows": "same work as the run2 need \"check each rule against the code that enforces it\" of this item in tests/fixtures/gate-a/labels.json, so the same skills"
+        }
+      ]
+    }
+  ]
+}
