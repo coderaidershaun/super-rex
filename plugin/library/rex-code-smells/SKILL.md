@@ -13,7 +13,6 @@ metadata:
   category: code-health
   claims:
     activity: [audit]
-    touches: [legacy-code]
   placement: full
   scope: { writes_code: [true] }
   not_when: "The task writes no code."

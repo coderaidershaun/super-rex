@@ -11,8 +11,6 @@ when_to_use: >
 metadata:
   kind: rule
   category: coding-standards
-  claims:
-    facts: { writes_code: true }
   placement: full
   intents:
     - name a function or a type

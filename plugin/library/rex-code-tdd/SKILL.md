@@ -11,7 +11,6 @@ metadata:
   category: testing
   claims:
     activity: [build, fix]
-    touches: [system-boundary]
   placement: full
   scope: { writes_code: [true] }
   not_when: "The task writes no code."

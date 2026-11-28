@@ -14,6 +14,8 @@ metadata:
     activity: [design]
     artefact: [plan]
   placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code, or it is a small fix that touches one function."
   intents:
     - design a new system before its code
     - draw the architecture as boxes and arrows

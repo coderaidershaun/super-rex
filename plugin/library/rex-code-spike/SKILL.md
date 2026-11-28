@@ -13,6 +13,8 @@ metadata:
   claims:
     touches: [unproven-approach]
   placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code, or nothing is unknown, or code or docs give the answer."
   intents:
     - prove an approach works first
     - try an unproven crate or service

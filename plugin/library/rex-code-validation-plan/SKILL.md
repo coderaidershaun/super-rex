@@ -15,6 +15,8 @@ metadata:
     activity: [design]
     artefact: [plan]
   placement: full
+  scope: { writes_code: [true] }
+  not_when: "The task writes no code, or its plan has no flow where order or time matters and no RESET, RETRY or HALT row."
   intents:
     - write expected traces before code
     - list the failure scenarios of a plan
