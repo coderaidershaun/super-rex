@@ -1,0 +1,126 @@
+{
+  "id": "0h0f8vnww4-T1",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-essentials",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-tests-fitness-functions",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:fitness-test"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-code-tests-contract-seams",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:contract-test"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-tests-integration-testing",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:integration-test"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-code-tdd",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 6,
+      "skill": "rex-code-failure-policy",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    }
+  ],
+  "more": 11,
+  "later_items": [
+    {
+      "rank": 7,
+      "skill": "rex-code-folder-management",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 8,
+      "skill": "gatus",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 9,
+      "skill": "nvm",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 10,
+      "skill": "react-doctor",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 11,
+      "skill": "plasmo",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 12,
+      "skill": "mcp-server-builder",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 13,
+      "skill": "understand-chat",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 14,
+      "skill": "gitnexus",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 15,
+      "skill": "dvc",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 16,
+      "skill": "mcp-client",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 17,
+      "skill": "context7",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [
+    {
+      "need": "touches:system-boundary",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

@@ -1,0 +1,43 @@
+{
+  "id": "0h096dyeq9-T1",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-skill-language",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "pageindex",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 3,
+      "skill": "structlog-python",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 0,
+  "later_items": [],
+  "gaps": [
+    {
+      "need": "activity:design",
+      "reason": "scope: writes_code false not in true",
+      "skill": "rex-code-design-sketch",
+      "library": "library"
+    },
+    {
+      "need": "activity:design",
+      "reason": "scope: writes_code false not in true",
+      "skill": "rex-code-validation-plan",
+      "library": "library"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

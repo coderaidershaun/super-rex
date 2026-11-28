@@ -1,0 +1,98 @@
+{
+  "id": "0h0dnqm24i-reviewer",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-design-sketch",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-priorities",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-code-tests-contract-seams",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 4,
+      "skill": "fail2ban",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 5,
+      "skill": "contract-review",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 6,
+      "skill": "iptables",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 7,
+      "skill": "obra-superpowers",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "crowdsec",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 9,
+      "skill": "bitbucket",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 1,
+  "later_items": [
+    {
+      "rank": 10,
+      "skill": "wordpress",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [
+    {
+      "need": "artefacts:plan",
+      "reason": "scope: writes_code false not in true",
+      "skill": "rex-code-design-sketch",
+      "library": "library"
+    },
+    {
+      "need": "artefacts:plan",
+      "reason": "scope: writes_code false not in true",
+      "skill": "rex-code-validation-plan",
+      "library": "library"
+    },
+    {
+      "need": "activity:review",
+      "reason": "no skill claims it"
+    },
+    {
+      "need": "touches:unproven-approach",
+      "reason": "scope: writes_code false not in true",
+      "skill": "rex-code-spike",
+      "library": "library"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

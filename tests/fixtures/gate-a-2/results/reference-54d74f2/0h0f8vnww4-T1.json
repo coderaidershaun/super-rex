@@ -1,0 +1,159 @@
+{
+  "id": "0h0f8vnww4-T1",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-essentials",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-tests-unit-testing",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:unit-test"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-code-tests-contract-seams",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:contract-test"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-tests-fitness-functions",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:fitness-test"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-code-tests-integration-testing",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:integration-test"
+    },
+    {
+      "rank": 6,
+      "skill": "rex-code-tdd",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 7,
+      "skill": "rex-code-failure-policy",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    }
+  ],
+  "more": 15,
+  "later_items": [
+    {
+      "rank": 8,
+      "skill": "rex-code-folder-management",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 9,
+      "skill": "react-doctor",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 10,
+      "skill": "fastify",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 11,
+      "skill": "terminal-skills",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 12,
+      "skill": "rex-code-external-libraries",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 13,
+      "skill": "mcp-server-builder",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 14,
+      "skill": "rex-gap-ts",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 15,
+      "skill": "context7",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 16,
+      "skill": "mcp-client",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 17,
+      "skill": "recoil",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 18,
+      "skill": "hypothesis",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 19,
+      "skill": "canva",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 20,
+      "skill": "react-hook-form",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 21,
+      "skill": "playwright-mcp",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 22,
+      "skill": "fzf",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [
+    {
+      "need": "touches:system-boundary",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

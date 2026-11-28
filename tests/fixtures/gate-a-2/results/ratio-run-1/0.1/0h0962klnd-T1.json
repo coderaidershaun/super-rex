@@ -1,0 +1,140 @@
+{
+  "id": "0h0962klnd-T1",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-essentials",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-tests-integration-testing",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:integration-test"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-code-spike",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-folder-management",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 5,
+      "skill": "fff-nvim",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 6,
+      "skill": "rex-skill-language",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 7,
+      "skill": "api-load-tester",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "tauri",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 9,
+      "skill": "prompt-tester",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 10,
+  "later_items": [
+    {
+      "rank": 10,
+      "skill": "soc2-compliance",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 11,
+      "skill": "sqlite",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 12,
+      "skill": "using-agent-skills",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 13,
+      "skill": "tldraw",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 14,
+      "skill": "typescript",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 15,
+      "skill": "claude-mem",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 16,
+      "skill": "load-balancer",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 17,
+      "skill": "weaviate",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 18,
+      "skill": "agent-workflow-packager",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 19,
+      "skill": "hipaa-compliance",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [
+    {
+      "need": "activity:test",
+      "reason": "no skill claims it"
+    },
+    {
+      "need": "touches:system-boundary",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

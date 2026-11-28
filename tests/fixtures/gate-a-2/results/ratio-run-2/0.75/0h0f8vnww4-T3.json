@@ -1,0 +1,98 @@
+{
+  "id": "0h0f8vnww4-T3",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-essentials",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-gap-ts",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-code-tests-integration-testing",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:integration-test"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-folder-management",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 5,
+      "skill": "dlt",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 6,
+      "skill": "iron-session",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 7,
+      "skill": "rex-code-spike",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 8,
+      "skill": "claude-mem",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 9,
+      "skill": "happy-dom",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 3,
+  "later_items": [
+    {
+      "rank": 10,
+      "skill": "claude-computer-use",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 11,
+      "skill": "minimalist-review",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 12,
+      "skill": "git-guardrails-claude-code",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [
+    {
+      "need": "activity:test",
+      "reason": "no skill claims it"
+    },
+    {
+      "need": "touches:system-boundary",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

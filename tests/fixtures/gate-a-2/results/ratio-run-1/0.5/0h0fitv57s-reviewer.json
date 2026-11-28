@@ -1,0 +1,71 @@
+{
+  "id": "0h0fitv57s-reviewer",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "contrast-check",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 2,
+      "skill": "nagios",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 3,
+      "skill": "github",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 4,
+      "skill": "design-an-interface",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 5,
+      "skill": "worktrunk",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 6,
+      "skill": "review-swarm",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 7,
+      "skill": "orca",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "rex-gap-ts",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 9,
+      "skill": "msgpack",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 0,
+  "later_items": [],
+  "gaps": [
+    {
+      "need": "activity:review",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

@@ -1,0 +1,82 @@
+{
+  "id": "0h0fitv57s-reviewer",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-skill-language",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-spike",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 3,
+      "skill": "prompt-tester",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-tests-integration-testing",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-gap-ts",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 6,
+      "skill": "rex-code-latency",
+      "library": "library",
+      "tier": "C",
+      "slot": "reference"
+    },
+    {
+      "rank": 7,
+      "skill": "contrast-check",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "rex-code-priorities",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 9,
+      "skill": "using-agent-skills",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 10,
+      "skill": "worktrunk",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 0,
+  "later_items": [],
+  "gaps": [
+    {
+      "need": "activity:review",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

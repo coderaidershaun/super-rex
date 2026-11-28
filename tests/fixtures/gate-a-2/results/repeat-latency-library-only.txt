@@ -1,0 +1,4 @@
+[r0] libraries: plugin/library; request {"limit":10}; options none; each form searched twice
+[r1] latency-go-ms: byte-identical, 4470 bytes, sha256 828ecdc76fe89e04f2113c9561ea4c81efc9d49b71d08c769eb5131cdc6e9f1d
+[r1] latency-rust-ns: byte-identical, 4941 bytes, sha256 7d3a82bdb0f0df7b6c762ffa9f4a335e8dc51a309689ecb1fb3948486d8708b7
+[r2] 2 of 2 forms gave byte-identical answers on two runs

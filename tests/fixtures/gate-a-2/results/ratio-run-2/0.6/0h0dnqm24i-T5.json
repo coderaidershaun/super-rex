@@ -1,0 +1,114 @@
+{
+  "id": "0h0dnqm24i-T5",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-essentials",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-tests-integration-testing",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:integration-test"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-code-tests-fitness-functions",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:fitness-test"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-tdd",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-code-failure-policy",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 6,
+      "skill": "rex-code-smells",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 7,
+      "skill": "3dsmax-rendering",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "obra-superpowers",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 8,
+  "later_items": [
+    {
+      "rank": 9,
+      "skill": "cursor-ai",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 10,
+      "skill": "aws-cognito",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 11,
+      "skill": "test-generator",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 12,
+      "skill": "grow-sustainably",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 13,
+      "skill": "vibe-coding",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 14,
+      "skill": "media-buying",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 15,
+      "skill": "testing-library",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 16,
+      "skill": "ad-campaign-optimization",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [],
+  "unrecognised": [],
+  "dropped": []
+}

@@ -1,0 +1,70 @@
+{
+  "id": "0h0962klnd-T3",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "pentagi",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 2,
+      "skill": "understand-diff",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 3,
+      "skill": "expense-report",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 4,
+      "skill": "prd-writing",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 5,
+      "skill": "microsoft-word",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 6,
+      "skill": "table-extractor",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 7,
+      "skill": "skipfish",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "prd-to-issues",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 9,
+      "skill": "structured-output",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 0,
+  "later_items": [],
+  "gaps": [
+    {
+      "need": "activity:document",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

@@ -1,0 +1,64 @@
+{
+  "id": "0h096dyeq9-reviewer",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "understand-diff",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 2,
+      "skill": "promptfoo",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 3,
+      "skill": "image-compare",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 4,
+      "skill": "fast-check",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 5,
+      "skill": "3dsmax-rendering",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 6,
+      "skill": "email-sequence",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 7,
+      "skill": "shadcn-ui",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "seo-audit",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 0,
+  "later_items": [],
+  "gaps": [
+    {
+      "need": "activity:review",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

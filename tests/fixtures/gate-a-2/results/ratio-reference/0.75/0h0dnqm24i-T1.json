@@ -1,0 +1,112 @@
+{
+  "id": "0h0dnqm24i-T1",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-essentials",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-design-sketch",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:plan"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-code-tests-contract-seams",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:contract-test"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-tests-fitness-functions",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:fitness-test"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-code-tests-integration-testing",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:integration-test"
+    },
+    {
+      "rank": 6,
+      "skill": "rex-code-folder-management",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 7,
+      "skill": "rex-code-spike",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    }
+  ],
+  "more": 8,
+  "later_items": [
+    {
+      "rank": 8,
+      "skill": "rex-code-improve-codebase-architecture",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 9,
+      "skill": "rex-code-validation-plan",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:plan"
+    },
+    {
+      "rank": 10,
+      "skill": "rex-code-ergonomics",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 11,
+      "skill": "pact",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 12,
+      "skill": "test-generator",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 13,
+      "skill": "zig",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 14,
+      "skill": "testing-library",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 15,
+      "skill": "playwright-testing",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [],
+  "unrecognised": [],
+  "dropped": []
+}

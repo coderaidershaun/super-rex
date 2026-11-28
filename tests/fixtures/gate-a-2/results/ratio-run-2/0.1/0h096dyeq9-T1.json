@@ -1,0 +1,118 @@
+{
+  "id": "0h096dyeq9-T1",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-design-sketch",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 2,
+      "skill": "understand-onboard",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 3,
+      "skill": "markdown-writer",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-skill-language",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 5,
+      "skill": "prd-writing",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 6,
+      "skill": "code-documenter",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 7,
+      "skill": "typesense",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "offer-letter",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 9,
+      "skill": "documentation-and-adrs",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 10,
+      "skill": "contract-review",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 4,
+  "later_items": [
+    {
+      "rank": 11,
+      "skill": "scalar",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 12,
+      "skill": "rex-code-tests-contract-seams",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 13,
+      "skill": "hipaa-compliance",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 14,
+      "skill": "shodan",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [
+    {
+      "need": "activity:design",
+      "reason": "scope: writes_code false not in true",
+      "skill": "rex-code-design-sketch",
+      "library": "library"
+    },
+    {
+      "need": "activity:design",
+      "reason": "scope: writes_code false not in true",
+      "skill": "rex-code-validation-plan",
+      "library": "library"
+    },
+    {
+      "need": "touches:file-layout",
+      "reason": "scope: writes_code false not in true",
+      "skill": "rex-code-folder-management",
+      "library": "library"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

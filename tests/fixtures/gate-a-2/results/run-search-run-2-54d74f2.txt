@@ -1,0 +1,2 @@
+[s0] libraries: plugin/library then /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills; request {"limit":10}; options none; every page; raw answers to /Users/shaun/Code/DEVELOPMENT/gate-a-pool/gate-a-2/raw/run-2-54d74f2; results to tests/fixtures/gate-a-2/results/run-2-54d74f2
+[s1] 23 forms searched; items on first pages: tier A 17, tier B 58, tier C 97; first pages with over_budget: 0; index sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51

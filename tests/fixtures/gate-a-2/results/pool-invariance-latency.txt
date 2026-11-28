@@ -1,0 +1,5 @@
+[p0] library plugin/library alone, then with pool /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills; limit 10; all pages followed
+[p1] latency-go-ms: tier A and B same (2 alone, 2 with pool; 5 tier C with pool); first page same; ranks of the first 5 same over all pages, same on the first page
+[p1] latency-rust-ns: tier A and B same (4 alone, 4 with pool; 4 tier C with pool); first page same; ranks of the first 5 same over all pages, same on the first page
+[p2] 2 of 2 forms keep the same tier A and B items in the same order over all pages; 2 of 2 also on the first page
+[p3] 2 of 2 forms keep the same rank for each of their first 5 tier A and B items over all pages; 2 of 2 on the first page

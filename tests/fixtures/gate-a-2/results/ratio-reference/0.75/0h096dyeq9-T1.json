@@ -1,0 +1,92 @@
+{
+  "id": "0h096dyeq9-T1",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-skill-language",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "pageindex",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 3,
+      "skill": "structlog-python",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 4,
+      "skill": "typesense",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 5,
+      "skill": "tinybase",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 6,
+      "skill": "offer-letter",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 7,
+      "skill": "aws-dynamodb",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "contract-review",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 9,
+      "skill": "commitlint",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 10,
+      "skill": "ab-test-setup",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 1,
+  "later_items": [
+    {
+      "rank": 11,
+      "skill": "nats-messaging",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [
+    {
+      "need": "activity:design",
+      "reason": "scope: writes_code false not in true",
+      "skill": "rex-code-design-sketch",
+      "library": "library"
+    },
+    {
+      "need": "activity:design",
+      "reason": "scope: writes_code false not in true",
+      "skill": "rex-code-validation-plan",
+      "library": "library"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

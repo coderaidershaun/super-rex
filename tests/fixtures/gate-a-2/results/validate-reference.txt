@@ -1,0 +1,2 @@
+[v0] vocabulary plugin/vocab/terms.json version 2 with aliases plugin/vocab/aliases.json (87 term aliases, 6 value aliases): 6 facts, 43 terms; 23 task texts; forms tests/fixtures/gate-a/reference
+[v2] 23 forms checked, 23 with no finding beyond notes; findings: format 0, vocabulary 0, evidence 0, note 0

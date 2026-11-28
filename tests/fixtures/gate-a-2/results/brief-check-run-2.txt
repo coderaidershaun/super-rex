@@ -1,0 +1,2 @@
+[b1] agent-acd4eceb203625040.jsonl: first user message written to first-form-writer-run-2.txt, 5483 bytes, sha256 1f70dd7d2e87267200740b618c707ca0b56a2b698001e4fd2fcff79c8eebd97c
+[b2] tests/fixtures/gate-a-2/briefs/first-form-writer-run-2.txt: 5483 bytes, sha256 1f70dd7d2e87267200740b618c707ca0b56a2b698001e4fd2fcff79c8eebd97c; the same bytes as the extract

@@ -1,0 +1,6 @@
+[i0] binary target/debug/rex: rex 0.14.0
+[i1] base commit 54d74f204205463c037361f6f158c52a5d0e9a67: present; fix: vocabulary version 2 narrows six term meanings and reads full language names such as typescript
+[i2] src, plugin/library, plugin/vocab, Cargo.toml, Cargo.lock against the base: no change, so the binary built here is the base binary
+[i3] vocabulary plugin/vocab/terms.json version 2
+[i4] index version of the library alone: sha256:7644ab358e62ca44215c4cc877f5ada11d9c0c62a24b63183e86672efa8a7be9
+[i4] index version of the library then the pool: sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51

@@ -1,0 +1,81 @@
+[e0] rex skills check --pool /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills plugin/library: exit 0, 25 lines, 25 ok, 0 intent findings (M14), 0 other lines
+[e1] 78 intent phrases in 25 skills; each searched as one need over the library then the pool
+[e2] rex-agent-prompting: "start a sub-agent": rank 1 of 2 tier C items
+[e2] rex-agent-prompting: "write a brief for another agent": rank 1 of 2 tier C items
+[e2] rex-agent-prompting: "choose brief text for a model tier": rank 1 of 1 tier C items
+[e2] rex-code-commenting: "decide whether to add a comment": rank 1 of 2 tier C items
+[e2] rex-code-commenting: "write the comment at the top of a file": rank 1 of 2 tier C items
+[e2] rex-code-commenting: "flag a code smell": rank 1 of 1 tier C items
+[e2] rex-code-design-sketch: "design a new system before its code": rank 1 of 1 tier C items
+[e2] rex-code-design-sketch: "draw the architecture as boxes and arrows": rank 1 of 1 tier C items
+[e2] rex-code-design-sketch: "fit a new module to existing code": rank 1 of 1 tier C items
+[e2] rex-code-ergonomics: "name a function or a type": rank 1 of 1 tier C items
+[e2] rex-code-ergonomics: "choose a function signature": rank 1 of 1 tier C items
+[e2] rex-code-ergonomics: "design a public API": rank 2 of 2 tier C items
+[e2] rex-code-error-writing: "design an error type": rank 2 of 2 tier C items
+[e2] rex-code-error-writing: "write an error message": rank 1 of 4 tier C items
+[e2] rex-code-error-writing: "choose between panic and Result": rank 1 of 1 tier C items
+[e2] rex-code-essentials: "obey the coding rules of every task": rank 1 of 1 tier C items
+[e2] rex-code-essentials: "write simple, readable code in any language": rank 1 of 1 tier C items
+[e2] rex-code-essentials: "name things and handle errors well": rank 1 of 1 tier C items
+[e2] rex-code-external-libraries: "add a crate": rank 1 of 3 tier C items
+[e2] rex-code-external-libraries: "upgrade a dependency": rank 1 of 3 tier C items
+[e2] rex-code-external-libraries: "choose the features of a crate": rank 1 of 1 tier C items
+[e2] rex-code-failure-policy: "decide what happens when this fails": rank 1 of 1 tier C items
+[e2] rex-code-failure-policy: "handle outside input": rank 1 of 2 tier C items
+[e2] rex-code-failure-policy: "retry or reconnect to a service": rank 1 of 1 tier C items
+[e2] rex-code-failure-policy: "write a main loop": rank 1 of 1 tier C items
+[e2] rex-code-folder-management: "create or split a module": rank 1 of 3 tier C items
+[e2] rex-code-folder-management: "move a file, module or folder": rank 1 of 1 tier C items
+[e2] rex-code-folder-management: "decide where a file goes": rank 1 of 1 tier C items
+[e2] rex-code-improve-codebase-architecture: "find refactor candidates": rank 1 of 1 tier C items
+[e2] rex-code-improve-codebase-architecture: "group modules": rank 1 of 1 tier C items
+[e2] rex-code-improve-codebase-architecture: "make code easier to test and navigate": rank 1 of 2 tier C items
+[e2] rex-code-improve-codebase-architecture: "find architecture friction": rank 1 of 1 tier C items
+[e2] rex-code-latency: "fix tail latency of a Rust hot path": rank 1 of 1 tier C items
+[e2] rex-code-latency: "find the cause of jitter": rank 1 of 1 tier C items
+[e2] rex-code-latency: "time a function of a few nanoseconds": rank 1 of 1 tier C items
+[e2] rex-code-philosophy: "keep code simple": rank 1 of 3 tier C items
+[e2] rex-code-philosophy: "decide whether to abstract": rank 1 of 3 tier C items
+[e2] rex-code-philosophy: "judge if a design is over-engineered": rank 1 of 2 tier C items
+[e2] rex-code-priorities: "break a tie between design options": rank 1 of 2 tier C items
+[e2] rex-code-priorities: "rank the qualities of a repo": rank 1 of 1 tier C items
+[e2] rex-code-priorities: "write the priority block of a repo": rank 1 of 1 tier C items
+[e2] rex-code-smells: "find code smells": rank 1 of 1 tier C items
+[e2] rex-code-smells: "audit names in a module": rank 1 of 1 tier C items
+[e2] rex-code-smells: "find stale code and old TODOs": rank 1 of 1 tier C items
+[e2] rex-code-smells: "refactor unfamiliar code": rank 1 of 1 tier C items
+[e2] rex-code-spike: "prove an approach works first": rank 1 of 1 tier C items
+[e2] rex-code-spike: "try an unproven crate or service": rank 1 of 2 tier C items
+[e2] rex-code-spike: "run a quick throwaway experiment": rank 1 of 1 tier C items
+[e2] rex-code-tdd: "build a feature test first": rank 1 of 5 tier C items
+[e2] rex-code-tdd: "fix a bug with a failing test first": rank 1 of 2 tier C items
+[e2] rex-code-tdd: "red-green-refactor loop": rank 1 of 2 tier C items
+[e2] rex-code-tests-contract-seams: "test the interface between two modules": rank 1 of 1 tier C items
+[e2] rex-code-tests-contract-seams: "test a module boundary that keeps breaking": rank 1 of 1 tier C items
+[e2] rex-code-tests-contract-seams: "define a new module interface": rank 2 of 3 tier C items
+[e2] rex-code-tests-fitness-functions: "test an invariant that must always hold": rank 1 of 1 tier C items
+[e2] rex-code-tests-fitness-functions: "write a property test": rank 1 of 2 tier C items
+[e2] rex-code-tests-fitness-functions: "promote a test to a fitness function": rank 1 of 2 tier C items
+[e2] rex-code-tests-integration-testing: "test against a real API or exchange": rank 1 of 1 tier C items
+[e2] rex-code-tests-integration-testing: "test a websocket reconnect": rank 1 of 4 tier C items
+[e2] rex-code-tests-integration-testing: "run a test with real funds": rank 1 of 1 tier C items
+[e2] rex-code-tests-unit-testing: "write a unit test of a pure function": rank 1 of 2 tier C items
+[e2] rex-code-tests-unit-testing: "decide whether to keep or delete a unit test": rank 1 of 1 tier C items
+[e2] rex-code-tests-unit-testing: "promote a unit test to a fitness function": rank 1 of 2 tier C items
+[e2] rex-code-validation-plan: "write expected traces before code": rank 1 of 1 tier C items
+[e2] rex-code-validation-plan: "list the failure scenarios of a plan": rank 1 of 3 tier C items
+[e2] rex-code-validation-plan: "prove the order of a flow": rank 1 of 1 tier C items
+[e2] rex-codex-adversarial-review: "review the plan of a plan job": rank 1 of 5 tier C items
+[e2] rex-codex-adversarial-review: "get a second opinion on a plan": rank 1 of 1 tier C items
+[e2] rex-codex-adversarial-review: "challenge a code change": rank 1 of 1 tier C items
+[e2] rex-gap-ts: "write strict TypeScript": rank 1 of 1 tier C items
+[e2] rex-gap-ts: "set up tsconfig and lint settings": rank 1 of 2 tier C items
+[e2] rex-gap-ts: "close a gap that Rust covers by default": rank 1 of 1 tier C items
+[e2] rex-mermaid-diagrams: "draw a diagram in a plan or document": rank 1 of 2 tier C items
+[e2] rex-mermaid-diagrams: "show a flow as a diagram": rank 1 of 1 tier C items
+[e2] rex-mermaid-diagrams: "model a database or a class design": rank 2 of 5 tier C items
+[e2] rex-skill-language: "write a skill": rank 1 of 2 tier C items
+[e2] rex-skill-language: "shorten a prompt": rank 1 of 2 tier C items
+[e2] rex-skill-language: "write agent instructions in controlled English": rank 1 of 1 tier C items
+[e3] 78 of 78 intent phrases find their own skill in the top 5 tier C items of the search answer

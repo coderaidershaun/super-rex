@@ -1,0 +1,150 @@
+{
+  "id": "0h096dyeq9-T2",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-code-essentials",
+      "library": "library",
+      "tier": "A",
+      "slot": "rule"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-tests-integration-testing",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:integration-test"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-code-tests-fitness-functions",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:fitness-test"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-tdd",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-code-failure-policy",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 6,
+      "skill": "rex-code-folder-management",
+      "library": "library",
+      "tier": "B",
+      "slot": "rule"
+    },
+    {
+      "rank": 7,
+      "skill": "data-validator",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "msgpack",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 13,
+  "later_items": [
+    {
+      "rank": 9,
+      "skill": "packer",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 10,
+      "skill": "click",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 11,
+      "skill": "rive",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 12,
+      "skill": "rex-code-design-sketch",
+      "library": "library",
+      "tier": "C",
+      "slot": "method"
+    },
+    {
+      "rank": 13,
+      "skill": "arktype",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 14,
+      "skill": "excalidraw",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 15,
+      "skill": "syncthing",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 16,
+      "skill": "company-values",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 17,
+      "skill": "gcp-waf-security",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 18,
+      "skill": "contrast-check",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 19,
+      "skill": "john-the-ripper",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 20,
+      "skill": "spline",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 21,
+      "skill": "minimalist-review",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [
+    {
+      "need": "touches:legacy-code",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

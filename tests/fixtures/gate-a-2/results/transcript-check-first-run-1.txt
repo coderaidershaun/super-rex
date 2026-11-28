@@ -1,0 +1,15 @@
+[t0] agent-a0a8b4c997abef5ee.jsonl: input folder /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input; allowed for writes and shell paths: /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/out, /private/tmp/claude-501/-Users-shaun-Code-scratch-skilled/90965a73-8bf5-4eb6-aef9-e8b37390eb29/scratchpad, /Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg; each call cut at 300 characters
+[t1] Bash {"command": "ls -la /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/ /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/out/ 2>&1"}
+[t1] Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/terms.json"}
+[t1] Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/aliases.json"}
+[t1] Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/tasks.json"}
+[t1] Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/terms.json"}
+[t1] Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/aliases.json"}
+[t1] Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/input/tasks.json"}
+[t1] Write {"file_path": "/private/tmp/claude-501/-Users-shaun-Code-scratch-skilled/90965a73-8bf5-4eb6-aef9-e8b37390eb29/scratchpad/forms.py"}
+[t1] Bash {"command": "cd /private/tmp/claude-501/-Users-shaun-Code-scratch-skilled/90965a73-8bf5-4eb6-aef9-e8b37390eb29/scratchpad && python3 -I forms.py && ls /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-1/out/ | wc -l"}
+[t1] Bash {"command": "mkdir -p /Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg && ls /Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg/"}
+[t1] Write {"file_path": "/Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg/form-writer.md"}
+[t2] 11 tool call blocks listed, 8 distinct calls by id; the transcript repeats a call in the record of a later request
+[t4] 8 distinct calls, 0 flagged; 3 read calls; 0 skill calls; tools used: Bash, Read, Write
+[t5] section == run-1 of transcripts.txt: 11 lines; this listing: 11 lines; every line is the same (trailing space removed on both sides)

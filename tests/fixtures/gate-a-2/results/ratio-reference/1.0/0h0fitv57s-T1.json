@@ -1,0 +1,37 @@
+{
+  "id": "0h0fitv57s-T1",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "rex-skill-language",
+      "library": "library",
+      "tier": "B",
+      "slot": "artefact:instructions"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-agent-prompting",
+      "library": "library",
+      "tier": "B",
+      "slot": "method"
+    },
+    {
+      "rank": 3,
+      "skill": "rex-gap-ts",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    }
+  ],
+  "more": 0,
+  "later_items": [],
+  "gaps": [
+    {
+      "need": "activity:document",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

@@ -1,0 +1,81 @@
+{
+  "id": "0h0f8vnww4-reviewer",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "hunter-io",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 2,
+      "skill": "rex-code-tests-unit-testing",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 3,
+      "skill": "code-reviewer",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 4,
+      "skill": "rex-code-tests-fitness-functions",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 5,
+      "skill": "rex-code-tests-contract-seams",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 6,
+      "skill": "rex-code-tests-integration-testing",
+      "library": "library",
+      "tier": "C",
+      "slot": "rule"
+    },
+    {
+      "rank": 7,
+      "skill": "commitlint",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 8,
+      "skill": "test-generator",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 9,
+      "skill": "prd-writing",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 1,
+  "later_items": [
+    {
+      "rank": 10,
+      "skill": "msw",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "gaps": [
+    {
+      "need": "activity:review",
+      "reason": "no skill claims it"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}

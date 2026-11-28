@@ -1,0 +1,270 @@
+[q0] 153 verdicts from tests/fixtures/gate-a/judgments.json; results tests/fixtures/gate-a-2/results/run-1-54d74f2, tests/fixtures/gate-a-2/results/run-2-54d74f2, tests/fixtures/gate-a-2/results/reference-54d74f2; a pair is item, skill and library, and keeps its verdict when its tier changed
+[q1] run-1-54d74f2: 0h0962klnd-T1 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h0962klnd-T1 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] run-1-54d74f2: 0h0962klnd-T1 library/rex-code-spike tier B rank 3: right
+[q1] run-1-54d74f2: 0h0962klnd-T1 library/rex-code-folder-management tier B rank 4: right
+[q1] run-1-54d74f2: 0h0962klnd-T2 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h0962klnd-T2 library/rex-gap-ts tier A rank 2: right
+[q1] run-1-54d74f2: 0h0962klnd-T2 library/rex-code-tests-integration-testing tier B rank 3: right
+[q1] run-1-54d74f2: 0h0962klnd-T2 library/rex-code-spike tier B rank 4: right
+[q1] run-1-54d74f2: 0h0962klnd-T2 library/rex-agent-prompting tier B rank 5: doubtful
+[q1] run-1-54d74f2: 0h0962klnd-T2 library/rex-code-folder-management tier B rank 6: doubtful
+[q1] run-1-54d74f2: 0h096dyeq9-T2 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h096dyeq9-T2 library/rex-code-tests-fitness-functions tier B rank 2: right
+[q1] run-1-54d74f2: 0h096dyeq9-T2 library/rex-code-tests-unit-testing tier B rank 3: doubtful
+[q1] run-1-54d74f2: 0h096dyeq9-T2 library/rex-code-tdd tier B rank 4: right
+[q1] run-1-54d74f2: 0h096dyeq9-T2 library/rex-code-failure-policy tier B rank 5: right
+[q1] run-1-54d74f2: 0h096dyeq9-T2 library/rex-code-folder-management tier B rank 6: right
+[q1] run-1-54d74f2: 0h0b8x725g-T1 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h0b8x725g-T1 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] run-1-54d74f2: 0h0b8x725g-T1 library/rex-code-tdd tier B rank 3: right
+[q1] run-1-54d74f2: 0h0b8x725g-T1 library/rex-code-failure-policy tier B rank 4: right
+[q1] run-1-54d74f2: 0h0b8x725g-T1 library/rex-code-folder-management tier B rank 5: right
+[q1] run-1-54d74f2: 0h0d1109wo-T1 library/rex-code-essentials tier A rank 1: doubtful
+[q1] run-1-54d74f2: 0h0d1109wo-T1 library/rex-skill-language tier B rank 2: right
+[q1] run-1-54d74f2: 0h0d1109wo-T1 library/rex-code-folder-management tier B rank 3: wrong
+[q1] run-1-54d74f2: 0h0dnqm24i-T1 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T1 library/rex-code-design-sketch tier B rank 2: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T1 library/rex-code-improve-codebase-architecture tier B rank 3: doubtful
+[q1] run-1-54d74f2: 0h0dnqm24i-T1 library/rex-code-folder-management tier B rank 4: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T1 library/rex-code-spike tier B rank 5: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T1 library/rex-code-validation-plan tier B rank 6: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T2 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T2 library/rex-code-tests-fitness-functions tier B rank 2: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T2 library/rex-code-tests-contract-seams tier B rank 3: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T2 library/rex-code-tdd tier B rank 4: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T2 library/rex-code-failure-policy tier B rank 5: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T2 library/rex-code-folder-management tier B rank 6: doubtful
+[q1] run-1-54d74f2: 0h0dnqm24i-T3 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T3 library/rex-code-tests-contract-seams tier B rank 2: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T3 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T3 library/rex-code-tdd tier B rank 4: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T3 library/rex-code-failure-policy tier B rank 5: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T4 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T4 library/rex-code-tests-contract-seams tier B rank 2: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T4 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T4 library/rex-code-tdd tier B rank 4: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T4 library/rex-code-failure-policy tier B rank 5: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T5 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T5 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T5 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T5 library/rex-code-tdd tier B rank 4: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T5 library/rex-code-failure-policy tier B rank 5: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T6 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T6 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T6 library/rex-code-tdd tier B rank 3: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T6 library/rex-code-failure-policy tier B rank 4: right
+[q1] run-1-54d74f2: 0h0dnqm24i-T6 library/rex-code-folder-management tier B rank 5: doubtful
+[q1] run-1-54d74f2: 0h0f8vnww4-T1 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T1 library/rex-code-tests-fitness-functions tier B rank 2: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T1 library/rex-code-tests-contract-seams tier B rank 3: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T1 library/rex-code-tests-integration-testing tier B rank 4: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T1 library/rex-code-tdd tier B rank 5: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T1 library/rex-code-failure-policy tier B rank 6: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T1 library/rex-code-folder-management tier B rank 7: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T2 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T2 library/rex-gap-ts tier A rank 2: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T2 library/rex-code-tests-unit-testing tier B rank 3: doubtful
+[q1] run-1-54d74f2: 0h0f8vnww4-T2 library/rex-code-tdd tier B rank 4: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T2 library/rex-agent-prompting tier B rank 5: wrong
+[q1] run-1-54d74f2: 0h0f8vnww4-T2 library/rex-code-folder-management tier B rank 6: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T3 library/rex-code-essentials tier A rank 1: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T3 library/rex-gap-ts tier A rank 2: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T3 library/rex-code-tests-integration-testing tier B rank 3: right
+[q1] run-1-54d74f2: 0h0f8vnww4-T3 library/rex-code-folder-management tier B rank 4: doubtful
+[q1] run-1-54d74f2: 0h0fitv57s-T1 library/rex-skill-language tier B rank 1: right
+[q2] run-1-54d74f2: tier A: right 16, wrong 0, doubtful 1, no verdict 0
+[q2] run-1-54d74f2: tier B: right 47, wrong 2, doubtful 8, no verdict 0
+[q2] run-1-54d74f2: 74 distinct tier A or B pairs, 0 with no verdict, 0 with a verdict given at another tier
+[q1] run-2-54d74f2: 0h0962klnd-T1 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h0962klnd-T1 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] run-2-54d74f2: 0h0962klnd-T1 library/rex-code-design-sketch tier B rank 3: wrong
+[q1] run-2-54d74f2: 0h0962klnd-T1 library/rex-code-spike tier B rank 4: right
+[q1] run-2-54d74f2: 0h0962klnd-T1 library/rex-code-folder-management tier B rank 5: right
+[q1] run-2-54d74f2: 0h0962klnd-T1 library/rex-code-validation-plan tier B rank 6: wrong
+[q1] run-2-54d74f2: 0h0962klnd-T2 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h0962klnd-T2 library/rex-gap-ts tier A rank 2: right
+[q1] run-2-54d74f2: 0h0962klnd-T2 library/rex-code-design-sketch tier B rank 3: wrong
+[q1] run-2-54d74f2: 0h0962klnd-T2 library/rex-code-spike tier B rank 4: right
+[q1] run-2-54d74f2: 0h0962klnd-T2 library/rex-agent-prompting tier B rank 5: doubtful
+[q1] run-2-54d74f2: 0h0962klnd-T2 library/rex-code-folder-management tier B rank 6: doubtful
+[q1] run-2-54d74f2: 0h0962klnd-T2 library/rex-code-validation-plan tier B rank 7: wrong
+[q1] run-2-54d74f2: 0h096dyeq9-T2 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h096dyeq9-T2 library/rex-code-tests-unit-testing tier B rank 2: doubtful
+[q1] run-2-54d74f2: 0h096dyeq9-T2 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] run-2-54d74f2: 0h096dyeq9-T2 library/rex-code-tdd tier B rank 4: right
+[q1] run-2-54d74f2: 0h096dyeq9-T2 library/rex-code-failure-policy tier B rank 5: right
+[q1] run-2-54d74f2: 0h096dyeq9-T2 library/rex-code-folder-management tier B rank 6: right
+[q1] run-2-54d74f2: 0h0b8x725g-T1 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h0b8x725g-T1 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] run-2-54d74f2: 0h0b8x725g-T1 library/rex-code-tdd tier B rank 3: right
+[q1] run-2-54d74f2: 0h0b8x725g-T1 library/rex-code-failure-policy tier B rank 4: right
+[q1] run-2-54d74f2: 0h0b8x725g-T1 library/rex-code-folder-management tier B rank 5: right
+[q1] run-2-54d74f2: 0h0d1109wo-T1 library/rex-code-essentials tier A rank 1: doubtful
+[q1] run-2-54d74f2: 0h0d1109wo-T1 library/rex-skill-language tier B rank 2: right
+[q1] run-2-54d74f2: 0h0d1109wo-T1 library/rex-code-folder-management tier B rank 3: wrong
+[q1] run-2-54d74f2: 0h0dnqm24i-T1 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T1 library/rex-code-design-sketch tier B rank 2: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T1 library/rex-code-tests-contract-seams tier B rank 3: doubtful
+[q1] run-2-54d74f2: 0h0dnqm24i-T1 library/rex-code-tests-fitness-functions tier B rank 4: doubtful
+[q1] run-2-54d74f2: 0h0dnqm24i-T1 library/rex-code-improve-codebase-architecture tier B rank 5: doubtful
+[q1] run-2-54d74f2: 0h0dnqm24i-T1 library/rex-code-folder-management tier B rank 6: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T1 library/rex-code-spike tier B rank 7: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T1 library/rex-code-validation-plan tier B rank 8: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T2 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T2 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T2 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T2 library/rex-code-tests-contract-seams tier B rank 4: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T2 library/rex-code-tdd tier B rank 5: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T2 library/rex-code-failure-policy tier B rank 6: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T3 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T3 library/rex-code-tests-contract-seams tier B rank 2: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T3 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T3 library/rex-code-tdd tier B rank 4: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T3 library/rex-code-failure-policy tier B rank 5: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T4 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T4 library/rex-code-tests-contract-seams tier B rank 2: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T4 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T4 library/rex-code-tdd tier B rank 4: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T4 library/rex-code-failure-policy tier B rank 5: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T5 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T5 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T5 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T5 library/rex-code-tdd tier B rank 4: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T5 library/rex-code-failure-policy tier B rank 5: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T6 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T6 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T6 library/rex-code-tdd tier B rank 3: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T6 library/rex-code-failure-policy tier B rank 4: right
+[q1] run-2-54d74f2: 0h0dnqm24i-T6 library/rex-code-folder-management tier B rank 5: doubtful
+[q1] run-2-54d74f2: 0h0f8vnww4-T1 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T1 library/rex-code-tests-fitness-functions tier B rank 2: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T1 library/rex-code-tests-contract-seams tier B rank 3: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T1 library/rex-code-tests-integration-testing tier B rank 4: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T1 library/rex-code-tdd tier B rank 5: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T1 library/rex-code-failure-policy tier B rank 6: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T1 library/rex-code-folder-management tier B rank 7: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T2 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T2 library/rex-gap-ts tier A rank 2: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T2 library/rex-code-tests-unit-testing tier B rank 3: doubtful
+[q1] run-2-54d74f2: 0h0f8vnww4-T2 library/rex-code-tdd tier B rank 4: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T2 library/rex-code-folder-management tier B rank 5: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T3 library/rex-code-essentials tier A rank 1: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T3 library/rex-gap-ts tier A rank 2: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T3 library/rex-code-tests-integration-testing tier B rank 3: right
+[q1] run-2-54d74f2: 0h0f8vnww4-T3 library/rex-code-folder-management tier B rank 4: doubtful
+[q1] run-2-54d74f2: 0h0fitv57s-T1 library/rex-skill-language tier B rank 1: right
+[q2] run-2-54d74f2: tier A: right 16, wrong 0, doubtful 1, no verdict 0
+[q2] run-2-54d74f2: tier B: right 47, wrong 5, doubtful 9, no verdict 0
+[q2] run-2-54d74f2: 78 distinct tier A or B pairs, 0 with no verdict, 0 with a verdict given at another tier
+[q1] reference-54d74f2: 0h0962klnd-T1 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h0962klnd-T1 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] reference-54d74f2: 0h0962klnd-T1 library/rex-code-spike tier B rank 3: right
+[q1] reference-54d74f2: 0h0962klnd-T1 library/rex-code-folder-management tier B rank 4: right
+[q1] reference-54d74f2: 0h0962klnd-T2 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h0962klnd-T2 library/rex-gap-ts tier A rank 2: right
+[q1] reference-54d74f2: 0h0962klnd-T2 library/rex-code-tests-integration-testing tier B rank 3: right
+[q1] reference-54d74f2: 0h0962klnd-T2 library/rex-code-spike tier B rank 4: right
+[q1] reference-54d74f2: 0h0962klnd-T2 library/rex-agent-prompting tier B rank 5: doubtful
+[q1] reference-54d74f2: 0h0962klnd-T2 library/rex-code-folder-management tier B rank 6: doubtful
+[q1] reference-54d74f2: 0h096dyeq9-T2 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h096dyeq9-T2 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] reference-54d74f2: 0h096dyeq9-T2 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] reference-54d74f2: 0h096dyeq9-T2 library/rex-code-tdd tier B rank 4: right
+[q1] reference-54d74f2: 0h096dyeq9-T2 library/rex-code-failure-policy tier B rank 5: right
+[q1] reference-54d74f2: 0h096dyeq9-T2 library/rex-code-folder-management tier B rank 6: right
+[q1] reference-54d74f2: 0h0b8x725g-T1 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h0b8x725g-T1 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] reference-54d74f2: 0h0b8x725g-T1 library/rex-code-tdd tier B rank 3: right
+[q1] reference-54d74f2: 0h0b8x725g-T1 library/rex-code-failure-policy tier B rank 4: right
+[q1] reference-54d74f2: 0h0b8x725g-T1 library/rex-code-folder-management tier B rank 5: right
+[q1] reference-54d74f2: 0h0d1109wo-T1 library/rex-code-essentials tier A rank 1: doubtful
+[q1] reference-54d74f2: 0h0d1109wo-T1 library/rex-skill-language tier B rank 2: right
+[q1] reference-54d74f2: 0h0d1109wo-reviewer library/rex-skill-language tier B rank 1: right
+[q1] reference-54d74f2: 0h0dnqm24i-T1 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h0dnqm24i-T1 library/rex-code-design-sketch tier B rank 2: right
+[q1] reference-54d74f2: 0h0dnqm24i-T1 library/rex-code-tests-contract-seams tier B rank 3: doubtful
+[q1] reference-54d74f2: 0h0dnqm24i-T1 library/rex-code-tests-fitness-functions tier B rank 4: doubtful
+[q1] reference-54d74f2: 0h0dnqm24i-T1 library/rex-code-tests-integration-testing tier B rank 5: doubtful
+[q1] reference-54d74f2: 0h0dnqm24i-T1 library/rex-code-folder-management tier B rank 6: right
+[q1] reference-54d74f2: 0h0dnqm24i-T1 library/rex-code-spike tier B rank 7: right
+[q1] reference-54d74f2: 0h0dnqm24i-T1 library/rex-code-improve-codebase-architecture tier B rank 8: doubtful
+[q1] reference-54d74f2: 0h0dnqm24i-T1 library/rex-code-validation-plan tier B rank 9: right
+[q1] reference-54d74f2: 0h0dnqm24i-T2 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h0dnqm24i-T2 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] reference-54d74f2: 0h0dnqm24i-T2 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] reference-54d74f2: 0h0dnqm24i-T2 library/rex-code-tests-contract-seams tier B rank 4: right
+[q1] reference-54d74f2: 0h0dnqm24i-T2 library/rex-code-tdd tier B rank 5: right
+[q1] reference-54d74f2: 0h0dnqm24i-T2 library/rex-code-failure-policy tier B rank 6: right
+[q1] reference-54d74f2: 0h0dnqm24i-T3 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h0dnqm24i-T3 library/rex-code-tests-contract-seams tier B rank 2: right
+[q1] reference-54d74f2: 0h0dnqm24i-T3 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] reference-54d74f2: 0h0dnqm24i-T3 library/rex-code-tdd tier B rank 4: right
+[q1] reference-54d74f2: 0h0dnqm24i-T3 library/rex-code-failure-policy tier B rank 5: right
+[q1] reference-54d74f2: 0h0dnqm24i-T4 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h0dnqm24i-T4 library/rex-code-tests-contract-seams tier B rank 2: right
+[q1] reference-54d74f2: 0h0dnqm24i-T4 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] reference-54d74f2: 0h0dnqm24i-T4 library/rex-code-tdd tier B rank 4: right
+[q1] reference-54d74f2: 0h0dnqm24i-T4 library/rex-code-failure-policy tier B rank 5: right
+[q1] reference-54d74f2: 0h0dnqm24i-T5 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h0dnqm24i-T5 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] reference-54d74f2: 0h0dnqm24i-T5 library/rex-code-tests-fitness-functions tier B rank 3: right
+[q1] reference-54d74f2: 0h0dnqm24i-T5 library/rex-code-tdd tier B rank 4: right
+[q1] reference-54d74f2: 0h0dnqm24i-T5 library/rex-code-failure-policy tier B rank 5: right
+[q1] reference-54d74f2: 0h0dnqm24i-T6 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h0dnqm24i-T6 library/rex-code-tests-integration-testing tier B rank 2: right
+[q1] reference-54d74f2: 0h0dnqm24i-T6 library/rex-code-tdd tier B rank 3: right
+[q1] reference-54d74f2: 0h0dnqm24i-T6 library/rex-code-failure-policy tier B rank 4: right
+[q1] reference-54d74f2: 0h0dnqm24i-T6 library/rex-code-folder-management tier B rank 5: doubtful
+[q1] reference-54d74f2: 0h0f8vnww4-T1 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h0f8vnww4-T1 library/rex-code-tests-unit-testing tier B rank 2: right
+[q1] reference-54d74f2: 0h0f8vnww4-T1 library/rex-code-tests-contract-seams tier B rank 3: right
+[q1] reference-54d74f2: 0h0f8vnww4-T1 library/rex-code-tests-fitness-functions tier B rank 4: right
+[q1] reference-54d74f2: 0h0f8vnww4-T1 library/rex-code-tests-integration-testing tier B rank 5: right
+[q1] reference-54d74f2: 0h0f8vnww4-T1 library/rex-code-tdd tier B rank 6: right
+[q1] reference-54d74f2: 0h0f8vnww4-T1 library/rex-code-failure-policy tier B rank 7: right
+[q1] reference-54d74f2: 0h0f8vnww4-T1 library/rex-code-folder-management tier B rank 8: right
+[q1] reference-54d74f2: 0h0f8vnww4-T2 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h0f8vnww4-T2 library/rex-gap-ts tier A rank 2: right
+[q1] reference-54d74f2: 0h0f8vnww4-T2 library/rex-code-tests-unit-testing tier B rank 3: doubtful
+[q1] reference-54d74f2: 0h0f8vnww4-T2 library/rex-code-tdd tier B rank 4: right
+[q1] reference-54d74f2: 0h0f8vnww4-T2 library/rex-code-folder-management tier B rank 5: right
+[q1] reference-54d74f2: 0h0f8vnww4-T3 library/rex-code-essentials tier A rank 1: right
+[q1] reference-54d74f2: 0h0f8vnww4-T3 library/rex-gap-ts tier A rank 2: right
+[q1] reference-54d74f2: 0h0f8vnww4-T3 library/rex-code-tests-integration-testing tier B rank 3: right
+[q1] reference-54d74f2: 0h0f8vnww4-T3 library/rex-code-folder-management tier B rank 4: doubtful
+[q1] reference-54d74f2: 0h0fitv57s-T1 library/rex-skill-language tier B rank 1: right
+[q1] reference-54d74f2: 0h0fitv57s-T1 library/rex-agent-prompting tier B rank 2: doubtful
+[q2] reference-54d74f2: tier A: right 16, wrong 0, doubtful 1, no verdict 0
+[q2] reference-54d74f2: tier B: right 51, wrong 0, doubtful 10, no verdict 0
+[q2] reference-54d74f2: 78 distinct tier A or B pairs, 0 with no verdict, 0 with a verdict given at another tier
+[q3] 0 distinct pairs over all 3 result folders have no verdict
+[q4] first measurement tier B wrong: 0h0962klnd-T1 library/rex-code-design-sketch: run-1-54d74f2 not returned; run-2-54d74f2 tier B rank 3; reference-54d74f2 not returned
+[q4] first measurement tier B doubtful: 0h0962klnd-T1 library/rex-code-tdd: run-1-54d74f2 not returned; run-2-54d74f2 not returned; reference-54d74f2 not returned
+[q4] first measurement tier B wrong: 0h0962klnd-T1 library/rex-code-validation-plan: run-1-54d74f2 not returned; run-2-54d74f2 tier B rank 6; reference-54d74f2 tier C rank 10
+[q4] first measurement tier B doubtful: 0h0962klnd-T2 library/rex-agent-prompting: run-1-54d74f2 tier B rank 5; run-2-54d74f2 tier B rank 5; reference-54d74f2 tier B rank 5
+[q4] first measurement tier B wrong: 0h0962klnd-T2 library/rex-code-design-sketch: run-1-54d74f2 not returned; run-2-54d74f2 tier B rank 3; reference-54d74f2 not returned
+[q4] first measurement tier B doubtful: 0h0962klnd-T2 library/rex-code-folder-management: run-1-54d74f2 tier B rank 6; run-2-54d74f2 tier B rank 6; reference-54d74f2 tier B rank 6
+[q4] first measurement tier B doubtful: 0h0962klnd-T2 library/rex-code-tdd: run-1-54d74f2 not returned; run-2-54d74f2 not returned; reference-54d74f2 not returned
+[q4] first measurement tier B wrong: 0h0962klnd-T2 library/rex-code-validation-plan: run-1-54d74f2 not returned; run-2-54d74f2 tier B rank 7; reference-54d74f2 not returned
+[q4] first measurement tier B wrong: 0h0962klnd-T3 library/rex-code-spike: run-1-54d74f2 not returned; run-2-54d74f2 not returned; reference-54d74f2 not returned
+[q4] first measurement tier B wrong: 0h096dyeq9-T1 library/rex-code-design-sketch: run-1-54d74f2 tier C rank 1; run-2-54d74f2 tier C rank 1; reference-54d74f2 not returned
+[q4] first measurement tier B wrong: 0h096dyeq9-T1 library/rex-code-validation-plan: run-1-54d74f2 not returned; run-2-54d74f2 not returned; reference-54d74f2 not returned
+[q4] first measurement tier B wrong: 0h096dyeq9-T2 library/rex-code-smells: run-1-54d74f2 not returned; run-2-54d74f2 not returned; reference-54d74f2 not returned
+[q4] first measurement tier B doubtful: 0h096dyeq9-T2 library/rex-code-tests-unit-testing: run-1-54d74f2 tier B rank 3; run-2-54d74f2 tier B rank 2; reference-54d74f2 not returned
+[q4] first measurement tier B wrong: 0h0d1109wo-T1 library/rex-code-folder-management: run-1-54d74f2 tier B rank 3; run-2-54d74f2 tier B rank 3; reference-54d74f2 not returned
+[q4] first measurement tier B doubtful: 0h0dnqm24i-reviewer library/rex-code-spike: run-1-54d74f2 not returned; run-2-54d74f2 not returned; reference-54d74f2 not returned
+[q4] first measurement tier B doubtful: 0h0dnqm24i-reviewer library/rex-code-validation-plan: run-1-54d74f2 not returned; run-2-54d74f2 not returned; reference-54d74f2 not returned
+[q4] first measurement tier B doubtful: 0h0dnqm24i-T1 library/rex-code-improve-codebase-architecture: run-1-54d74f2 tier B rank 3; run-2-54d74f2 tier B rank 5; reference-54d74f2 tier B rank 8
+[q4] first measurement tier B doubtful: 0h0dnqm24i-T1 library/rex-code-tests-contract-seams: run-1-54d74f2 tier C rank 7; run-2-54d74f2 tier B rank 3; reference-54d74f2 tier B rank 3
+[q4] first measurement tier B doubtful: 0h0dnqm24i-T1 library/rex-code-tests-fitness-functions: run-1-54d74f2 not returned; run-2-54d74f2 tier B rank 4; reference-54d74f2 tier B rank 4
+[q4] first measurement tier B doubtful: 0h0dnqm24i-T1 library/rex-code-tests-integration-testing: run-1-54d74f2 not returned; run-2-54d74f2 not returned; reference-54d74f2 tier B rank 5
+[q4] first measurement tier B doubtful: 0h0dnqm24i-T2 library/rex-code-folder-management: run-1-54d74f2 tier B rank 6; run-2-54d74f2 not returned; reference-54d74f2 not returned
+[q4] first measurement tier B doubtful: 0h0dnqm24i-T6 library/rex-code-folder-management: run-1-54d74f2 tier B rank 5; run-2-54d74f2 tier B rank 5; reference-54d74f2 tier B rank 5
+[q4] first measurement tier B wrong: 0h0dnqm24i-T6 library/rex-code-smells: run-1-54d74f2 not returned; run-2-54d74f2 not returned; reference-54d74f2 not returned
+[q4] first measurement tier B wrong: 0h0f8vnww4-T2 library/rex-agent-prompting: run-1-54d74f2 tier B rank 5; run-2-54d74f2 not returned; reference-54d74f2 not returned
+[q4] first measurement tier B doubtful: 0h0f8vnww4-T2 library/rex-code-tests-unit-testing: run-1-54d74f2 tier B rank 3; run-2-54d74f2 tier B rank 3; reference-54d74f2 tier B rank 3
+[q4] first measurement tier B doubtful: 0h0f8vnww4-T3 library/rex-code-folder-management: run-1-54d74f2 tier B rank 4; run-2-54d74f2 tier B rank 4; reference-54d74f2 tier B rank 4
+[q4] first measurement tier B doubtful: 0h0f8vnww4-T3 library/rex-code-tdd: run-1-54d74f2 not returned; run-2-54d74f2 not returned; reference-54d74f2 not returned
+[q4] first measurement tier B doubtful: 0h0fitv57s-T1 library/rex-agent-prompting: run-1-54d74f2 not returned; run-2-54d74f2 not returned; reference-54d74f2 tier B rank 2
+[q5] 28 tier B pairs judged not right in the first measurement (11 wrong, 17 doubtful); 18 of them are still at tier B in at least one result folder

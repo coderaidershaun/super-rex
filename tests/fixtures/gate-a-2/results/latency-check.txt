@@ -1,0 +1,4 @@
+[l0] libraries plugin/library then /Users/shaun/Code/DEVELOPMENT/gate-a-pool/terminalskills/skills; limit 10; header not_when of rex-code-latency: "A hot path measured in milliseconds, or one on a host you do not control."
+[l1] latency-go-ms: rex-code-latency on any page: no; gap: need "must_have:latency", reason "scope: languages go not in rust; latency_scale ms not in ns_us", not_when "A hot path measured in milliseconds, or one on a host you do not control."; not_when equals the header: yes; pass
+[l1] latency-rust-ns: rex-code-latency at rank 2, tier B, slot quality:latency, why "declared: quality latency"; in gaps: no; pass
+[l2] 2 of 2 latency forms behave as spec 8.3 says

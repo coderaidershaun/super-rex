@@ -1,0 +1,14 @@
+[t0] agent-acd4eceb203625040.jsonl: input folder /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/input; allowed for writes and shell paths: /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/out, /private/tmp/claude-501/-Users-shaun-Code-scratch-skilled/90965a73-8bf5-4eb6-aef9-e8b37390eb29/scratchpad, /Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg; each call cut at 300 characters
+[t1] mcp__super-rex__rex_skill {}
+[t1] Bash {"command": "cat /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/input/terms.json; echo; echo ====; cat /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/input/aliases.json; echo; ls /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/"}
+[t1] Read {"file_path": "/Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/input/tasks.json"}
+[t1] Bash {"command": "mkdir -p /private/tmp/claude-501/-Users-shaun-Code-scratch-skilled/90965a73-8bf5-4eb6-aef9-e8b37390eb29/scratchpad/fw && cat > /private/tmp/claude-501/-Users-shaun-Code-scratch-skilled/90965a73-8bf5-4eb6-aef9-e8b37390eb29/scratchpad/fw/build.py <<'PYEOF'\nimport json, sys, os\nbase
+[t1] Bash {"command": "cd /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/out && for f in *.json; do python3 -I -m json.tool \"$f\" >/dev/null || echo \"BAD $f\"; done; ls; mkdir -p /Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg"}
+[t1] Write {"file_path": "/Users/shaun/Code/DEVELOPMENT/super-rex/.rex/plans/0h0vht64cg/form-writer-2.md"}
+[t2] 6 tool call blocks listed, 6 distinct calls by id; the transcript repeats a call in the record of a later request
+[t3] mcp__super-rex__rex_skill (transcript line 17): skill call: mcp__super-rex__rex_skill {}
+[t3] Bash (transcript line 25): shell call names paths outside the input and allowed folders (check by hand): /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2/
+[t3] Bash (transcript line 33): shell call names rex or claude as a command word (check by hand)
+[t3] Bash (transcript line 33): shell call names paths outside the input and allowed folders (check by hand): /Users/shaun/Code/DEVELOPMENT/gate-a-sealed/run-2 /input/tasks.json /input/terms.json /out
+[t4] 6 distinct calls, 3 flagged; 1 read calls; 1 skill calls; tools used: Bash, Read, Write, mcp__super-rex__rex_skill
+[t5] section == run-2 of transcripts.txt: 6 lines; this listing: 6 lines; every line is the same (trailing space removed on both sides)

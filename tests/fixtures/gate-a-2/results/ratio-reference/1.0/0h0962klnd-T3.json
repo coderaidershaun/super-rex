@@ -1,0 +1,34 @@
+{
+  "id": "0h0962klnd-T3",
+  "index_version": "sha256:8b1943d899b481c80a8a68def5233716ca48a41f886c73ec3e05a034919bde51",
+  "items": [
+    {
+      "rank": 1,
+      "skill": "improve-codebase-architecture",
+      "library": "skills",
+      "tier": "C"
+    },
+    {
+      "rank": 2,
+      "skill": "understand-diff",
+      "library": "skills",
+      "tier": "C"
+    }
+  ],
+  "more": 0,
+  "later_items": [],
+  "gaps": [
+    {
+      "need": "activity:document",
+      "reason": "no skill claims it"
+    },
+    {
+      "need": "touches:unproven-approach",
+      "reason": "scope: writes_code false not in true",
+      "skill": "rex-code-spike",
+      "library": "library"
+    }
+  ],
+  "unrecognised": [],
+  "dropped": []
+}
