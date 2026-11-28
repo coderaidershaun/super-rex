@@ -1,0 +1,67 @@
+{
+  "id": "0h0f8vnww4-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "file-layout",
+    "system-boundary"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test",
+    "fitness-test",
+    "contract-test",
+    "unit-test"
+  ],
+  "needs": [
+    "doctor check that reports an MCP server's version and version skew"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "`src/commands/skills/serve.rs`, `serve/library.rs`, `serve/vocabulary.rs`"
+    },
+    {
+      "term": "rust",
+      "quote": "inline `#[cfg(test)]` tests in the files it owns"
+    },
+    {
+      "term": "build",
+      "quote": "Rust half of WP5 part 2"
+    },
+    {
+      "term": "outside-input",
+      "quote": "`get` answers `not_found` for each file that `head` does not list and hash, symlink included"
+    },
+    {
+      "term": "file-layout",
+      "quote": "one new doctor module file IF it passes 500 lines"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "when it cannot start (fixture plugin)"
+    },
+    {
+      "term": "integration-test",
+      "quote": "new tests under `tests/integration/skills_serve/`"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "fitness test that each skill folder in `plugin/library/` has a `metadata` map that `Header::metadata()` reads"
+    },
+    {
+      "term": "contract-test",
+      "quote": "new cases in `tests/contract/calls/doctor.rs`"
+    },
+    {
+      "term": "unit-test",
+      "quote": "inline `#[cfg(test)]` tests in the files it owns"
+    }
+  ]
+}

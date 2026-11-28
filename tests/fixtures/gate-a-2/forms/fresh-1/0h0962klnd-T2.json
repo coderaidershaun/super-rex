@@ -1,0 +1,40 @@
+{
+  "id": "0h0962klnd-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "ts"
+    ]
+  },
+  "activity": "test",
+  "touches": [
+    "unproven-approach"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "call a plugin's own MCP server from its mod with $.mcp.call",
+    "stub stdio MCP server in TypeScript with node built-ins only",
+    "confirm the plugin manifest key that declares an MCP server"
+  ],
+  "evidence": [
+    {
+      "term": "ts",
+      "quote": "TypeScript run by `node` 24 with type stripping"
+    },
+    {
+      "term": "test",
+      "quote": "Quote the marker, the nonce and the log line for each of (a), (b), (c)"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "Assumption 3 proved or disproved"
+    },
+    {
+      "term": "integration-test",
+      "quote": "a runner in TypeScript run by `node`"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "0h0dnqm24i-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [
+    "unproven-approach"
+  ],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "review a design contract against a design gate before code starts",
+    "resume and review the whole branch with earlier findings"
+  ],
+  "evidence": [
+    {
+      "term": "review",
+      "quote": "resumed on the whole job branch against the request and the contract, earlier findings included"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "each unknown proven by a quoted run"
+    }
+  ]
+}

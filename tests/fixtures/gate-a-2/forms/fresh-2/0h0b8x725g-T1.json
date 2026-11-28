@@ -1,0 +1,54 @@
+{
+  "id": "0h0b8x725g-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "long-running",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "speak MCP JSON-RPC over stdio by hand",
+    "keep file reads inside the skill folder, symlinks included",
+    "hash a file tree into a stable version"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "New files under `src/commands/skills/` (`serve.rs` + siblings)"
+    },
+    {
+      "term": "rust",
+      "quote": "`cargo clippy --locked --workspace --all-targets -- -D warnings`"
+    },
+    {
+      "term": "build",
+      "quote": "`rex skills serve [--library <path>]...` runs a hand-written stdio JSON-RPC MCP server (no new crate)"
+    },
+    {
+      "term": "outside-input",
+      "quote": "`isError` code `not_found` for missing skill/file or path that leaves skill folder"
+    },
+    {
+      "term": "long-running",
+      "quote": "runs a hand-written stdio JSON-RPC MCP server"
+    },
+    {
+      "term": "file-layout",
+      "quote": "New files under `src/commands/skills/` (`serve.rs` + siblings)"
+    },
+    {
+      "term": "integration-test",
+      "quote": "New tests in `tests/integration/skills_serve/` start `rex skills serve --library <fixture>` as child process, speak JSON-RPC over stdin/stdout"
+    }
+  ]
+}

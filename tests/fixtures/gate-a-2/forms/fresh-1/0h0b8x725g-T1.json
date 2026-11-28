@@ -1,0 +1,50 @@
+{
+  "id": "0h0b8x725g-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "long-running",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "hand-written JSON-RPC MCP server over stdio",
+    "deterministic SHA-256 version hash of a folder of files",
+    "reject paths and symlinks that leave a folder"
+  ],
+  "evidence": [
+    {
+      "term": "rust",
+      "quote": "`src/commands/skills/mod.rs`"
+    },
+    {
+      "term": "build",
+      "quote": "runs a hand-written stdio JSON-RPC MCP server (no new crate)"
+    },
+    {
+      "term": "outside-input",
+      "quote": "`isError` code `not_found` for missing skill/file or path that leaves skill folder"
+    },
+    {
+      "term": "long-running",
+      "quote": "runs a hand-written stdio JSON-RPC MCP server"
+    },
+    {
+      "term": "file-layout",
+      "quote": "New files under `src/commands/skills/` (`serve.rs` + siblings)"
+    },
+    {
+      "term": "integration-test",
+      "quote": "New tests in `tests/integration/skills_serve/` start `rex skills serve --library <fixture>` as child process"
+    }
+  ]
+}

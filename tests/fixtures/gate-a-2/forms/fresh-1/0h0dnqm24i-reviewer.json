@@ -1,0 +1,22 @@
+{
+  "id": "0h0dnqm24i-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": [],
+    "role": "reviewer"
+  },
+  "activity": "review",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "run the rex-code-design-sketch GATE on a contract before code",
+    "review the whole branch against the request and the contract"
+  ],
+  "evidence": [
+    {
+      "term": "review",
+      "quote": "Two passes by one agent"
+    }
+  ]
+}

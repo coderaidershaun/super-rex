@@ -1,0 +1,54 @@
+{
+  "id": "0h0962klnd-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "ts"
+    ]
+  },
+  "activity": "test",
+  "touches": [
+    "unproven-approach",
+    "file-layout",
+    "system-boundary"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "write a stub stdio MCP server in TypeScript with node built-ins",
+    "find the plugin manifest key that declares an MCP server",
+    "run nested headless Claude sessions with allowed and disallowed tools"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "a runner in TypeScript run by `node`"
+    },
+    {
+      "term": "ts",
+      "quote": "a stub stdio MCP server (TypeScript run by `node` 24 with type stripping, built-ins only, no new dependency)"
+    },
+    {
+      "term": "test",
+      "quote": "Quote the marker, the nonce and the log line for each of (a), (b), (c)"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "Assumption 3 proved or disproved"
+    },
+    {
+      "term": "file-layout",
+      "quote": "new fixture folder `tests/fixtures/wp0-mcp/` only"
+    },
+    {
+      "term": "system-boundary",
+      "quote": "the stub returns the nonce and appends each call it gets to a log file in the temp folder"
+    },
+    {
+      "term": "integration-test",
+      "quote": "Nested sessions allow only the probe tool"
+    }
+  ]
+}

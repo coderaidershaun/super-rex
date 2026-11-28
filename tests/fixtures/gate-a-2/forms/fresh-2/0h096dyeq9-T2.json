@@ -1,0 +1,59 @@
+{
+  "id": "0h096dyeq9-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "file-layout"
+  ],
+  "must_have": [
+    "readability"
+  ],
+  "artefacts": [
+    "integration-test",
+    "fitness-test"
+  ],
+  "needs": [
+    "validate a YAML header map with stable rule IDs",
+    "embed a JSON vocabulary file in the binary"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "`src/commands/skills/header.rs`, `src/commands/skills/rules.rs`"
+    },
+    {
+      "term": "rust",
+      "quote": "`cargo build` and `cargo test` pass in the job worktree."
+    },
+    {
+      "term": "build",
+      "quote": "applies new rules with permanent IDs"
+    },
+    {
+      "term": "outside-input",
+      "quote": "the field rules of the 7.1 table, each as a finding, never a panic"
+    },
+    {
+      "term": "file-layout",
+      "quote": "new module(s) in `src/commands/skills/` and their `mod.rs` line"
+    },
+    {
+      "term": "readability",
+      "quote": "Every changed or new source file is at most 500 lines and opens with its one or two line comment."
+    },
+    {
+      "term": "integration-test",
+      "quote": "A new test file under `tests/` fails a skill with a missing `kind`"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "The new `M*` rules are added to the `rules` list of `every_skill_and_agent_of_the_bundle_obeys_its_rules` in `tests/fitness/oms_skills/skill_bundle.rs`"
+    }
+  ]
+}

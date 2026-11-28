@@ -1,0 +1,50 @@
+{
+  "id": "0h096dyeq9-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test",
+    "fitness-test"
+  ],
+  "needs": [
+    "parse a nested YAML metadata map in a skill header",
+    "validation rules with permanent IDs reported as findings",
+    "embed a JSON vocabulary in the binary"
+  ],
+  "evidence": [
+    {
+      "term": "rust",
+      "quote": "`src/commands/skills/header.rs`"
+    },
+    {
+      "term": "build",
+      "quote": "applies new rules with permanent IDs"
+    },
+    {
+      "term": "outside-input",
+      "quote": "each as a finding, never a panic"
+    },
+    {
+      "term": "file-layout",
+      "quote": "new module(s) in `src/commands/skills/` and their `mod.rs` line"
+    },
+    {
+      "term": "integration-test",
+      "quote": "`tests/integration/oms_skills/skills/metadata.rs`"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "The new `M*` rules are added to the `rules` list of `every_skill_and_agent_of_the_bundle_obeys_its_rules` in `tests/fitness/oms_skills/skill_bundle.rs`"
+    }
+  ]
+}

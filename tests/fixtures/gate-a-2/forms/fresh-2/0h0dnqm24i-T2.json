@@ -1,0 +1,53 @@
+{
+  "id": "0h0dnqm24i-T2",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test",
+    "fitness-test",
+    "contract-test"
+  ],
+  "needs": [
+    "write tests first",
+    "deterministic byte-identical index output"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "index files under `src/commands/skills/search/` that the contract names"
+    },
+    {
+      "term": "rust",
+      "quote": "read through `Header::metadata()`"
+    },
+    {
+      "term": "build",
+      "quote": "Index built from skill folders and `rex skills index`"
+    },
+    {
+      "term": "outside-input",
+      "quote": "a malformed header does not stop the index"
+    },
+    {
+      "term": "integration-test",
+      "quote": "Tests in its files of `tests/integration/skills_search/` on the fixture library, test first"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "`index.json` is byte-identical on two runs"
+    },
+    {
+      "term": "contract-test",
+      "quote": "`tests/contract/skills_search/loader_lookups.rs` runs lookups A, B and C over an index that the loader built from the fixture library"
+    }
+  ]
+}

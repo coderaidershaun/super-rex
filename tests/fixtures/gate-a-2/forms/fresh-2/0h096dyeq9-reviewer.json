@@ -1,0 +1,21 @@
+{
+  "id": "0h096dyeq9-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "check that the diff leaves forbidden paths unchanged",
+    "compare command output on BASE and HEAD"
+  ],
+  "evidence": [
+    {
+      "term": "review",
+      "quote": "Review verdict of the whole change on the stable job branch."
+    }
+  ]
+}

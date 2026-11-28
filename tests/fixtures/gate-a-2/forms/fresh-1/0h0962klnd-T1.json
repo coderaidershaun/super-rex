@@ -1,0 +1,45 @@
+{
+  "id": "0h0962klnd-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "test",
+  "touches": [
+    "unproven-approach",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "check that SQLite FTS5 is compiled into the bundled rusqlite build",
+    "check that Claude Code loads a skill with a nested metadata header without warning",
+    "live plugin load test with positive and negative controls"
+  ],
+  "evidence": [
+    {
+      "term": "rust",
+      "quote": "a new Rust test in `tests/integration/`"
+    },
+    {
+      "term": "test",
+      "quote": "`cargo test` passes, including a new Rust test in `tests/integration/`"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "Assumptions 1 and 2 proved or disproved"
+    },
+    {
+      "term": "file-layout",
+      "quote": "one new test module below `tests/integration/`"
+    },
+    {
+      "term": "integration-test",
+      "quote": "a new Rust test in `tests/integration/` that creates an FTS5 virtual table"
+    }
+  ]
+}

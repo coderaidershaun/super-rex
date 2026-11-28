@@ -1,0 +1,20 @@
+{
+  "id": "0h0b8x725g-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "check each spec requirement and rate findings by severity"
+  ],
+  "evidence": [
+    {
+      "term": "review",
+      "quote": "Independent review of job branch against request, spec 8.1/8.2 and scope list."
+    }
+  ]
+}

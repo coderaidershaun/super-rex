@@ -1,0 +1,59 @@
+{
+  "id": "0h0f8vnww4-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test",
+    "contract-test",
+    "fitness-test",
+    "unit-test"
+  ],
+  "needs": [
+    "rex doctor check that an MCP server starts and answers",
+    "declare an MCP server in the plugin manifest"
+  ],
+  "evidence": [
+    {
+      "term": "rust",
+      "quote": "`src/commands/doctor.rs`"
+    },
+    {
+      "term": "build",
+      "quote": "Rust half of WP5 part 2"
+    },
+    {
+      "term": "outside-input",
+      "quote": "`get` answers `not_found` for each file that `head` does not list and hash, symlink included"
+    },
+    {
+      "term": "file-layout",
+      "quote": "one new doctor module file IF it passes 500 lines"
+    },
+    {
+      "term": "integration-test",
+      "quote": "new tests under `tests/integration/skills_serve/`"
+    },
+    {
+      "term": "contract-test",
+      "quote": "new cases in `tests/contract/calls/doctor.rs`"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "fitness test that each skill folder in `plugin/library/` has a `metadata` map"
+    },
+    {
+      "term": "unit-test",
+      "quote": "inline `#[cfg(test)]` tests in the files it owns"
+    }
+  ]
+}

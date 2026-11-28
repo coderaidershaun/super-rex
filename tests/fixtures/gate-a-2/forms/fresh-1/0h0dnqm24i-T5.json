@@ -1,0 +1,45 @@
+{
+  "id": "0h0dnqm24i-T5",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "build",
+  "touches": [
+    "outside-input"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test",
+    "fitness-test"
+  ],
+  "needs": [
+    "cursor paging with stale and garbled cursor errors",
+    "keep a JSON answer within a token budget",
+    "write tests first"
+  ],
+  "evidence": [
+    {
+      "term": "rust",
+      "quote": "`src/commands/skills/serve/tools.rs`"
+    },
+    {
+      "term": "build",
+      "quote": "The answer of `search` and its two callers"
+    },
+    {
+      "term": "outside-input",
+      "quote": "a garbled cursor answers `bad_cursor`"
+    },
+    {
+      "term": "integration-test",
+      "quote": "End-to-end tests in its files of `tests/integration/skills_search/` through the binary"
+    },
+    {
+      "term": "fitness-test",
+      "quote": "In `tests/fitness/skills_search/`: same input gives byte-identical output on repeated runs"
+    }
+  ]
+}

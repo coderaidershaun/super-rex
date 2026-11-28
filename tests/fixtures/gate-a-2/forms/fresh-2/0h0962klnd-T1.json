@@ -1,0 +1,48 @@
+{
+  "id": "0h0962klnd-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "test",
+  "touches": [
+    "unproven-approach",
+    "file-layout"
+  ],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "check whether SQLite FTS5 is in the bundled rusqlite build",
+    "prove Claude Code loads a skill header live, with a positive control"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "a new Rust test in `tests/integration/`"
+    },
+    {
+      "term": "rust",
+      "quote": "a new Rust test in `tests/integration/`"
+    },
+    {
+      "term": "test",
+      "quote": "`cargo test` passes, including a new Rust test in `tests/integration/`"
+    },
+    {
+      "term": "unproven-approach",
+      "quote": "Assumptions 1 and 2 proved or disproved."
+    },
+    {
+      "term": "file-layout",
+      "quote": "one new test module below `tests/integration/`"
+    },
+    {
+      "term": "integration-test",
+      "quote": "creates an FTS5 virtual table (columns name, card, intents), runs a query ranked by `bm25(t, 4.0, 2.0, 3.0)`"
+    }
+  ]
+}

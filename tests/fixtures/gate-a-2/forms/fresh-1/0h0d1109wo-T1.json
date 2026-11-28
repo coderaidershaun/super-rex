@@ -1,0 +1,34 @@
+{
+  "id": "0h0d1109wo-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "document",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [
+    "instructions"
+  ],
+  "needs": [
+    "write metadata header maps for existing skills",
+    "write a short digest skill of rules for every code task",
+    "prove skill bodies stay byte-equal across commits"
+  ],
+  "evidence": [
+    {
+      "term": "rust",
+      "quote": "`tests/integration/skills_serve/head.rs:75`"
+    },
+    {
+      "term": "document",
+      "quote": "Each of the 24 skills in `plugin/library/` has the `metadata` map of spec 7.1 in its header"
+    },
+    {
+      "term": "instructions",
+      "quote": "New skill `plugin/library/rex-code-essentials/SKILL.md`"
+    }
+  ]
+}

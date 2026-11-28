@@ -1,0 +1,20 @@
+{
+  "id": "0h0d1109wo-reviewer",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "review",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "rerun the header audit script and the body byte-equal check"
+  ],
+  "evidence": [
+    {
+      "term": "review",
+      "quote": "Independent verdict on the stable job branch of T1"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "0h0f8vnww4-T3",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "ts"
+    ]
+  },
+  "activity": "test",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [
+    "integration-test"
+  ],
+  "needs": [
+    "headless claude -p session that loads a local plugin",
+    "record a verdict with quoted output, never PASSED without a run"
+  ],
+  "evidence": [
+    {
+      "term": "ts",
+      "quote": "Runner + fixture in repo; type check of its tsconfig exits 0"
+    },
+    {
+      "term": "test",
+      "quote": "Live proof on merged job branch"
+    },
+    {
+      "term": "integration-test",
+      "quote": "a real `claude -p` session that loads this repo's `plugin/`"
+    }
+  ]
+}

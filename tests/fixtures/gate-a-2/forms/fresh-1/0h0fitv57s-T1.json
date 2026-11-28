@@ -1,0 +1,27 @@
+{
+  "id": "0h0fitv57s-T1",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "document",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [
+    "instructions"
+  ],
+  "needs": [
+    "write metadata header rules into a skill-writing guide",
+    "keep a forked skill's metadata in step with its files"
+  ],
+  "evidence": [
+    {
+      "term": "document",
+      "quote": "The non-tool part of WP8 is in the skill text"
+    },
+    {
+      "term": "instructions",
+      "quote": "`plugin/skills/orchestration-builder/stages/1-skills/write-skill.md`"
+    }
+  ]
+}

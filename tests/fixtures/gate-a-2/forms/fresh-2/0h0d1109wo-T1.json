@@ -1,0 +1,37 @@
+{
+  "id": "0h0d1109wo-T1",
+  "facts": {
+    "writes_code": true,
+    "languages": [
+      "rust"
+    ]
+  },
+  "activity": "document",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [
+    "instructions"
+  ],
+  "needs": [
+    "write a metadata map into each skill header",
+    "prove skill bodies stay byte-equal after a header edit"
+  ],
+  "evidence": [
+    {
+      "term": "writes_code",
+      "quote": "Every test and fixture that counts the library's skills expects 25."
+    },
+    {
+      "term": "rust",
+      "quote": "`tests/integration/skills_serve/head.rs:75`"
+    },
+    {
+      "term": "document",
+      "quote": "Header block of each `plugin/library/*/SKILL.md`"
+    },
+    {
+      "term": "instructions",
+      "quote": "New skill `plugin/library/rex-code-essentials/SKILL.md`"
+    }
+  ]
+}

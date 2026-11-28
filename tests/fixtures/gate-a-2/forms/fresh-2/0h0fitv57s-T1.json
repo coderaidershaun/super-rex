@@ -1,0 +1,27 @@
+{
+  "id": "0h0fitv57s-T1",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "document",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [
+    "instructions"
+  ],
+  "needs": [
+    "map each written rule to the check ID in code that enforces it",
+    "find and fix stale counts in text"
+  ],
+  "evidence": [
+    {
+      "term": "document",
+      "quote": "each text in `plugin/` and `README.md` that says the library holds 24 skills says 25"
+    },
+    {
+      "term": "instructions",
+      "quote": "`rex-skill-language` gains the rules of the `metadata` map"
+    }
+  ]
+}

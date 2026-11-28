@@ -1,0 +1,22 @@
+{
+  "id": "0h096dyeq9-T1",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "design",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "build a controlled vocabulary with synonyms and broader or narrower terms",
+    "map each criterion of an existing table to a term or drop it with a reason",
+    "define the JSON form of the vocabulary files"
+  ],
+  "evidence": [
+    {
+      "term": "design",
+      "quote": "the JSON form of both files, so T2 reads them without guesses"
+    }
+  ]
+}

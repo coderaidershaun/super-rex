@@ -1,0 +1,22 @@
+{
+  "id": "0h096dyeq9-T1",
+  "facts": {
+    "writes_code": false,
+    "languages": []
+  },
+  "activity": "design",
+  "touches": [],
+  "must_have": [],
+  "artefacts": [],
+  "needs": [
+    "design a controlled vocabulary with synonyms and broader/narrower terms",
+    "map the criteria of an assignment table to vocabulary terms",
+    "define the JSON form and value domains of vocabulary files"
+  ],
+  "evidence": [
+    {
+      "term": "design",
+      "quote": "Shared vocabulary stable"
+    }
+  ]
+}
