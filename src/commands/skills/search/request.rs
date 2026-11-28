@@ -12,6 +12,10 @@ pub const DEFAULT_LIMIT: usize = 10;
 /// The most free-text needs one form may hold.
 pub const MAX_NEEDS: usize = 3;
 
+/// The token budget of one result when the caller gives no `token_budget`:
+/// this many tokens for each item of `limit`, so 2,000 for a page of 10.
+pub const DEFAULT_TOKENS_PER_ITEM: usize = 200;
+
 /// The arguments of the `search` tool, and the JSON that `rex skills search`
 /// reads on stdin.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -29,6 +33,14 @@ pub struct SearchRequest {
     pub kinds: Option<Vec<String>>,
     #[serde(default)]
     pub categories: Option<Vec<String>>,
+    /// The most tokens that one result may cost. `None` means
+    /// [`DEFAULT_TOKENS_PER_ITEM`] for each item of `limit`.
+    #[serde(default)]
+    pub token_budget: Option<usize>,
+    /// Keep the hash of every item and file, whatever the size. Items still
+    /// move to the next page to keep the budget.
+    #[serde(default)]
+    pub keep_hashes: bool,
 }
 
 /// One request form: what one task or role asks of the library.
@@ -151,6 +163,13 @@ impl SearchRequest {
     #[must_use]
     pub fn limit(&self) -> usize {
         self.limit.unwrap_or(DEFAULT_LIMIT)
+    }
+
+    /// The most tokens that one result may cost.
+    #[must_use]
+    pub fn token_budget(&self) -> usize {
+        let default = || DEFAULT_TOKENS_PER_ITEM.saturating_mul(self.limit());
+        self.token_budget.unwrap_or_else(default)
     }
 }
 

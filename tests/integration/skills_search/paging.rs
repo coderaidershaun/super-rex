@@ -19,16 +19,16 @@ fn cursor_returns_exactly_the_items_the_limit_held_back() {
 
     let first = result(
         &libraries,
-        &json!({ "requests": [rust_loop()], "limit": 2 }),
+        &json!({ "requests": [rust_loop()], "limit": 2, "token_budget": 10_000 }),
     );
     let cursor = first_page_cursor(&first);
     let second = result(
         &libraries,
-        &json!({ "requests": [rust_loop()], "limit": 2, "cursor": cursor }),
+        &json!({ "requests": [rust_loop()], "limit": 2, "token_budget": 10_000, "cursor": cursor }),
     );
     let whole = result(
         &libraries,
-        &json!({ "requests": [rust_loop()], "limit": 10 }),
+        &json!({ "requests": [rust_loop()], "limit": 10, "token_budget": 10_000 }),
     );
 
     assert_eq!(skills(&first), ["fx-coding-rules", "fx-latency"]);
@@ -52,10 +52,9 @@ fn cursor_from_before_a_change_is_stale() {
     copy_tree(&main_library(), &library);
     let first = result(
         std::slice::from_ref(&library),
-        &json!({ "requests": [rust_loop()], "limit": 2 }),
+        &json!({ "requests": [rust_loop()], "limit": 2, "token_budget": 10_000 }),
     );
-    let next =
-        json!({ "requests": [rust_loop()], "limit": 2, "cursor": first_page_cursor(&first) });
+    let next = json!({ "requests": [rust_loop()], "limit": 2, "token_budget": 10_000, "cursor": first_page_cursor(&first) });
     let mut skill_file = OpenOptions::new()
         .append(true)
         .open(library.join("fx-test-first/SKILL.md"))
@@ -102,9 +101,9 @@ fn a_huge_limit_after_a_cursor_gives_the_rest() {
     let libraries = [main_library()];
     let first = result(
         &libraries,
-        &json!({ "requests": [rust_loop()], "limit": 2 }),
+        &json!({ "requests": [rust_loop()], "limit": 2, "token_budget": 10_000 }),
     );
-    let rest = json!({ "requests": [rust_loop()], "limit": u64::MAX,
+    let rest = json!({ "requests": [rust_loop()], "limit": u64::MAX, "token_budget": 10_000,
                        "cursor": first_page_cursor(&first) });
 
     let second = result(&libraries, &rest);
@@ -127,12 +126,12 @@ fn cursor_accepts_the_same_facts_in_another_order() {
             "activity": "build", "touches": ["threads"], "must_have": ["latency"] });
     let first = result(
         &libraries,
-        &json!({ "requests": [rust_loop()], "limit": 2 }),
+        &json!({ "requests": [rust_loop()], "limit": 2, "token_budget": 10_000 }),
     );
 
     let second = result(
         &libraries,
-        &json!({ "requests": [reordered], "limit": 2, "cursor": first_page_cursor(&first) }),
+        &json!({ "requests": [reordered], "limit": 2, "token_budget": 10_000, "cursor": first_page_cursor(&first) }),
     );
 
     assert_eq!(skills(&second), ["fx-test-first"]);

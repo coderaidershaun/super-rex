@@ -188,6 +188,7 @@ fn candidate(skill: usize, tier: Tier, needs: Vec<Need>, why: String) -> Candida
         questions: Vec::new(),
         through_alias: false,
         relevance: None,
+        keyword_score: None,
     }
 }
 

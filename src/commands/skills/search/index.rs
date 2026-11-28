@@ -4,6 +4,8 @@
 use serde::Serialize;
 
 use super::request::Facts;
+use crate::commands::skills::SKILL_FILE;
+use crate::commands::skills::serve::library::library_version;
 
 /// The skills of one or more library folders, for one search.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -171,6 +173,28 @@ impl Index {
                     .as_ref()
                     .is_some_and(|metadata| metadata.replaces.contains(name))
         })
+    }
+}
+
+impl IndexVersion {
+    /// The version that `head` reports, built from the files the index read:
+    /// `SKILL.md` and every other file of each served entry, then
+    /// `vocabulary`, the vocabulary version beside the first folder.
+    #[must_use]
+    pub fn of(index: &Index, vocabulary: Option<&str>) -> IndexVersion {
+        let mut files = Vec::new();
+        for entry in index
+            .skills
+            .iter()
+            .filter(|entry| entry.shadowed_by.is_none())
+        {
+            let name = &entry.name;
+            files.push((format!("{name}/{SKILL_FILE}"), entry.sha256.clone()));
+            for file in &entry.files {
+                files.push((format!("{name}/{}", file.path), file.sha256.clone()));
+            }
+        }
+        IndexVersion(library_version(files, vocabulary))
     }
 }
 

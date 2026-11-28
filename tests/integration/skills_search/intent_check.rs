@@ -142,18 +142,22 @@ fn fixture_library_passes_its_intent_check() {
         "fx-debugging",
         "fx-design-sketch",
         "fx-diagrams",
+        "fx-failure-policy",
         "fx-gap-ts",
         "fx-latency",
         "fx-old-diagrams",
         "fx-proptest",
         "fx-release-notes",
+        "fx-test-doubles",
         "fx-test-first",
+        "fx-ts-errors",
+        "fx-unit-tests",
         "fx-validation-plan",
     ]
     .iter()
     .map(|skill| format!("ok tests/fixtures/skills-search/{skill}\n"))
     .collect();
-    assert_eq!(trace(&output), (ok_lines, small_pool_line(14), Some(0)));
+    assert_eq!(trace(&output), (ok_lines, small_pool_line(18), Some(0)));
 }
 
 fn path_text(path: &Path) -> &str {

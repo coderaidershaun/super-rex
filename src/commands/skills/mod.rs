@@ -92,12 +92,18 @@ pub enum SkillsCommand {
 
     /// Search a skill library with request forms, as the search tool of `rex skills serve` does.
     #[command(
-        after_help = "Reads the arguments of the search tool as one JSON object on stdin: requests, limit, cursor, kinds and categories. Prints the answer as one JSON line. Give --library more than once for several folders, first one wins when a skill name repeats. With no --library, searches the library embedded in this binary."
+        after_help = "Reads the arguments of the search tool as one JSON object on stdin: requests, limit, cursor, kinds, categories, token_budget and keep_hashes. Prints the answer as one JSON line. Give --library more than once for several folders, first one wins when a skill name repeats. With no --library, searches the library embedded in this binary."
     )]
     Search {
         /// A folder of skill folders.
         #[arg(long = "library")]
         libraries: Vec<PathBuf>,
+        /// For measurement: the share of the best keyword score that a keyword candidate must reach, above 0 and at most 1, in place of the built-in 0.5.
+        #[arg(long = "keyword-ratio", value_name = "SHARE")]
+        keyword_ratio: Option<f64>,
+        /// For measurement: add `score` and `best_score` to each tier C item.
+        #[arg(long = "keyword-scores")]
+        keyword_scores: bool,
     },
 
     /// Print the static index of a skill library as JSON, to publish beside it.
@@ -197,7 +203,14 @@ pub fn run(cwd: &Path, options: SkillsOptions) -> Result<(), SkillsError> {
         SkillsCommand::List { json } => list::run(cwd, json),
         SkillsCommand::Check { paths, pools } => check::run(cwd, &paths, &pools),
         SkillsCommand::Serve { name, libraries } => Ok(serve::run(name, &libraries)?),
-        SkillsCommand::Search { libraries } => search::run_search(&libraries),
+        SkillsCommand::Search {
+            libraries,
+            keyword_ratio,
+            keyword_scores,
+        } => {
+            let settings = search::KeywordSettings::new(keyword_ratio, keyword_scores)?;
+            search::run_search(&libraries, &settings)
+        }
         SkillsCommand::Index { libraries } => search::run_index(&libraries),
     }
 }

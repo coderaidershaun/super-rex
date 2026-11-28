@@ -21,6 +21,31 @@ fn tool_text(server: &mut Server, arguments: &Value) -> (bool, String) {
 }
 
 #[test]
+fn cli_and_serve_tool_give_the_same_answer_with_a_budget_and_every_hash() {
+    let library = main_library();
+    let mut server = Server::start(&[&library]);
+    server.initialize();
+
+    for arguments in [
+        json!({ "requests": [rust_loop(), go_service()], "token_budget": 300 }),
+        json!({ "requests": [rust_loop()], "token_budget": 300, "keep_hashes": true }),
+        json!({ "requests": [rust_loop()], "token_budget": 40, "keep_hashes": false }),
+    ] {
+        let output = run_search(std::slice::from_ref(&library), &arguments.to_string());
+        let (is_error, text) = tool_text(&mut server, &arguments);
+
+        assert!(output.status.success(), "{arguments}");
+        assert!(!is_error, "{arguments}: {text}");
+        let line = String::from_utf8(output.stdout).expect("UTF-8");
+        assert_eq!(format!("{text}\n"), line, "{arguments}");
+    }
+    let tight = json!({ "requests": [rust_loop()], "token_budget": 40 });
+    let (_, text) = tool_text(&mut server, &tight);
+    let answer: Value = serde_json::from_str(&text).expect("JSON");
+    assert_eq!(answer["results"][0]["over_budget"], true);
+}
+
+#[test]
 fn cli_and_serve_tool_give_the_same_answer() {
     let arguments = json!({ "requests": [rust_loop(), go_service()] });
     let garbled = json!({ "requests": [rust_loop()], "cursor": "eyJvIjoxMH0" });

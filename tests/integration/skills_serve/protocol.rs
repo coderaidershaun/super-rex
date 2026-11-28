@@ -41,7 +41,15 @@ fn tools_list_names_head_search_and_get_with_their_arguments() {
     assert_eq!(properties("get"), ["file", "skill"]);
     assert_eq!(
         properties("search"),
-        ["categories", "cursor", "kinds", "limit", "requests"]
+        [
+            "categories",
+            "cursor",
+            "keep_hashes",
+            "kinds",
+            "limit",
+            "requests",
+            "token_budget"
+        ]
     );
 }
 

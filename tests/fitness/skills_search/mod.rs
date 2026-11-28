@@ -5,3 +5,4 @@ mod answer_stability;
 mod index_determinism;
 mod keyword_text;
 mod no_corpus_statistics;
+mod page_budget;

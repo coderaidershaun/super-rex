@@ -39,7 +39,9 @@ pub(super) fn list() -> Value {
                 "limit": { "type": "integer", "minimum": 1 },
                 "cursor": { "type": ["string", "null"] },
                 "kinds": { "type": ["array", "null"], "items": { "type": "string" } },
-                "categories": { "type": ["array", "null"], "items": { "type": "string" } }
+                "categories": { "type": ["array", "null"], "items": { "type": "string" } },
+                "token_budget": { "type": "integer", "minimum": 1 },
+                "keep_hashes": { "type": "boolean" }
             }, "required": ["requests"] }
         },
         {

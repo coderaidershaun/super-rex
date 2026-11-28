@@ -7,7 +7,7 @@ use rusqlite::Connection;
 
 use super::index::Index;
 use super::request::{FormTerms, Need, TextQuery};
-use super::response::{Candidate, Found, Question, SearchError, Tier};
+use super::response::{Candidate, Found, KeywordScore, Question, SearchError, Tier};
 use super::vocabulary::{TermGroup, Vocabulary};
 
 /// The bm25 weight of each column of the keyword table.
@@ -21,6 +21,62 @@ pub const MAX_KEYWORD_CANDIDATES: usize = 5;
 /// A candidate is kept only when its relevance is at least this share of the
 /// best one of its query. The results of gate A set the real value.
 pub const KEYWORD_SCORE_RATIO: f64 = 0.5;
+
+/// How lookup C cuts its candidates, and whether an answer shows their
+/// scores. Only `rex skills search` changes them, to measure the keyword
+/// search; the default is the built-in ratio with no scores.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KeywordSettings {
+    ratio: f64,
+    shows_scores: bool,
+}
+
+impl Default for KeywordSettings {
+    fn default() -> Self {
+        KeywordSettings {
+            ratio: KEYWORD_SCORE_RATIO,
+            shows_scores: false,
+        }
+    }
+}
+
+impl KeywordSettings {
+    /// Settings with `ratio` in place of [`KEYWORD_SCORE_RATIO`] at the cut
+    /// of each need's candidates, when it is given.
+    ///
+    /// # Errors
+    /// [`SearchError::BadKeywordRatio`] when `ratio` is not above 0 and at
+    /// most 1.
+    pub fn new(ratio: Option<f64>, shows_scores: bool) -> Result<KeywordSettings, SearchError> {
+        let ratio = ratio.unwrap_or(KEYWORD_SCORE_RATIO);
+        let is_share = ratio > 0.0 && ratio <= 1.0;
+        if !is_share {
+            return Err(SearchError::BadKeywordRatio { ratio });
+        }
+        Ok(KeywordSettings {
+            ratio,
+            shows_scores,
+        })
+    }
+
+    #[must_use]
+    pub fn ratio(&self) -> f64 {
+        self.ratio
+    }
+
+    #[must_use]
+    pub fn shows_scores(&self) -> bool {
+        self.shows_scores
+    }
+
+    /// The ratio when it is not the built-in one. A cursor binds it, so that
+    /// a cursor never continues a list that another ratio cut.
+    #[must_use]
+    pub fn changed_ratio(&self) -> Option<f64> {
+        let is_built_in = self.ratio == KEYWORD_SCORE_RATIO;
+        (!is_built_in).then_some(self.ratio)
+    }
+}
 
 /// The groups whose terms widen a keyword query, in the order of the
 /// vocabulary.
@@ -122,6 +178,18 @@ impl KeywordTable {
 /// # Errors
 /// [`SearchError::KeywordSearch`] when SQLite fails.
 pub fn lookup_c(index: &Index, form: &FormTerms) -> Result<Found, SearchError> {
+    lookup_c_at_ratio(index, form, KEYWORD_SCORE_RATIO)
+}
+
+/// Lookup C with `ratio` in place of [`KEYWORD_SCORE_RATIO`].
+///
+/// # Errors
+/// [`SearchError::KeywordSearch`] when SQLite fails.
+pub fn lookup_c_at_ratio(
+    index: &Index,
+    form: &FormTerms,
+    ratio: f64,
+) -> Result<Found, SearchError> {
     let mut found = Found::default();
     if form.keyword_queries.is_empty() {
         return Ok(found);
@@ -129,29 +197,36 @@ pub fn lookup_c(index: &Index, form: &FormTerms) -> Result<Found, SearchError> {
     let table = KeywordTable::build(index)?;
     for query in &form.keyword_queries {
         let ranked = table.rank(&query.text)?;
-        for kept in cut(index, &ranked) {
-            found.candidates.push(keyword_candidate(index, query, kept));
+        let Some((best, kept)) = cut(index, &ranked, ratio) else {
+            continue;
+        };
+        for kept in kept {
+            let score = KeywordScore {
+                score: kept.relevance,
+                best,
+            };
+            found
+                .candidates
+                .push(keyword_candidate(index, query, kept, score));
         }
     }
     Ok(found)
 }
 
-/// The head of a ranked list that one query keeps. Only served entries count
-/// toward the limit and set the best relevance; the others met on the way
-/// are kept, so the answer can report them as dropped.
-fn cut(index: &Index, ranked: &[Ranked]) -> Vec<Ranked> {
+/// The best relevance of one query and the head of its ranked list that it
+/// keeps, or `None` when nothing matched. Only served entries count toward
+/// the limit and set the best relevance; the others met on the way are kept,
+/// so the answer can report them as dropped.
+fn cut(index: &Index, ranked: &[Ranked], ratio: f64) -> Option<(f64, Vec<Ranked>)> {
     let best = ranked
         .iter()
         .find(|entry| index.is_served(entry.skill))
         .or(ranked.first())
-        .map(|entry| entry.relevance);
-    let Some(best) = best else {
-        return Vec::new();
-    };
+        .map(|entry| entry.relevance)?;
     let mut kept = Vec::new();
     let mut served = 0;
     for entry in ranked {
-        if entry.relevance < KEYWORD_SCORE_RATIO * best || served == MAX_KEYWORD_CANDIDATES {
+        if entry.relevance < ratio * best || served == MAX_KEYWORD_CANDIDATES {
             break;
         }
         if index.is_served(entry.skill) {
@@ -159,10 +234,15 @@ fn cut(index: &Index, ranked: &[Ranked]) -> Vec<Ranked> {
         }
         kept.push(*entry);
     }
-    kept
+    Some((best, kept))
 }
 
-fn keyword_candidate(index: &Index, query: &TextQuery, kept: Ranked) -> Candidate {
+fn keyword_candidate(
+    index: &Index,
+    query: &TextQuery,
+    kept: Ranked,
+    score: KeywordScore,
+) -> Candidate {
     let why = match &query.need {
         Need::Text(position) => format!("keyword: need {}", position + 1),
         Need::Word(word) => format!("keyword: {word}"),
@@ -179,6 +259,7 @@ fn keyword_candidate(index: &Index, query: &TextQuery, kept: Ranked) -> Candidat
         }],
         through_alias: false,
         relevance: Some(kept.relevance),
+        keyword_score: Some(score),
     }
 }
 

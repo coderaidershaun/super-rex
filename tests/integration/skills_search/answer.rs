@@ -141,7 +141,7 @@ fn latency_example_gives_the_skill_for_rust_and_a_gap_for_go() {
         ])
     );
     for page in [rust, go] {
-        assert!(estimated_tokens(&page.to_string()) <= 1200);
+        assert!(estimated_tokens(&page.to_string()) <= 2000);
     }
     let latency = item(rust, "fx-latency");
     assert_eq!(
@@ -359,6 +359,10 @@ fn bad_arguments_name_the_field_at_fault() {
         ),
         (json!({ "requests": [{ "id": "T1" }], "limit": 0 }), "limit"),
         (
+            json!({ "requests": [{ "id": "T1" }], "token_budget": 0 }),
+            "token_budget",
+        ),
+        (
             json!({ "requests": two_forms, "cursor": "c1.2.0000000000000000.0000000000000000" }),
             "cursor",
         ),
@@ -442,4 +446,16 @@ fn a_required_skill_names_the_first_requirer_that_a_filter_keeps() {
 
     assert_eq!(skills(&result), ["fx-zrule", "fx-plan"]);
     assert_eq!(field(&result, "why")[1], "required by fx-zrule");
+}
+
+#[test]
+fn an_open_when_item_that_a_topic_file_repeats_is_listed_once() {
+    let form = json!({ "id": "W", "facts": { "writes_code": true }, "artefacts": ["unit-test"] });
+
+    let result = result(&[main_library()], &json!({ "requests": [form] }));
+
+    assert_eq!(
+        item(&result, "fx-unit-tests")["open_when"],
+        json!([{ "file": "shared-setup.md", "when": "you share setup between tests" }])
+    );
 }

@@ -14,7 +14,7 @@ mod request;
 mod response;
 mod vocabulary;
 
-pub use answer::search;
+pub use answer::{search, search_with};
 pub use claims::{BASE_LANGUAGE, language_gaps, lookup_a, lookup_b, required_skills};
 pub use files::{DEFAULT_MAX_TOPICS, choose_files};
 pub use index::{
@@ -23,20 +23,18 @@ pub use index::{
 };
 pub use index_file::{IndexFile, IndexFileFile, IndexFileSkill};
 pub use keyword::{
-    CARD_WEIGHT, INTENTS_WEIGHT, KEYWORD_SCORE_RATIO, KeywordTable, MAX_KEYWORD_CANDIDATES,
-    NAME_WEIGHT, Ranked, lookup_c,
+    CARD_WEIGHT, INTENTS_WEIGHT, KEYWORD_SCORE_RATIO, KeywordSettings, KeywordTable,
+    MAX_KEYWORD_CANDIDATES, NAME_WEIGHT, Ranked, lookup_c, lookup_c_at_ratio,
 };
 pub use load::{CARD_WORDS, SkillSource};
-pub use page::{
-    HASH_TOKENS_PER_EIGHT_BYTES, MAX_TOKENS_PER_ITEM, TEXT_TOKENS_PER_FIVE_BYTES, estimated_tokens,
-};
+pub use page::{HASH_TOKENS_PER_EIGHT_BYTES, TEXT_TOKENS_PER_FIVE_BYTES, estimated_tokens};
 pub use request::{
-    AskedTerm, DEFAULT_LIMIT, Evidence, Facts, FormTerms, MAX_NEEDS, Need, RequestForm,
-    SearchRequest, TermField, TextQuery,
+    AskedTerm, DEFAULT_LIMIT, DEFAULT_TOKENS_PER_ITEM, Evidence, Facts, FormTerms, MAX_NEEDS, Need,
+    RequestForm, SearchRequest, TermField, TextQuery,
 };
 pub use response::{
-    Candidate, Dropped, FileChoice, FileItem, Found, Gap, Item, Question, RequestResult,
-    SearchError, SearchResponse, Slot, Tier,
+    Candidate, Dropped, FileChoice, FileItem, Found, Gap, Item, KeywordScore, Question,
+    RequestResult, SearchError, SearchResponse, Slot, Tier,
 };
 pub use vocabulary::{Alias, BroaderTerm, Relation, TermGroup, Vocabulary};
 

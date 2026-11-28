@@ -51,17 +51,21 @@ fn names(document: &Value) -> Vec<&str> {
         .collect()
 }
 
-const FIXTURE_SKILLS: [&str; 11] = [
+const FIXTURE_SKILLS: [&str; 15] = [
     "fx-coding-rules",
     "fx-debugging",
     "fx-design-sketch",
     "fx-diagrams",
+    "fx-failure-policy",
     "fx-gap-ts",
     "fx-latency",
     "fx-old-diagrams",
     "fx-proptest",
     "fx-release-notes",
+    "fx-test-doubles",
     "fx-test-first",
+    "fx-ts-errors",
+    "fx-unit-tests",
     "fx-validation-plan",
 ];
 

@@ -270,7 +270,7 @@ Each answer is one JSON text in the `content` of the tool result.
 | Tool | Takes | Answers |
 | --- | --- | --- |
 | `head` | Nothing. | `protocol` (`skills/1`), `library` (the name), `version`, `skills` (how many are served) and `vocabulary` (the version string, or `null`). |
-| `search` | `requests` (required), `limit`, `cursor`, `kinds`, `categories`. Section 6 gives the fields. | `index_version` and one result for each request. |
+| `search` | `requests` (required), `limit`, `cursor`, `kinds`, `categories`, `token_budget`, `keep_hashes`. Section 6 gives the fields. | `index_version` and one result for each request. |
 | `get` | `skill` and `file` (both required; `"file": "SKILL.md"` for the entry file). | `skill`, `file`, `sha256` (of the text) and `text`. |
 
 `version` changes when any served file or the vocabulary version changes, and not otherwise. To build it, the server writes one line for each served file, `<skill>/<file>`, a tab and the file's SHA-256, sorts the lines, and adds the line `vocabulary`, a tab and the vocabulary version. It hashes that whole text once: `version` is `sha256:` followed by that hash. Each search answer carries the same value as `index_version`.
@@ -352,6 +352,8 @@ A search runs three lookups for each request form: A matches the facts that a sk
 | `limit` | The most items in each result. Left out, 10. |
 | `cursor` | The `cursor` of an earlier result. `requests` must then hold that one request, as it was sent. |
 | `kinds`, `categories` | Lists of terms. Only skills of these kinds or categories are returned. |
+| `token_budget` | The most tokens that one result may cost, 1 or more. Left out, 200 for each item of `limit`: 2,000 for a page of 10. "The size of an answer" below says how a result keeps to it. |
+| `keep_hashes` | `true` to keep the `sha256` of every item and file, whatever the size. Left out, `false`. |
 
 Each request form takes:
 
@@ -374,13 +376,13 @@ A field that the form does not know is refused with `bad_arguments`. A word in a
 | --- | --- | --- |
 | A | Rules | Every fact that the skill claims in `claims.facts` holds for the request. A skill of kind `tool` also needs evidence: a `repo_has` or `repo_dependencies` fact that holds, or its name in the task's own words (`needs` and the `evidence` quotes). |
 | B | Declared matches | The skill claims a term of `activity`, `touches`, `must_have` or `artefacts`. Then code checks its `scope` against the request's facts: met, the skill is returned; not met, it is left out and reported under `gaps` with its `not_when` line; unknown, it is returned with a `confirm` question. |
-| C | Keyword search | A `needs` item, or a word that is not a term, matches its name, card or intents. The search uses SQLite FTS5 with BM25 weights 4 (name), 2 (card) and 3 (intents), one query for each need. It keeps at most 5 candidates for each need, each with at least half the score of the best one. That share is provisional. |
+| C | Keyword search | A `needs` item, or a word that is not a term, matches its name, card or intents. The search uses SQLite FTS5 with BM25 weights 4 (name), 2 (card) and 3 (intents), one query for each need. It keeps at most 5 candidates for each need, each with at least half the score of the best one. That share is provisional; "Measure the keyword search" below shows how to try another. |
 
 Lookups A and B use no word counts of the library, so adding other skills does not change what they find. Every tier C item has a `confirm` question, and the caller answers it before it uses the skill.
 
 ### The answer
 
-Each result holds `request`, `items`, `more`, `cursor`, `gaps`, `unrecognised` and `dropped`.
+Each result holds `request`, `items`, `more`, `cursor`, `gaps`, `unrecognised` and `dropped`, and `over_budget` when the result is over its budget (see "The size of an answer").
 
 | Field of an item | What it holds |
 | --- | --- |
@@ -396,7 +398,16 @@ Each result holds `request`, `items`, `more`, `cursor`, `gaps`, `unrecognised` a
 
 `more` is how many relevant skills come after this page, and `cursor` fetches them (`null` when `more` is 0). `gaps` lists each need that nothing matched, each skill that only its scope left out, and each language that no skill claims under `claims.facts.languages` when `writes_code` is true. `rust` is left out of that last check, because SuperRex's code rules are written for Rust. `dropped` lists skills that another skill replaces or shadows.
 
-An answer stays small. Its budget is 120 tokens for each item, and at least 1,200. If it is over, the server cuts `why` before its first `; ` (so `declared: artefact unit-test; scope met` becomes `declared: artefact unit-test`), then leaves out `sha256`, `words`, `placement`, `open_when` and `files`, in that order, from every item. If that is not enough, it moves the last items to the next page.
+**The order of the items.** Every tier A item comes before every tier B item, and every tier B item before every tier C item, on every page. Inside tier A and inside tier B, each need of the request (a set of facts that a skill claims, or a term of the form) gets its first item before any need gets its second. Inside tier C, each `needs` item and each word that is not a term does the same. A need that an item of an earlier tier already fills waits until the other needs have an item. Among the items for one need, a skill of an earlier `--library` folder comes first, then the skill that matches more needs, then a match on the term itself before a match through an alias, then the name. In tier C, the higher keyword score comes first, then the name. A skill that another item requires comes right after that item. So a keyword candidate never pushes a tier A or B item down the page. A library added after yours, whose skills claim nothing that the request asks for, changes no tier A or B item and the rank of none.
+
+**The size of an answer.** Each result has a budget of tokens: `token_budget`, or 200 for each item of `limit`. The estimate counts 2 tokens for each 5 bytes of the result's compact JSON, and 5 tokens for each 8 bytes of a hash of 64 hex digits. If a result is over its budget, the server takes these steps, one at a time, until it fits:
+
+1. It cuts each `why` and each `reason` of a gap before its first `; `, so `declared: artefact unit-test; scope met` becomes `declared: artefact unit-test`.
+2. It leaves out the `sha256` of every item and every file. With `"keep_hashes": true`, it skips this step.
+3. It leaves out `words`, then `placement`, of every item.
+4. It moves the last item to the next page, one at a time, and counts it in `more` and `cursor`.
+
+`files` and `open_when` are never left out. A page always keeps its first item. If that item, with its files and open-when items, and the request's `gaps`, `unrecognised` and `dropped` are still over the budget, the result holds `"over_budget": true`. A result with no items holds it too when its `gaps`, `unrecognised` and `dropped` alone are over the budget, because the size steps only cut each reason to its head and never leave a gap out. Every other result is within its budget, and has no `over_budget` field.
 
 ### Example 1: a Python unit test
 
@@ -536,12 +547,28 @@ $ echo '{"requests":[{"id":"T5","facts":{"languages":["python"]},"artefacts":["u
     | rex skills search --library skills | python3 -m json.tool
 ```
 
-The first page holds `py-unit-tests`, with `"more": 1` and `"cursor": "c1.1.610a6762965d5c01.69944676f9c79a54"`. Send the same request again with that `cursor` to get `release-notes`. A cursor that cannot be read gives `bad_cursor`:
+The first page holds `py-unit-tests`, with `"more": 1` and `"cursor": "c1.1.610a6762965d5c01.69944676f9c79a54"`. Send the same request again with that `cursor` to get `release-notes`. With `"limit": 1` the budget is 200 tokens, and `py-unit-tests` with its two open-when items costs 262 tokens even after the steps of the size limit, so the first page also holds `"over_budget": true`. With `"token_budget": 400` the same page holds the item whole, at 316 tokens, and no `over_budget`. A cursor that cannot be read gives `bad_cursor`:
 
 ```console
 $ echo '{"requests":[{"id":"T3"}],"cursor":"nonsense"}' | rex skills search --library skills
 error: the cursor cannot be read: it is not four parts joined by `.`; search again without it
 ```
+
+### Measure the keyword search
+
+`rex skills search` takes two options for measurement. The `search` tool of the server has neither, and with neither the answer is the same, byte for byte, as an answer of a `rex` that does not have them.
+
+- `--keyword-ratio <share>` replaces the built-in share of 0.5 for this run: a keyword candidate is kept only when its score is at least that share of the best score of its need. It takes a number above 0 and at most 1. The choice of topic files inside a skill keeps the share of 0.5. A cursor binds the share, so a cursor made with one share gives `bad_cursor` with another.
+- `--keyword-scores` adds `score` and `best_score` to each tier C item: its keyword score for the need that its `why` names, and the best score of that need. A higher score is a better match. The two fields are added after the size limit, so they never change which items a page holds, and a page with them can be over its budget by their size.
+
+Example 3 again, with the scores:
+
+```console
+$ echo '{"requests":[{"id":"T3","needs":["write the release notes"],"touches":["flaky-ci"]}]}' \
+    | rex skills search --library skills --keyword-scores | python3 -m json.tool
+```
+
+The item of `release-notes` now holds `"score": 2.9464782214535807` and `"best_score": 2.9464782214535807` after its `why`: it is the best match of need 1. The rest of the answer is the same as in example 3.
 
 ### SuperRex's own library: the latency reference
 
@@ -550,7 +577,7 @@ error: the cursor cannot be read: it is not four parts joined by `.`; search aga
 ```console
 $ echo '{"requests":[{"id":"T1","facts":{"writes_code":true,"languages":["rust"],"latency_scale":"ns_us"},"must_have":["latency"],"needs":["measure the hot path"]}],"kinds":["reference"]}' \
     | rex skills search --library plugin/library
-{"index_version":"sha256:450355ca8e877be1ab2f13df9b2cdbe78a4546742dd0a00eca7f756f0be87e5a","results":[{"request":"T1","items":[{"skill":"rex-code-latency","library":"library","kind":"reference","category":"performance","slot":"quality:latency","tier":"B","why":"declared: quality latency; scope met","card":"Reference for Rust hotpath latency of nanoseconds to tens of microseconds, on a Linux host you control: measure, then cause, proof, fix and numbers for jitter, caches, allocation, atomics, queues,","not_when":"A hot path measured in milliseconds, or one on a host you do not control.","placement":"full","sha256":"d9b745dc4c0d4a761ecc969f94d71a6b8b9f64793095b67ea6f441706c536e58","words":697,"files":[{"path":"measure.md","role":"topic","when":"you measure the hot path","sha256":"4ad170cd4f7de333c1e874e937153c8fca6608c61f498c1b2c928ec29ee910b1"},{"path":"measure-code.md","role":"code","language":"rust","sha256":"6fa49c8410388f63082ff6368f0194b3647df1cc85d78b68c87bf5708bbff456"}]}],"more":0,"cursor":null,"gaps":[],"unrecognised":[],"dropped":[]}]}
+{"index_version":"sha256:f51b8520b35a3eb5229706586a214b768ddb940f90f602f24857eba35f5c7737","results":[{"request":"T1","items":[{"skill":"rex-code-latency","library":"library","kind":"reference","category":"performance","slot":"quality:latency","tier":"B","why":"declared: quality latency; scope met","card":"Reference for Rust hotpath latency of nanoseconds to tens of microseconds, on a Linux host you control: measure, then cause, proof, fix and numbers for jitter, caches, allocation, atomics, queues,","not_when":"A hot path measured in milliseconds, or one on a host you do not control.","placement":"full","sha256":"d9b745dc4c0d4a761ecc969f94d71a6b8b9f64793095b67ea6f441706c536e58","words":697,"files":[{"path":"measure.md","role":"topic","when":"you measure the hot path","sha256":"4ad170cd4f7de333c1e874e937153c8fca6608c61f498c1b2c928ec29ee910b1"},{"path":"measure-code.md","role":"code","language":"rust","sha256":"6fa49c8410388f63082ff6368f0194b3647df1cc85d78b68c87bf5708bbff456"}]}],"more":0,"cursor":null,"gaps":[],"unrecognised":[],"dropped":[]}]}
 ```
 
 The need "measure the hot path" chose the topic file `measure.md` by its `when`, and its Rust code twin `measure-code.md` came with it, because the request's language is `rust`. For a Go service measured in milliseconds, the scope is not met:
@@ -558,7 +585,7 @@ The need "measure the hot path" chose the topic file `measure.md` by its `when`,
 ```console
 $ echo '{"requests":[{"id":"T2","facts":{"writes_code":true,"languages":["go"],"latency_scale":"ms"},"must_have":["latency"]}],"kinds":["reference"]}' \
     | rex skills search --library plugin/library
-{"index_version":"sha256:450355ca8e877be1ab2f13df9b2cdbe78a4546742dd0a00eca7f756f0be87e5a","results":[{"request":"T2","items":[],"more":0,"cursor":null,"gaps":[{"need":"must_have:latency","reason":"scope: languages go not in rust; latency_scale ms not in ns_us","skill":"rex-code-latency","library":"library","not_when":"A hot path measured in milliseconds, or one on a host you do not control."},{"need":"languages:go","reason":"no skill claims the language go"}],"unrecognised":[],"dropped":[]}]}
+{"index_version":"sha256:f51b8520b35a3eb5229706586a214b768ddb940f90f602f24857eba35f5c7737","results":[{"request":"T2","items":[],"more":0,"cursor":null,"gaps":[{"need":"must_have:latency","reason":"scope: languages go not in rust; latency_scale ms not in ns_us","skill":"rex-code-latency","library":"library","not_when":"A hot path measured in milliseconds, or one on a host you do not control."},{"need":"languages:go","reason":"no skill claims the language go"}],"unrecognised":[],"dropped":[]}]}
 ```
 
 ## 7. Publish a static index with `rex skills index`

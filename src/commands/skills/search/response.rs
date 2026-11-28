@@ -29,13 +29,17 @@ pub struct RequestResult {
     pub more: usize,
     /// Continues this result. `None` when `more` is 0.
     pub cursor: Option<String>,
+    /// True when the page is over its token budget even with only its first
+    /// item left, after every step that shortens a page.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub over_budget: bool,
     pub gaps: Vec<Gap>,
     pub unrecognised: Vec<String>,
     pub dropped: Vec<Dropped>,
 }
 
-/// The card of one found skill. Never the skill's text. The fields after
-/// `confirm` are the optional ones that the size limit may leave out.
+/// The card of one found skill. Never the skill's text. The size limit may
+/// leave out `placement`, `sha256` and `words`, never `files` or `open_when`.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Item {
     pub skill: String,
@@ -48,6 +52,12 @@ pub struct Item {
     pub slot: Slot,
     pub tier: Tier,
     pub why: String,
+    /// Only with `--keyword-scores`, on a tier C item: its keyword score for
+    /// the need that `why` names, and the best score of that need.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub score: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub best_score: Option<f64>,
     pub card: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub not_when: Option<String>,
@@ -140,6 +150,27 @@ pub struct Candidate {
     /// Lookup C: minus the bm25 score, so higher is better. `None` for the
     /// other lookups, which never rank by corpus statistics.
     pub relevance: Option<f64>,
+    /// Lookup C: the score for the first need and the best score of that
+    /// need, which `--keyword-scores` prints.
+    pub keyword_score: Option<KeywordScore>,
+}
+
+/// The keyword score of a candidate for one need, and the best score of
+/// that need. Higher is better.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KeywordScore {
+    pub score: f64,
+    pub best: f64,
+}
+
+impl Candidate {
+    /// True for a skill that is there only because other skills require it. It
+    /// passes the filters and takes its place right after a skill that requires it.
+    #[must_use]
+    pub fn is_only_required(&self) -> bool {
+        let mut needs = self.needs.iter();
+        needs.all(|need| matches!(need, Need::Required(_)))
+    }
 }
 
 /// One yes or no question of a candidate.
@@ -205,6 +236,9 @@ pub enum SearchError {
 
     #[error("cannot read the search arguments on stdin")]
     Stdin(#[source] io::Error),
+
+    #[error("`--keyword-ratio` is {ratio}; give a share above 0 and at most 1, such as 0.5")]
+    BadKeywordRatio { ratio: f64 },
 }
 
 impl SearchError {
@@ -212,7 +246,9 @@ impl SearchError {
     #[must_use]
     pub fn code(&self) -> &'static str {
         match self {
-            SearchError::BadArguments { .. } | SearchError::Stdin(_) => "bad_arguments",
+            SearchError::BadArguments { .. }
+            | SearchError::Stdin(_)
+            | SearchError::BadKeywordRatio { .. } => "bad_arguments",
             SearchError::BadCursor { .. } => "bad_cursor",
             SearchError::StaleCursor => "stale_cursor",
             SearchError::ReadFolder { .. }
@@ -234,7 +270,8 @@ impl SearchError {
             | SearchError::UnreadableFile { .. }
             | SearchError::Library(_)
             | SearchError::KeywordSearch { .. }
-            | SearchError::Stdin(_) => FailureClass::Reject,
+            | SearchError::Stdin(_)
+            | SearchError::BadKeywordRatio { .. } => FailureClass::Reject,
         }
     }
 }

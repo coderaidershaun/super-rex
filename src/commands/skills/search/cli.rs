@@ -6,16 +6,18 @@ use std::path::PathBuf;
 
 use serde_json::Value;
 
-use super::answer::search;
+use super::answer::search_with;
 use super::index::{Index, IndexVersion};
+use super::keyword::KeywordSettings;
 use super::request::SearchRequest;
 use super::response::SearchError;
 use crate::commands::skills::SkillsError;
 use crate::commands::skills::serve::library::Libraries;
 use crate::commands::stdout::print_line_to_stdout;
 
-/// Search the library in `libraries` with the arguments on stdin.
-pub(crate) fn run(folders: &[PathBuf]) -> Result<(), SkillsError> {
+/// Search the library in `libraries` with the arguments on stdin. `settings`
+/// holds `--keyword-ratio` and `--keyword-scores`.
+pub(crate) fn run(folders: &[PathBuf], settings: &KeywordSettings) -> Result<(), SkillsError> {
     let mut arguments = String::new();
     io::stdin()
         .read_to_string(&mut arguments)
@@ -31,7 +33,7 @@ pub(crate) fn run(folders: &[PathBuf]) -> Result<(), SkillsError> {
     let index = Index::load(&libraries)?;
     let vocabulary = libraries.vocabulary_version().map_err(SearchError::from)?;
     let version = IndexVersion::of(&index, vocabulary.as_deref());
-    let response = search(&index, &version, &request)?;
+    let response = search_with(&index, &version, &request, settings)?;
     let line = serde_json::to_string(&response).map_err(|source| SkillsError::Json { source })?;
     print_line_to_stdout(&line)?;
     Ok(())

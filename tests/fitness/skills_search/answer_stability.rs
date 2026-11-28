@@ -1,5 +1,5 @@
-//! The answer of a search is stable and small: the same arguments give the same bytes, a page
-//! keeps to its token budget, and keyword results never reorder what rules and claims found.
+//! The answer of a search is stable: the same arguments give the same bytes, every card is short,
+//! and keyword results never reorder what rules and claims found.
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -7,14 +7,11 @@ use std::process::{Command, Stdio};
 
 use serde_json::{Value, json};
 use super_rex::commands::skills::search::{
-    FileEntry, FileRole, FormTerms, Index, IndexVersion, Kind, OpenWhen, RequestForm,
-    SearchRequest, SkillEntry, SkillMetadata, estimated_tokens, lookup_c, search,
+    FormTerms, Index, IndexVersion, Kind, RequestForm, SearchRequest, SkillEntry, SkillMetadata,
+    lookup_c, search,
 };
 
-const BUDGET_OF_TEN: usize = 1200;
-const OPTIONAL_FIELDS: [&str; 5] = ["placement", "sha256", "words", "files", "open_when"];
-
-fn main_library() -> PathBuf {
+pub(super) fn main_library() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/skills-search")
 }
 
@@ -23,13 +20,13 @@ fn request(arguments: Value) -> SearchRequest {
 }
 
 /// The JSON of the answer that the library API gives for `arguments`.
-fn answer_of(index: &Index, arguments: Value) -> Value {
+pub(super) fn answer_of(index: &Index, arguments: Value) -> Value {
     let version = IndexVersion::of(index, None);
     let answer = search(index, &version, &request(arguments)).expect("the search passes");
     serde_json::to_value(answer).expect("JSON")
 }
 
-fn skills(result: &Value) -> Vec<String> {
+pub(super) fn skills(result: &Value) -> Vec<String> {
     let items = result["items"].as_array().expect("items");
     items
         .iter()
@@ -49,15 +46,14 @@ fn go_service() -> Value {
             "must_have": ["latency"] })
 }
 
-fn ten_item_form() -> Value {
+pub(super) fn ten_item_form() -> Value {
     json!({ "id": "ALL",
             "facts": { "writes_code": true, "languages": ["rust", "ts"],
                        "repo_dependencies": ["proptest"], "latency_scale": "ns_us" },
             "activity": "build", "touches": ["threads"], "must_have": ["latency"],
             "artefacts": ["diagram", "plan"],
             "needs": ["write release notes for a new version",
-                      "sketch a module design before code",
-                      "find the cause of a bug"] })
+                      "sketch a module design before code"] })
 }
 
 fn cli_bytes(arguments: &Value) -> Vec<u8> {
@@ -89,56 +85,6 @@ fn same_arguments_give_a_byte_identical_answer() {
 
     assert!(!runs[0].is_empty());
     assert!(runs[0] == runs[1] && runs[1] == runs[2], "the runs differ");
-}
-
-#[test]
-fn ten_items_fit_the_token_budget() {
-    let index = Index::from_folders(&[main_library()]).expect("load the fixture");
-
-    let answer = answer_of(
-        &index,
-        json!({ "requests": [ten_item_form()], "limit": 10 }),
-    );
-
-    let result = &answer["results"][0];
-    let by_tier = |tier: &str| -> Vec<String> {
-        let items = result["items"].as_array().expect("items");
-        let in_tier = items.iter().filter(|item| item["tier"] == tier);
-        in_tier
-            .map(|item| item["skill"].as_str().expect("skill").to_owned())
-            .collect()
-    };
-    assert_eq!(
-        by_tier("A"),
-        ["fx-coding-rules", "fx-gap-ts", "fx-proptest"]
-    );
-    assert_eq!(
-        by_tier("B"),
-        [
-            "fx-latency",
-            "fx-diagrams",
-            "fx-validation-plan",
-            "fx-test-first"
-        ]
-    );
-    assert_eq!(
-        by_tier("C"),
-        ["fx-release-notes", "fx-design-sketch", "fx-debugging"]
-    );
-    assert_eq!(result["more"], 0);
-    assert_eq!(result["cursor"], Value::Null);
-    let tokens = estimated_tokens(&result.to_string());
-    assert!(tokens <= BUDGET_OF_TEN, "{tokens} tokens");
-    for item in result["items"].as_array().expect("items") {
-        let why = item["why"].as_str().expect("why");
-        assert!(!why.contains("; "), "why not cut: {why}");
-        for optional in OPTIONAL_FIELDS {
-            assert!(item[optional].is_null(), "{optional} left in {item}");
-        }
-        for required in ["skill", "library", "slot", "tier", "why", "card"] {
-            assert!(item[required].is_string(), "{required} missing in {item}");
-        }
-    }
 }
 
 #[test]
@@ -239,71 +185,6 @@ fn keyword_results_never_reorder_tier_a_or_b_items() {
     ];
     assert_eq!(declared_items(&before), expected);
     assert_eq!(declared_items(&after), expected);
-}
-
-fn building_skill(number: usize) -> SkillEntry {
-    let name = format!("skill-{number:02}");
-    let mut metadata = SkillMetadata::new(Kind::Method, "testing");
-    metadata.claims.activity = vec!["build".to_owned()];
-    metadata.not_when = Some("Work that writes no code at all.".to_owned());
-    metadata.open_when = vec![OpenWhen {
-        skill: Some("skill-01".to_owned()),
-        file: None,
-        when: "the first test of a change".to_owned(),
-    }];
-    let mut entry = SkillEntry::new(&name, "main");
-    let words: Vec<String> = (1..=30).map(|word| format!("word{word}")).collect();
-    entry.card = words.join(" ");
-    entry.sha256 = format!("{:064x}", number);
-    entry.words = 300;
-    entry.files = vec![FileEntry {
-        path: "topic.md".to_owned(),
-        sha256: format!("{:064x}", number + 100),
-        role: Some(FileRole::Topic),
-        when: Some("a topic case".to_owned()),
-        ..FileEntry::default()
-    }];
-    entry.metadata = Some(metadata);
-    entry
-}
-
-#[test]
-fn a_page_over_budget_carries_its_last_items_over() {
-    let index = Index {
-        skills: (1..=12).map(building_skill).collect(),
-    };
-    let form = json!({ "id": "B", "activity": "build" });
-
-    let first = answer_of(&index, json!({ "requests": [form], "limit": 12 }));
-
-    let page = &first["results"][0];
-    let held = skills(page);
-    let moved = 12 - held.len();
-    assert!(held.len() < 12, "the page kept all 12 items");
-    assert_eq!(page["more"], moved);
-    let cursor = page["cursor"].as_str().expect("a cursor");
-    let offset: usize = cursor
-        .split('.')
-        .nth(1)
-        .expect("offset")
-        .parse()
-        .expect("number");
-    assert_eq!(offset, held.len());
-    let budget = 120 * held.len().max(10);
-    assert!(estimated_tokens(&page.to_string()) <= budget);
-    for item in page["items"].as_array().expect("items") {
-        for optional in OPTIONAL_FIELDS {
-            assert!(item[optional].is_null(), "{optional} left in {item}");
-        }
-    }
-
-    let next = answer_of(
-        &index,
-        json!({ "requests": [form], "limit": 12, "cursor": cursor }),
-    );
-
-    let first_moved = format!("skill-{:02}", held.len() + 1);
-    assert_eq!(skills(&next["results"][0])[0], first_moved);
 }
 
 fn artefact_skill(name: &str, artefact: &str) -> SkillEntry {

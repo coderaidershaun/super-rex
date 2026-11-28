@@ -1,15 +1,15 @@
 //! The answer of one search call: lookups A, B and C for each request form, then merge, drops,
-//! filters, gaps, and the order that covers every need once before any slot repeats.
+//! filters, gaps, and the page of the ordered list that the cursor asks for.
 
 use std::collections::BTreeSet;
 
 use super::claims::{language_gaps, lookup_a, lookup_b, required_skills};
 use super::index::{Index, IndexVersion, SkillEntry};
-use super::keyword::lookup_c;
-use super::page::{CursorKey, fit, item, write_confirms};
+use super::keyword::{KeywordSettings, lookup_c_at_ratio};
+use super::page::{CursorKey, first_kept_requirer, fit, item, order, write_confirms};
 use super::request::{FormTerms, MAX_NEEDS, Need, RequestForm, SearchRequest, TextQuery};
 use super::response::{
-    Candidate, Dropped, Gap, RequestResult, SearchError, SearchResponse, Slot, Tier,
+    Candidate, Dropped, Gap, Item, RequestResult, SearchError, SearchResponse, Slot, Tier,
 };
 use super::vocabulary::{TermGroup, Vocabulary};
 
@@ -26,10 +26,24 @@ pub fn search(
     version: &IndexVersion,
     request: &SearchRequest,
 ) -> Result<SearchResponse, SearchError> {
+    search_with(index, version, request, &KeywordSettings::default())
+}
+
+/// [`search`] with keyword settings other than the built-in ones, which
+/// `rex skills search` takes to measure the keyword search.
+///
+/// # Errors
+/// The errors of [`search`].
+pub fn search_with(
+    index: &Index,
+    version: &IndexVersion,
+    request: &SearchRequest,
+    settings: &KeywordSettings,
+) -> Result<SearchResponse, SearchError> {
     check_arguments(request)?;
     let results = request.requests.iter().map(|form| {
-        let key = CursorKey::new(version, request, form);
-        answer_form(index, request, form, &key)
+        let key = CursorKey::new(version, request, form, settings);
+        answer_form(index, request, form, &key, settings)
     });
     Ok(SearchResponse {
         index_version: version.clone(),
@@ -64,6 +78,9 @@ fn check_arguments(request: &SearchRequest) -> Result<(), SearchError> {
     if request.limit == Some(0) {
         return bad("`limit` is 0; give 1 or more".to_owned());
     }
+    if request.token_budget == Some(0) {
+        return bad("`token_budget` is 0; give 1 or more tokens".to_owned());
+    }
     if request.cursor.is_some() && request.requests.len() != 1 {
         let count = request.requests.len();
         return bad(format!(
@@ -86,13 +103,14 @@ fn answer_form(
     request: &SearchRequest,
     form: &RequestForm,
     key: &CursorKey,
+    settings: &KeywordSettings,
 ) -> Result<RequestResult, SearchError> {
     let offset = match &request.cursor {
         Some(cursor) => key.read(cursor)?,
         None => 0,
     };
     let terms = FormTerms::read(form);
-    let found = find(index, request, &terms)?;
+    let found = find(index, request, &terms, settings.ratio())?;
     let ordered = order(index, &terms, found.kept);
     if offset > ordered.len() {
         return Err(SearchError::BadCursor {
@@ -110,23 +128,43 @@ fn answer_form(
         items: page,
         more: ordered.len() - end,
         cursor: None,
+        over_budget: false,
         gaps: found.gaps,
         unrecognised: found.unrecognised,
         dropped: found.dropped,
     };
-    fit(&mut result, key, offset);
+    fit(&mut result, key, offset, request);
+    if settings.shows_scores() {
+        show_scores(&mut result.items, &ordered[offset..]);
+    }
     Ok(result)
+}
+
+/// Add the keyword scores to each tier C item, after the size limit, so that
+/// they never change which items the page holds.
+fn show_scores(page: &mut [Item], candidates: &[Candidate]) {
+    for (item, candidate) in page.iter_mut().zip(candidates) {
+        if let (Tier::C, Some(score)) = (candidate.tier, candidate.keyword_score) {
+            item.score = Some(score.score);
+            item.best_score = Some(score.best);
+        }
+    }
 }
 
 /// Steps 2 to 7 of the answer: lookups, merge, drops, required skills, gaps
 /// and filters.
-fn find(index: &Index, request: &SearchRequest, terms: &FormTerms) -> Result<Found, SearchError> {
+fn find(
+    index: &Index,
+    request: &SearchRequest,
+    terms: &FormTerms,
+    keyword_ratio: f64,
+) -> Result<Found, SearchError> {
     let declared = lookup_b(index, terms);
     let mut merged = Vec::new();
     let all = lookup_a(index, terms).candidates.into_iter();
     let all = all
         .chain(declared.candidates)
-        .chain(lookup_c(index, terms)?.candidates);
+        .chain(lookup_c_at_ratio(index, terms, keyword_ratio)?.candidates);
     for candidate in all {
         absorb(&mut merged, candidate);
     }
@@ -153,7 +191,7 @@ fn find(index: &Index, request: &SearchRequest, terms: &FormTerms) -> Result<Fou
         &mut unrecognised,
     );
     kept.retain(|candidate| {
-        is_only_required(candidate) || passes(&index.skills[candidate.skill], kinds, categories)
+        candidate.is_only_required() || passes(&index.skills[candidate.skill], kinds, categories)
     });
     leave_out_lone_required(index, &mut kept);
     follow_first_kept_requirer(index, &mut kept);
@@ -313,31 +351,11 @@ fn passes(
     holds(kinds, kind) && holds(categories, category)
 }
 
-/// True for a skill that is there only because other skills require it. It
-/// passes the filters and takes its place right after a skill that requires it.
-fn is_only_required(candidate: &Candidate) -> bool {
-    let mut needs = candidate.needs.iter();
-    needs.all(|need| matches!(need, Need::Required(_)))
-}
-
-/// The kept skill that a skill there only for its requirers follows: the
-/// first of its requirers still kept, those of tier A or B before tier C, so a
-/// keyword result never moves it among the declared skills.
-fn first_kept_requirer(index: &Index, kept: &[Candidate], candidate: &Candidate) -> Option<usize> {
-    let requirers = candidate.needs.iter().filter_map(|need| match need {
-        Need::Required(name) => kept
-            .iter()
-            .position(|other| index.skills[other.skill].name == *name),
-        _ => None,
-    });
-    requirers.min_by_key(|&at| kept[at].tier == Tier::C)
-}
-
 /// A skill there only for its requirers takes its tier, `why` and questions
 /// from the first requirer still kept, not from one a filter left out.
 fn follow_first_kept_requirer(index: &Index, kept: &mut [Candidate]) {
     for at in 0..kept.len() {
-        if !is_only_required(&kept[at]) {
+        if !kept[at].is_only_required() {
             continue;
         }
         let Some(requirer) = first_kept_requirer(index, kept, &kept[at]) else {
@@ -369,127 +387,6 @@ fn leave_out_lone_required(index: &Index, kept: &mut Vec<Candidate>) {
         });
         if kept.len() == before {
             return;
-        }
-    }
-}
-
-/// The order of 6.9: rounds that each cover every need key once, a placed
-/// skill bringing the skills it requires right after it.
-fn order(index: &Index, terms: &FormTerms, candidates: Vec<Candidate>) -> Vec<Candidate> {
-    let keys = need_keys(terms, &candidates);
-    let mut placed = vec![false; candidates.len()];
-    let mut ordered = Vec::new();
-    loop {
-        let mut covered: Vec<Need> = Vec::new();
-        let before = ordered.len();
-        for key in &keys {
-            if covered.contains(key) {
-                continue;
-            }
-            if let Some(pick) = best_under(index, &candidates, &placed, key) {
-                place(
-                    index,
-                    &candidates,
-                    pick,
-                    &mut placed,
-                    &mut covered,
-                    &mut ordered,
-                );
-            }
-        }
-        if ordered.len() == before {
-            break;
-        }
-    }
-    debug_assert!(placed.iter().all(|is_placed| *is_placed));
-    ordered
-        .into_iter()
-        .map(|at| candidates[at].clone())
-        .collect()
-}
-
-fn need_keys(terms: &FormTerms, candidates: &[Candidate]) -> Vec<Need> {
-    let facts = candidates.iter().flat_map(|candidate| &candidate.needs);
-    let facts = facts.filter(|need| matches!(need, Need::Fact(_))).cloned();
-    let asked = terms.terms.iter().map(|asked| Need::Term {
-        field: asked.field,
-        term: asked.term.clone(),
-    });
-    let texts = terms.keyword_queries.iter().map(|query| query.need.clone());
-    let mut keys = Vec::new();
-    for key in facts.chain(asked).chain(texts) {
-        if !keys.contains(&key) {
-            keys.push(key);
-        }
-    }
-    keys
-}
-
-fn best_under(
-    index: &Index,
-    candidates: &[Candidate],
-    placed: &[bool],
-    key: &Need,
-) -> Option<usize> {
-    let keyword_key = matches!(key, Need::Text(_) | Need::Word(_));
-    let open = (0..candidates.len()).filter(|&at| {
-        let candidate = &candidates[at];
-        !placed[at] && candidate.needs.contains(key) && (candidate.tier == Tier::C) == keyword_key
-    });
-    let entry = |at: usize| &index.skills[candidates[at].skill];
-    if keyword_key {
-        open.min_by(|&left, &right| {
-            let relevance = |at: usize| candidates[at].relevance.unwrap_or(f64::MIN);
-            relevance(right)
-                .total_cmp(&relevance(left))
-                .then_with(|| entry(left).name.cmp(&entry(right).name))
-                .then_with(|| {
-                    entry(left)
-                        .library_priority
-                        .cmp(&entry(right).library_priority)
-                })
-        })
-    } else {
-        open.min_by_key(|&at| {
-            let candidate = &candidates[at];
-            let held = candidate.needs.iter();
-            let held = held.filter(|need| matches!(need, Need::Fact(_) | Need::Term { .. }));
-            (
-                entry(at).library_priority,
-                std::cmp::Reverse(held.count()),
-                candidate.through_alias,
-                entry(at).name.clone(),
-            )
-        })
-    }
-}
-
-fn place(
-    index: &Index,
-    candidates: &[Candidate],
-    at: usize,
-    placed: &mut [bool],
-    covered: &mut Vec<Need>,
-    ordered: &mut Vec<usize>,
-) {
-    placed[at] = true;
-    ordered.push(at);
-    covered.extend(candidates[at].needs.iter().cloned());
-    let entry = &index.skills[candidates[at].skill];
-    let requires = entry
-        .metadata
-        .iter()
-        .flat_map(|metadata| &metadata.requires);
-    for name in requires {
-        let required = (0..candidates.len()).find(|&other| {
-            let pulled = &candidates[other];
-            !placed[other]
-                && index.skills[pulled.skill].name == *name
-                && is_only_required(pulled)
-                && first_kept_requirer(index, candidates, pulled) == Some(at)
-        });
-        if let Some(required) = required {
-            place(index, candidates, required, placed, covered, ordered);
         }
     }
 }
