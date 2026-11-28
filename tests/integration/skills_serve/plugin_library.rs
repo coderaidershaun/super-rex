@@ -29,7 +29,7 @@ fn the_plugin_server_entry_serves_the_plugin_library_as_super_rex() {
 
     assert_eq!(head["library"], "super-rex");
     assert_eq!(head["skills"], 25);
-    assert_eq!(head["vocabulary"], "1");
+    assert_eq!(head["vocabulary"], "2");
 }
 
 #[test]
@@ -66,7 +66,7 @@ fn the_embedded_library_answers_the_version_of_the_plugin_library_folder() {
     let folder = head_with(&[OsStr::new("--library"), library.as_os_str()]);
 
     assert_eq!(embedded["library"], "super-rex");
-    assert_eq!(embedded["vocabulary"], "1");
+    assert_eq!(embedded["vocabulary"], "2");
     assert_eq!(embedded["vocabulary"], folder["vocabulary"]);
     assert_eq!(embedded["skills"], folder["skills"]);
     assert_eq!(embedded["version"], folder["version"]);

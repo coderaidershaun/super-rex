@@ -1,7 +1,7 @@
 {
-  "version": "1",
-  "vocabulary": "1",
-  "about": "The alias table of the shared vocabulary: free words that map onto a term of plugin/vocab/terms.json, and the broader term each term sits under. A person maintains it. relation says what the word is to the term: synonym = the same meaning; narrower = one case of the term; broader = a word that covers the term and others. docs/skill-library-vocabulary.md gives the rules.",
+  "version": "2",
+  "vocabulary": "2",
+  "about": "The alias table of the shared vocabulary: free words that map onto a term of plugin/vocab/terms.json, and the broader term each term sits under. A person maintains it. relation says what the word is to the term: synonym = the same meaning; narrower = one case of the term; broader = a word that covers the term and others. value_aliases maps a common full name onto an allowed value of a closed fact, such as typescript onto the language ts. docs/skill-library-vocabulary.md gives the rules.",
   "aliases": [
     { "word": "new feature", "relation": "synonym", "group": "activities", "term": "build" },
     { "word": "implement", "relation": "synonym", "group": "activities", "term": "build" },
@@ -125,5 +125,13 @@
     { "group": "touches", "term": "retry", "broader_group": "categories", "broader_term": "coding-standards" },
     { "group": "touches", "term": "system-boundary", "broader_group": "categories", "broader_term": "testing" },
     { "group": "qualities", "term": "readability", "broader_group": "categories", "broader_term": "coding-standards" }
+  ],
+  "value_aliases": [
+    { "word": "typescript", "fact": "languages", "value": "ts" },
+    { "word": "javascript", "fact": "languages", "value": "js" },
+    { "word": "golang", "fact": "languages", "value": "go" },
+    { "word": "c++", "fact": "languages", "value": "cpp" },
+    { "word": "c#", "fact": "languages", "value": "csharp" },
+    { "word": "objective-c", "fact": "languages", "value": "objc" }
   ]
 }

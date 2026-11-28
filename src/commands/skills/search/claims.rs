@@ -1,59 +1,13 @@
 //! Lookups A and B: the facts and terms a request form asks for, matched only against what each
 //! skill's author claimed, with the scope check of B and no corpus statistics.
 
-use serde_json::{Map, Value};
-
 use super::index::{Claims, Index, Kind, Scope, SkillEntry};
-use super::request::{AskedTerm, Facts, FormTerms, Need, RequestForm, TermField, TextQuery};
+use super::request::{AskedTerm, Facts, FormTerms, Need, TermField, words};
 use super::response::{Candidate, Found, Gap, Question, Tier};
-use super::vocabulary::Vocabulary;
 
 /// The language the rule skills are written for, so a task in it needs no
 /// gap skill.
 pub const BASE_LANGUAGE: &str = "rust";
-
-impl FormTerms {
-    /// The form read against the embedded vocabulary. A word the vocabulary
-    /// does not hold is listed under `unrecognised`, never refused.
-    #[must_use]
-    pub fn read(form: &RequestForm) -> FormTerms {
-        let vocabulary = Vocabulary::embedded();
-        let mut unrecognised = Vec::new();
-        let facts = read_facts(vocabulary, &form.facts, &mut unrecognised);
-        let mut terms: Vec<AskedTerm> = Vec::new();
-        let needs = form.needs.iter().enumerate();
-        let needs = needs.map(|(position, need)| text_query(Need::Text(position), need));
-        let mut keyword_queries: Vec<TextQuery> = needs.collect();
-        for (field, words) in term_fields(form) {
-            for sent in words {
-                let asked = asked_terms(vocabulary, field, sent);
-                if asked.is_empty() {
-                    let need = format!("{}:{sent}", field.request_name());
-                    unrecognised.push(need.clone());
-                    keyword_queries.push(text_query(Need::Word(need), sent));
-                }
-                for asked in asked {
-                    let key = (asked.field, &asked.term);
-                    let is_new = terms.iter().all(|known| (known.field, &known.term) != key);
-                    if is_new {
-                        terms.push(asked);
-                    }
-                }
-            }
-        }
-        let quotes = form.evidence.iter().map(|evidence| &evidence.quote);
-        let task_words = form.needs.iter().chain(quotes).flat_map(|text| words(text));
-        FormTerms {
-            id: form.id.clone(),
-            facts,
-            terms,
-            needs: form.needs.clone(),
-            task_words: task_words.collect(),
-            unrecognised,
-            keyword_queries,
-        }
-    }
-}
 
 /// Lookup A: the skills whose `claims.facts` hold for the form.
 #[must_use]
@@ -190,119 +144,6 @@ fn candidate(skill: usize, tier: Tier, needs: Vec<Need>, why: String) -> Candida
         relevance: None,
         keyword_score: None,
     }
-}
-
-fn text_query(need: Need, text: &str) -> TextQuery {
-    TextQuery {
-        need,
-        text: text.to_owned(),
-    }
-}
-
-fn term_fields(form: &RequestForm) -> [(TermField, &[String]); 4] {
-    [
-        (TermField::Quality, form.must_have.as_slice()),
-        (TermField::Artefact, form.artefacts.as_slice()),
-        (TermField::Activity, form.activity.as_slice()),
-        (TermField::Touches, form.touches.as_slice()),
-    ]
-}
-
-/// The term the word names in the group of `field`, or one term for each
-/// alias row of that group whose word it is. Empty for a word of no term.
-fn asked_terms(vocabulary: &Vocabulary, field: TermField, sent: &str) -> Vec<AskedTerm> {
-    let word = normalised(sent);
-    if vocabulary.has_term(field.group(), &word) {
-        let from_alias = None;
-        return vec![AskedTerm {
-            field,
-            term: word,
-            from_alias,
-        }];
-    }
-    let aliases = vocabulary.aliases_of(field.group(), &word).into_iter();
-    aliases
-        .map(|alias| AskedTerm {
-            field,
-            term: alias.term.clone(),
-            from_alias: Some(sent.to_owned()),
-        })
-        .collect()
-}
-
-/// The word in lower case with single spaces between its parts, as the
-/// vocabulary writes its terms and alias words.
-fn normalised(word: &str) -> String {
-    let parts: Vec<&str> = word.split_whitespace().collect();
-    parts.join(" ").to_lowercase()
-}
-
-/// The lower-case runs of letters and digits of a text.
-fn words(text: &str) -> Vec<String> {
-    let lower = text.to_lowercase();
-    let runs = lower.split(|character: char| !character.is_alphanumeric());
-    let runs = runs.filter(|word| !word.is_empty());
-    runs.map(str::to_owned).collect()
-}
-
-fn read_facts(
-    vocabulary: &Vocabulary,
-    sent: &Map<String, Value>,
-    unrecognised: &mut Vec<String>,
-) -> Facts {
-    let mut facts = Facts::default();
-    for (name, value) in sent {
-        let is_read = vocabulary.has_fact(name)
-            && read_fact(&mut facts, name, value, vocabulary, unrecognised).is_some();
-        if !is_read {
-            unrecognised.push(format!("facts:{name}"));
-        }
-    }
-    facts
-}
-
-/// Puts one sent fact into `facts`. `None` when the value has the wrong type
-/// for the fact, or the fact is one that `Facts` cannot hold.
-/// A closed fact keeps only the values the vocabulary allows, and lists each
-/// other value as `<fact>:<value>`; an open fact keeps its value as sent.
-fn read_fact(
-    facts: &mut Facts,
-    name: &str,
-    value: &Value,
-    vocabulary: &Vocabulary,
-    unrecognised: &mut Vec<String>,
-) -> Option<()> {
-    let mut allowed = |sent: &str| {
-        let Some(allowed) = vocabulary.allowed_values(name) else {
-            return Some(sent.to_owned());
-        };
-        let value = normalised(sent);
-        let is_allowed = allowed.contains(&value.as_str());
-        if !is_allowed {
-            unrecognised.push(format!("{name}:{sent}"));
-        }
-        is_allowed.then_some(value)
-    };
-    match name {
-        "writes_code" => facts.writes_code = Some(value.as_bool()?),
-        "role" => facts.role = Some(value.as_str()?.to_owned()),
-        "latency_scale" => facts.latency_scale = allowed(value.as_str()?),
-        "languages" => {
-            let languages = text_list(value)?.into_iter();
-            facts.languages = languages
-                .filter_map(|language| allowed(&language))
-                .collect();
-        }
-        "repo_has" => facts.repo_has = text_list(value)?,
-        "repo_dependencies" => facts.repo_dependencies = text_list(value)?,
-        _ => return None,
-    }
-    Some(())
-}
-
-fn text_list(value: &Value) -> Option<Vec<String>> {
-    let items = value.as_array()?.iter();
-    items.map(|item| item.as_str().map(str::to_owned)).collect()
 }
 
 /// One fact of a claim, and `<fact>=<shared values>` when it holds for the

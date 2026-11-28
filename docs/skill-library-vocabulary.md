@@ -1,4 +1,4 @@
-# The skill library vocabulary, version 1
+# The skill library vocabulary, version 2
 
 This file explains the shared vocabulary of SuperRex skill libraries and shows where each term comes from. The vocabulary is held in two files: `plugin/vocab/terms.json`, which lists the allowed terms, and `plugin/vocab/aliases.json`, which maps free words onto those terms. Part 1 maps every criterion, row and sibling file of `plugin/assign/table.json` onto the vocabulary, so that no row is lost when the table gives way to skill headers. Part 2 gives the value domain of each fact and scope key. Part 3 names the source of each term that does not come from the table. Part 4 lists the choices this work made where the specification left a gap. Part 5 gives the exact JSON form of both files and the rules that `rex skills check` applies with them. The specification is the change specification "SuperRex skill library: lookup, search and assignment" of 27 November 2026; section numbers below refer to it.
 
@@ -35,7 +35,7 @@ Each line maps one criterion to the term it becomes. The last column names the s
 
 | ID | Row | Criterion | Maps to | Claimed in WP2 by |
 | --- | --- | --- | --- | --- |
-| C01 | `code-rulebooks` | `writes-code` (rule) | `facts:writes_code` = `true` | `rex-code-philosophy`, `rex-code-commenting`, `rex-code-ergonomics`, `rex-code-error-writing`, later `rex-code-essentials` |
+| C01 | `code-rulebooks` | `writes-code` (rule) | `facts:writes_code` = `true` | `rex-code-essentials`. The four rulebooks claimed it in WP2 and lost the claim after gate A: they are open-when items of the digest |
 | C02 | `gap-skill` | `language-not-rust` (rule) | `facts:languages`: each gap skill claims its own language and `writes_code` = `true` | `rex-gap-ts` claims `languages: [ts]`; each later `rex-gap-<language>` claims its language |
 | C03 | `tdd` | `builds-feature` | `activities:build` | `rex-code-tdd` |
 | C04 | `tdd` | `fixes-bug` | `activities:fix` | `rex-code-tdd` |
@@ -44,9 +44,9 @@ Each line maps one criterion to the term it becomes. The last column names the s
 | C07 | `fitness-tests` | `invariant` | `artefacts:fitness-test` | `rex-code-tests-fitness-functions` |
 | C08 | `fitness-tests` | `property-test` | `artefacts:fitness-test` | `rex-code-tests-fitness-functions` |
 | C09 | `integration-tests` | `real-world` | `artefacts:integration-test` | `rex-code-tests-integration-testing` |
-| C10 | `boundary-tests` | `outside-system` | `touches:system-boundary` | `rex-code-tdd`, for its file `mocking.md` (line F2) |
-| C11 | `boundary-tests` | `time-or-randomness` | `touches:system-boundary` | `rex-code-tdd`, for its file `mocking.md` |
-| C12 | `boundary-tests` | `file-system` | `touches:system-boundary` | `rex-code-tdd`, for its file `mocking.md` |
+| C10 | `boundary-tests` | `outside-system` | `touches:system-boundary` | no skill since gate A. WP2 gave it to `rex-code-tdd` for its file `mocking.md` (line F2); the four test-rule skills still reach that file as an `open_when` item |
+| C11 | `boundary-tests` | `time-or-randomness` | `touches:system-boundary` | no skill since gate A, as C10 |
+| C12 | `boundary-tests` | `file-system` | `touches:system-boundary` | no skill since gate A, as C10 |
 | C13 | `folders` | `creates-or-splits` | `touches:file-layout` | `rex-code-folder-management` |
 | C14 | `folders` | `moves` | `touches:file-layout` | `rex-code-folder-management`, whose file `move.md` keeps the case of moving (line F3) |
 | C15 | `dependencies` | `adds-or-upgrades` | `touches:dependencies` | `rex-code-external-libraries` |
@@ -56,7 +56,7 @@ Each line maps one criterion to the term it becomes. The last column names the s
 | C19 | `failure-policy` | `main-loop` | `touches:long-running` | `rex-code-failure-policy` |
 | C20 | `design` | `design-first` | `activities:design` | `rex-code-design-sketch`, `rex-code-validation-plan` |
 | C21 | `spike` | `unproven` | `touches:unproven-approach` | `rex-code-spike` |
-| C22 | `smells` | `refactor-unfamiliar` | `touches:legacy-code` | `rex-code-smells` |
+| C22 | `smells` | `refactor-unfamiliar` | `touches:legacy-code` | no skill since gate A. WP2 gave it to `rex-code-smells`, which only audits |
 | C23 | `smells` | `audit` | `activities:audit` | `rex-code-smells` |
 | C24 | `architecture` | `architecture-friction` | `touches:architecture` | `rex-code-improve-codebase-architecture` |
 | C25 | `priorities` | `ranked-decision` | `touches:trade-offs` | `rex-code-priorities` |
@@ -85,7 +85,7 @@ Each line gives one row's `priority`, `placement` and `scope`, and what each bec
 
 | Row | Skills | `priority` | `placement` → header | `scope` → header |
 | --- | --- | --- | --- | --- |
-| `code-rulebooks` | the four rulebooks | 1 | `read-first` → `full` | `code` = `writes_code`, held by the claim; no scope key |
+| `code-rulebooks` | the four rulebooks | 1 | `read-first` → `full` | `code` = `writes_code`, held by the claim of `rex-code-essentials`; the four rulebooks have no claim since gate A, and no scope key |
 | `gap-skill` | `rex-gap-{language}` | 2 | `read-first` → `full` | `code` = `writes_code`, held by the claim; no scope key |
 | `tdd` | `rex-code-tdd` | 3 | `ask` → `full` | `code` = `writes_code: [true]` |
 | `unit-tests` | `rex-code-tests-unit-testing` | 40 | `ask` → `full` | `code` = `writes_code: [true]` |
@@ -109,9 +109,9 @@ Each line gives one row's `priority`, `placement` and `scope`, and what each bec
 | `plan-review` | `rex-codex-adversarial-review` | 20 | `read-first` → `full` | `any`: no scope key |
 | `plan-writing` | `rex-code-design-sketch`, `rex-code-validation-plan` | 20 | `ask` → `full` | `any`: no scope key |
 
-Some skills come from two rows. `rex-code-design-sketch` and `rex-code-validation-plan` come from `design` and `plan-writing`, both of scope `any`. `rex-code-tdd` comes from `tdd` and, through its file, from `boundary-tests`, both of scope `code`. `rex-code-folder-management` and `rex-code-failure-policy` come from their own rows and, through their files, from `smells`, all of scope `code`. No skill gets rows of two different scopes, so each skill's header gets one scope with no conflict. A skill's claims are the union of the terms of all its rows.
+Some skills come from two rows. `rex-code-design-sketch` and `rex-code-validation-plan` come from `design` and `plan-writing`, both of scope `any`. `rex-code-tdd` comes from `tdd`, of scope `code`; its file `mocking.md` comes from `boundary-tests`, whose claim the header no longer carries since gate A. `rex-code-folder-management` and `rex-code-failure-policy` come from their own rows and, through their files, from `smells`, all of scope `code`. No skill gets rows of two different scopes, so each skill's header gets one scope with no conflict. A skill's claims are the union of the terms of all its rows.
 
-Every skill of scope `code` gets a `scope`, so section 10 requires a `not_when` line on each of them. WP2 must write one for each of the 11 skills concerned: the eight skills of the rows `tdd` to `failure-policy`, `rex-code-smells`, `rex-code-improve-codebase-architecture` and `rex-code-latency`.
+Every skill of scope `code` gets a `scope`, so section 10 requires a `not_when` line on each of them. WP2 must write one for each of the 11 skills concerned: the eight skills of the rows `tdd` to `failure-policy`, `rex-code-smells`, `rex-code-improve-codebase-architecture` and `rex-code-latency`. After gate A, `rex-code-spike`, `rex-code-design-sketch` and `rex-code-validation-plan` also have `scope: { writes_code: [true] }` with a `not_when` line, so 14 library skills have a scope.
 
 The table-level fields are not vocabulary. `cap` (6) is replaced by the cap of three in section 9.3. `format` and `about` describe the table file. The row field `work` and each criterion's `text` are source text for each skill's `intents` in WP2.
 
@@ -197,7 +197,7 @@ The specification marks the vocabulary AGREED in substance and the file names an
 9. **Each fact says whether a skill may claim it.** `latency_scale` may not: it describes a budget, and only a scope uses it.
 10. **`public-api` is left out.** The example of section 7.1 lists it under `touches`, but no row needs it, and the skills it would fit are found by lookup A.
 11. **`rex-pr-review` gets kind `method` and category `review`.** Section 7.4 does not list it, because it is a listed skill. Q7's default lets it opt in.
-12. **The alias file has two lists.** `aliases` maps a free word onto a term, with a relation. `broader_terms` puts a term under a broader term, as section 7.5 puts `latency` under `performance`. A free word may point only to a term of a lookup B group (activities, touches, qualities, artefacts). Facts and scope keys are set by code and the agent, so they need no aliases.
+12. **The alias file has two lists.** `aliases` maps a free word onto a term, with a relation. `broader_terms` puts a term under a broader term, as section 7.5 puts `latency` under `performance`. A free word may point only to a term of a lookup B group (activities, touches, qualities, artefacts). Version 2 adds a third list, `value_aliases`: a common full name of an allowed value of a closed fact, such as `typescript` for the language `ts`. Without it, a request that names `typescript` gets no gap skill and only an `unrecognised` line. Facts and scope keys themselves are set by code and the agent, so they need no aliases.
 
 Two points are for later work packages and do not change these files.
 
@@ -212,7 +212,7 @@ Two points are for later work packages and do not change these files.
 
 The file is one JSON object with these keys, and no others.
 
-- `version`: text of decimal digits, now `"1"`. It goes up by one with every change to the file.
+- `version`: text of decimal digits, now `"2"`. It goes up by one with every change to the file.
 - `about`: text that says what the file is for.
 - Eight group keys: `kinds`, `categories`, `facts`, `scope_keys`, `activities`, `touches`, `qualities`, `artefacts`. Each is an object with three keys:
   - `header`: text, the header field that takes the group's terms, as in the table of "How to read a term".
@@ -257,7 +257,7 @@ Terms = {
 
 The file is one JSON object with these keys, and no others.
 
-- `version`: text of decimal digits, now `"1"`. It goes up by one with every change to the file.
+- `version`: text of decimal digits, now `"2"`. It goes up by one with every change to the file.
 - `vocabulary`: text, the `version` of `terms.json` that this alias table was written for. It must be equal to it.
 - `about`: text.
 - `aliases`: a list of objects, each with exactly four keys:
@@ -269,14 +269,20 @@ The file is one JSON object with these keys, and no others.
   - `group` and `term`: a term of `activities`, `touches`, `qualities` or `artefacts`.
   - `broader_group` and `broader_term`: the term it sits under, in one of those four groups or in `categories`.
 
-The same `word`, `group` and `term` appear together at most once. A word with relation `synonym` points to one term only; a word with relation `broader` may point to several. A term appears at most once as the `group` and `term` of a `broader_terms` entry, and the links hold no cycle.
+- `value_aliases`: a list of objects, each with exactly three keys:
+  - `word`: text in lower case, as in `aliases`. It is never an allowed value of its fact.
+  - `fact`: a fact of `terms.json` whose `values` is `"closed"` and whose allowed values are text. Today only `languages`.
+  - `value`: one allowed value of that fact.
+
+The same `word`, `group` and `term` appear together at most once. A word with relation `synonym` points to one term only; a word with relation `broader` may point to several. A term appears at most once as the `group` and `term` of a `broader_terms` entry, and the links hold no cycle. A word of `value_aliases` means its value: a search request may send it in place of the value, and a skill header may not. Version 2 holds six: `typescript` (`ts`), `javascript` (`js`), `golang` (`go`), `c++` (`cpp`), `c#` (`csharp`) and `objective-c` (`objc`).
 
 ```
 Aliases = {
   version: string, vocabulary: string, about: string,
   aliases: [ { word: string, relation: "synonym" | "narrower" | "broader",
                group: "activities" | "touches" | "qualities" | "artefacts", term: string } ],
-  broader_terms: [ { group: string, term: string, broader_group: string, broader_term: string } ]
+  broader_terms: [ { group: string, term: string, broader_group: string, broader_term: string } ],
+  value_aliases: [ { word: string, fact: string, value: string } ]
 }
 ```
 
@@ -307,20 +313,20 @@ WP2 wrote the `metadata` map into the header of each skill in `plugin/library/`.
 
 | Row | Criteria | Header of | Claims | `placement` | `scope` and `not_when` | `files` and `open_when` |
 | --- | --- | --- | --- | --- | --- | --- |
-| `code-rulebooks` | C01 | the four rulebooks; also the new `rex-code-essentials` | `facts: { writes_code: true }` | `full` | none: the claim holds the fact | the rulebooks: none from the table. `rex-code-essentials` names the four rulebooks as `open_when` items |
+| `code-rulebooks` | C01 | the four rulebooks; also the new `rex-code-essentials` | `rex-code-essentials`: `facts: { writes_code: true }`. The four rulebooks: none since gate A | `full` | none: the claim holds the fact | the rulebooks: none from the table. `rex-code-essentials` names the four rulebooks as `open_when` items |
 | `gap-skill` | C02 | `rex-gap-ts` | `facts: { writes_code: true, languages: [ts] }` | `full` | none: the claim holds the facts | none from the table |
 | `tdd` | C03, C04 | `rex-code-tdd` | `activity: [build, fix]` | `full` | wc | none from the table |
 | `unit-tests` | C05 | `rex-code-tests-unit-testing` | `artefact: [unit-test]` | `full` | wc | `open_when` item for `rex-code-tdd/mocking.md` (F2) |
 | `contract-tests` | C06 | `rex-code-tests-contract-seams` | `artefact: [contract-test]` | `full` | wc | `open_when` item for `rex-code-tdd/mocking.md` (F2) |
 | `fitness-tests` | C07, C08 | `rex-code-tests-fitness-functions` | `artefact: [fitness-test]` | `full` | wc | `open_when` item for `rex-code-tdd/mocking.md` (F2) |
 | `integration-tests` | C09 | `rex-code-tests-integration-testing` | `artefact: [integration-test]` | `full` | wc | `files` item `real-funds.md` (F1); `open_when` item for `rex-code-tdd/mocking.md` (F2) |
-| `boundary-tests` | C10, C11, C12 | `rex-code-tdd` | `touches: [system-boundary]` | the row's `open-when` stays with the file: `mocking.md` is a topic file, and a topic file is always open-when (Q3). The skill keeps `full` from row `tdd` | wc, the same as row `tdd` | `files` item `mocking.md` with its case (F2) |
+| `boundary-tests` | C10, C11, C12 | `rex-code-tdd` | none since gate A; WP2 gave `touches: [system-boundary]` | the row's `open-when` stays with the file: `mocking.md` is a topic file, and a topic file is always open-when (Q3). The skill keeps `full` from row `tdd` | wc, the same as row `tdd` | `files` item `mocking.md` with its case (F2) |
 | `folders` | C13, C14 | `rex-code-folder-management` | `touches: [file-layout]` | `full` | wc | `files` item `move.md` (F3) |
 | `dependencies` | C15 | `rex-code-external-libraries` | `touches: [dependencies]` | `full` | wc | none from the table |
 | `failure-policy` | C16, C17, C18, C19 | `rex-code-failure-policy` | `touches: [outside-input, long-running, retry]` | `full` | wc | `files` item `failure-table.md` (F4) |
-| `design` | C20 | `rex-code-design-sketch`, `rex-code-validation-plan` | `activity: [design]` | `full` | none: scope `any` | none from the table |
-| `spike` | C21 | `rex-code-spike` | `touches: [unproven-approach]` | `full` | none: scope `any` | none from the table |
-| `smells` | C22, C23 | `rex-code-smells` | `touches: [legacy-code]`, `activity: [audit]` | `full` | wc | `open_when` items for `rex-code-folder-management/audit.md` (F5) and `rex-code-failure-policy/audit.md` (F6) |
+| `design` | C20 | `rex-code-design-sketch`, `rex-code-validation-plan` | `activity: [design]` | `full` | `writes_code: [true]` since gate A, each with its own `not_when` line; WP2 gave none (scope `any`) | none from the table |
+| `spike` | C21 | `rex-code-spike` | `touches: [unproven-approach]` | `full` | `writes_code: [true]` since gate A, with its own `not_when` line; WP2 gave none (scope `any`) | none from the table |
+| `smells` | C22, C23 | `rex-code-smells` | `activity: [audit]`; WP2 also gave `touches: [legacy-code]`, which gate A removed | `full` | wc | `open_when` items for `rex-code-folder-management/audit.md` (F5) and `rex-code-failure-policy/audit.md` (F6) |
 | `architecture` | C24 | `rex-code-improve-codebase-architecture` | `touches: [architecture]` | `full` | wc | none from the table |
 | `priorities` | C25 | `rex-code-priorities` | `touches: [trade-offs]` | `full` | none: scope `any` | none from the table |
 | `latency` | C26 | `rex-code-latency` | `quality: [latency]` | `full` | `scope: { writes_code: [true], languages: [rust], latency_scale: [ns_us] }`, `not_when: "A hot path measured in milliseconds, or one on a host you do not control."` | `files` item `measure.md` (F7) |
@@ -329,7 +335,7 @@ WP2 wrote the `metadata` map into the header of each skill in `plugin/library/`.
 | `skill-text` | C29 | `rex-skill-language` | `artefact: [instructions]` | `full` | none: scope `any` | none from the table |
 | `briefs` | C30, C31 | `rex-agent-prompting` | `touches: [sub-agent]`, `artefact: [brief]` | `full` | none: scope `any` | none from the table |
 | `plan-review` | C32 | `rex-codex-adversarial-review` | `facts: { role: plan-reviewer }` | `full` | none: scope `any` | none from the table |
-| `plan-writing` | C33 | `rex-code-design-sketch`, `rex-code-validation-plan` | `artefact: [plan]` | `full` | none: scope `any` | none from the table |
+| `plan-writing` | C33 | `rex-code-design-sketch`, `rex-code-validation-plan` | `artefact: [plan]` | `full` | `writes_code: [true]` since gate A, as row `design`; WP2 gave none (scope `any`) | none from the table |
 
 The row `pr-review` is an open item. Its only skill, `rex-pr-review`, is a listed skill in `plugin/skills/`, and WP2 writes no header outside `plugin/library/`. Q7 lets a listed skill opt in to search with a `metadata` map. When it does, its map gets kind `method`, category `review`, `claims.activity: [review]` and `placement: full`, with no scope (Part 4, choice 11). Until then, the table row is its only record.
 
@@ -337,7 +343,7 @@ The row `pr-review` is an open item. Its only skill, `rex-pr-review`, is a liste
 
 | ID | Criterion | Header field and value | Skill |
 | --- | --- | --- | --- |
-| C01 | `writes-code` | `claims.facts.writes_code: true` | the four rulebooks and `rex-code-essentials` |
+| C01 | `writes-code` | `claims.facts.writes_code: true` | `rex-code-essentials`; the four rulebooks until gate A |
 | C02 | `language-not-rust` | `claims.facts: { writes_code: true, languages: [ts] }` | `rex-gap-ts` |
 | C03 | `builds-feature` | `claims.activity: build` | `rex-code-tdd` |
 | C04 | `fixes-bug` | `claims.activity: fix` | `rex-code-tdd` |
@@ -346,9 +352,9 @@ The row `pr-review` is an open item. Its only skill, `rex-pr-review`, is a liste
 | C07 | `invariant` | `claims.artefact: fitness-test` | `rex-code-tests-fitness-functions` |
 | C08 | `property-test` | `claims.artefact: fitness-test` | `rex-code-tests-fitness-functions` |
 | C09 | `real-world` | `claims.artefact: integration-test` | `rex-code-tests-integration-testing` |
-| C10 | `outside-system` | `claims.touches: system-boundary` | `rex-code-tdd` |
-| C11 | `time-or-randomness` | `claims.touches: system-boundary` | `rex-code-tdd` |
-| C12 | `file-system` | `claims.touches: system-boundary` | `rex-code-tdd` |
+| C10 | `outside-system` | `claims.touches: system-boundary` | none since gate A; `rex-code-tdd` in WP2 |
+| C11 | `time-or-randomness` | `claims.touches: system-boundary` | none since gate A; `rex-code-tdd` in WP2 |
+| C12 | `file-system` | `claims.touches: system-boundary` | none since gate A; `rex-code-tdd` in WP2 |
 | C13 | `creates-or-splits` | `claims.touches: file-layout` | `rex-code-folder-management` |
 | C14 | `moves` | `claims.touches: file-layout`, and the case of `files` item `move.md` | `rex-code-folder-management` |
 | C15 | `adds-or-upgrades` | `claims.touches: dependencies` | `rex-code-external-libraries` |
@@ -358,7 +364,7 @@ The row `pr-review` is an open item. Its only skill, `rex-pr-review`, is a liste
 | C19 | `main-loop` | `claims.touches: long-running` | `rex-code-failure-policy` |
 | C20 | `design-first` | `claims.activity: design` | `rex-code-design-sketch`, `rex-code-validation-plan` |
 | C21 | `unproven` | `claims.touches: unproven-approach` | `rex-code-spike` |
-| C22 | `refactor-unfamiliar` | `claims.touches: legacy-code` | `rex-code-smells` |
+| C22 | `refactor-unfamiliar` | `claims.touches: legacy-code` | none since gate A; `rex-code-smells` in WP2 |
 | C23 | `audit` | `claims.activity: audit` | `rex-code-smells` |
 | C24 | `architecture-friction` | `claims.touches: architecture` | `rex-code-improve-codebase-architecture` |
 | C25 | `ranked-decision` | `claims.touches: trade-offs` | `rex-code-priorities` |
@@ -399,7 +405,7 @@ A topic file outside the table carries the case that its skill's router text giv
 
 ### 6.5 Choices WP2 made
 
-1. **The rulebooks keep their row.** The four rulebooks claim `writes_code: true` with `placement: full`, as row `code-rulebooks` gives today. The digest `rex-code-essentials` makes the same claim and names the four as `open_when` items. Search will return all five for a code task until the switch to the digest alone, which is gate B and WP7. The digest is not in `table.json`, so no task gets it yet.
+1. **The rulebooks kept their row in WP2, and lost its claim after gate A.** WP2 gave the four rulebooks `writes_code: true` with `placement: full`, as row `code-rulebooks` gives today, so search returned all five rule skills for a code task, the digest fourth by name. Since gate A only the digest `rex-code-essentials` makes that claim, and it names the four as `open_when` items, so search returns the digest alone. The digest is not in `table.json`, so inside a job no task gets it yet.
 2. **No language scope on general rules.** No rulebook and not the digest has `scope.languages` (section 7.1). `rex-gap-ts` claims `languages: [ts]` under `claims.facts`, so lookup A finds it, and it has no scope.
 3. **`rex-code-latency` claims only `quality: latency`.** Part 3 names the touches `threads` and `allocation` as a coarse filter for its topic files. A skill-level claim of them would return the skill to any task that touches threads, which no row of the table does. Section 7.1 gives a `files` item no `touches` field, so WP4 must say where that filter is declared.
 4. **The scope `writes_code` of a row is kept even where it is narrow.** Row `smells` has scope `code`, so an audit that writes no code does not reach `rex-code-smells`, today or now.
@@ -410,4 +416,23 @@ A topic file outside the table carries the case that its skill's router text giv
 - **Q7:** row `pr-review` (C27), section 6.1.
 - **Text that says the library holds 24 skills.** The library holds 25 now. `plugin/skills/orchestration-builder/SKILL.md`, `plugin/skills/orchestration-builder/stages/1-skills/stage.md`, `plugin/skills/rex-rules/SKILL.md` and `README.md` still say 24. They are outside WP2 and belong to the skill text of WP8 (section 9.9).
 - **No map is not a finding.** `rex skills check` gives no finding for a library skill whose header has no `metadata` map. A fitness test that each skill of `plugin/library/` has one would keep the 25 maps from being lost.
-- **No term was missing.** Every claim, scope key, kind and category of the 25 headers is a term of `plugin/vocab/terms.json` version 1.
+- **No term was missing.** Every claim, scope key, kind and category of the 25 headers is a term of `plugin/vocab/terms.json` version 1, and of version 2, which removed no term.
+
+---
+
+## Part 7. Version 2
+
+Gate A (`docs/skill-library-gate-a.md`, part 1) found skills that search gave to tasks they do not fit, because the meaning of a term said more than the skills that claim it cover. Version 2 narrows six meanings. It removes no term and adds none. Search matches a term, never its meaning, so a new meaning changes no answer by itself: it changes what a person or an agent who fills a request form ticks.
+
+| Term | Version 1 | Version 2 |
+| --- | --- | --- |
+| `touches:file-layout` | Creates, splits or moves a file, module or folder. | Creates, splits or moves a code file, module or code folder, and decides where it goes. A folder of skill text or documents is not code. |
+| `touches:sub-agent` | Starts a sub-agent. | Starts a sub-agent of the job and writes its brief. |
+| `touches:architecture` | Module grouping, refactor candidates and architecture friction. | Finds friction or refactor candidates in the module structure of existing code. |
+| `artefacts:unit-test` | A unit test of a pure function. | An inline unit test of a pure function, kept only until a contract or integration test covers the same code. |
+| `touches:legacy-code` | Changes code that is old or that the agent does not know. | Refactors code that is old or that the agent does not know. |
+| `touches:system-boundary` | A test crosses to an outside API or database, the file system, time or randomness. | A test replaces an outside API or database, the file system, time or randomness with a stand-in. |
+
+No library skill claims `legacy-code` or `system-boundary` since gate A. Both stay, with the case that their words name, so that a later skill can claim them.
+
+Version 2 also adds `value_aliases` to `aliases.json` (Part 5.2), so that a request with `languages: ["typescript"]` finds `rex-gap-ts`.

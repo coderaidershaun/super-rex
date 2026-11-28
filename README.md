@@ -502,7 +502,7 @@ store=v2
 storage=on
 claude=2.1.323
 plugin=0.14.0
-library=super-rex sha256:450355ca8e877be1ab2f13df9b2cdbe78a4546742dd0a00eca7f756f0be87e5a
+library=super-rex sha256:7644ab358e62ca44215c4cc877f5ada11d9c0c62a24b63183e86672efa8a7be9
 ```
 
 With a `rex` on `PATH` that has no `skills serve`:
@@ -606,14 +606,14 @@ error: 3 findings in 1 of 2 skills
 
 ```console
 $ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"head","arguments":{}}}' | rex skills serve --name team --library skills
-{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\"protocol\":\"skills/1\",\"library\":\"team\",\"version\":\"sha256:610a6762965d5c019a91573d4b1e9d06ddef6aded98198cb046a36cbbb1d6c6b\",\"skills\":3,\"vocabulary\":\"1\"}"}],"isError":false}}
+{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\"protocol\":\"skills/1\",\"library\":\"team\",\"version\":\"sha256:fd5bcba6d91ad638e974438ea6bd72358cdd2166ef9dd263383f94d307b9f826\",\"skills\":3,\"vocabulary\":\"2\"}"}],"isError":false}}
 ```
 
 **`rex skills search [--library <folder>]... [--keyword-ratio <share>] [--keyword-scores]`**: read the arguments of the `search` tool as one JSON object on stdin (`requests`, `limit`, `cursor`, `kinds`, `categories`, `token_budget`, `keep_hashes`), and print the answer as one JSON line, the same text that the `search` tool of `rex skills serve` gives. Use it to test the headers of a library. It finds skills in three lookups: A, the facts a skill claims; B, the terms a skill claims, with a check of its scope; C, a keyword search for free text. Every tier A item comes before every tier B item, and every tier B item before every tier C item; inside each tier, each need gets its first item before any need gets its second, and equal ranks come in name order. Each result has a budget of `token_budget` tokens, by default 200 for each item of `limit`. A result over its budget cuts each `why` and gap reason to its head, leaves out hashes (unless `"keep_hashes": true`), word counts and `placement`, then moves its last items to the next page; `files` and `open_when` always stay, and a result still over its budget with one item left holds `"over_budget": true`. Two options are for measurement only: `--keyword-ratio <share>` (above 0, at most 1) replaces the built-in share 0.5 of the best keyword score that a tier C candidate must reach, and `--keyword-scores` adds `score` and `best_score` to each tier C item. With neither, the answer is unchanged. It has no `--name`: each item names the base name of the first folder as its library. [docs/skill-library.md](docs/skill-library.md) gives the fields and examples.
 
 ```console
 $ echo '{"requests":[{"id":"T2","facts":{"writes_code":true,"languages":["go"],"latency_scale":"ms"},"must_have":["latency"]}],"kinds":["reference"]}' | rex skills search --library plugin/library
-{"index_version":"sha256:f51b8520b35a3eb5229706586a214b768ddb940f90f602f24857eba35f5c7737","results":[{"request":"T2","items":[],"more":0,"cursor":null,"gaps":[{"need":"must_have:latency","reason":"scope: languages go not in rust; latency_scale ms not in ns_us","skill":"rex-code-latency","library":"library","not_when":"A hot path measured in milliseconds, or one on a host you do not control."},{"need":"languages:go","reason":"no skill claims the language go"}],"unrecognised":[],"dropped":[]}]}
+{"index_version":"sha256:7644ab358e62ca44215c4cc877f5ada11d9c0c62a24b63183e86672efa8a7be9","results":[{"request":"T2","items":[],"more":0,"cursor":null,"gaps":[{"need":"must_have:latency","reason":"scope: languages go not in rust; latency_scale ms not in ns_us","skill":"rex-code-latency","library":"library","not_when":"A hot path measured in milliseconds, or one on a host you do not control."},{"need":"languages:go","reason":"no skill claims the language go"}],"unrecognised":[],"dropped":[]}]}
 ```
 
 **`rex skills index [--library <folder>]...`**: print the static index of a library as one JSON document, to publish beside it: `protocol`, `library`, `vocabulary`, and each skill with its `name`, `type`, `description`, `url`, `digest` (`sha256:` and the SHA-256 of `SKILL.md`), the fields that a search reads, and its other files with their digests. Write it to a file with `rex skills index --library skills > index.json`.
@@ -808,7 +808,7 @@ when_to_use: Use when you write release notes, or when the user says "release no
 ---
 ```
 
-A skill of the library also has a `metadata` map in its header: its `kind`, its `category`, what it is for in terms of the shared vocabulary (`plugin/vocab/terms.json`, version 1), its scope, its intent phrases, its files and its open-when items. `rex skills search` and the library server read that map. [docs/skill-library.md](docs/skill-library.md) gives the format, with a header of the library as the example.
+A skill of the library also has a `metadata` map in its header: its `kind`, its `category`, what it is for in terms of the shared vocabulary (`plugin/vocab/terms.json`, version 2), its scope, its intent phrases, its files and its open-when items. `rex skills search` and the library server read that map. [docs/skill-library.md](docs/skill-library.md) gives the format, with a header of the library as the example.
 
 An agent reads all of `SKILL.md`, so it holds only the rules an agent needs every time and a table that says when to read each sibling file. A sibling file sits in the skill's folder and holds the text for one step or one case. `SKILL.md` names it as `<skill>/<file>.md`, such as `rex-deliver/clean-up.md`, and an agent reads it with `rex_skill` only when it reaches that step or case. A skill can sit below its folder in subfolders too, as the builder's stage files do.
 

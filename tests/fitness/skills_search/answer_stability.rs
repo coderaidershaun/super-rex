@@ -99,7 +99,7 @@ fn every_card_has_at_most_thirty_words() {
         json!({ "id": "D", "facts": { "writes_code": true }, "activity": "design" }),
         json!({ "id": "G", "facts": { "writes_code": true }, "artefacts": ["diagram"] }),
         json!({ "id": "U", "must_have": ["p99"], "activity": "biuld", "touches": ["concurency"],
-                "facts": { "frobnicate": 1, "languages": ["golang"] },
+                "facts": { "frobnicate": 1, "languages": ["cobol"] },
                 "needs": ["write release notes"] }),
         json!({ "id": "S", "needs": ["sketch a module design before code"] }),
         json!({ "id": "N", "needs": ["write release notes for a new version",

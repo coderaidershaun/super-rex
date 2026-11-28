@@ -73,7 +73,7 @@ fn with_no_library_the_embedded_one_is_served() {
 
     assert_eq!(head["library"], "super-rex");
     assert_eq!(head["skills"], 25);
-    assert_eq!(head["vocabulary"], "1");
+    assert_eq!(head["vocabulary"], "2");
 }
 
 #[test]

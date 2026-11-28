@@ -198,7 +198,7 @@ fn replaced_and_shadowed_skills_are_dropped_with_reasons() {
 fn unknown_words_are_listed_and_every_doubt_has_a_question() {
     let unknown = json!({ "id": "U", "must_have": ["p99"], "activity": "biuld",
                           "touches": ["concurency"],
-                          "facts": { "frobnicate": 1, "languages": ["golang"] },
+                          "facts": { "frobnicate": 1, "languages": ["cobol"] },
                           "needs": ["write release notes"] });
     let design = json!({ "id": "S", "needs": ["sketch a module design before code"] });
 
@@ -215,7 +215,7 @@ fn unknown_words_are_listed_and_every_doubt_has_a_question() {
         unknown["unrecognised"],
         json!([
             "facts:frobnicate",
-            "languages:golang",
+            "languages:cobol",
             "activity:biuld",
             "touches:concurency"
         ])

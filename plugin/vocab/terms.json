@@ -1,5 +1,5 @@
 {
-  "version": "1",
+  "version": "2",
   "about": "The shared vocabulary of skill libraries: every term a skill's metadata header or a search request may use. Each group names the header field and the request field that take its terms. docs/skill-library-vocabulary.md maps each criterion of plugin/assign/table.json to these terms and gives the rules that rex skills check applies.",
   "kinds": {
     "header": "kind",
@@ -64,17 +64,17 @@
     "header": "claims.touches",
     "request": "touches",
     "terms": [
-      { "term": "system-boundary", "about": "A test crosses to an outside API or database, the file system, time or randomness." },
-      { "term": "file-layout", "about": "Creates, splits or moves a file, module or folder." },
+      { "term": "system-boundary", "about": "A test replaces an outside API or database, the file system, time or randomness with a stand-in." },
+      { "term": "file-layout", "about": "Creates, splits or moves a code file, module or code folder, and decides where it goes. A folder of skill text or documents is not code." },
       { "term": "dependencies", "about": "Adds or upgrades a dependency." },
       { "term": "outside-input", "about": "Handles input from outside the program." },
       { "term": "long-running", "about": "Keeps long-running state, or writes a main loop." },
       { "term": "retry", "about": "Retries an operation or reconnects to a service." },
       { "term": "unproven-approach", "about": "Rests on an approach, crate or outside service that is not proven." },
-      { "term": "legacy-code", "about": "Changes code that is old or that the agent does not know." },
-      { "term": "architecture", "about": "Module grouping, refactor candidates and architecture friction." },
+      { "term": "legacy-code", "about": "Refactors code that is old or that the agent does not know." },
+      { "term": "architecture", "about": "Finds friction or refactor candidates in the module structure of existing code." },
       { "term": "trade-offs", "about": "A decision that depends on a ranking of qualities." },
-      { "term": "sub-agent", "about": "Starts a sub-agent." },
+      { "term": "sub-agent", "about": "Starts a sub-agent of the job and writes its brief." },
       { "term": "threads", "about": "Threads, locks and work shared between cores." },
       { "term": "allocation", "about": "Memory allocation and its cost." }
     ]
@@ -91,7 +91,7 @@
     "header": "claims.artefact",
     "request": "artefacts",
     "terms": [
-      { "term": "unit-test", "about": "A unit test of a pure function." },
+      { "term": "unit-test", "about": "An inline unit test of a pure function, kept only until a contract or integration test covers the same code." },
       { "term": "contract-test", "about": "A test of the interface between two modules." },
       { "term": "fitness-test", "about": "A test of an invariant that must always hold, or a property test." },
       { "term": "integration-test", "about": "A test against the real outside world: an API, an exchange, a database or a WebSocket." },

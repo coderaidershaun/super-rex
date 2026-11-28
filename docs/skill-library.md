@@ -15,8 +15,8 @@ This guide shows how to make a folder of skills in your own repo searchable in t
 | Path | What it holds |
 | --- | --- |
 | `plugin/library/` | The library: 25 skill folders. Each folder has a `SKILL.md`, and some have other files. |
-| `plugin/vocab/terms.json` | The shared vocabulary, version `1`: each term that a `metadata` map may use. |
-| `plugin/vocab/aliases.json` | The alias table, version `1`: free words that a search maps onto a term, such as `p99` onto `latency`. |
+| `plugin/vocab/terms.json` | The shared vocabulary, version `2`: each term that a `metadata` map may use. |
+| `plugin/vocab/aliases.json` | The alias table, version `2`: free words that a search maps onto a term, such as `p99` onto `latency`. |
 | `plugin/.claude-plugin/plugin.json` | The plugin manifest. Its `mcpServers` entry starts the library server (section 5). |
 | `docs/skill-library-vocabulary.md` | Why each term exists, and the exact form of both vocabulary files. |
 
@@ -165,7 +165,7 @@ Other keys under `metadata`, such as `author`, are ignored.
 
 `rex skills check` does not check the rules of these last two paragraphs. Make sure of them by eye.
 
-## 3. The shared vocabulary, version 1
+## 3. The shared vocabulary, version 2
 
 Every term of a `metadata` map comes from `plugin/vocab/terms.json`. These are all of them.
 
@@ -180,7 +180,7 @@ Every term of a `metadata` map comes from `plugin/vocab/terms.json`. These are a
 | `qualities` | `claims.quality` | `latency`, `readability` |
 | `artefacts` | `claims.artefact` | `unit-test`, `contract-test`, `fitness-test`, `integration-test`, `diagram`, `plan`, `instructions`, `brief` |
 
-The languages are the names of `rex codebase --only`: `rust`, `go`, `c`, `cpp`, `python`, `js`, `ts`, `shell`, `java`, `kotlin`, `scala`, `csharp`, `swift`, `objc`, `dart`, `php`, `ruby`, `lua`, `haskell`, `elixir`, `r`, `sql`, `zig`, `perl`.
+The languages are the names of `rex codebase --only`: `rust`, `go`, `c`, `cpp`, `python`, `js`, `ts`, `shell`, `java`, `kotlin`, `scala`, `csharp`, `swift`, `objc`, `dart`, `php`, `ruby`, `lua`, `haskell`, `elixir`, `r`, `sql`, `zig`, `perl`. A search request may also give a common full name, `typescript`, `javascript`, `golang`, `c++`, `c#` or `objective-c`, and the search reads it as `ts`, `js`, `go`, `cpp`, `csharp` or `objc`. A header must use the short name.
 
 A wrong term is a finding, and the finding lists the allowed terms.
 
@@ -302,7 +302,7 @@ Run from `team-repo/`, with the input file `session.jsonl`:
 ```console
 $ rex skills serve --name team --library skills < session.jsonl
 {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-06-18","capabilities":{"tools":{}},"serverInfo":{"name":"super-rex-skills","version":"0.14.0"}}}
-{"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"{\"protocol\":\"skills/1\",\"library\":\"team\",\"version\":\"sha256:610a6762965d5c019a91573d4b1e9d06ddef6aded98198cb046a36cbbb1d6c6b\",\"skills\":3,\"vocabulary\":\"1\"}"}],"isError":false}}
+{"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"{\"protocol\":\"skills/1\",\"library\":\"team\",\"version\":\"sha256:fd5bcba6d91ad638e974438ea6bd72358cdd2166ef9dd263383f94d307b9f826\",\"skills\":3,\"vocabulary\":\"2\"}"}],"isError":false}}
 {"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"{\"skill\":\"py-unit-tests\",\"file\":\"fixtures.md\",\"sha256\":\"fd80949bce1f9843a74b65de0a40c1a8f6099248d1ae27b6f335de6e931abcbb\",\"text\":\"# Fixtures\\n\\n- Put shared setup in a pytest fixture in `conftest.py`.\\n- Give each fixture the narrowest scope that works.\\n\"}"}],"isError":false}}
 {"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"{\"code\":\"not_found\",\"message\":\"no file \\\"missing.md\\\" in skill \\\"py-unit-tests\\\"\"}"}],"isError":true}}
 ```
@@ -415,7 +415,7 @@ Each result holds `request`, `items`, `more`, `cursor`, `gaps`, `unrecognised` a
 $ echo '{"requests":[{"id":"T1","facts":{"writes_code":true,"languages":["python"]},"activity":"test","artefacts":["unit-test"]}]}' \
     | rex skills search --library skills | python3 -m json.tool
 {
-    "index_version": "sha256:610a6762965d5c019a91573d4b1e9d06ddef6aded98198cb046a36cbbb1d6c6b",
+    "index_version": "sha256:fd5bcba6d91ad638e974438ea6bd72358cdd2166ef9dd263383f94d307b9f826",
     "results": [
         {
             "request": "T1",
@@ -469,7 +469,7 @@ The skill is found by its declared claims (tier B), and its scope `languages: [p
 $ echo '{"requests":[{"id":"T2","facts":{"writes_code":true,"languages":["go"]},"artefacts":["unit-test"]}]}' \
     | rex skills search --library skills | python3 -m json.tool
 {
-    "index_version": "sha256:610a6762965d5c019a91573d4b1e9d06ddef6aded98198cb046a36cbbb1d6c6b",
+    "index_version": "sha256:fd5bcba6d91ad638e974438ea6bd72358cdd2166ef9dd263383f94d307b9f826",
     "results": [
         {
             "request": "T2",
@@ -504,7 +504,7 @@ The scope is not met, so the skill is not returned. The caller sees why, with th
 $ echo '{"requests":[{"id":"T3","needs":["write the release notes"],"touches":["flaky-ci"]}]}' \
     | rex skills search --library skills | python3 -m json.tool
 {
-    "index_version": "sha256:610a6762965d5c019a91573d4b1e9d06ddef6aded98198cb046a36cbbb1d6c6b",
+    "index_version": "sha256:fd5bcba6d91ad638e974438ea6bd72358cdd2166ef9dd263383f94d307b9f826",
     "results": [
         {
             "request": "T3",
@@ -547,7 +547,7 @@ $ echo '{"requests":[{"id":"T5","facts":{"languages":["python"]},"artefacts":["u
     | rex skills search --library skills | python3 -m json.tool
 ```
 
-The first page holds `py-unit-tests`, with `"more": 1` and `"cursor": "c1.1.610a6762965d5c01.69944676f9c79a54"`. Send the same request again with that `cursor` to get `release-notes`. With `"limit": 1` the budget is 200 tokens, and `py-unit-tests` with its two open-when items costs 262 tokens even after the steps of the size limit, so the first page also holds `"over_budget": true`. With `"token_budget": 400` the same page holds the item whole, at 316 tokens, and no `over_budget`. A cursor that cannot be read gives `bad_cursor`:
+The first page holds `py-unit-tests`, with `"more": 1` and `"cursor": "c1.1.fd5bcba6d91ad638.69944676f9c79a54"`. Send the same request again with that `cursor` to get `release-notes`. With `"limit": 1` the budget is 200 tokens, and `py-unit-tests` with its two open-when items costs 262 tokens even after the steps of the size limit, so the first page also holds `"over_budget": true`. With `"token_budget": 400` the same page holds the item whole, at 316 tokens, and no `over_budget`. A cursor that cannot be read gives `bad_cursor`:
 
 ```console
 $ echo '{"requests":[{"id":"T3"}],"cursor":"nonsense"}' | rex skills search --library skills
@@ -577,7 +577,7 @@ The item of `release-notes` now holds `"score": 2.9464782214535807` and `"best_s
 ```console
 $ echo '{"requests":[{"id":"T1","facts":{"writes_code":true,"languages":["rust"],"latency_scale":"ns_us"},"must_have":["latency"],"needs":["measure the hot path"]}],"kinds":["reference"]}' \
     | rex skills search --library plugin/library
-{"index_version":"sha256:f51b8520b35a3eb5229706586a214b768ddb940f90f602f24857eba35f5c7737","results":[{"request":"T1","items":[{"skill":"rex-code-latency","library":"library","kind":"reference","category":"performance","slot":"quality:latency","tier":"B","why":"declared: quality latency; scope met","card":"Reference for Rust hotpath latency of nanoseconds to tens of microseconds, on a Linux host you control: measure, then cause, proof, fix and numbers for jitter, caches, allocation, atomics, queues,","not_when":"A hot path measured in milliseconds, or one on a host you do not control.","placement":"full","sha256":"d9b745dc4c0d4a761ecc969f94d71a6b8b9f64793095b67ea6f441706c536e58","words":697,"files":[{"path":"measure.md","role":"topic","when":"you measure the hot path","sha256":"4ad170cd4f7de333c1e874e937153c8fca6608c61f498c1b2c928ec29ee910b1"},{"path":"measure-code.md","role":"code","language":"rust","sha256":"6fa49c8410388f63082ff6368f0194b3647df1cc85d78b68c87bf5708bbff456"}]}],"more":0,"cursor":null,"gaps":[],"unrecognised":[],"dropped":[]}]}
+{"index_version":"sha256:7644ab358e62ca44215c4cc877f5ada11d9c0c62a24b63183e86672efa8a7be9","results":[{"request":"T1","items":[{"skill":"rex-code-latency","library":"library","kind":"reference","category":"performance","slot":"quality:latency","tier":"B","why":"declared: quality latency; scope met","card":"Reference for Rust hotpath latency of nanoseconds to tens of microseconds, on a Linux host you control: measure, then cause, proof, fix and numbers for jitter, caches, allocation, atomics, queues,","not_when":"A hot path measured in milliseconds, or one on a host you do not control.","placement":"full","sha256":"d9b745dc4c0d4a761ecc969f94d71a6b8b9f64793095b67ea6f441706c536e58","words":697,"files":[{"path":"measure.md","role":"topic","when":"you measure the hot path","sha256":"4ad170cd4f7de333c1e874e937153c8fca6608c61f498c1b2c928ec29ee910b1"},{"path":"measure-code.md","role":"code","language":"rust","sha256":"6fa49c8410388f63082ff6368f0194b3647df1cc85d78b68c87bf5708bbff456"}]}],"more":0,"cursor":null,"gaps":[],"unrecognised":[],"dropped":[]}]}
 ```
 
 The need "measure the hot path" chose the topic file `measure.md` by its `when`, and its Rust code twin `measure-code.md` came with it, because the request's language is `rust`. For a Go service measured in milliseconds, the scope is not met:
@@ -585,7 +585,7 @@ The need "measure the hot path" chose the topic file `measure.md` by its `when`,
 ```console
 $ echo '{"requests":[{"id":"T2","facts":{"writes_code":true,"languages":["go"],"latency_scale":"ms"},"must_have":["latency"]}],"kinds":["reference"]}' \
     | rex skills search --library plugin/library
-{"index_version":"sha256:f51b8520b35a3eb5229706586a214b768ddb940f90f602f24857eba35f5c7737","results":[{"request":"T2","items":[],"more":0,"cursor":null,"gaps":[{"need":"must_have:latency","reason":"scope: languages go not in rust; latency_scale ms not in ns_us","skill":"rex-code-latency","library":"library","not_when":"A hot path measured in milliseconds, or one on a host you do not control."},{"need":"languages:go","reason":"no skill claims the language go"}],"unrecognised":[],"dropped":[]}]}
+{"index_version":"sha256:7644ab358e62ca44215c4cc877f5ada11d9c0c62a24b63183e86672efa8a7be9","results":[{"request":"T2","items":[],"more":0,"cursor":null,"gaps":[{"need":"must_have:latency","reason":"scope: languages go not in rust; latency_scale ms not in ns_us","skill":"rex-code-latency","library":"library","not_when":"A hot path measured in milliseconds, or one on a host you do not control."},{"need":"languages:go","reason":"no skill claims the language go"}],"unrecognised":[],"dropped":[]}]}
 ```
 
 ## 7. Publish a static index with `rex skills index`

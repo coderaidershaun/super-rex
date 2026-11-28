@@ -5,6 +5,7 @@ mod answer;
 mod index;
 mod intent_check;
 mod keyword_options;
+mod languages;
 mod order;
 mod paging;
 mod serve_parity;

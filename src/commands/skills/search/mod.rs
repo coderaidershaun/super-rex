@@ -36,7 +36,7 @@ pub use response::{
     Candidate, Dropped, FileChoice, FileItem, Found, Gap, Item, KeywordScore, Question,
     RequestResult, SearchError, SearchResponse, Slot, Tier,
 };
-pub use vocabulary::{Alias, BroaderTerm, Relation, TermGroup, Vocabulary};
+pub use vocabulary::{Alias, BroaderTerm, Relation, TermGroup, ValueAlias, Vocabulary};
 
 pub(crate) use cli::run as run_search;
 pub(crate) use index_file::run as run_index;

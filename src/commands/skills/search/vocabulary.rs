@@ -1,5 +1,5 @@
 //! The shared vocabulary as a search request reads it, embedded in the binary: which words are
-//! terms, which facts and values exist, and which free words the alias table maps onto a term.
+//! terms, which facts and values exist, and which free words the alias table maps onto a term or value.
 
 use std::sync::LazyLock;
 
@@ -35,6 +35,7 @@ static VOCABULARY: LazyLock<Vocabulary> = LazyLock::new(|| {
         aliases_version: aliases.version,
         aliases: aliases.aliases,
         broader_terms: aliases.broader_terms,
+        value_aliases: aliases.value_aliases,
     }
 });
 
@@ -48,6 +49,7 @@ pub struct Vocabulary {
     facts: Vec<Fact>,
     aliases: Vec<Alias>,
     broader_terms: Vec<BroaderTerm>,
+    value_aliases: Vec<ValueAlias>,
 }
 
 /// A group of terms, named as both files name it.
@@ -82,6 +84,16 @@ pub struct Alias {
     pub relation: Relation,
     pub group: TermGroup,
     pub term: String,
+}
+
+/// A common full name of an allowed value of a closed fact, such as
+/// `typescript` for the language `ts`. It means the value.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct ValueAlias {
+    /// Lower case, with single spaces between its words.
+    pub word: String,
+    pub fact: String,
+    pub value: String,
 }
 
 /// One term and the broader term it sits under, such as `latency` under the
@@ -155,6 +167,15 @@ impl Vocabulary {
             .collect()
     }
 
+    /// The allowed value of `fact` that `word` names, when the table maps
+    /// it. `word` must be lower case.
+    #[must_use]
+    pub fn value_of_alias(&self, fact: &str, word: &str) -> Option<&str> {
+        let mut aliases = self.value_aliases.iter();
+        let alias = aliases.find(|alias| alias.fact == fact && alias.word == word)?;
+        Some(alias.value.as_str())
+    }
+
     /// The term that `term` of `group` sits under, when the table names one.
     #[must_use]
     pub fn broader_of(&self, group: TermGroup, term: &str) -> Option<&BroaderTerm> {
@@ -205,6 +226,7 @@ struct AliasesFile {
     vocabulary: String,
     aliases: Vec<Alias>,
     broader_terms: Vec<BroaderTerm>,
+    value_aliases: Vec<ValueAlias>,
 }
 
 impl GroupFile {
@@ -226,6 +248,20 @@ mod tests {
             .filter(|alias| !vocabulary.has_term(alias.group, &alias.term))
             .collect();
         assert!(broken.is_empty(), "aliases onto no term: {broken:?}");
+    }
+
+    #[test]
+    fn every_value_alias_names_an_allowed_value_and_is_none_itself() {
+        let vocabulary = Vocabulary::embedded();
+        assert!(!vocabulary.value_aliases.is_empty());
+        for alias in &vocabulary.value_aliases {
+            let allowed = vocabulary
+                .allowed_values(&alias.fact)
+                .unwrap_or_else(|| panic!("{alias:?} names no closed text fact"));
+            assert!(allowed.contains(&alias.value.as_str()), "{alias:?}");
+            assert!(!allowed.contains(&alias.word.as_str()), "{alias:?}");
+            assert_eq!(alias.word, alias.word.to_lowercase(), "{alias:?}");
+        }
     }
 
     #[test]
@@ -300,6 +336,8 @@ mod tests {
 
         assert!(languages.contains(&"rust") && languages.contains(&"go"));
         assert!(!languages.contains(&"golang"));
+        assert_eq!(vocabulary.value_of_alias("languages", "golang"), Some("go"));
+        assert_eq!(vocabulary.value_of_alias("languages", "cobol"), None);
         assert_eq!(vocabulary.allowed_values("role"), None);
         assert_eq!(vocabulary.allowed_values("writes_code"), None);
         assert!(vocabulary.has_fact("repo_dependencies"));

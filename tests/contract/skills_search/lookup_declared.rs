@@ -338,7 +338,7 @@ fn unknown_words_are_unrecognised_and_aliases_map_onto_terms() {
         "must_have": ["p99"],
         "activity": "biuld",
         "touches": ["concurency"],
-        "facts": {"frobnicate": 1, "languages": ["golang"]}
+        "facts": {"frobnicate": 1, "languages": ["cobol"]}
     }));
 
     let b = lookup_b(&index, &form);
@@ -347,7 +347,7 @@ fn unknown_words_are_unrecognised_and_aliases_map_onto_terms() {
         form.unrecognised,
         [
             "facts:frobnicate",
-            "languages:golang",
+            "languages:cobol",
             "activity:biuld",
             "touches:concurency"
         ]
